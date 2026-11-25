@@ -238,6 +238,7 @@ Future<Set<String>> rewriteLocalReferences(
     case SyncRecordKind.setting:
     case SyncRecordKind.glossaryEntry:
     case SyncRecordKind.figureNote:
+    case SyncRecordKind.eventRule:
       return const {};
   }
   if (affectedDances.isEmpty) return affectedDances;

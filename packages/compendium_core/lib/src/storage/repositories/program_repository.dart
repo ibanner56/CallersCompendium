@@ -1,8 +1,11 @@
+import 'package:collection/collection.dart' show ListEquality;
 import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../../analysis/half_calling_stats.dart';
 import '../../model/enums.dart';
+import '../../model/event_rule.dart'
+    show decodeEventRuleIds, encodeEventRuleIds, normalizeEventRuleIds;
 import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/stored_timestamp.dart';
@@ -440,10 +443,27 @@ class ProgramRepository {
   /// [archive] or [unarchive] that lands while its copy is in flight then
   /// survives the save, which a read made before the transaction could not
   /// promise.
+  ///
+  /// [keepStoredEventRuleIds] does the same for the applied event rules
+  /// (#2340), which the builder's Rules picker writes on its own
+  /// ([updateEventRuleIds]): a pick that lands while a save is in flight
+  /// survives it.
   Future<Program> updateAndReadBack(
     Program program, {
     bool keepStoredArchivedAt = false,
+    bool keepStoredEventRuleIds = false,
   }) => _db.transaction(() async {
+    if (keepStoredEventRuleIds) {
+      final stored =
+          await (_db.selectOnly(_db.programs)
+                ..addColumns([_db.programs.eventRuleIds])
+                ..where(_db.programs.id.equals(program.id)))
+              .map((row) => row.read(_db.programs.eventRuleIds))
+              .getSingleOrNull();
+      if (stored != null) {
+        program = program.copyWith(eventRuleIds: decodeEventRuleIds(stored));
+      }
+    }
     if (keepStoredArchivedAt) {
       final storedArchivedAt =
           await (_db.selectOnly(_db.programs)
@@ -707,6 +727,69 @@ class ProgramRepository {
   /// archived.
   Future<bool> unarchive(String id, {required DateTime at}) =>
       _setArchivedAt(id, archivedAt: null, at: at);
+
+  /// Replaces the whole list of event rules applied to the live program [id]
+  /// (#2340) with [ids]. The builder's Rules picker does not use this: it
+  /// applies each tick to the list as stored, through [updateEventRuleIds],
+  /// so a change made elsewhere is not overwritten by the picker's copy.
+  /// [ids] is normalized ([normalizeEventRuleIds]). Returns
+  /// `false` when the program is missing or in Recently deleted, or already
+  /// applies exactly these rules.
+  Future<bool> setEventRuleIds(
+    String id,
+    List<String> ids, {
+    DateTime? at,
+  }) async {
+    var changed = false;
+    await updateEventRuleIds(id, (stored) {
+      final next = normalizeEventRuleIds(ids);
+      changed = !const ListEquality<String>().equals(stored, next);
+      return next;
+    }, at: at);
+    return changed;
+  }
+
+  /// Changes the event rules applied to the live program [id] (#2340) from
+  /// the list stored now: reads it, passes it to [change] and writes what
+  /// that returns, in one transaction, so a rule another writer applied in
+  /// the meantime is kept. [change] returning `null`, or the list it was
+  /// given, writes nothing. Returns the list stored afterwards, or `null`
+  /// when the program is missing or in Recently deleted.
+  Future<List<String>?> updateEventRuleIds(
+    String id,
+    List<String>? Function(List<String> stored) change, {
+    DateTime? at,
+  }) {
+    final now = resolveStamp(at);
+    return _db.transaction(() async {
+      final row =
+          await (_db.select(_db.programs)
+                ..where((t) => t.id.equals(id) & t.deletedAt.isNull()))
+              .getSingleOrNull();
+      if (row == null) return null;
+      final stored = decodeEventRuleIds(row.eventRuleIds);
+      final changed = change(stored);
+      if (changed == null) return stored;
+      final next = normalizeEventRuleIds(changed);
+      final encoded = encodeEventRuleIds(next);
+      if (row.eventRuleIds == encoded) return stored;
+      final current = asUtc(row.updatedAt);
+      await (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(
+        ProgramsCompanion(
+          eventRuleIds: Value(encoded),
+          updatedAt: Value(
+            nextStoredTimestamp(
+              now: now.isAfter(current)
+                  ? now
+                  : current.add(storedTimestampTick),
+              current: [current],
+            ),
+          ),
+        ),
+      );
+      return next;
+    });
+  }
 
   Future<bool> _setArchivedAt(
     String id, {
@@ -993,6 +1076,7 @@ class ProgramRepository {
               calendarFlag: Value(
                 normalizeShareableTextOrNull(program.calendarFlag),
               ),
+              eventRuleIds: Value(encodeEventRuleIds(program.eventRuleIds)),
             ),
           );
       await seedExistenceIfMissing(
@@ -2503,6 +2587,7 @@ class ProgramRepository {
       row.calendarEventFingerprint == null &&
       row.calendarWrittenAt == null &&
       row.calendarFlag == null &&
+      decodeEventRuleIds(row.eventRuleIds).isEmpty &&
       await (_db.selectOnly(_db.programSlots)
                 ..addColumns([_db.programSlots.id])
                 ..where(_db.programSlots.programId.equals(row.id))
@@ -2562,6 +2647,7 @@ class ProgramRepository {
         calendarEventFingerprint: Value(normalizeShareableTextOrNull(null)),
         calendarWrittenAt: const Value(null),
         calendarFlag: Value(normalizeShareableTextOrNull(null)),
+        eventRuleIds: Value(encodeEventRuleIds(const [])),
         updatedAt: Value(
           nextStoredTimestamp(
             now: now.isAfter(current) ? now : current.add(storedTimestampTick),
@@ -2605,6 +2691,7 @@ class ProgramRepository {
     calendarEventFingerprint: row.calendarEventFingerprint,
     calendarWrittenAt: asUtcOrNull(row.calendarWrittenAt),
     calendarFlag: row.calendarFlag,
+    eventRuleIds: decodeEventRuleIds(row.eventRuleIds),
     provenance: provenance,
   );
 

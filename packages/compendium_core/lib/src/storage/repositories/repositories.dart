@@ -21,6 +21,7 @@ import 'collection_import_event_repository.dart';
 import 'custom_field_repository.dart';
 import 'dance_repository.dart';
 import 'difficulty_level_repository.dart';
+import 'event_rule_repository.dart';
 import 'program_repository.dart';
 import 'published_source_repository.dart';
 import 'reference_edit_repository.dart';
@@ -277,9 +278,14 @@ class CompendiumRepositories {
   final SettingsRepository settings;
 
   /// The user's saved searches, one settings value each.
+  /// Event rules (#2340) use saved searches, so a saved search a live rule
+  /// uses cannot be deleted: the rules register their lookup here.
   late final SavedSearchRepository savedSearches = SavedSearchRepository(
     settings,
-  );
+  )..usage.register(eventRuleUseKind, eventRules.usesOfSavedSearch);
+
+  /// The caller's event rules (#2340).
+  late final EventRuleRepository eventRules = EventRuleRepository(db);
 
   /// The user's own glossary entries (#709). Writing a figure of your own
   /// (#1023) reindexes the dances that use it.

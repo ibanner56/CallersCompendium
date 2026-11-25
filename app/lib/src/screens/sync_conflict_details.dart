@@ -18,6 +18,7 @@ import '../search/facet_labels.dart';
 import '../sync/sync_setting_labels.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/compound_argument_editor.dart';
+import '../widgets/event_rule_text.dart';
 import '../widgets/program_status_labels.dart';
 import '../widgets/provenance_labels.dart';
 
@@ -38,6 +39,8 @@ class SyncConflictLookups {
     this.venues = const {},
     this.sources = const {},
     this.glossaryForms = const {},
+    this.savedSearches = const {},
+    this.eventRules = const {},
   });
 
   final Map<String, String> choreographers;
@@ -51,6 +54,14 @@ class SyncConflictLookups {
   /// The dance form each of the user's own glossary entries is for, by id: what
   /// a shorthand for one reads in, as its target's form (#2294).
   final Map<String, DanceForm> glossaryForms;
+
+  /// Each readable saved search's name, by id: what an event rule's search
+  /// is called (#2340).
+  final Map<String, String> savedSearches;
+
+  /// The live event rules, by id: what a program's applied rules are called
+  /// (#2340).
+  final Map<String, EventRule> eventRules;
 
   static Future<SyncConflictLookups> load(CompendiumRepositories repos) async {
     return SyncConflictLookups(
@@ -75,6 +86,11 @@ class SyncConflictLookups {
         for (final e in await repos.userGlossary.listAll())
           e.id: glossaryEntryDanceForm(e.payload),
       },
+      savedSearches: {
+        for (final stored in await repos.savedSearches.list())
+          if (stored.search case final search?) search.id: search.name,
+      },
+      eventRules: {for (final r in await repos.eventRules.listAll()) r.id: r},
     );
   }
 }
@@ -266,6 +282,7 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'lessonMinute': l10n.programsLessonTimeLabel,
         'arrivalMinute': l10n.programsArrivalTimeLabel,
         'calendarFlag': l10n.calendarFlagFieldLabel,
+        'eventRuleIds': l10n.programsRulesLabel,
       },
       SyncRecordKind.choreographer => {
         'name': l10n.syncConflictFieldName,
@@ -287,6 +304,14 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'payload': l10n.glossaryEntryKindHeading,
       },
       SyncRecordKind.figureNote => {'notes': l10n.glossaryNotes},
+      // An event rule (#2340), labelled as the rule editor labels it.
+      SyncRecordKind.eventRule => {
+        'savedSearchId': l10n.eventRuleSearchLabel,
+        'quantifier': l10n.eventRuleQuantifierLabel,
+        'count': l10n.eventRuleCountLabel,
+        'scope': l10n.eventRuleScopeLabel,
+        'name': l10n.eventRuleNameLabel,
+      },
       SyncRecordKind.venue => {
         'name': l10n.syncConflictFieldName,
         'eventName': l10n.venueEditorEventNameLabel,
@@ -1240,6 +1265,31 @@ class SyncConflictComparison extends StatelessWidget {
           ].join('; ');
         case 'calendarFlag':
           return calendarFlagLabel(l10n, value as String?);
+        // An event rule (#2340), in the rule editor's words; a quantifier or
+        // scope a newer build wrote falls through to the value as sent.
+        case 'quantifier' when group.kind == SyncRecordKind.eventRule:
+          if (eventRuleQuantifierFromName(value as String) case final q?) {
+            return eventRuleQuantifierLabel(l10n, q);
+          }
+        case 'scope' when group.kind == SyncRecordKind.eventRule:
+          if (eventRuleScopeFromName(value as String) case final scope?) {
+            return eventRuleScopeLabel(l10n, scope);
+          }
+        case 'savedSearchId' when group.kind == SyncRecordKind.eventRule:
+          return lookups.savedSearches[value] ?? l10n.syncConflictUnknownItem;
+        // The rules a program applies, each by its name or sentence.
+        case 'eventRuleIds' when group.kind == SyncRecordKind.program:
+          return [
+            for (final id in value as List)
+              if (lookups.eventRules[id] case final rule?)
+                eventRuleTitle(
+                  l10n,
+                  rule,
+                  lookups.savedSearches[rule.savedSearchId],
+                )
+              else
+                l10n.syncConflictUnknownItem,
+          ].join('; ');
         case 'eventDate':
           return formatEventDate(
             syncConflictCalendarDate(value as String),

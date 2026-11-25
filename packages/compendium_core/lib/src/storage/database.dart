@@ -695,6 +695,7 @@ const int kMinSupportedSchemaVersion = 39;
     PeerManifests,
     UserGlossaryEntries,
     FigureNotes,
+    EventRules,
   ],
 )
 class CompendiumDatabase extends _$CompendiumDatabase {
@@ -881,6 +882,27 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     }
   }
 
+  /// The event rules' part of v42 (#2340), joined while v42 was unreleased:
+  /// the `event_rules` table and `programs.event_rule_ids` (default `'[]'`,
+  /// so every existing program has no rule applied). Kept in its own helper,
+  /// called from the `from < 42` step and from `beforeOpen` for a file
+  /// already stamped 42, so it stays self-contained beside the other v42
+  /// pieces. The live-schema checks only keep it idempotent.
+  Future<void> _ensureV42EventRules(Migrator m) async {
+    final table = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' "
+      "AND name = '${eventRules.actualTableName}'",
+    ).get();
+    if (table.isEmpty) await m.createTable(eventRules);
+    final columns = await customSelect(
+      "SELECT name FROM pragma_table_info('${programs.actualTableName}')",
+    ).get();
+    final present = {for (final row in columns) row.read<String>('name')};
+    if (!present.contains(programs.eventRuleIds.name)) {
+      await m.addColumn(programs, programs.eventRuleIds);
+    }
+  }
+
   /// The v42 addition for slot rules (#2338):
   /// `program_slots.placeholder_search_id`, nullable, so every existing slot
   /// is an ordinary slot rather than an unfilled placeholder. It joined v42 while v42 was
@@ -1006,7 +1028,10 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       await transaction(() async {
         if (from < 40) await _ensureV40Schema(m);
         if (from < 41) await _ensureV41Schema();
-        if (from < 42) await _ensureV42Schema(m);
+        if (from < 42) {
+          await _ensureV42Schema(m);
+          await _ensureV42EventRules(m);
+        }
 
         // Last statement in the transaction: see the comment above its
         // opening for why this closes the remaining crash window. `to` is
@@ -1025,10 +1050,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       // v42 is filling the same way while unreleased: a test build stamped it
       // before later pieces joined it (alternate titles, the square dance
       // fields, the program calendar and time columns, a slot's placeholder
-      // search), and no `onUpgrade`
+      // search, the event rules), and no `onUpgrade`
       // step runs for a file already at 42, so reading a dance then failed on
       // a NULL from a missing column. Idempotent; run it on every open.
-      if (details.versionNow >= 42) await _ensureV42Schema(createMigrator());
+      if (details.versionNow >= 42) {
+        final migrator = createMigrator();
+        await _ensureV42Schema(migrator);
+        await _ensureV42EventRules(migrator);
+      }
       // Defensive: guards a hand-rolled DB (e.g. restored from an external
       // backup) that lacks either raw FTS5 table. Creating a missing index
       // alone would silently return incomplete results, so schedule a durable

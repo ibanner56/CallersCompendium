@@ -156,6 +156,15 @@ void main() {
       at: _stamp,
     );
     await repositories.figureNotes.set('swing', 'Notes.', at: _stamp);
+    await repositories.eventRules.save(
+      EventRule.of(
+        id: 'rule-1',
+        savedSearchId: 'search-1',
+        quantifier: EventRuleQuantifier.none,
+        scope: EventRuleScope.wholeProgram,
+      ),
+      at: _stamp,
+    );
 
     await storage.snapshot();
     expect({

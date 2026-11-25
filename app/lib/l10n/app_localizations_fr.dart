@@ -10555,14 +10555,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorLessTooltip => 'Moins';
 
   @override
-  String get danceEditorFigureNeedsValues =>
-      'Choisissez une valeur pour chaque champ de cette figure avant d’enregistrer.';
-
-  @override
-  String get danceEditorSaveNeedsFigureValues =>
-      'Certaines figures ajoutées ont encore des champs vides. Remplissez-les pour enregistrer.';
-
-  @override
   String get danceEditorParamNotStated => 'non précisé';
 
   @override
@@ -15024,6 +15016,388 @@ class AppLocalizationsFr extends AppLocalizations {
   String savedSearchGone(String name) {
     return '« $name » a été supprimée, ici ou sur un autre appareil ; rien n’a donc été modifié.';
   }
+
+  @override
+  String get settingsExperimentalEventRulesHeader => 'Règles de soirée';
+
+  @override
+  String get settingsExperimentalEventRulesTitle =>
+      'Vérifier les programmes selon vos règles';
+
+  @override
+  String get settingsExperimentalEventRulesSubtitle =>
+      'Ajoutez des règles à un programme, par exemple pas deux danses Becket à la suite, et l\'éditeur vous avertit quand le programme en enfreint une. Les avertissements ne vous empêchent jamais d\'enregistrer ni d\'appeler.';
+
+  @override
+  String get eventRulesManageTitle => 'Gérer les règles';
+
+  @override
+  String get eventRulesManageSubtitle =>
+      'Afficher, ajouter, modifier et supprimer vos règles.';
+
+  @override
+  String get eventRulesEmpty =>
+      'Aucune règle pour l\'instant. Une règle utilise l\'une de vos recherches enregistrées pour dire de quelles danses elle parle.';
+
+  @override
+  String get eventRulesNewRule => 'Nouvelle règle…';
+
+  @override
+  String get eventRuleDeletedSnack => 'Règle supprimée.';
+
+  @override
+  String get eventRuleEditorNewTitle => 'Nouvelle règle';
+
+  @override
+  String get eventRuleEditorEditTitle => 'Modifier la règle';
+
+  @override
+  String get eventRuleSearchLabel => 'Quelles danses';
+
+  @override
+  String get eventRuleNoSavedSearches =>
+      'Enregistrez d\'abord une recherche dans la Collection : une règle utilise une recherche enregistrée pour dire de quelles danses elle parle.';
+
+  @override
+  String get eventRuleQuantifierLabel => 'Combien';
+
+  @override
+  String get eventRuleQuantifierAtMost => 'Au plus';
+
+  @override
+  String get eventRuleQuantifierAtLeast => 'Au moins';
+
+  @override
+  String get eventRuleQuantifierNone => 'Aucune';
+
+  @override
+  String get eventRuleCountLabel => 'Nombre de danses';
+
+  @override
+  String eventRuleCountInvalid(int max) {
+    return 'Saisissez un nombre entier de 1 à $max.';
+  }
+
+  @override
+  String get eventRuleCountOnlyOne => 'Saisissez 1, le seul nombre permis ici.';
+
+  @override
+  String get eventRuleScopeLabel => 'Où';
+
+  @override
+  String get eventRuleScopeWholeProgram => 'Tout le programme';
+
+  @override
+  String get eventRuleScopeBeforeFirstBreak => 'Avant la première pause';
+
+  @override
+  String get eventRuleScopeAfterFirstBreak => 'Après la première pause';
+
+  @override
+  String get eventRuleScopeNeighbouring => 'Deux danses voisines quelconques';
+
+  @override
+  String get eventRuleNameLabel => 'Nom (facultatif)';
+
+  @override
+  String eventRuleSentenceAtMostWhole(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Au plus $count danses correspondant à « $search » dans tout le programme',
+      one: 'Au plus 1 danse correspondant à « $search » dans tout le programme',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtMostBefore(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Au plus $count danses correspondant à « $search » avant la première pause',
+      one:
+          'Au plus 1 danse correspondant à « $search » avant la première pause',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtMostAfter(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Au plus $count danses correspondant à « $search » après la première pause',
+      one:
+          'Au plus 1 danse correspondant à « $search » après la première pause',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtMostNeighbouring(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Au plus $count danses correspondant à « $search » parmi deux danses voisines quelconques',
+      one:
+          'Au plus 1 danse correspondant à « $search » parmi deux danses voisines quelconques',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtLeastWhole(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Au moins $count danses correspondant à « $search » dans tout le programme',
+      one:
+          'Au moins 1 danse correspondant à « $search » dans tout le programme',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtLeastBefore(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Au moins $count danses correspondant à « $search » avant la première pause',
+      one:
+          'Au moins 1 danse correspondant à « $search » avant la première pause',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtLeastAfter(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Au moins $count danses correspondant à « $search » après la première pause',
+      one:
+          'Au moins 1 danse correspondant à « $search » après la première pause',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtLeastNeighbouring(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Au moins $count danses correspondant à « $search » parmi deux danses voisines quelconques',
+      one:
+          'Au moins 1 danse correspondant à « $search » parmi deux danses voisines quelconques',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceNoneWhole(String search) {
+    return 'Aucune danse correspondant à « $search » dans tout le programme';
+  }
+
+  @override
+  String eventRuleSentenceNoneBefore(String search) {
+    return 'Aucune danse correspondant à « $search » avant la première pause';
+  }
+
+  @override
+  String eventRuleSentenceNoneAfter(String search) {
+    return 'Aucune danse correspondant à « $search » après la première pause';
+  }
+
+  @override
+  String eventRuleSentenceNoneNeighbouring(String search) {
+    return 'Aucune danse correspondant à « $search » parmi deux danses voisines quelconques';
+  }
+
+  @override
+  String get eventRuleSentenceUnreadable =>
+      'Une règle d\'une version plus récente de l\'application';
+
+  @override
+  String get eventRuleSearchUnknown => '…';
+
+  @override
+  String get eventRuleAttentionUnreadable =>
+      'Créée par une version plus récente de l\'application ; elle n\'est donc pas vérifiée.';
+
+  @override
+  String get eventRuleAttentionSearchGone =>
+      'Sa recherche enregistrée a été supprimée ou ne peut pas être lue ; elle n\'est donc pas vérifiée.';
+
+  @override
+  String get eventRuleAttentionUnresolvable =>
+      'Sa recherche enregistrée utilise des éléments qui n\'existent plus ; elle n\'est donc pas vérifiée :';
+
+  @override
+  String programsRulesButton(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Règles ($count)',
+      zero: 'Règles',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesLabel => 'Règles';
+
+  @override
+  String get programsRulesPickerTitle => 'Règles de ce programme';
+
+  @override
+  String get programsRulesPickerEmpty => 'Vous n\'avez encore aucune règle.';
+
+  @override
+  String programsRulesStripBroken(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count règles non respectées',
+      one: '1 règle non respectée',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsRulesStripAttention(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count règles à vérifier',
+      one: '1 règle à vérifier',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsRuleBreachMatching(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danses correspondantes',
+      one: '1 danse correspondante',
+      zero: 'Aucune danse correspondante',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsRuleBreachPairs(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count paires de danses voisines',
+      one: '1 paire de danses voisines',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsRuleBreachDances(String titles) {
+    return 'Danses : $titles';
+  }
+
+  @override
+  String programsRuleBreachIfCalled(String title) {
+    return 'Si vous appelez $title';
+  }
+
+  @override
+  String get programsSlotRuleMarker => 'Enfreint une règle';
+
+  @override
+  String get programsSlotRuleMarkerAlternate =>
+      'Enfreint une règle si elle est appelée';
+
+  @override
+  String programsSlotRuleMarkerSemantic(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Enfreint $count règles : $rules',
+      one: 'Enfreint la règle : $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsSlotRuleMarkerAlternateSemantic(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Enfreint $count règles si elle est appelée : $rules',
+      one: 'Enfreint la règle si elle est appelée : $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchInUseRulesOff =>
+      'Les règles de soirée sont désactivées, mais Gérer les règles permet de modifier vos règles dès maintenant. Pour vérifier les programmes selon elles, activez « Vérifier les programmes selon vos règles » dans Paramètres ▸ Expérimental ▸ Règles de soirée.';
+
+  @override
+  String programsRulesPickerFull(int max) {
+    return 'Ce programme utilise $max règles, le maximum possible. Décochez-en une pour en ajouter une autre.';
+  }
+
+  @override
+  String programsRulesPickerNotHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count règles absentes de cet appareil',
+      one: '1 règle absente de cet appareil',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesPickerNotHereHelp =>
+      'Ajoutées sur un autre appareil et encore en chemin, ou disparues pour de bon. Supprimer les enlève de ce programme.';
+
+  @override
+  String get programsRulesChangeFailed =>
+      'Impossible de modifier les règles de ce programme. Réessayez.';
+
+  @override
+  String get eventRuleCountNeighbouringHelp =>
+      'Deux danses voisines comptent au plus 2 danses correspondantes.';
+
+  @override
+  String settingsSyncNoticeCountEventRule(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count règles de soirée',
+      one: '1 règle de soirée',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncReviewKindEventRule => 'Règle de soirée';
+
+  @override
+  String get danceEditorFigureNeedsValues =>
+      'Choisissez une valeur pour chaque champ de cette figure avant d’enregistrer.';
+
+  @override
+  String get danceEditorSaveNeedsFigureValues =>
+      'Certaines figures ajoutées ont encore des champs vides. Remplissez-les pour enregistrer.';
 
   @override
   String get programTemplateAddSlotRule => 'Ajouter une règle d\'emplacement';

@@ -6,6 +6,7 @@ import '../model/dance.dart';
 import '../model/difficulty_level.dart';
 import '../model/dance_link.dart';
 import '../model/enums.dart';
+import '../model/event_rule.dart' show normalizeEventRuleIds;
 import '../model/figure.dart';
 import '../model/figure_source.dart';
 import '../model/tunes_source.dart';
@@ -995,6 +996,15 @@ Program _programFromJson(Map<String, Object?> m) => Program(
   calendarEventFingerprint: _boundedStringOrNull(m, 'calendarEventFingerprint'),
   calendarWrittenAt: _dtOrNull(m, 'calendarWrittenAt'),
   calendarFlag: _boundedStringOrNull(m, 'calendarFlag'),
+  eventRuleIds: _eventRuleIdsFromJson(m['eventRuleIds']),
+);
+
+/// A program's applied event rules (#2340), read leniently: anything that is
+/// not a list of short strings reads as none, never refusing the program.
+List<String> _eventRuleIdsFromJson(Object? raw) => normalizeEventRuleIds(
+  raw is List
+      ? raw.where((id) => id is String && id.length <= 128)
+      : const <Object?>[],
 );
 
 /// A short machine-written string (#2354), read leniently: anything that is

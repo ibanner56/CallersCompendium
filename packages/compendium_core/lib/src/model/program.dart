@@ -3,6 +3,7 @@ import 'package:meta/meta.dart';
 
 import '../validation/validation.dart';
 import 'enums.dart';
+import 'event_rule.dart' show normalizeEventRuleIds;
 import 'provenance.dart';
 import 'stored_timestamp.dart';
 
@@ -300,8 +301,10 @@ class Program {
     this.calendarEventFingerprint,
     this.calendarWrittenAt,
     this.calendarFlag,
+    List<String> eventRuleIds = const [],
     this.provenance,
-  }) : slots = List.unmodifiable(
+  }) : eventRuleIds = normalizeEventRuleIds(eventRuleIds),
+       slots = List.unmodifiable(
          <ProgramSlot>[...slots]
            ..sort((a, b) => a.position.compareTo(b.position)),
        ) {
@@ -494,6 +497,14 @@ class Program {
   /// so a value a later build adds reads as a generic flag rather than
   /// refusing the program. Never deletes or edits anything: it is a label.
   final String? calendarFlag;
+
+  /// The event rules applied to this program (#2340), by id, in the order the
+  /// caller added them. Only the caller adds one: creating, duplicating or
+  /// importing a program applies none, and [duplicate] does not copy them. An
+  /// id whose rule is gone is kept and ignored. It travels in Device Sync and
+  /// the caller's own backups, but not in a shared program file or the PDF
+  /// (`sanitizeProgramForShare`).
+  final List<String> eventRuleIds;
 
   /// Whether a calendar import created this program and the caller has not
   /// touched it since: still a Draft, and [updatedAt] is the stamp the import
@@ -942,6 +953,7 @@ class Program {
     String? calendarEventFingerprint,
     DateTime? calendarWrittenAt,
     String? calendarFlag,
+    List<String>? eventRuleIds,
     Provenance? provenance,
     bool clearEventDate = false,
     bool clearVenue = false,
@@ -1001,6 +1013,7 @@ class Program {
     calendarFlag: clearCalendarEventKey || clearCalendarFlag
         ? null
         : (calendarFlag ?? this.calendarFlag),
+    eventRuleIds: eventRuleIds ?? this.eventRuleIds,
     provenance: clearProvenance ? null : (provenance ?? this.provenance),
   );
 
@@ -1135,7 +1148,8 @@ class Program {
       other.calendarEventKey == calendarEventKey &&
       other.calendarEventFingerprint == calendarEventFingerprint &&
       other.calendarWrittenAt == calendarWrittenAt &&
-      other.calendarFlag == calendarFlag;
+      other.calendarFlag == calendarFlag &&
+      _listEq.equals(other.eventRuleIds, eventRuleIds);
 
   @override
   int get hashCode => Object.hash(id, title, updatedAt);

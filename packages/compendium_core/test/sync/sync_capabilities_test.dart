@@ -86,8 +86,8 @@ void main() {
     );
 
     test('advertises glossary.v1, glossary.v2, programTemplates.v1, '
-        'savedSearches.v1, suggestions.v1 and performSwap.v1, and gates on '
-        'each (#1023, #2325, #2337, #2343, #2346)', () {
+        'savedSearches.v1, suggestions.v1, performSwap.v1 and eventRules.v1, '
+        'and gates on each (#1023, #2325, #2337, #2340, #2343, #2346)', () {
       expect(build.advertised, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
@@ -95,6 +95,7 @@ void main() {
         SyncCapabilities.savedSearchesV1,
         SyncCapabilities.suggestionsV1,
         SyncCapabilities.performSwapV1,
+        SyncCapabilities.eventRulesV1,
       });
       // Every gated capability is advertised: the whole of each feature,
       // saved searches included now saving and using them is in, is in this build.
@@ -110,12 +111,39 @@ void main() {
         SyncCapabilities.savedSearchesV1: {'a', 'b'},
         SyncCapabilities.suggestionsV1: {'a', 'b'},
         SyncCapabilities.performSwapV1: {'a', 'b'},
+        SyncCapabilities.eventRulesV1: {'a', 'b'},
       });
     });
 
     test('rollout: beside peers on the build before this one, which '
-        'advertise every capability but savedSearches.v1, every peer holds '
-        'savedSearches.v1 closed and is named', () {
+        'advertise every capability but eventRules.v1, every peer holds '
+        'eventRules.v1 closed and is named (#2340)', () {
+      final previous = {...build.advertised}
+        ..remove(SyncCapabilities.eventRulesV1);
+      expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
+        SyncCapabilities.eventRulesV1: {'a', 'b'},
+      });
+      expect(closedBeside(['a', 'b'], {'a': build.advertised, 'b': previous}), {
+        SyncCapabilities.eventRulesV1: {'b'},
+      });
+    });
+
+    test('event rules and the Experimental toggle wait on eventRules.v1; a '
+        "program's applied rule ids do not (#2340)", () {
+      expect(
+        build.capabilityFor(SyncRecordKind.eventRule, 'r1'),
+        SyncCapabilities.eventRulesV1,
+      );
+      expect(
+        build.capabilityFor(SyncRecordKind.setting, 'event_rules_enabled'),
+        SyncCapabilities.eventRulesV1,
+      );
+      expect(build.capabilityFor(SyncRecordKind.program, 'p1'), isNull);
+    });
+
+    test('rollout: beside peers on the build before this one, which '
+        'advertise every capability but savedSearches.v1 and eventRules.v1, '
+        'every peer holds savedSearches.v1 closed and is named', () {
       const previous = {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
@@ -125,10 +153,12 @@ void main() {
       };
       expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
         SyncCapabilities.savedSearchesV1: {'a', 'b'},
+        SyncCapabilities.eventRulesV1: {'a', 'b'},
       });
       // Once one of them is updated, only the other holds it closed.
       expect(closedBeside(['a', 'b'], {'a': build.advertised, 'b': previous}), {
         SyncCapabilities.savedSearchesV1: {'b'},
+        SyncCapabilities.eventRulesV1: {'b'},
       });
     });
 
@@ -144,6 +174,7 @@ void main() {
       expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
         SyncCapabilities.performSwapV1: {'a', 'b'},
         SyncCapabilities.savedSearchesV1: {'a', 'b'},
+        SyncCapabilities.eventRulesV1: {'a', 'b'},
       });
     });
 

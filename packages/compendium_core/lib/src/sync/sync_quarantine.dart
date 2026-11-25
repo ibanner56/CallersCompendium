@@ -420,6 +420,9 @@ Set<SyncRecordAddress> syncRecordReferences(
     // The user's glossary refers to no record (sync-spec §6.15).
     case SyncRecordKind.glossaryEntry:
     case SyncRecordKind.figureNote:
+    // An event rule cites a saved search, a setting, by id; a missing one is
+    // shown as needing attention, never a broken reference (#2340).
+    case SyncRecordKind.eventRule:
       break;
   }
   return references;

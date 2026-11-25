@@ -4,7 +4,8 @@
 // threw a `_TypeError` on the NULL read from a missing non-null column. Only
 // `beforeOpen` repairs it.
 //
-// Mutation this catches: drop the `_ensureV42Schema` call from `beforeOpen`.
+// Mutations this catches: drop the `_ensureV42Schema` call, or the
+// `_ensureV42EventRules` call, from `beforeOpen`.
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/native.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
@@ -30,6 +31,7 @@ const _programColumns = [
   'calendar_event_fingerprint',
   'calendar_written_at',
   'calendar_flag',
+  'event_rule_ids',
 ];
 
 void main() {
@@ -51,6 +53,7 @@ void main() {
       for (final column in _programColumns) {
         raw.execute('ALTER TABLE programs DROP COLUMN $column');
       }
+      raw.execute('DROP TABLE event_rules');
       // A slot's placeholder search (#2338) joined v42 later still.
       raw.execute(
         'ALTER TABLE program_slots DROP COLUMN placeholder_search_id',
@@ -69,6 +72,7 @@ void main() {
           .toSet();
       expect(columnsOf('dances'), containsAll(_danceColumns));
       expect(columnsOf('programs'), containsAll(_programColumns));
+      expect(columnsOf('event_rules'), contains('saved_search_id'));
       expect(columnsOf('program_slots'), contains('placeholder_search_id'));
     },
   );

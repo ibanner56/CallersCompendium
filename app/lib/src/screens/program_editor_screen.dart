@@ -14,6 +14,13 @@ import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/event_rules_scope.dart';
+import '../data/calling_history_tracking_scope.dart';
+import '../data/require_event_date_for_history_scope.dart';
+import '../data/require_performed_for_history_scope.dart';
+import '../search/event_rule_check.dart';
+import '../search/saved_search_context.dart';
+import '../widgets/program_event_rules.dart';
 import '../data/program_templates.dart';
 import '../data/editor_draft_shutdown_scope.dart';
 import '../data/mark_all_sets_status_scope.dart';
@@ -164,6 +171,7 @@ class ProgramEditorScreen extends StatefulWidget {
     this.reimportPicker,
     this.pdfLayouter,
     this.templateChoice = const ProgramTemplateChoice.useDefault(),
+    this.eventRuleEvaluator = evaluateEventRules,
   });
 
   final String? programId;
@@ -194,6 +202,10 @@ class ProgramEditorScreen extends StatefulWidget {
   /// Print/share seam for the Matrix tab's PDF export; defaults to
   /// [Printing.layoutPdf]. Supplied by widget tests.
   final PdfLayouter? pdfLayouter;
+
+  /// Checks the program's applied event rules (#2340); a seam so a test can
+  /// watch whether it is called. Never called while Event rules is off.
+  final EventRuleEvaluator eventRuleEvaluator;
 
   bool get isNew => programId == null;
   bool get isEmbedded =>
@@ -275,6 +287,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   ProgramTimes _timesBaseline = const ProgramTimes();
   ProgramStatus _status = ProgramStatus.draft;
   bool _hideAlternates = false;
+
+  /// The event rules applied to this program (#2340), in the order they were
+  /// applied. The Rules picker changes them straight on the stored program
+  /// ([ProgramRepository.updateEventRuleIds]), so a save takes the stored
+  /// list; this copy takes the stored one after each pick and save, and when
+  /// sync or another writer changes it ([_storedRulesWatch]).
+  List<String> _eventRuleIds = const [];
+
+  /// Takes a stored program's rule ids into [_eventRuleIds] as they change.
+  StreamSubscription<Object?>? _storedRulesWatch;
+
+  /// Checks [_eventRuleIds] whenever the program changes, while Event rules
+  /// is on ([EventRulesEnabledScope]).
+  ProgramEventRulesController? _eventRules;
 
   /// The stored dialect name Perform uses for this program; `null` follows the
   /// application dialect. May name a dialect that no longer exists, which the
@@ -840,6 +866,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
     if (!_loaded && _loadError == null && _data == null) {
       _repos = RepositoriesScope.of(context);
+      _eventRules ??= ProgramEventRulesController(
+        repos: _repos,
+        evaluate: widget.eventRuleEvaluator,
+      )..addListener(_onEventRulesChecked);
+      _storedRulesWatch ??= watchStoredEventRuleIds(
+        _repos,
+        programId: () => _existing?.id,
+        onStored: _adoptStoredEventRuleIds,
+      );
       _reimport = DanceReimportCoordinator(
         repos: _repos,
         callersBox: widget.callersBoxOnline ?? CallersBoxOnline(),
@@ -1095,6 +1130,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _venueIdBaseline = program?.venueId;
         _status = program?.status ?? ProgramStatus.draft;
         _hideAlternates = program?.hideAlternates ?? false;
+        // A new program applies no rule (#2340): only the caller adds them.
+        _eventRuleIds = program?.eventRuleIds ?? const [];
         _dialectName = program?.dialectName;
         _slots = program?.slots.toList() ?? newProgramSlots;
         _insertion = null;
@@ -1193,6 +1230,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         : program.venueId;
     _status = program.status;
     _hideAlternates = program.hideAlternates;
+    _eventRuleIds = program.eventRuleIds;
     _dialectName = program.dialectName;
     _slots = program.slots.toList();
     _insertion = null;
@@ -1265,6 +1303,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _bulkUndoSnackBar?.close();
     _replaceSubscription();
     _pickerCounts.dispose();
+    _eventRules?.dispose();
+    unawaited(_storedRulesWatch?.cancel());
     _tabController.dispose();
     _moreDetailsController.dispose();
     _titleController.dispose();
@@ -1361,6 +1401,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       timesBaseline: _existing == null ? null : _timesBaseline,
       venueIdBaseline: _venueIdBaseline,
       hasVenueIdBaseline: _existing != null,
+      // A stored program's rules are written to it as they are picked; only
+      // a new one's live here until its first save (#2340).
+      eventRuleIds: _existing == null ? _eventRuleIds : const [],
       slots: List.unmodifiable(_renumber(_slots)),
     );
   }
@@ -1816,6 +1859,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _dialectName = draft.hasDialectName
             ? draft.dialectName
             : _existing?.dialectName;
+        // A new program's rules come back with it; a stored program keeps
+        // the rules stored for it.
+        if (_existing == null) _eventRuleIds = draft.eventRuleIds;
         _slots = _renumber(draft.slots);
         _insertion = null;
         _dirty = true;
@@ -1959,6 +2005,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     archivedAt: live.archivedAt,
     // The editor never edits it: the stored one stands (#2352).
     calendarEventKey: live.calendarEventKey,
+    // The Rules picker writes these directly, so the stored ones stand
+    // (#2340).
+    eventRuleIds: live.eventRuleIds,
     calendarEventFingerprint: live.calendarEventFingerprint,
     calendarWrittenAt: live.calendarWrittenAt,
     calendarFlag: live.calendarFlag,
@@ -2358,6 +2407,167 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (dance == null || !canRestoreSlotDance(dance)) return;
     await restoreSlotDanceFromRecentlyDeleted(context, _repos, dance);
   }
+
+  void _onEventRulesChecked() {
+    if (mounted) setState(() {});
+  }
+
+  /// Hands the program as it is now to the rule checker (#2340), which
+  /// re-checks only when the slots or the applied rules changed. While Event
+  /// rules is off it checks nothing.
+  void _updateEventRules({required bool enabled}) {
+    final controller = _eventRules;
+    if (controller == null) return;
+    if (!enabled || !_loaded) {
+      controller.update(
+        enabled: false,
+        ruleIds: const [],
+        slots: const [],
+        readContext: _readRuleSearchContext,
+      );
+      return;
+    }
+    controller.update(
+      enabled: true,
+      ruleIds: _eventRuleIds,
+      slots: List.unmodifiable(_renumber(_slots)),
+      readContext: _readRuleSearchContext,
+      contextKey: _ruleSearchContextKey(),
+      dialect: _dialect,
+      enrichment: _enrichment,
+    );
+  }
+
+  /// What [_readRuleSearchContext] reads besides the tables the controller
+  /// watches: when this changes, the kept context is read again.
+  Object _ruleSearchContextKey() => Object.hashAll([
+    _existing?.id,
+    _data?.callerFilter,
+    _data?.taxonomy,
+    _dialect,
+    _enrichment,
+    context
+        .getInheritedWidgetOfExactType<UserFiguresScope>()
+        ?.notifier
+        ?.catalog,
+    RequirePerformedForHistoryScope.of(context),
+    RequireEventDateForHistoryScope.of(context),
+    callingHistoryTrackingOf(context),
+    const SearchClock().today(),
+  ]);
+
+  /// The context a rule's saved search resolves against: the live data, the
+  /// Calling history settings in force now, and this program, which never
+  /// counts as its own history.
+  Future<SavedSearchContext> _readRuleSearchContext() {
+    final catalog =
+        context
+            .getInheritedWidgetOfExactType<UserFiguresScope>()
+            ?.notifier
+            ?.catalog ??
+        UserFigureCatalog.empty;
+    final dialect = _dialect;
+    return readSavedSearchContext(
+      _repos,
+      today: const SearchClock().today(),
+      taxonomy: _data?.taxonomy ?? shippedTaxonomies.anyForm,
+      text: savedSearchTextCodec(
+        saveDialect: dialect,
+        showDialect: dialect,
+        enrichment: _enrichment,
+        renderer: FigureRenderer(
+          shippedTaxonomies.anyForm,
+          userFigures: catalog,
+        ),
+      ),
+      callerFilter: _data?.callerFilter,
+      performedOnly: RequirePerformedForHistoryScope.of(context),
+      requireEventDate: RequireEventDateForHistoryScope.of(context),
+      tracking: callingHistoryTrackingOf(context),
+      currentProgramId: _existing?.id,
+    );
+  }
+
+  /// What the Rules strip calls slot [slotId]: its dance's title, or its text.
+  String? _slotTitleById(String slotId) {
+    for (final slot in _slots) {
+      if (slot.id != slotId) continue;
+      if (slot.danceId case final id?) {
+        return _slotTitleForDance(id) ?? slot.text;
+      }
+      return slot.text;
+    }
+    return null;
+  }
+
+  /// Takes the stored program's rule ids, as read after a pick, a save or
+  /// another writer's change.
+  void _adoptStoredEventRuleIds(List<String> ids) {
+    if (!mounted || listEquals(ids, _eventRuleIds)) return;
+    setState(() => _eventRuleIds = List.unmodifiable(ids));
+  }
+
+  /// The Rules control (#2340): the picker applies each change to a stored
+  /// program's list as stored at the write, and keeps a new program's for its
+  /// first save.
+  Future<void> _openRulesPicker() => showProgramRulesPicker(
+    context,
+    applied: _eventRuleIds,
+    onChange: (change) async {
+      if (!mounted) return null;
+      final existing = _existing;
+      if (existing == null) {
+        final next = change(_eventRuleIds);
+        if (next != null) {
+          setState(() => _eventRuleIds = List.unmodifiable(next));
+          _markDirty();
+        }
+        return _eventRuleIds;
+      }
+      try {
+        final ids = await _repos.programs.updateEventRuleIds(
+          existing.id,
+          change,
+        );
+        if (ids == null) return null;
+        _adoptStoredEventRuleIds(ids);
+        final stored = await _repos.programs.getById(existing.id);
+        if (!mounted || stored == null) return ids;
+        // Merge only the rules, and the write's stamp, into the copy as it is
+        // now: a save, an archive or an unarchive may have replaced it while
+        // the write was in flight, and the copy from before must not undo
+        // that. The stamp keeps this copy the stored program's own token, as
+        // `_unarchive` does.
+        final current = _existing;
+        if (current != null && current.id == existing.id) {
+          setState(
+            () => _existing = current.copyWith(
+              eventRuleIds: stored.eventRuleIds,
+              updatedAt: stored.updatedAt,
+            ),
+          );
+        }
+        return ids;
+      } catch (error, stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'program_editor_screen._openRulesPicker',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text(
+                AppLocalizations.of(context).programsRulesChangeFailed,
+              ),
+            ),
+          );
+        }
+        return null;
+      }
+    },
+  );
 
   /// The slot list's title for [danceId]: the dance's title, marked as
   /// deleted while the dance is in Recently deleted, as Perform marks it.
@@ -3169,6 +3379,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             payMinorUnits: pay.units,
             payCurrency: pay.units == null ? null : pay.currency,
             clearPay: pay.isEmpty,
+            eventRuleIds: _eventRuleIds,
             slots: _renumber(_slots),
           );
     } catch (_) {
@@ -3262,6 +3473,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       calendarFlag: before != null
           ? before.calendarFlag
           : existing?.calendarFlag,
+      // The Rules picker writes a stored program's rules directly (#2340), so
+      // the stored list stands, read inside the write's transaction
+      // (`keepStoredEventRuleIds` below); a program not yet stored takes the
+      // picker's.
+      eventRuleIds: before != null ? before.eventRuleIds : _eventRuleIds,
       provenance: existing?.provenance,
     );
     if (existing != null) {
@@ -3270,15 +3486,44 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final stored = await _repos.programs.updateAndReadBack(
         persisted,
         keepStoredArchivedAt: true,
+        keepStoredEventRuleIds: true,
       );
       // Still hidden and untouched across the write: show the input what was
       // written. An edit typed in the meantime is left alone.
       if (holdPay && mounted && _payHeldBack) _setPayFrom(stored);
       _adoptStoredVenueId(sent: draft.venueId, stored: stored.venueId);
       _adoptStoredTimes(sent: sentTimes, stored: ProgramTimes.of(stored));
+      _adoptStoredEventRuleIds(stored.eventRuleIds);
       return stored;
     }
     await _repos.programs.create(persisted);
+    // A rule ticked while the create was in flight went to [_eventRuleIds]
+    // only (no program was stored yet), and every later save keeps the
+    // stored list: so write what changed since the create read it, on the
+    // list as stored now (#2340).
+    var sentRules = persisted.eventRuleIds;
+    while (!listEquals(_eventRuleIds, sentRules)) {
+      final wanted = _eventRuleIds;
+      final dropped = {
+        for (final id in sentRules)
+          if (!wanted.contains(id)) id,
+      };
+      final added = [
+        for (final id in wanted)
+          if (!sentRules.contains(id)) id,
+      ];
+      final ids = await _repos.programs.updateEventRuleIds(
+        persisted.id,
+        (stored) => [
+          for (final id in stored)
+            if (!dropped.contains(id)) id,
+          for (final id in added)
+            if (!stored.contains(id)) id,
+        ],
+      );
+      if (ids == null) break;
+      sentRules = wanted;
+    }
     final stored = await _repos.programs.getById(persisted.id);
     if (stored == null) {
       throw StateError('program "${persisted.id}" vanished after its create');
@@ -4355,6 +4600,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final l10n = AppLocalizations.of(context);
     final draft = _draftProgram;
     final warnings = draft?.validate() ?? const <ValidationIssue>[];
+    final rulesOn = EventRulesEnabledScope.of(context);
+    _updateEventRules(enabled: rulesOn);
+    final ruleCheck = rulesOn
+        ? (_eventRules?.check ?? EventRuleCheck.empty)
+        : EventRuleCheck.empty;
 
     return Form(
       key: _formKey,
@@ -4373,6 +4623,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           const SizedBox(height: 24),
           if (warnings.isNotEmpty) ...[
             _ProgramWarningsCard(warnings: warnings),
+            const SizedBox(height: 12),
+          ],
+          if (ruleCheck.broken.isNotEmpty ||
+              ruleCheck.needingAttention.isNotEmpty) ...[
+            EventRulesStrip(check: ruleCheck, slotTitle: _slotTitleById),
             const SizedBox(height: 12),
           ],
           Row(
@@ -4419,6 +4674,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 icon: const Icon(Icons.free_breakfast_outlined),
                 label: Text(l10n.programsInsertBreakButton),
               ),
+              if (rulesOn)
+                OutlinedButton.icon(
+                  key: const ValueKey('program-rules'),
+                  onPressed: _openRulesPicker,
+                  icon: const Icon(Icons.rule),
+                  label: Text(
+                    l10n.programsRulesButton(
+                      _eventRules?.countedRules(_eventRuleIds) ??
+                          _eventRuleIds.length,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 8),
@@ -4459,6 +4726,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 : (index, {required after}) =>
                       _startInsertion(index, after: after, twoPane: twoPane),
             insertionTargetSlotIds: _insertionTargetSlotIds,
+            ruleMarkers: rulesOn
+                ? eventRuleSlotMarkers(l10n, ruleCheck)
+                : const {},
             onPreviewDanceStarted: twoPane
                 ? (id) => _showSavedPreview(
                     id,

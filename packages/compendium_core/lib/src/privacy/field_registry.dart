@@ -113,6 +113,19 @@ const _derivedIndex = DataClassification(
 
 /// A record stamp. Not about the user as a person, but about their activity;
 /// must travel because ordering across devices is defined in terms of it.
+/// An event rule's quantifier, count, scope and place in the caller's list
+/// (#2340): how the caller plans their own programs.
+const _eventRuleData = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.appUser,
+  egress: EgressClass.shareable,
+  note:
+      'Part of an event rule (#2340): how many dances it allows and where in '
+      'a program it counts, or its place in the caller\'s list. The '
+      'caller\'s own planning data: syncs to their devices and is kept in '
+      'backups, but left out of a shared program file and the PDF.',
+);
+
 const _recordStamp = DataClassification(
   term: DpvTerm.nonPersonal,
   subject: DataSubject.none,
@@ -473,6 +486,42 @@ final Map<String, DataClassification> fieldClassifications = {
   'figure_notes.deleted_at': _glossaryTombstone,
   'figure_notes.existence_at': _existenceStamp,
 
+  // ------------------------------------------------------------- event_rules --
+  // The caller's event rules (#2340). The id is an opaque key; every other
+  // column is the caller's own planning data, classified as the issue
+  // proposed and the maintainer approved (issue review, 2026-11-22).
+  'event_rules.id': _key,
+  'event_rules.saved_search_id': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'Which of the caller\'s saved searches (#2325) an event rule (#2340) '
+        'counts: an id, never a copy of the search. A saved search may name '
+        'a choreographer (AuthorFilter); that is the saved search\'s own '
+        'classification (saved_search: prefix), and the rule only references '
+        'it. The caller\'s own planning data: syncs to their devices and '
+        'is kept in backups, but left out of a shared program file and the '
+        'PDF, which carry no rule data.',
+  ),
+  'event_rules.quantifier': _eventRuleData,
+  'event_rules.count': _eventRuleData,
+  'event_rules.scope': _eventRuleData,
+  'event_rules.name': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'A name the caller typed for one of their event rules (#2340), or '
+        'NULL. Free text the caller writes about their own planning; syncs '
+        'and is kept in backups, but left out of a shared program file and '
+        'the PDF.',
+  ),
+  'event_rules.position': _eventRuleData,
+  'event_rules.updated_at': _recordStamp,
+  'event_rules.deleted_at': _tombstone,
+  'event_rules.existence_at': _existenceStamp,
+
   // ------------------------------------------------------ difficulty_levels --
   'difficulty_levels.id': _difficultyLevelId,
   'difficulty_levels.label': _choreography,
@@ -726,6 +775,18 @@ final Map<String, DataClassification> fieldClassifications = {
         'classified like the record stamps: it says when, not who. Shareable '
         'so another device applies the same untouched test; stripped from '
         'share files (sanitizeProgramForShare).',
+  ),
+  'programs.event_rule_ids': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'The event rules (#2340) the caller applied to this program, as a '
+        'JSON array of event_rules ids. The caller\'s own planning data, '
+        'classified as the issue proposed and the maintainer approved (issue '
+        'review, 2026-11-22): syncs as a top-level field of the program '
+        'record and is kept in backups, but stripped from a shared program '
+        'file (sanitizeProgramForShare) and never in the PDF.',
   ),
   'programs.calendar_flag': const DataClassification(
     term: DpvTerm.nonPersonal,

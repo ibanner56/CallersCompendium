@@ -5,14 +5,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/event_rules_scope.dart';
 import '../data/program_templates.dart' show kProgramTemplateSlotRuleUse;
 import '../data/repositories_scope.dart';
 import '../data/user_figures_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../screens/settings/event_rules_screen.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
+import 'event_rule_text.dart' show eventRuleSentence, eventRuleWarningIcon;
 
 /// A saved search a host is showing: which one, the saved form of the panel
 /// as it was loaded (so **Update** appears only once the panel differs from
@@ -164,7 +167,7 @@ class SavedSearchActions {
             map: (kind, id) => _alias(ctx.aliases, kind, id),
             text: text,
           );
-          missing = await _describe(repos, refs, ctx);
+          missing = await describeSavedSearchMissing(repos, refs, ctx);
       }
       if (!context.mounted) return null;
       apply!(state);
@@ -357,12 +360,43 @@ class SavedSearchActions {
       return true;
     } on SavedSearchInUse catch (inUse) {
       // diagnostics: silent — an expected refusal; the dialog names each use.
+      // An event rule (#2340) is named by its sentence, or its typed name
+      // above it, and the search it uses is the one being deleted.
+      final uses = <(IconData, String, String?)>[];
+      var usedByRules = false;
+      for (final use in inUse.uses) {
+        final rule = use.kind == eventRuleUseKind && use.id != null
+            ? await repos.eventRules.get(use.id!)
+            : null;
+        if (rule == null) {
+          // Anything else (a template's slot rule, #2338) in its own words.
+          // An unnamed event rule deleted since it was counted has neither a
+          // name nor a sentence left to show, and no longer uses the search.
+          final text = savedSearchUseText(l10n, use);
+          if (text.trim().isEmpty) continue;
+          uses.add((Icons.link, text, null));
+        } else {
+          usedByRules = true;
+          final sentence = eventRuleSentence(l10n, rule, label);
+          uses.add(
+            rule.name == null
+                ? (eventRuleWarningIcon, sentence, null)
+                : (eventRuleWarningIcon, rule.name!, sentence),
+          );
+        }
+      }
       if (!context.mounted) return false;
+      // The rules are refused here whether or not Event rules is on, but
+      // Settings shows Manage rules only while it is: so say where they are,
+      // and open the manager from here, which works either way.
+      final rulesOn = EventRulesEnabledScope.of(context);
+      final navigator = Navigator.of(context);
       await showDialog<void>(
         context: context,
         animationStyle: AppMotion.styleFor(context),
         builder: (context) => AlertDialog(
           key: const ValueKey('saved-search-in-use'),
+          scrollable: true,
           title: Text(l10n.savedSearchInUseTitle(label)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -370,16 +404,36 @@ class SavedSearchActions {
             children: [
               Text(l10n.savedSearchInUseBody),
               const SizedBox(height: AppSpacing.xs),
-              for (final use in inUse.uses)
+              for (final (icon, title, subtitle) in uses)
                 ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.link),
-                  title: Text(savedSearchUseText(l10n, use)),
+                  leading: Icon(icon),
+                  title: Text(title),
+                  subtitle: subtitle == null ? null : Text(subtitle),
                 ),
+              if (usedByRules && !rulesOn) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Text(l10n.savedSearchInUseRulesOff),
+              ],
             ],
           ),
           actions: [
+            if (usedByRules)
+              TextButton(
+                key: const ValueKey('saved-search-in-use-manage-rules'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  unawaited(
+                    navigator.push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const EventRulesScreen(),
+                      ),
+                    ),
+                  );
+                },
+                child: Text(l10n.eventRulesManageTitle),
+              ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(l10n.commonOk),
@@ -486,7 +540,7 @@ String _alias(
 
 /// Names each of [refs]: one read of deleted names per kind of record, and the
 /// live definition for a custom field that changed.
-Future<List<SavedSearchMissing>> _describe(
+Future<List<SavedSearchMissing>> describeSavedSearchMissing(
   CompendiumRepositories repos,
   List<MissingReference> refs,
   SavedSearchContext ctx,

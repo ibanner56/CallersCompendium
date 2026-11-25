@@ -11,4 +11,7 @@ enum SyncRecordKind {
   setting,
   glossaryEntry,
   figureNote,
+
+  /// The caller's event rules (#2340), gated on `eventRules.v1`.
+  eventRule,
 }

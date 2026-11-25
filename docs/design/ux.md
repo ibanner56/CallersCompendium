@@ -315,6 +315,33 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   suggestions look for**: Off / A little / A lot per factor as segmented
   buttons, the curve shape and venue window as dropdowns, and Reset to
   defaults; no numbers. See [suggestions.md](suggestions.md).
+- Event rules (#2340, Experimental, off by default): with Settings ▸
+  Experimental ▸ Event rules on, the Build tab's button row (after Add note or
+  break and Insert break) gains **Rules** ("Rules (2)" with two applied). It
+  opens a picker sheet titled "Rules for this program": a pinned **New rule…**
+  row first (it opens the rule editor and applies the saved rule), then a
+  checkbox per rule showing its name or sentence; ticks apply at once (at
+  most 64 live rules; a deleted rule's id makes room first, and once full the
+  sheet says so above the list). Each program change re-checks the applied
+  rules (one query per rule restricted to the program's dance ids), as does a
+  write to any table a check reads (rules, saved searches, dances, calling
+  history, or what a search resolves against; the search context is kept
+  until one of its own tables changes) and, when a rule is broken or
+  needs attention, a collapsible **Rules strip** sits under the warnings card:
+  "1 rule not met" / "1 rule needs attention" (rule icon plus text, never
+  colour alone). Expanded, each broken rule shows its sentence, the count or
+  the breaking neighboring pairs, the dances involved, and for an alternate
+  "If you call *X*"; each rule needing attention names what is missing and is
+  not checked. Involved slots carry a marker in the slot row, icon plus
+  "Breaks a rule" (or "Breaks a rule if called" on an alternate), with a
+  screen-reader label naming the rules ("Breaks the rule if called: …" on an
+  alternate). Nothing blocks Save, Perform or
+  export. Off, no button, strip or marker is built and nothing is checked.
+  The manager (Settings ▸ Experimental ▸ Event rules ▸ Manage rules, also
+  linked from Settings ▸ Program while on) is a full-screen list of rule
+  sentences with a **New rule…** FAB and delete with Undo; the editor picks
+  a saved search (dropdown), At most / At least / None (segmented), a count,
+  the scope (radios), and an optional name, with the sentence previewed live.
 - Slots: dance slots + free-text slots (break, waltz, announcements); **ALT
   flag** renders as an indented alternate under its primary (color + icon +
   text, never color alone). A free-text slot's overflow menu offers **create a

@@ -5,6 +5,7 @@ import '../model/choreographer.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
+import '../model/event_rule.dart';
 import '../model/published_source.dart';
 import '../model/program.dart';
 import '../model/tag.dart';
@@ -15,6 +16,7 @@ import '../privacy/settings_registry.dart';
 import '../serialization/archive_codec.dart';
 import '../serialization/archive_entity_codec.dart';
 import 'canonical_json.dart';
+import 'sync_event_rule_body.dart';
 import 'sync_glossary_body.dart';
 import 'sync_record_kind.dart';
 import 'sync_retained_fields.dart';
@@ -440,6 +442,9 @@ Map<String, Object?> syncArchiveBodyForEntity(
   SyncRecordKind.figureNote => syncFigureNoteBody(
     _requireEntity<FigureNote>(entity, kind),
   ),
+  SyncRecordKind.eventRule => syncEventRuleBody(
+    _requireEntity<EventRule>(entity, kind),
+  ),
   SyncRecordKind.setting => throw ArgumentError(
     'settings use SyncSettingsRecord',
   ),
@@ -499,6 +504,9 @@ Object decodeSyncRecordEntity(SyncRecordKind kind, Map<String, Object?> body) {
   if (kind == SyncRecordKind.figureNote) {
     return decodeSyncFigureNoteBody(body);
   }
+  if (kind == SyncRecordKind.eventRule) {
+    return decodeSyncEventRuleBody(body);
+  }
   final key = switch (kind) {
     SyncRecordKind.dance => 'dances',
     SyncRecordKind.program => 'programs',
@@ -512,7 +520,8 @@ Object decodeSyncRecordEntity(SyncRecordKind kind, Map<String, Object?> body) {
       'settings have no archive entity',
     ),
     SyncRecordKind.glossaryEntry ||
-    SyncRecordKind.figureNote => throw StateError('decoded above'),
+    SyncRecordKind.figureNote ||
+    SyncRecordKind.eventRule => throw StateError('decoded above'),
   };
   final result = archiveFromJson({
     'schemaVersion': 4,
@@ -549,7 +558,8 @@ Object decodeSyncRecordEntity(SyncRecordKind kind, Map<String, Object?> body) {
       'settings have no archive entity',
     ),
     SyncRecordKind.glossaryEntry ||
-    SyncRecordKind.figureNote => throw StateError('decoded above'),
+    SyncRecordKind.figureNote ||
+    SyncRecordKind.eventRule => throw StateError('decoded above'),
   };
 }
 

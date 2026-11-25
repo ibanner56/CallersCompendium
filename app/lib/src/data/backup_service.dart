@@ -333,7 +333,11 @@ class BackupService {
   Future<BackupDocument> buildDocument({DateTime? createdAt}) async {
     // One stamp for the envelope and the nested archive, so they agree.
     final stamp = (createdAt ?? DateTime.now()).toUtc();
-    final core = await ArchiveExporter(_repos).export(exportedAt: stamp);
+    final eventRules = await _repos.eventRules.listAll();
+    final core = _withCarriedRuleIds(
+      await ArchiveExporter(_repos).export(exportedAt: stamp),
+      {for (final rule in eventRules) rule.id},
+    );
     final allSettings = await _repos.settings.all();
 
     final customDialects = _readDialects(allSettings[kCustomDialectsKey]);
@@ -356,6 +360,46 @@ class BackupService {
       settings: settings,
       glossaryEntries: await _repos.userGlossary.listAll(),
       figureNotes: await _repos.figureNotes.listAll(),
+      eventRules: eventRules,
+    );
+  }
+
+  /// [core] with each program's applied rule ids cut to [carried], the rules
+  /// the backup writes (#2340). It carries only live rules, so a deleted
+  /// rule's id (kept on the program for its Undo) would come back on a fresh
+  /// device with no rule and no tombstone, and count there as a rule still on
+  /// its way for good.
+  static CompendiumArchive _withCarriedRuleIds(
+    CompendiumArchive core,
+    Set<String> carried,
+  ) {
+    if (core.programs.every((p) => p.eventRuleIds.every(carried.contains))) {
+      return core;
+    }
+    // Every field, so a field added to the archive is not dropped here.
+    return CompendiumArchive(
+      schemaVersion: core.schemaVersion,
+      exportedAt: core.exportedAt,
+      dances: core.dances,
+      programs: [
+        for (final program in core.programs)
+          program.eventRuleIds.every(carried.contains)
+              ? program
+              : program.copyWith(
+                  eventRuleIds: [
+                    for (final id in program.eventRuleIds)
+                      if (carried.contains(id)) id,
+                  ],
+                ),
+      ],
+      choreographers: core.choreographers,
+      publishedSources: core.publishedSources,
+      customFields: core.customFields,
+      tags: core.tags,
+      venues: core.venues,
+      difficultyLevels: core.difficultyLevels,
+      deletedTags: core.deletedTags,
+      userFigures: core.userFigures,
     );
   }
 
@@ -736,6 +780,48 @@ class BackupService {
     }
   });
 
+  /// The caller's event rules (#2340), when the backup describes them: as
+  /// [_applyGlossary] does for the glossary, one transaction; a replace
+  /// restore deletes softly the live rules the backup lacks, unless part of
+  /// the section could not be read, and a merge only adds and updates. A rule
+  /// the repository refuses is skipped, its live copy kept, and reported.
+  ///
+  /// The rules a program applies come back with the program, in the core
+  /// archive. A rule a program names that the backup lacks is ignored there
+  /// (the program's id list is a soft reference).
+  Future<void> _applyEventRules(
+    BackupReadResult read,
+    List<ArchiveError> errors, {
+    required RestoreMode mode,
+  }) => _repos.transaction(() async {
+    final doc = read.document;
+    final stamp = restoreStampFor(backupCreatedAt(doc));
+    if (mode == RestoreMode.replace && read.eventRulesComplete) {
+      final keptIds = {for (final r in doc.eventRules) r.id};
+      for (final live in await _repos.eventRules.listAll()) {
+        if (!keptIds.contains(live.id)) {
+          await _repos.eventRules.deleteFromRestore(live.id, at: stamp);
+        }
+      }
+    }
+    for (final rule in doc.eventRules) {
+      try {
+        await _repos.eventRules.upsertFromRestore(rule, backupCreatedAt: stamp);
+      } on EventRuleInvalid catch (e) {
+        // diagnostics: silent — the skipped rule is reported in the restore outcome's errors.
+        errors.add(
+          ArchiveError(
+            kind: ArchiveErrorKind.restore,
+            entityType: 'eventRule',
+            entityId: rule.id,
+            message:
+                'event rule skipped: ${e.field} cannot be stored', // i18n-ignore: internal diagnostic, never shown
+          ),
+        );
+      }
+    }
+  });
+
   /// Writes the backup's app-local pieces into the `settings` table so the
   /// dialect/theme controllers and preference notifiers pick them up on reload,
   /// and the user's glossary into its own tables ([_applyGlossary]).
@@ -797,6 +883,10 @@ class BackupService {
 
     if (read.hasGlossarySection) {
       await _applyGlossary(read, errors, mode: mode);
+    }
+
+    if (read.hasEventRulesSection) {
+      await _applyEventRules(read, errors, mode: mode);
     }
 
     // Custom themes: rewrite the list and the active id.

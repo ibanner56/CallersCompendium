@@ -294,6 +294,22 @@ class FilterCompiler {
     return CompiledFilter(sql, binds);
   }
 
+  /// Compiles [filter] restricted to the dances [ids] (#2340): which of the
+  /// dances a program holds match a saved search. Unlike [compile], a dance
+  /// in Recently deleted is included: it is still in the program. The
+  /// predicate is [compile]'s own, so a rule and Collection agree on what a
+  /// saved search means. Unordered; [ids] must not be empty.
+  CompiledFilter compileAmong(DanceFilter filter, List<String> ids) {
+    if (ids.isEmpty) throw ArgumentError.value(ids, 'ids', 'must not be empty');
+    final binds = <Object?>[...ids];
+    final pred = _dance(filter, binds);
+    final placeholders = List.filled(ids.length, '?').join(', ');
+    return CompiledFilter(
+      'SELECT id FROM dances WHERE id IN ($placeholders) AND ($pred)',
+      binds,
+    );
+  }
+
   CompiledFilter _compileRelevance(FullTextFilter filter, SortDirection dir) {
     final canonicalText = canonicalizeText(
       filter.query,

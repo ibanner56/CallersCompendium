@@ -74,6 +74,10 @@ void markSyncAppliedTablesUpdated(
         tables.add(database.userGlossaryEntries);
       case SyncRecordKind.figureNote:
         tables.add(database.figureNotes);
+      // The rules manager and the builder's Rules strip watch this table; a
+      // program cites a rule by id only, so programs need not be marked.
+      case SyncRecordKind.eventRule:
+        tables.add(database.eventRules);
     }
   }
   if (tables.isNotEmpty) database.markTablesUpdated(tables);

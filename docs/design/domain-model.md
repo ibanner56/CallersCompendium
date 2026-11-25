@@ -16,10 +16,10 @@ pure-Dart core package (no Flutter imports) per ADR-001.*
    permission/license, and import time. (The raw source payload was dropped
    at schema v21, #781 — see [Provenance](#provenance) below.)
 5. **Soft delete over hard delete** for user-visible entities. The current
-   contract covers all eleven syncable kinds: schema v25 (#898) introduced
+   contract covers all twelve syncable kinds: schema v25 (#898) introduced
    tombstones for the original eight, schema v34 added them for difficulty
-   levels, and the glossary's two tables were created with them in schema v40
-   (#709); see the delete model in [storage.md](storage.md).
+   levels, the glossary's two tables were created with them in schema v40
+   (#709), and event rules in schema v42 (#2340); see the delete model in [storage.md](storage.md).
 
 ## Entity overview
 
@@ -36,6 +36,8 @@ erDiagram
     Program ||--|{ ProgramSlot : "ordered slots"
     ProgramSlot }o--o| Dance : "references (nullable)"
     Program ||--o| Event : "performed at"
+    Program }o--o{ EventRule : "applies (by id)"
+    EventRule }o--|| SavedSearch : "which dances"
 ```
 
 ## Entities
@@ -310,7 +312,7 @@ page does not give two answers to when the dance runs.
 | status: draft/finalized/performed | isAlt: bool (alternate dance, decided at event time) |
 | createdAt/updatedAt/deletedAt | guestCaller?, walkthroughMinutes?, danceMinutes? (structured, not folded into `text`) |
 | calendarEventKey? (calendar import, #2352) | performedAt? (set when marked performed → the "called" flag for dance calling history; its time dates the call only when the program has no eventDate) |
-| | placeholderSearchId? (an unfilled placeholder's saved search, #2338) |
+| eventRuleIds (applied event rules, #2340) | placeholderSearchId? (an unfilled placeholder's saved search, #2338) |
 
 `band`, `caller` (primary/host caller), and `dancerLevel` are the CC-parity
 event-metadata fields (schema v3). `dancerLevel` is nullable free-text for now;
@@ -359,13 +361,42 @@ and `calendarFlag` (`cancelled`/`missing`), a label shown on the Programs list
 and the summary. The import never edits a program without the caller's tick
 and never deletes one.
 
+`eventRuleIds` (schema v42, #2340, Experimental) lists the
+[event rules](#eventrule) the caller applied to this program, in order and
+without repeats (`normalizeEventRuleIds`). It is empty by default and never
+filled automatically: creating, duplicating or importing a program applies
+none. An id with no live rule is ignored. It syncs and is in backups; share
+files, the programs CSV and the PDF leave it out.
+
 Duplicate-program = deep copy of slots, as a Draft with performed marks, pay,
-event date and calendar event key cleared (a copy is for a different event;
+event date, calendar event key and applied event rules cleared (a copy is for a different event;
 LIFE-7). The times are kept: the date changes between events, but the
 schedule usually does not. The
 programming matrix is a **view**
 computed from structured figures (no manual "elements" checklist — the fix for
 CC's biggest weakness).
+
+### EventRule
+An event rule (schema v42, #2340, Experimental) is a sentence about a program:
+`savedSearchId` (which dances, by a saved search's id), `quantifier`
+(`atMost`, `atLeast`, `none`), `count` (0 for `none`), `scope`
+(`wholeProgram`, `beforeFirstBreak`, `afterFirstBreak`, `neighbouring`),
+an optional `name`, and `position` in the caller's list. The quantifier and
+scope are kept as names, so a rule a newer build wrote is kept as it was
+(`isReadable` false) and never checked. A rule applies only to the programs
+whose `eventRuleIds` name it.
+
+Checking is `evaluateEventRules` (`analysis/event_rules.dart`), pure Dart:
+the saved search is resolved, run once restricted to the program's dance ids
+(a trashed dance counts, a purged one cannot match, `CalledFilter` excludes
+this program), and the count, scope and neighbour pairing are this layer's,
+above `DanceFilter`. It counts primaries; an alternate is checked as if called
+instead of its primary. Neighbours are the matrix's (`programNeighbourIndices`:
+a break separates, a note does not). A rule whose search is gone or cannot be
+fully resolved is reported as needing attention and skipped, never checked
+with criteria dropped. A broken rule is a warning: it never blocks saving,
+Perform or export. While a live rule uses a saved search, that search cannot
+be deleted (`SavedSearchInUse`, listing the rules).
 
 ### CustomFieldDef / CustomFieldValue
 User-defined: `key, label, type (text|number|boolean|choice), choices?,

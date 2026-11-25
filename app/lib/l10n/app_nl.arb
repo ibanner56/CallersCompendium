@@ -10066,14 +10066,6 @@
   "@danceEditorLessTooltip": {
     "x-sourceSha256": "ae5239ec63f28cd401ccd63e9f56e4ede8254a738a135ebcd33e844c18dd247f"
   },
-  "danceEditorFigureNeedsValues": "Kies een waarde voor elk veld van deze figuur voordat je opslaat.",
-  "@danceEditorFigureNeedsValues": {
-    "x-sourceSha256": "61017bcbb23d7350414081cf02df28c3b55cfeaa28b58390310d5828198ae1a8"
-  },
-  "danceEditorSaveNeedsFigureValues": "Sommige toegevoegde figuren hebben nog lege velden. Vul ze in om op te slaan.",
-  "@danceEditorSaveNeedsFigureValues": {
-    "x-sourceSha256": "899a2bb2764967487b319de39f17f242eb5d834d40066036fca864e6461c7e90"
-  },
   "danceEditorParamNotStated": "niet opgegeven",
   "@danceEditorParamNotStated": {
     "x-sourceSha256": "109df22c5a753d340af3ecee225f7a2a432a65dedfb163736943dfa7af638104"
@@ -14225,6 +14217,270 @@
   "savedSearchGone": "\"{name}\" is verwijderd, hier of op een ander apparaat, dus er is niets gewijzigd.",
   "@savedSearchGone": {
     "x-sourceSha256": "ab5406d87f7d19b06fc50656b460d0e08c5d025ccd9845b3cc7ba37c22f8a0ce"
+  },
+  "settingsExperimentalEventRulesHeader": "Avondregels",
+  "@settingsExperimentalEventRulesHeader": {
+    "x-sourceSha256": "99803b8f3b93f781d7421b1ec4f5fabd71d27ccf5c47f968a6066d16ad1ba3aa"
+  },
+  "settingsExperimentalEventRulesTitle": "Programma's toetsen aan je regels",
+  "@settingsExperimentalEventRulesTitle": {
+    "x-sourceSha256": "b58dcf951431f292c232f744b09ebea18e50d9c5dfafdb94846f3f2b726e7100"
+  },
+  "settingsExperimentalEventRulesSubtitle": "Voeg regels toe aan een programma, bijvoorbeeld geen twee Becket-dansen achter elkaar, en de editor waarschuwt je wanneer het programma er een overtreedt. Waarschuwingen houden je nooit tegen bij opslaan of callen.",
+  "@settingsExperimentalEventRulesSubtitle": {
+    "x-sourceSha256": "cdf5099cd19f4ba2b15871f20cdf82395343a0d42cd8220c8668b575b3375b45"
+  },
+  "eventRulesManageTitle": "Regels beheren",
+  "@eventRulesManageTitle": {
+    "x-sourceSha256": "9e4a85c7c70164ccbaf362fdd644cb01d83fbdc59303828a507f12c83da1f8ef"
+  },
+  "eventRulesManageSubtitle": "Je regels bekijken, toevoegen, bewerken en verwijderen.",
+  "@eventRulesManageSubtitle": {
+    "x-sourceSha256": "f26accf09aedc4741c6179c30ace30a34e0d0900f740393b68a85396f3d3be76"
+  },
+  "eventRulesEmpty": "Nog geen regels. Een regel gebruikt een van je opgeslagen zoekopdrachten om te zeggen welke dansen hij bedoelt.",
+  "@eventRulesEmpty": {
+    "x-sourceSha256": "3e6f22b9afd7db701d5f8741327bb290a4c1d0153bb03d774729b4ec697b75ab"
+  },
+  "eventRulesNewRule": "Nieuwe regel…",
+  "@eventRulesNewRule": {
+    "x-sourceSha256": "57c61a0f800a60cd4a0213c6ef982b4c320537317d438280a783f0c24658e74d"
+  },
+  "eventRuleDeletedSnack": "Regel verwijderd.",
+  "@eventRuleDeletedSnack": {
+    "x-sourceSha256": "d7ab32709a53d67976a901a14142c0a09be405a44b46bf619533b64f03131f54"
+  },
+  "eventRuleEditorNewTitle": "Nieuwe regel",
+  "@eventRuleEditorNewTitle": {
+    "x-sourceSha256": "99cd24efe9831454061e38f29bb3786c8f58e03a9b4d31b9995ecc0117fd4260"
+  },
+  "eventRuleEditorEditTitle": "Regel bewerken",
+  "@eventRuleEditorEditTitle": {
+    "x-sourceSha256": "29d23cbfd942981573986395ec02b651711a76413aa0a945428b0921587b65b9"
+  },
+  "eventRuleSearchLabel": "Welke dansen",
+  "@eventRuleSearchLabel": {
+    "x-sourceSha256": "8c8c58f60a1719a87c78e2ea44d8c6e88ceadb3c271e357c43bf4c1c8abdb0c6"
+  },
+  "eventRuleNoSavedSearches": "Sla eerst een zoekopdracht op in de Collectie: een regel gebruikt een opgeslagen zoekopdracht om te zeggen welke dansen hij bedoelt.",
+  "@eventRuleNoSavedSearches": {
+    "x-sourceSha256": "61d83fee42e7b166e57b1b26e252fc9daa5a08ae8b40f6c81b50fd700379354a"
+  },
+  "eventRuleQuantifierLabel": "Hoeveel",
+  "@eventRuleQuantifierLabel": {
+    "x-sourceSha256": "e2a6ff2c78fdb163d02c7b5c66431cab9b1b418470219eb4e342b0324dfab14f"
+  },
+  "eventRuleQuantifierAtMost": "Hoogstens",
+  "@eventRuleQuantifierAtMost": {
+    "x-sourceSha256": "6797626fe47326c49b6b437de7bfd03d6eff87e1e6a512f91e6ea4c2b2db7749"
+  },
+  "eventRuleQuantifierAtLeast": "Minstens",
+  "@eventRuleQuantifierAtLeast": {
+    "x-sourceSha256": "3251982cbfa9f225a048fdae6ef28b0afbfad89cc26b6fa97b951c6c51d6ec07"
+  },
+  "eventRuleQuantifierNone": "Geen",
+  "@eventRuleQuantifierNone": {
+    "x-sourceSha256": "dc937b59892604f5a86ac96936cd7ff09e25f18ae6b758e8014a24c7fa039e91"
+  },
+  "eventRuleCountLabel": "Aantal dansen",
+  "@eventRuleCountLabel": {
+    "x-sourceSha256": "19061832d72037a6a8ab06f44ed0433c00c8abad911a629f9939860bb7fe84ae"
+  },
+  "eventRuleCountInvalid": "Voer een geheel getal van 1 tot {max} in.",
+  "@eventRuleCountInvalid": {
+    "x-sourceSha256": "221d640652c6410679de05db4cff1dd13bafa16904477d9b9e996d7db77acc68"
+  },
+  "eventRuleCountOnlyOne": "Voer 1 in, het enige toegestane getal hier.",
+  "@eventRuleCountOnlyOne": {
+    "x-sourceSha256": "1761335e77be158f2cf323d03abf59a8760bff19c9c56d4def4704a2e49d27c4"
+  },
+  "eventRuleScopeLabel": "Waar",
+  "@eventRuleScopeLabel": {
+    "x-sourceSha256": "1daaa38f33cd860e9710c74ef1ebbb00af9f348ad0e991b94bba044a61ece936"
+  },
+  "eventRuleScopeWholeProgram": "Het hele programma",
+  "@eventRuleScopeWholeProgram": {
+    "x-sourceSha256": "6398e666157b9b97531fa5dc090f5884072402c785ea1e87f7bb6619ab6d0751"
+  },
+  "eventRuleScopeBeforeFirstBreak": "Voor de eerste pauze",
+  "@eventRuleScopeBeforeFirstBreak": {
+    "x-sourceSha256": "fcbf0ed4b89a8d2b4cd0b8f920a8f4a0e36d9d6dd271833aabf309e44d483a49"
+  },
+  "eventRuleScopeAfterFirstBreak": "Na de eerste pauze",
+  "@eventRuleScopeAfterFirstBreak": {
+    "x-sourceSha256": "bedb3b9d35252aebab99393d170ebca8843959d406714481965b2e4d2138fa16"
+  },
+  "eventRuleScopeNeighbouring": "Elke twee aangrenzende dansen",
+  "@eventRuleScopeNeighbouring": {
+    "x-sourceSha256": "d50cc2ccf014bb652fda876f4c9d7101674ed08bdfe9132f9705b722e91584d6"
+  },
+  "eventRuleNameLabel": "Naam (optioneel)",
+  "@eventRuleNameLabel": {
+    "x-sourceSha256": "e09b37bcc4f301f48329f9e0c5ee747acf821d692e9aac10abea5970ba70b1b4"
+  },
+  "eventRuleSentenceAtMostWhole": "{count, plural, =1{Hoogstens 1 dans die past bij \"{search}\" in het hele programma} other{Hoogstens {count} dansen die passen bij \"{search}\" in het hele programma}}",
+  "@eventRuleSentenceAtMostWhole": {
+    "x-sourceSha256": "b1d2c5f25cfce4171b160bc3d11376ebfe142838127fa632a0641e30b4e58918"
+  },
+  "eventRuleSentenceAtMostBefore": "{count, plural, =1{Hoogstens 1 dans die past bij \"{search}\" voor de eerste pauze} other{Hoogstens {count} dansen die passen bij \"{search}\" voor de eerste pauze}}",
+  "@eventRuleSentenceAtMostBefore": {
+    "x-sourceSha256": "4bff420fdfe3c479b9b47aa8c9f4b3b7f5a87ccc0ec5586fd0157bd72646508e"
+  },
+  "eventRuleSentenceAtMostAfter": "{count, plural, =1{Hoogstens 1 dans die past bij \"{search}\" na de eerste pauze} other{Hoogstens {count} dansen die passen bij \"{search}\" na de eerste pauze}}",
+  "@eventRuleSentenceAtMostAfter": {
+    "x-sourceSha256": "d2d0dba8d9df61465b42afe9e114138366da3988bd8ec313c272699106fb2384"
+  },
+  "eventRuleSentenceAtMostNeighbouring": "{count, plural, =1{Hoogstens 1 dans die past bij \"{search}\" in elke twee aangrenzende dansen} other{Hoogstens {count} dansen die passen bij \"{search}\" in elke twee aangrenzende dansen}}",
+  "@eventRuleSentenceAtMostNeighbouring": {
+    "x-sourceSha256": "b5abf2968ef1b21d1e35dc3d1b7671d96c1654bb7b73acf732ee006f8c0b3208"
+  },
+  "eventRuleSentenceAtLeastWhole": "{count, plural, =1{Minstens 1 dans die past bij \"{search}\" in het hele programma} other{Minstens {count} dansen die passen bij \"{search}\" in het hele programma}}",
+  "@eventRuleSentenceAtLeastWhole": {
+    "x-sourceSha256": "e67146967b303da3ec65e19bf434bce4123113db352f502ca9a5945380a454cf"
+  },
+  "eventRuleSentenceAtLeastBefore": "{count, plural, =1{Minstens 1 dans die past bij \"{search}\" voor de eerste pauze} other{Minstens {count} dansen die passen bij \"{search}\" voor de eerste pauze}}",
+  "@eventRuleSentenceAtLeastBefore": {
+    "x-sourceSha256": "9883906181c7d3aa00f161d444872f5a199ec0e192351b2ca5ea144676660eb2"
+  },
+  "eventRuleSentenceAtLeastAfter": "{count, plural, =1{Minstens 1 dans die past bij \"{search}\" na de eerste pauze} other{Minstens {count} dansen die passen bij \"{search}\" na de eerste pauze}}",
+  "@eventRuleSentenceAtLeastAfter": {
+    "x-sourceSha256": "b740c8ae8f87374225c053b5377a90d71c2623acd381a675aa792befea9b4e29"
+  },
+  "eventRuleSentenceAtLeastNeighbouring": "{count, plural, =1{Minstens 1 dans die past bij \"{search}\" in elke twee aangrenzende dansen} other{Minstens {count} dansen die passen bij \"{search}\" in elke twee aangrenzende dansen}}",
+  "@eventRuleSentenceAtLeastNeighbouring": {
+    "x-sourceSha256": "67285c1fe20f6cd61469eb89f83a1eb824989f5b41fb394d03d5934fe6cd308f"
+  },
+  "eventRuleSentenceNoneWhole": "Geen dans die past bij \"{search}\" in het hele programma",
+  "@eventRuleSentenceNoneWhole": {
+    "x-sourceSha256": "3f23e86129b6e95d5971389aea4e728ce46722ddd32cf1c796ff5d51fcec5fc3"
+  },
+  "eventRuleSentenceNoneBefore": "Geen dans die past bij \"{search}\" voor de eerste pauze",
+  "@eventRuleSentenceNoneBefore": {
+    "x-sourceSha256": "bf9480675685f69c2f89ec942d22beada2fb4e3790ce7422a1fb90be6971e288"
+  },
+  "eventRuleSentenceNoneAfter": "Geen dans die past bij \"{search}\" na de eerste pauze",
+  "@eventRuleSentenceNoneAfter": {
+    "x-sourceSha256": "3b37960102cab147325099e7dfdcd7b40d8b831b04502cefe19b50d779f54a12"
+  },
+  "eventRuleSentenceNoneNeighbouring": "Geen dans die past bij \"{search}\" in elke twee aangrenzende dansen",
+  "@eventRuleSentenceNoneNeighbouring": {
+    "x-sourceSha256": "9e12f74da404869471ab72be8b00ec9448083ae06aed2d13dfdd43049f99a7e4"
+  },
+  "eventRuleSentenceUnreadable": "Een regel uit een nieuwere versie van de app",
+  "@eventRuleSentenceUnreadable": {
+    "x-sourceSha256": "4c4dffa34a25bbea3a1d6e6c0e9efb0fb26bd0aabcdbedcef725528d5dc2dc14"
+  },
+  "eventRuleSearchUnknown": "…",
+  "@eventRuleSearchUnknown": {
+    "x-sourceSha256": "b4935894c8ce16bde67bbffc672428b1533c4f1e1e8b1ce21a2933183db6bfa5"
+  },
+  "eventRuleAttentionUnreadable": "Gemaakt door een nieuwere versie van de app, dus hij wordt niet gecontroleerd.",
+  "@eventRuleAttentionUnreadable": {
+    "x-sourceSha256": "e65a0bda60f4d3730edfc2b15f61c5c8df19cd13774ad0db4b682f737be9bb6e"
+  },
+  "eventRuleAttentionSearchGone": "Zijn opgeslagen zoekopdracht is verwijderd of kan niet worden gelezen, dus hij wordt niet gecontroleerd.",
+  "@eventRuleAttentionSearchGone": {
+    "x-sourceSha256": "5827cbac6a3818a421cce0c1d2cc280f3eb4e17a071c769779700a68a37caa28"
+  },
+  "eventRuleAttentionUnresolvable": "Zijn opgeslagen zoekopdracht gebruikt dingen die er niet meer zijn, dus hij wordt niet gecontroleerd:",
+  "@eventRuleAttentionUnresolvable": {
+    "x-sourceSha256": "302139bd698ed4cf28b031eaf261f765b3d57844252538878b3d2213aa9c6e66"
+  },
+  "programsRulesButton": "{count, plural, =0{Regels} other{Regels ({count})}}",
+  "@programsRulesButton": {
+    "x-sourceSha256": "89eb3d890d47ad44db5abc557cb95aa3aa2823db4fe104402fb7945c29fe758b"
+  },
+  "programsRulesLabel": "Regels",
+  "@programsRulesLabel": {
+    "x-sourceSha256": "4228aeb07c410ffc9d15b458bf7c2bf8d9dfa7af632f2c339e69f8cb54654da3"
+  },
+  "programsRulesPickerTitle": "Regels voor dit programma",
+  "@programsRulesPickerTitle": {
+    "x-sourceSha256": "5561e886b785786dda1624a5e3596e6934849493f5d680a9775bec2a80c61df2"
+  },
+  "programsRulesPickerEmpty": "Je hebt nog geen regels.",
+  "@programsRulesPickerEmpty": {
+    "x-sourceSha256": "4525b944ceb250381670b46f13d12d204cd01e1283e7ecfd40c8e38ff10032ef"
+  },
+  "programsRulesStripBroken": "{count, plural, =1{1 regel niet nageleefd} other{{count} regels niet nageleefd}}",
+  "@programsRulesStripBroken": {
+    "x-sourceSha256": "1fb0b843faebfb26f3e4ba5879e0ffee5a3a6376ab05a569734a68838505458a"
+  },
+  "programsRulesStripAttention": "{count, plural, =1{1 regel vraagt aandacht} other{{count} regels vragen aandacht}}",
+  "@programsRulesStripAttention": {
+    "x-sourceSha256": "ec0838cda0eec1fc010ae1722b036458bd1bf977af7b21a346f8825c7d40b9a2"
+  },
+  "programsRuleBreachMatching": "{count, plural, =0{Geen passende dansen} =1{1 passende dans} other{{count} passende dansen}}",
+  "@programsRuleBreachMatching": {
+    "x-sourceSha256": "eb4c408e495c3d070288d8b22b1f942b2cc733a1518f2dd71b54ca624aa6a1d2"
+  },
+  "programsRuleBreachPairs": "{count, plural, =1{1 paar aangrenzende dansen} other{{count} paren aangrenzende dansen}}",
+  "@programsRuleBreachPairs": {
+    "x-sourceSha256": "728971ff11c39521ebeb66fd28310de339149de743d05611323488d4d31f3b96"
+  },
+  "programsRuleBreachDances": "Dansen: {titles}",
+  "@programsRuleBreachDances": {
+    "x-sourceSha256": "6d33d28560f0c987753657b9be07d9ce7b3602d922be2a546ad2fe40bd338433"
+  },
+  "programsRuleBreachIfCalled": "Als je {title} callt",
+  "@programsRuleBreachIfCalled": {
+    "x-sourceSha256": "6b5060e44ea3f23f96d7774b0e00341f02b23beee156dd32428923a7e1f46887"
+  },
+  "programsSlotRuleMarker": "Overtreedt een regel",
+  "@programsSlotRuleMarker": {
+    "x-sourceSha256": "5e084c9ecc80d9c39352fd4696a86c080f5c54ef225f1fcfd1ad74b08084160a"
+  },
+  "programsSlotRuleMarkerAlternate": "Overtreedt een regel als hij wordt gecald",
+  "@programsSlotRuleMarkerAlternate": {
+    "x-sourceSha256": "1bd6c3d37c39df03ca7add4c643745fdfa9da22bf9ac801a12822ebf5bf593cc"
+  },
+  "programsSlotRuleMarkerSemantic": "{count, plural, =1{Overtreedt de regel: {rules}} other{Overtreedt {count} regels: {rules}}}",
+  "@programsSlotRuleMarkerSemantic": {
+    "x-sourceSha256": "92662a4a9d4482c7c42d3ef81c41bb3f59ceb60a37e6096c5334df08584b56d7"
+  },
+  "programsSlotRuleMarkerAlternateSemantic": "{count, plural, =1{Overtreedt de regel als hij wordt gecald: {rules}} other{Overtreedt {count} regels als hij wordt gecald: {rules}}}",
+  "@programsSlotRuleMarkerAlternateSemantic": {
+    "x-sourceSha256": "255b3c7c450d5eaf9d96688258f0e69616c5a0cf9f12d3edb5ef7093f94f4909"
+  },
+  "savedSearchInUseRulesOff": "Avondregels staat uit, maar met Regels beheren kun je je regels nu wijzigen. Zet “Programma's toetsen aan je regels” aan onder Instellingen ▸ Experimenteel ▸ Avondregels om programma's aan je regels te toetsen.",
+  "@savedSearchInUseRulesOff": {
+    "x-sourceSha256": "c4899dbdd0fc6556f1aff8895c4ea8e010c66d6e41e9241cfb19973686be077e"
+  },
+  "programsRulesPickerFull": "Dit programma gebruikt {max} regels, het maximum. Vink er een uit om een andere toe te voegen.",
+  "@programsRulesPickerFull": {
+    "x-sourceSha256": "9d4ccf1254faeea96ac0569e98a59b80d292209766737f0dd0355ce05523bd6f"
+  },
+  "programsRulesPickerNotHere": "{count, plural, =1{1 regel niet op dit apparaat} other{{count} regels niet op dit apparaat}}",
+  "@programsRulesPickerNotHere": {
+    "x-sourceSha256": "d1e47d6f22bef283a52643127816c87337c04d06523be6779f7a60039fb1db49"
+  },
+  "programsRulesPickerNotHereHelp": "Toegevoegd op een ander apparaat en nog onderweg, of voorgoed weg. Verwijderen haalt ze van dit programma.",
+  "@programsRulesPickerNotHereHelp": {
+    "x-sourceSha256": "d712197bddacd3cb51a680b3db35e0f4eb3804b7975780c6faa3eeb40d6c5cd0"
+  },
+  "programsRulesChangeFailed": "Kan de regels van dit programma niet wijzigen. Probeer het opnieuw.",
+  "@programsRulesChangeFailed": {
+    "x-sourceSha256": "d3b5fef2b613bd78172f26b1ac69390974b0440fe7374212862ef0b0e561928e"
+  },
+  "eventRuleCountNeighbouringHelp": "Twee aangrenzende dansen bevatten hoogstens 2 passende dansen.",
+  "@eventRuleCountNeighbouringHelp": {
+    "x-sourceSha256": "b4cea3037e5e4a0c4df3fc07f5c73fc4308fd15d5b1b0dbc5945fdbbe576d36e"
+  },
+  "settingsSyncNoticeCountEventRule": "{count, plural, =1{1 avondregel} other{{count} avondregels}}",
+  "@settingsSyncNoticeCountEventRule": {
+    "x-sourceSha256": "a4aa004ac29ba4eba718a66bd86bc458e366375979732357410c3328f076a1fb"
+  },
+  "syncReviewKindEventRule": "Avondregel",
+  "@syncReviewKindEventRule": {
+    "x-sourceSha256": "96fb57b9ffec4dfa2e5ec8c3fe6cf0221b2a4c2c69bc9bcfe40ba99a35f6c804"
+  },
+  "danceEditorFigureNeedsValues": "Kies een waarde voor elk veld van deze figuur voordat je opslaat.",
+  "@danceEditorFigureNeedsValues": {
+    "x-sourceSha256": "61017bcbb23d7350414081cf02df28c3b55cfeaa28b58390310d5828198ae1a8"
+  },
+  "danceEditorSaveNeedsFigureValues": "Sommige toegevoegde figuren hebben nog lege velden. Vul ze in om op te slaan.",
+  "@danceEditorSaveNeedsFigureValues": {
+    "x-sourceSha256": "899a2bb2764967487b319de39f17f242eb5d834d40066036fca864e6461c7e90"
   },
   "programTemplateAddSlotRule": "Plekregel toevoegen",
   "@programTemplateAddSlotRule": {

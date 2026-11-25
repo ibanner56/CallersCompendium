@@ -82,6 +82,7 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
     'dialectName',
     'endMinute',
     'eventDate',
+    'eventRuleIds',
     'hideAlternates',
     'id',
     'lessonMinute',
@@ -166,4 +167,13 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
     'payload',
   },
   SyncRecordKind.figureNote: {'id', 'notes'},
+  SyncRecordKind.eventRule: {
+    'count',
+    'id',
+    'name',
+    'position',
+    'quantifier',
+    'savedSearchId',
+    'scope',
+  },
 };

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/backup_io.dart';
+import '../../data/event_rules_scope.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/show_custom_figures_scope.dart';
@@ -15,6 +16,7 @@ import '../glossary/custom_figures_screen.dart';
 import 'calling_card_section.dart';
 import 'developer_options_section.dart';
 import 'device_sync_section.dart';
+import 'event_rules_screen.dart';
 import 'suggestion_settings_screen.dart';
 
 /// The Experimental settings section for features still in development.
@@ -39,6 +41,7 @@ class ExperimentalSection extends StatelessWidget {
         const _GlossarySection(),
         const _RepertoireSection(),
         const SuggestionsSection(),
+        const EventRulesSection(),
         const CallingCardSection(),
         DeviceSyncSection(backupSaver: backupSaver),
         const DeveloperOptionsSection(),
@@ -118,6 +121,59 @@ class _GlossarySection extends StatelessWidget {
                   )
                 : null,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The Event rules section (#2340): a switch, off by default, and once it is
+/// on, **Manage rules**. Settings ▸ Program links to the same manager while
+/// the switch is on; the switch itself is only here.
+class EventRulesSection extends StatelessWidget {
+  const EventRulesSection({super.key});
+
+  Future<void> _onChanged(BuildContext context, bool value) async {
+    // Flip the live notifier first so the builder and Settings ▸ Program
+    // update at once, then persist.
+    EventRulesEnabledScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kEventRulesEnabledKey, value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final enabled = EventRulesEnabledScope.of(context);
+    return CollapsibleSection(
+      sectionKey: const ValueKey('event-rules-section'),
+      title: l10n.settingsExperimentalEventRulesHeader,
+      expanded: enabled,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SwitchListTile(
+            key: const ValueKey('experimental-event-rules'),
+            secondary: const Icon(Icons.rule),
+            value: enabled,
+            onChanged: (value) => _onChanged(context, value),
+            title: Text(l10n.settingsExperimentalEventRulesTitle),
+            subtitle: Text(l10n.settingsExperimentalEventRulesSubtitle),
+            isThreeLine: true,
+          ),
+          if (enabled)
+            ListTile(
+              key: const ValueKey('experimental-manage-event-rules'),
+              leading: const Icon(Icons.edit_outlined),
+              title: Text(l10n.eventRulesManageTitle),
+              subtitle: Text(l10n.eventRulesManageSubtitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const EventRulesScreen(),
+                ),
+              ),
+            ),
         ],
       ),
     );

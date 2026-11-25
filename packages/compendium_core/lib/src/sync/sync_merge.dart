@@ -48,6 +48,7 @@ class SyncMergeCandidate {
       case SyncRecordKind.setting:
       case SyncRecordKind.glossaryEntry:
       case SyncRecordKind.figureNote:
+      case SyncRecordKind.eventRule:
         return bodyHash;
     }
   }

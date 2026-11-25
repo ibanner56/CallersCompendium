@@ -7,9 +7,11 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'calendar_settings_tiles.dart';
+import 'event_rules_screen.dart';
 import 'matrix_column_editor_screen.dart';
 import 'perform_swap_defaults_screen.dart';
 import 'settings_keys.dart';
+import '../../data/event_rules_scope.dart';
 import '../../data/mark_all_sets_status_scope.dart';
 import '../../data/matrix_collision_mode_scope.dart';
 import '../../data/program_auto_commit_scope.dart';
@@ -571,6 +573,19 @@ class _ProgramView extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: onConfigureMatrixColumns,
         ),
+        // Event rules (#2340): a link to the same manager as Settings ▸
+        // Experimental, only while the feature is on. The switch stays there.
+        if (EventRulesEnabledScope.of(context))
+          ListTile(
+            key: const ValueKey('program-manage-event-rules'),
+            leading: const Icon(Icons.rule),
+            title: Text(l10n.eventRulesManageTitle),
+            subtitle: Text(l10n.eventRulesManageSubtitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const EventRulesScreen()),
+            ),
+          ),
         SectionHeader(title: l10n.settingsSharingHeader),
         SwitchListTile(
           key: const ValueKey('settings-share-set-list-title'),

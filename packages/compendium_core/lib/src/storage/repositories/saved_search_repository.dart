@@ -15,10 +15,19 @@ const int savedSearchMaxCount = 128;
 /// One thing that depends on a saved search: what kind of thing, and what to
 /// call it in a message ("an event rule", "the slot rule of Contra night").
 final class SavedSearchUse {
-  const SavedSearchUse({required this.kind, required this.label, this.detail});
+  const SavedSearchUse({
+    required this.kind,
+    required this.label,
+    this.id,
+    this.detail,
+  });
 
   final String kind;
   final String label;
+
+  /// The id of the record that uses it, for a host that names it in its own
+  /// words (an event rule's sentence), or null.
+  final String? id;
 
   /// What holds it, for a [kind] whose message names that too (a template's
   /// slot rule names its template), or null. Plain data, so a host can word

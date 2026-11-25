@@ -15288,18 +15288,6 @@ abstract class AppLocalizations {
   /// **'Less'**
   String get danceEditorLessTooltip;
 
-  /// Shown under the fields of a figure the user has just added (picked or typed) while one of the fields it must state is still empty: for a pass by or pass through, who passes and where. The dance cannot be saved until they are chosen. A figure that was already saved with such a field empty is not flagged.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose a value for every field of this figure before saving.'**
-  String get danceEditorFigureNeedsValues;
-
-  /// Snackbar shown when the user taps Save while a figure they added in this edit still has an empty field it must state (for a pass by or pass through, who and where). The dance is not saved; each such figure shows danceEditorFigureNeedsValues under its fields, and on its row while the row is closed.
-  ///
-  /// In en, this message translates to:
-  /// **'Some figures you added still have empty fields. Fill them in to save.'**
-  String get danceEditorSaveNeedsFigureValues;
-
   /// Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper, by the choice dropdowns whose parameter admits the unstated state, and as the placeholder of an empty places field that admits it (a circle's or star's places).
   ///
   /// In en, this message translates to:
@@ -19475,7 +19463,7 @@ abstract class AppLocalizations {
   /// **'Choose how much each thing counts when dances are suggested.'**
   String get settingsSuggestionsEditorSubtitle;
 
-  /// Name of the suggestion factor that favours moves the program has not used yet and avoids moves on the same beats as the neighbouring dance.
+  /// Name of the suggestion factor that favours moves the program has not used yet and avoids moves on the same beats as the neighboring dance.
   ///
   /// In en, this message translates to:
   /// **'Variety on the matrix'**
@@ -21580,6 +21568,402 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{name}\" was deleted, here or on another device, so nothing was changed.'**
   String savedSearchGone(String name);
+
+  /// Header of the Event rules section in Settings > Experimental (#2340), and the title of the rules manager screen. An event rule is a sentence about a program, such as 'at most 1 dance matching Becket in any two neighboring dances'.
+  ///
+  /// In en, this message translates to:
+  /// **'Event rules'**
+  String get settingsExperimentalEventRulesHeader;
+
+  /// Title of the switch that turns on event rules in Settings > Experimental (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Check programs against your rules'**
+  String get settingsExperimentalEventRulesTitle;
+
+  /// Subtitle of the event rules switch in Settings > Experimental (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Add rules to a program, such as no two Becket dances in a row, and the builder warns you when the program breaks one. Warnings never stop you saving or calling.'**
+  String get settingsExperimentalEventRulesSubtitle;
+
+  /// Row that opens the event rules manager, in Settings > Experimental > Event rules and in Settings > Program while event rules are on (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Manage rules'**
+  String get eventRulesManageTitle;
+
+  /// Subtitle of the Manage rules row (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'View, add, edit and delete your rules.'**
+  String get eventRulesManageSubtitle;
+
+  /// Shown in the event rules manager when there are no rules (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'No rules yet. A rule uses one of your saved searches to say which dances it means.'**
+  String get eventRulesEmpty;
+
+  /// Button in the rules manager, and the pinned first line of a program's rule picker, that opens the rule editor for a new rule (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'New rule…'**
+  String get eventRulesNewRule;
+
+  /// Snackbar after deleting an event rule, with Undo (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Rule deleted.'**
+  String get eventRuleDeletedSnack;
+
+  /// Title of the rule editor for a new event rule (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'New rule'**
+  String get eventRuleEditorNewTitle;
+
+  /// Title of the rule editor for an existing event rule (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Edit rule'**
+  String get eventRuleEditorEditTitle;
+
+  /// Label of the rule editor field choosing the saved search that says which dances an event rule means (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Which dances'**
+  String get eventRuleSearchLabel;
+
+  /// Shown in the rule editor when there are no saved searches to choose (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Save a search in the Collection first: a rule uses a saved search to say which dances it means.'**
+  String get eventRuleNoSavedSearches;
+
+  /// Label of the rule editor choice between At most, At least and None (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'How many'**
+  String get eventRuleQuantifierLabel;
+
+  /// Event rule quantifier: at most N matching dances (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'At most'**
+  String get eventRuleQuantifierAtMost;
+
+  /// Event rule quantifier: at least N matching dances (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'At least'**
+  String get eventRuleQuantifierAtLeast;
+
+  /// Event rule quantifier: no matching dance (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get eventRuleQuantifierNone;
+
+  /// Label of the rule editor field for N in 'at most N' or 'at least N' (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Number of dances'**
+  String get eventRuleCountLabel;
+
+  /// Error under the rule editor's number field (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number from 1 to {max}.'**
+  String eventRuleCountInvalid(int max);
+
+  /// Error under the rule editor's number field when the quantifier and scope allow only 1, for example at most this many in two neighboring dances (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 1, the only number allowed here.'**
+  String get eventRuleCountOnlyOne;
+
+  /// Label of the rule editor choice of where in the program a rule counts (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Where'**
+  String get eventRuleScopeLabel;
+
+  /// Event rule scope: every dance in the program (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'The whole program'**
+  String get eventRuleScopeWholeProgram;
+
+  /// Event rule scope: the dances before the program's first break (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Before the first break'**
+  String get eventRuleScopeBeforeFirstBreak;
+
+  /// Event rule scope: the dances after the program's first break (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'After the first break'**
+  String get eventRuleScopeAfterFirstBreak;
+
+  /// Event rule scope: each pair of dances next to each other, counted pair by pair; a break separates two dances, a note does not (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Any two neighboring dances'**
+  String get eventRuleScopeNeighbouring;
+
+  /// Label of the rule editor's optional name field (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Name (optional)'**
+  String get eventRuleNameLabel;
+
+  /// An event rule as a sentence (#2340). {search} is the name of a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{At most 1 dance matching \"{search}\" in the whole program} other{At most {count} dances matching \"{search}\" in the whole program}}'**
+  String eventRuleSentenceAtMostWhole(int count, String search);
+
+  /// An event rule as a sentence (#2340). {search} is the name of a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{At most 1 dance matching \"{search}\" before the first break} other{At most {count} dances matching \"{search}\" before the first break}}'**
+  String eventRuleSentenceAtMostBefore(int count, String search);
+
+  /// An event rule as a sentence (#2340). {search} is the name of a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{At most 1 dance matching \"{search}\" after the first break} other{At most {count} dances matching \"{search}\" after the first break}}'**
+  String eventRuleSentenceAtMostAfter(int count, String search);
+
+  /// An event rule as a sentence (#2340): counted pair by pair. {search} is the name of a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{At most 1 dance matching \"{search}\" in any two neighboring dances} other{At most {count} dances matching \"{search}\" in any two neighboring dances}}'**
+  String eventRuleSentenceAtMostNeighbouring(int count, String search);
+
+  /// An event rule as a sentence (#2340). {search} is the name of a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{At least 1 dance matching \"{search}\" in the whole program} other{At least {count} dances matching \"{search}\" in the whole program}}'**
+  String eventRuleSentenceAtLeastWhole(int count, String search);
+
+  /// An event rule as a sentence (#2340). {search} is the name of a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{At least 1 dance matching \"{search}\" before the first break} other{At least {count} dances matching \"{search}\" before the first break}}'**
+  String eventRuleSentenceAtLeastBefore(int count, String search);
+
+  /// An event rule as a sentence (#2340). {search} is the name of a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{At least 1 dance matching \"{search}\" after the first break} other{At least {count} dances matching \"{search}\" after the first break}}'**
+  String eventRuleSentenceAtLeastAfter(int count, String search);
+
+  /// An event rule as a sentence (#2340): counted pair by pair. {search} is the name of a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{At least 1 dance matching \"{search}\" in any two neighboring dances} other{At least {count} dances matching \"{search}\" in any two neighboring dances}}'**
+  String eventRuleSentenceAtLeastNeighbouring(int count, String search);
+
+  /// An event rule as a sentence (#2340). {search} is the name of a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'No dance matching \"{search}\" in the whole program'**
+  String eventRuleSentenceNoneWhole(String search);
+
+  /// An event rule as a sentence (#2340). {search} is the name of a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'No dance matching \"{search}\" before the first break'**
+  String eventRuleSentenceNoneBefore(String search);
+
+  /// An event rule as a sentence (#2340). {search} is the name of a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'No dance matching \"{search}\" after the first break'**
+  String eventRuleSentenceNoneAfter(String search);
+
+  /// An event rule as a sentence (#2340). {search} is the name of a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'No dance matching \"{search}\" in any two neighboring dances'**
+  String eventRuleSentenceNoneNeighbouring(String search);
+
+  /// Shown in place of an event rule's sentence when a newer version of the app wrote it and this one cannot read it (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'A rule from a newer version of the app'**
+  String get eventRuleSentenceUnreadable;
+
+  /// Stands for the saved search's name in an event rule's sentence when the saved search is gone (#2340). Usually just an ellipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'…'**
+  String get eventRuleSearchUnknown;
+
+  /// Why an event rule needs attention: a newer version of the app wrote it (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Made by a newer version of the app, so it is not checked.'**
+  String get eventRuleAttentionUnreadable;
+
+  /// Why an event rule needs attention: its saved search is gone (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Its saved search was deleted or can\'t be read, so it is not checked.'**
+  String get eventRuleAttentionSearchGone;
+
+  /// Why an event rule needs attention: its saved search names deleted things, listed after this line (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Its saved search uses things that are gone, so it is not checked:'**
+  String get eventRuleAttentionUnresolvable;
+
+  /// The program builder's Rules control, with how many rules the program applies (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Rules} other{Rules ({count})}}'**
+  String programsRulesButton(int count);
+
+  /// Label for the event rules a program applies, as a field name (for example when two devices disagree about a program) (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Rules'**
+  String get programsRulesLabel;
+
+  /// Title of the sheet where the caller picks which event rules apply to the program (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Rules for this program'**
+  String get programsRulesPickerTitle;
+
+  /// Shown in the rule picker under the pinned New rule line when there are no rules (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'You have no rules yet.'**
+  String get programsRulesPickerEmpty;
+
+  /// The Rules strip on the program builder's Build tab: how many applied rules the program breaks (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 rule not met} other{{count} rules not met}}'**
+  String programsRulesStripBroken(int count);
+
+  /// The Rules strip on the program builder's Build tab: how many applied rules cannot be checked (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 rule needs attention} other{{count} rules need attention}}'**
+  String programsRulesStripAttention(int count);
+
+  /// Under a broken event rule in the Rules strip: how many dances in its scope match (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No matching dances} =1{1 matching dance} other{{count} matching dances}}'**
+  String programsRuleBreachMatching(int count);
+
+  /// Under a broken neighboring-dances event rule in the Rules strip: how many pairs break it (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 pair of neighboring dances} other{{count} pairs of neighboring dances}}'**
+  String programsRuleBreachPairs(int count);
+
+  /// Under a broken event rule in the Rules strip: the dances that break it, as a list (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Dances: {titles}'**
+  String programsRuleBreachDances(String titles);
+
+  /// Under an event rule in the Rules strip: an alternate dance that would break the rule if called instead of its primary (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'If you call {title}'**
+  String programsRuleBreachIfCalled(String title);
+
+  /// Marker on a program slot whose dance breaks an applied event rule; shown with an icon (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Breaks a rule'**
+  String get programsSlotRuleMarker;
+
+  /// Marker on an alternate slot that would break an applied event rule if called instead of its primary (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Breaks a rule if called'**
+  String get programsSlotRuleMarkerAlternate;
+
+  /// Screen-reader label of a slot's event rule marker, naming the rules (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Breaks the rule: {rules}} other{Breaks {count} rules: {rules}}}'**
+  String programsSlotRuleMarkerSemantic(int count, String rules);
+
+  /// Screen-reader label of an alternate slot's event rule marker: it breaks the rules only if it is called instead of its dance (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Breaks the rule if called: {rules}} other{Breaks {count} rules if called: {rules}}}'**
+  String programsSlotRuleMarkerAlternateSemantic(int count, String rules);
+
+  /// Shown in the message when a saved search cannot be deleted because event rules use it, while the Experimental switch “Check programs against your rules” (settingsExperimentalEventRulesTitle, under the Event rules heading) is off (#2340). 'Manage rules' is the button below it, which opens the rules manager even while the switch is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Event rules is off, but Manage rules can change your rules now. To check programs against them, turn on \"Check programs against your rules\" under Settings ▸ Experimental ▸ Event rules.'**
+  String get savedSearchInUseRulesOff;
+
+  /// Shown in a program's Rules picker when it already applies as many rules as a program can (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'This program uses {max} rules, the most it can. Untick one to add another.'**
+  String programsRulesPickerFull(int max);
+
+  /// Line in a program's Rules picker (#2340) when the program applies rules this device does not have: added on another device and not synced here yet, or gone for good. 'Remove' (commonRemove) is beside it.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 rule not on this device} other{{count} rules not on this device}}'**
+  String programsRulesPickerNotHere(int count);
+
+  /// Under programsRulesPickerNotHere in a program's Rules picker (#2340): what those rules are, and what Remove beside it does.
+  ///
+  /// In en, this message translates to:
+  /// **'Added on another device and still on the way, or gone for good. Remove takes them off this program.'**
+  String get programsRulesPickerNotHereHelp;
+
+  /// Message at the bottom of the screen when ticking or unticking a rule in a program's Rules picker could not be saved (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t change this program\'s rules. Try again.'**
+  String get programsRulesChangeFailed;
+
+  /// Help under the rule editor's number field when the rule counts any two neighboring dances, which is why the number is limited (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Two neighboring dances hold at most 2 matching dances.'**
+  String get eventRuleCountNeighbouringHelp;
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many of the user's event rules (#2340) are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 event rule} other{{count} event rules}}'**
+  String settingsSyncNoticeCountEventRule(int count);
+
+  /// Device Sync: the kind of record that is an event rule (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Event rule'**
+  String get syncReviewKindEventRule;
+
+  /// Shown under the fields of a figure the user has just added (picked or typed) while one of the fields it must state is still empty: for a pass by or pass through, who passes and where. The dance cannot be saved until they are chosen. A figure that was already saved with such a field empty is not flagged.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a value for every field of this figure before saving.'**
+  String get danceEditorFigureNeedsValues;
+
+  /// Snackbar shown when the user taps Save while a figure they added in this edit still has an empty field it must state (for a pass by or pass through, who and where). The dance is not saved; each such figure shows danceEditorFigureNeedsValues under its fields, and on its row while the row is closed.
+  ///
+  /// In en, this message translates to:
+  /// **'Some figures you added still have empty fields. Fill them in to save.'**
+  String get danceEditorSaveNeedsFigureValues;
 
   /// Secondary button in the program template editor that adds a slot rule: a slot that describes a kind of dance (with a saved search) instead of naming one (#2338).
   ///

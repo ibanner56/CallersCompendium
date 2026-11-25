@@ -207,6 +207,16 @@ again](./collection.md#save-a-search-and-use-it-again)) is listed here by name.
 - A saved search that this version of the app can't read (saved by a newer
   version, or damaged) is listed last, under **Needs attention**. It is never
   used. Tap it to read what that means and to delete it; you can undo that.
+- A saved search that one of your [event rules](#event-rules) uses can't be
+  deleted. The app says **Can't delete "…"** and lists the rules that use it;
+  change those rules to another search, or delete them, and then delete the
+  saved search. A rule you deleted doesn't count. **Manage rules** in the
+  message opens your rules there and then, so you can change them now. It is
+  there even while **Check programs against your rules** (under
+  [Event rules](#event-rules)) is off, when Settings doesn't show Manage
+  rules; the message then also says that to check programs against your
+  rules again, you turn that switch on under Settings ▸ Experimental ▸
+  Event rules.
 
 ## Program
 
@@ -296,6 +306,10 @@ details are handled when you export.
   - **Restore all defaults** clears every customization and returns the matrix to
     how it ships. Because it discards your renames and custom columns, it asks
     you to confirm first.
+
+- **Manage rules** — shown only while [Event rules](#event-rules) is on in
+  Experimental. It opens the same rule manager as the link there. The switch
+  that turns event rules on and off is only in Experimental.
 
 ### Sharing
 
@@ -975,7 +989,7 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's the **Glossary**, **Repertoire**, **Suggestions**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
+today, that's the **Glossary**, **Repertoire**, **Suggestions**, **Event rules**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
 before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
 
@@ -1265,6 +1279,48 @@ If a newer version of the app saved these choices in a way this version can't
 read, the screen shows the defaults with a note, and can't be changed until you
 update, so nothing this version doesn't understand is overwritten. Suggestions
 use the defaults meanwhile.
+
+### Event rules
+
+**Check programs against your rules** is **off by default**, and the section
+starts closed while it is off. An event rule is a sentence about a program,
+such as *At most 1 dance matching "Becket" in any two neighboring dances*,
+and the program builder warns you when a program you added it to breaks it.
+See [Check your program against your rules](./programs.md#check-your-program-against-your-rules).
+
+Turning it on shows **Manage rules**, which lists your rules as sentences. Use
+**New rule…** to add one, select a rule to edit it, and the bin to delete it,
+with **Undo** in the message at the bottom of the screen. A rule has:
+
+- **Which dances** — one of your
+  [saved searches](./collection.md#save-a-search-and-use-it-again). Save a
+  search in the Collection first.
+- **How many** — **At most** or **At least** a number of dances from 1 to 99,
+  or **None**. For **Any two neighboring dances**, which holds two dances,
+  it is **At most** 1 or **At least** 1 or 2: a larger number could never
+  break, or would always break. Changing to that scope lowers a larger
+  number to the most it allows. A rule saved with a larger number before
+  keeps it until you change its number, **How many** or **Where**: you can
+  still rename it and save it as it is.
+- **Where** — **The whole program**, **Before the first break**, **After the
+  first break**, or **Any two neighboring dances**, which checks each pair of
+  dances next to each other.
+- **Name (optional)** — shown in place of the sentence, with the sentence
+  under it.
+
+While it is on, [Settings ▸ Program ▸ Programs](#programs) has a **Manage
+rules** link to the same list. Turning it off hides the builder's **Rules**
+button, its warnings and its markers, and nothing is checked; your rules and
+the rules each program uses are kept for when you turn it on again.
+
+Your rules are in your [backup](#backup--restore), with the rules each program
+uses, and sync with [Device Sync](#device-sync) once every device connected to
+your store has a version of the app that knows them (see
+[New kinds of data wait for every device](#new-kinds-of-data-wait-for-every-device)).
+They are never in a program you share, print or export. A rule made by a newer
+version of the app, or whose saved search is gone, is marked **Needs
+attention** and is never checked. A rule from a newer version can't be edited
+here, but you can delete it.
 
 ### Calling cards
 
@@ -1755,7 +1811,8 @@ Some things this version syncs can't be read by earlier versions of the app:
 your [own figures and terms, and your notes on built-in
 figures](#glossary-and-custom-figures), the Custom Figures setting, your
 shorthands for your own figures, and your [saved
-searches](./collection.md#save-a-search-and-use-it-again). They start syncing only once every device
+searches](./collection.md#save-a-search-and-use-it-again), and your [event
+rules](#event-rules). They start syncing only once every device
 connected to your store has an up-to-date app. Until then changes to them
 aren't sent to your other devices, and nothing already on a device is removed;
 you can keep using and editing them on each device.

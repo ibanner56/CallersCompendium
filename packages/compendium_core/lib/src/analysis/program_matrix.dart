@@ -609,44 +609,11 @@ class ProgramMatrix {
   /// both are known. A waltz or note between two dances does not separate them;
   /// it shares its neighbours' section, and a `null` section (a program with no
   /// break, or a matrix built without sections) never separates anything.
-  Iterable<int> _neighborRowIndices(int rowIndex) sync* {
-    final section = rows[rowIndex].section;
-    for (final r in _adjacentRowIndices(rowIndex)) {
-      final other = rows[r].section;
-      if (section != null && other != null && section != other) continue;
-      yield r;
-    }
-  }
-
-  Iterable<int> _adjacentRowIndices(int rowIndex) sync* {
-    final group = rows[rowIndex].alternateGroup;
-    bool inGroup(int r, int? g) => g != null && rows[r].alternateGroup == g;
-
-    var start = rowIndex;
-    while (start > 0 && inGroup(start - 1, group)) {
-      start--;
-    }
-    var end = rowIndex;
-    while (end < rows.length - 1 && inGroup(end + 1, group)) {
-      end++;
-    }
-    if (start > 0) {
-      final previous = rows[start - 1].alternateGroup;
-      var r = start - 1;
-      yield r;
-      while (r > 0 && inGroup(r - 1, previous)) {
-        yield --r;
-      }
-    }
-    if (end < rows.length - 1) {
-      final next = rows[end + 1].alternateGroup;
-      var r = end + 1;
-      yield r;
-      while (r < rows.length - 1 && inGroup(r + 1, next)) {
-        yield ++r;
-      }
-    }
-  }
+  Iterable<int> _neighborRowIndices(int rowIndex) => programNeighbourIndices(
+    sections: [for (final row in rows) row.section],
+    alternateGroups: [for (final row in rows) row.alternateGroup],
+    index: rowIndex,
+  );
 
   Iterable<int> _exactBeatCollisions(int rowIndex, String moveId) sync* {
     final here = rows[rowIndex].beatSpansByMove[moveId];
@@ -1678,4 +1645,67 @@ MatrixColumn matrixColumnForKey(
     return MatrixColumn(moveId: key, kind: MatrixColumnKind.known);
   }
   return MatrixColumn(moveId: key, kind: MatrixColumnKind.unknown);
+}
+
+/// The rows the row at [index] can be danced directly next to, in a list of
+/// a program's dance rows described by two parallel lists: each row's
+/// numbered section ([sections], from `Program.sectionsForSlots`) and its
+/// alternate group ([alternateGroups], from
+/// `Program.alternateGroupsForSlots`).
+///
+/// Every row of the alternate group immediately before the row's own group
+/// and every row of the group immediately after it. Rows of its own group are
+/// alternatives to it and are never neighbours; a row with a `null` group is a
+/// group of one, so without groups this is just the row above and below.
+///
+/// A break separates two dances: a neighbour whose section differs from the
+/// row's is dropped when both are known. A waltz or note between two dances
+/// does not separate them (the caller leaves free-text slots out of the rows),
+/// and a `null` section (a program with no break) never separates anything.
+///
+/// The one definition of a neighbour, shared by the matrix's adjacent-dance
+/// alert ([ProgramMatrix.isCollision]) and the event rules' neighbouring
+/// scope (#2340), so the two never disagree.
+Iterable<int> programNeighbourIndices({
+  required List<int?> sections,
+  required List<int?> alternateGroups,
+  required int index,
+}) sync* {
+  final section = sections[index];
+  for (final r in _adjacentIndices(alternateGroups, index)) {
+    final other = sections[r];
+    if (section != null && other != null && section != other) continue;
+    yield r;
+  }
+}
+
+Iterable<int> _adjacentIndices(List<int?> groups, int index) sync* {
+  final length = groups.length;
+  final group = groups[index];
+  bool inGroup(int r, int? g) => g != null && groups[r] == g;
+
+  var start = index;
+  while (start > 0 && inGroup(start - 1, group)) {
+    start--;
+  }
+  var end = index;
+  while (end < length - 1 && inGroup(end + 1, group)) {
+    end++;
+  }
+  if (start > 0) {
+    final previous = groups[start - 1];
+    var r = start - 1;
+    yield r;
+    while (r > 0 && inGroup(r - 1, previous)) {
+      yield --r;
+    }
+  }
+  if (end < length - 1) {
+    final next = groups[end + 1];
+    var r = end + 1;
+    yield r;
+    while (r < length - 1 && inGroup(r + 1, next)) {
+      yield ++r;
+    }
+  }
 }

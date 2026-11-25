@@ -457,6 +457,68 @@ raising or lowering it.
   so above the first dance.
 - Nothing is saved by suggesting: it only changes the order of the list.
 
+### Check your program against your rules
+
+*Experimental.* With **Event rules** on in
+[Settings ▸ Experimental ▸ Event rules](./settings.md#event-rules), you can
+add your own rules to a program, such as *No dance matching "Level above 3"
+in the whole program* for a family dance, or *At most 1 dance matching
+"Becket" in any two neighboring dances*. Each rule says which dances it means
+with one of your [saved searches](./collection.md#save-a-search-and-use-it-again).
+
+- **Rules**, beside **Insert break**, opens the rules for this program, with
+  the number it uses. A rule you deleted doesn't count; a rule another device
+  added to the program that hasn't arrived on this one yet does. Tick the
+  ones that apply; untick one to take it off. Each tick changes the program's
+  rules as they are saved at that moment, so a rule added on another device
+  meanwhile stays. A program can use up to 64 rules; once it does, the list
+  says so and another can't be ticked. To make room, only the rules you
+  deleted are let go. If the program uses rules that aren't on this device,
+  the list says how many, such as **1 rule not on this device**: added on
+  another device and still on the way, or gone for good. **Remove** beside it
+  takes them off this program. If a tick can't be saved, the box clears again
+  and the builder says so.
+  **New rule…** at the top opens the rule editor and, once you save the rule,
+  adds it to this program. A new program, a copy of a program, and a program
+  you import start with no rules: a rule is never added for you. The rules you
+  pick for a new program before its first save are kept with its unsaved
+  draft, so they come back if the builder closes unexpectedly. A backup keeps
+  the rules each program uses, but not a rule you deleted.
+- **Whenever the program changes**, each of its rules is checked, and again
+  when something a rule reads changes while the program is open: a rule, its
+  saved search, a dance, or a tag, author or other thing a search names. A broken
+  rule shows in a **Rules** strip above the program, such as **1 rule not
+  met**. Open it to read each rule's sentence, how many dances match (or, for
+  neighboring dances, which pairs break it), and the dances involved. Those
+  dances are marked **Breaks a rule** with an icon, and a screen reader reads
+  which rules.
+- **The dances a rule counts** are the program's dances, not its alternates.
+  An alternate is checked as if you called it instead of its primary, and is
+  marked **Breaks a rule if called** only when that swap would break a rule;
+  the strip says *If you call …*. Note and break slots never match. A dance in
+  **Recently deleted** still counts, since it is still in the program; a dance
+  deleted for good doesn't.
+- **Neighboring dances** are next to each other as the
+  [matrix](#check-your-evening-with-the-matrix) sees them: a break in between
+  means they are not, a note or waltz does not, and each alternate is compared
+  with the dances on either side of its primary. It is compared only with
+  their planned dances, not with their alternates: one alternate is checked
+  at a time, as if it alone were called. A pair holds two dances, so the
+  editor offers **At most** 1 or **At least** 1 or 2 here. A
+  [placeholder](#fill-a-placeholder) still to be filled stands for a dance:
+  the dances on either side of it are not next to each other, and a pair
+  with the placeholder isn't checked until you fill it. (The matrix, which
+  has no row for a placeholder, treats it like a note.)
+- **Before and after the first break** need a break: in a program without one,
+  neither half exists, so *At most* is always met and *At least* never is.
+- **A rule that can't be checked** shows in the strip as needing attention,
+  and says why: its saved search was deleted, uses a tag or other thing that is
+  gone (named), or the rule was made by a newer version of the app. It is
+  skipped until you fix it, never checked with part of its search left out.
+- **Warnings never stop you.** You can save, perform, print and export a
+  program that breaks its rules, and the rules a program uses are never in a
+  program you share, print or export.
+
 ### Save your program
 
 Choose **Save** at the end of the top bar to keep your changes; it is there
