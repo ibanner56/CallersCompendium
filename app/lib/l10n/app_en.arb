@@ -20031,6 +20031,14 @@
   "@settingsExperimentalEventRulesSubtitle": {
     "description": "Subtitle of the event rules switch in Settings > Experimental (#2340)."
   },
+  "settingsEventRulesCheckPerformSwapTitle": "Check Perform's Swap this dance",
+  "@settingsEventRulesCheckPerformSwapTitle": {
+    "description": "Switch in Settings > Experimental > Event rules, shown while Event rules is on (#2347): whether Perform's Swap this dance sheet marks the dances that would break the program's event rules. Swap this dance is the sheet's name in Perform."
+  },
+  "settingsEventRulesCheckPerformSwapSubtitle": "When you swap a dance in Perform, marks each dance that would break one of the program's rules and lists it last. Nothing is left out.",
+  "@settingsEventRulesCheckPerformSwapSubtitle": {
+    "description": "Subtitle of the Check Perform's Swap this dance switch (#2347)."
+  },
   "eventRulesManageTitle": "Manage rules",
   "@eventRulesManageTitle": {
     "description": "Row that opens the event rules manager, in Settings > Experimental > Event rules and in Settings > Program while event rules are on (#2340)."

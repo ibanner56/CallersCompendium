@@ -138,6 +138,15 @@ void main() {
         build.capabilityFor(SyncRecordKind.setting, 'event_rules_enabled'),
         SyncCapabilities.eventRulesV1,
       );
+      // Whether Perform's swap sheet checks them (#2347): the same capability,
+      // one per feature.
+      expect(
+        build.capabilityFor(
+          SyncRecordKind.setting,
+          'event_rules_check_perform_swap',
+        ),
+        SyncCapabilities.eventRulesV1,
+      );
       expect(build.capabilityFor(SyncRecordKind.program, 'p1'), isNull);
     });
 

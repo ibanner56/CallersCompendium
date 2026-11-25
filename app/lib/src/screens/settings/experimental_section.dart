@@ -128,8 +128,9 @@ class _GlossarySection extends StatelessWidget {
 }
 
 /// The Event rules section (#2340): a switch, off by default, and once it is
-/// on, **Manage rules**. Settings ▸ Program links to the same manager while
-/// the switch is on; the switch itself is only here.
+/// on, **Check Perform's Swap this dance** (#2347, on by default) and
+/// **Manage rules**. Settings ▸ Program links to the same manager while the
+/// switch is on; the switches themselves are only here.
 class EventRulesSection extends StatelessWidget {
   const EventRulesSection({super.key});
 
@@ -139,6 +140,15 @@ class EventRulesSection extends StatelessWidget {
     EventRulesEnabledScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
     await persistSetting(repos.settings, kEventRulesEnabledKey, value);
+  }
+
+  Future<void> _onCheckPerformSwapChanged(
+    BuildContext context,
+    bool value,
+  ) async {
+    EventRulesCheckPerformSwapScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kEventRulesCheckPerformSwapKey, value);
   }
 
   @override
@@ -161,6 +171,17 @@ class EventRulesSection extends StatelessWidget {
             subtitle: Text(l10n.settingsExperimentalEventRulesSubtitle),
             isThreeLine: true,
           ),
+          // Shown only while Event rules is on: off, it would change nothing.
+          if (enabled)
+            SwitchListTile(
+              key: const ValueKey('experimental-event-rules-perform-swap'),
+              secondary: const Icon(Icons.swap_horiz),
+              value: EventRulesCheckPerformSwapScope.of(context),
+              onChanged: (value) => _onCheckPerformSwapChanged(context, value),
+              title: Text(l10n.settingsEventRulesCheckPerformSwapTitle),
+              subtitle: Text(l10n.settingsEventRulesCheckPerformSwapSubtitle),
+              isThreeLine: true,
+            ),
           if (enabled)
             ListTile(
               key: const ValueKey('experimental-manage-event-rules'),

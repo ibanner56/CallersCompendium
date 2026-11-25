@@ -11,6 +11,8 @@ import 'package:compendium_app/src/data/backup_service.dart'
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
 import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
 import 'package:compendium_app/src/export/calling_card_layout.dart';
+import 'package:compendium_app/src/data/event_rules_scope.dart'
+    show kEventRulesCheckPerformSwapKey, kEventRulesEnabledKey;
 import 'package:compendium_app/src/data/suggestions_scope.dart'
     show
         kSuggestionSettingsKey,
@@ -449,6 +451,19 @@ void main() {
           isFalse,
           reason: key,
         );
+      }
+    });
+
+    test("event rules (#2340, #2347): the toggle and Check Perform's Swap "
+        'this dance are bools', () {
+      for (final key in [
+        kEventRulesEnabledKey,
+        kEventRulesCheckPerformSwapKey,
+      ]) {
+        expect(validateBackupSettingValue(key, true), isTrue, reason: key);
+        expect(validateBackupSettingValue(key, false), isTrue, reason: key);
+        expect(validateBackupSettingValue(key, 'on'), isFalse, reason: key);
+        expect(validateBackupSettingValue(key, 1), isFalse, reason: key);
       }
     });
 

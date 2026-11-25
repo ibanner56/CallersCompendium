@@ -144,6 +144,8 @@ final Map<String, DataClassification> settingsClassifications = {
   'suggestions_enabled': _preference,
   // Experimental Event rules (#2340): the toggle.
   'event_rules_enabled': _preference,
+  // Whether Perform's swap sheet checks the program's event rules (#2347).
+  'event_rules_check_perform_swap': _preference,
   'suggestions_in_perform_swap': _preference,
   'suggestion_settings': const DataClassification(
     term: DpvTerm.nonPersonal,

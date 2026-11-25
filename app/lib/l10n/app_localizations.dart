@@ -21557,6 +21557,18 @@ abstract class AppLocalizations {
   /// **'Add rules to a program, such as no two Becket dances in a row, and the builder warns you when the program breaks one. Warnings never stop you saving or calling.'**
   String get settingsExperimentalEventRulesSubtitle;
 
+  /// Switch in Settings > Experimental > Event rules, shown while Event rules is on (#2347): whether Perform's Swap this dance sheet marks the dances that would break the program's event rules. Swap this dance is the sheet's name in Perform.
+  ///
+  /// In en, this message translates to:
+  /// **'Check Perform\'s Swap this dance'**
+  String get settingsEventRulesCheckPerformSwapTitle;
+
+  /// Subtitle of the Check Perform's Swap this dance switch (#2347).
+  ///
+  /// In en, this message translates to:
+  /// **'When you swap a dance in Perform, marks each dance that would break one of the program\'s rules and lists it last. Nothing is left out.'**
+  String get settingsEventRulesCheckPerformSwapSubtitle;
+
   /// Row that opens the event rules manager, in Settings > Experimental > Event rules and in Settings > Program while event rules are on (#2340).
   ///
   /// In en, this message translates to:

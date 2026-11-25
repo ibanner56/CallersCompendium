@@ -120,6 +120,8 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'suggestion_settings' => l10n.settingsSuggestionsEditorTitle,
   'suggestions_in_perform_swap' => l10n.settingsSuggestionsInPerformSwapTitle,
   'event_rules_enabled' => l10n.settingsExperimentalEventRulesTitle,
+  'event_rules_check_perform_swap' =>
+    l10n.settingsEventRulesCheckPerformSwapTitle,
   'calling_card_print' => l10n.settingsCallingCardsHeader,
   'show_individual_perform_timer' =>
     l10n.settingsShowIndividualPerformTimerTitle,

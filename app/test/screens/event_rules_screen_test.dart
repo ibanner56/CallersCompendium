@@ -79,6 +79,78 @@ void main() {
     expect(find.byType(EventRulesScreen), findsOneWidget);
   });
 
+  testWidgets("Check Perform's Swap this dance (#2347): shown only while "
+      'Event rules is on, on by default with nothing saved, and saves '
+      'event_rules_check_perform_swap as a bool', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repos = openTestRepositories();
+    final on = ValueNotifier(false);
+    addTearDown(on.dispose);
+    // As the app builds it: on with no stored value.
+    final checkSwap = ValueNotifier(true);
+    addTearDown(checkSwap.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: EventRulesEnabledScope(
+            notifier: on,
+            child: EventRulesCheckPerformSwapScope(
+              notifier: checkSwap,
+              child: child!,
+            ),
+          ),
+        ),
+        home: const Scaffold(
+          body: SingleChildScrollView(child: EventRulesSection()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Event rules'));
+    await tester.pumpAndSettle();
+    final swapSwitch = find.byKey(
+      const ValueKey('experimental-event-rules-perform-swap'),
+    );
+    expect(swapSwitch, findsNothing, reason: 'Event rules is off');
+
+    on.value = true;
+    await tester.pumpAndSettle();
+    expect(swapSwitch, findsOneWidget);
+    expect(find.text("Check Perform's Swap this dance"), findsOneWidget);
+    expect(tester.widget<SwitchListTile>(swapSwitch).value, isTrue);
+    expect(await repos.settings.get(kEventRulesCheckPerformSwapKey), isNull);
+
+    await tester.tap(swapSwitch);
+    await tester.pumpAndSettle();
+    expect(checkSwap.value, isFalse);
+    expect(await repos.settings.get(kEventRulesCheckPerformSwapKey), isFalse);
+    await tester.tap(swapSwitch);
+    await tester.pumpAndSettle();
+    expect(checkSwap.value, isTrue);
+    expect(await repos.settings.get(kEventRulesCheckPerformSwapKey), isTrue);
+  });
+
+  testWidgets('with no ancestor, the setting reads as on, and checks only '
+      'while Event rules is on', (tester) async {
+    late bool stored;
+    late bool active;
+    await tester.pumpWidget(
+      Builder(
+        builder: (context) {
+          stored = EventRulesCheckPerformSwapScope.of(context);
+          active = EventRulesCheckPerformSwapScope.activeOf(context);
+          return const SizedBox();
+        },
+      ),
+    );
+    expect(stored, isTrue);
+    expect(active, isFalse, reason: 'Event rules is off by default');
+  });
+
   testWidgets('Manage rules adds, edits and deletes a rule, with Undo', (
     tester,
   ) async {

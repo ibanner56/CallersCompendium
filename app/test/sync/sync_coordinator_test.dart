@@ -7927,6 +7927,7 @@ void main() {
         'suggestions_in_perform_swap': SyncCapabilities.suggestionsV1,
         'perform_swap_defaults': SyncCapabilities.performSwapV1,
         'event_rules_enabled': SyncCapabilities.eventRulesV1,
+        'event_rules_check_perform_swap': SyncCapabilities.eventRulesV1,
       });
       expect(SyncCapabilityPolicy.build.gatedGlossaryEntryKinds, {
         'term': SyncCapabilities.glossaryV2,

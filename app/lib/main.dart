@@ -733,6 +733,12 @@ class _CompendiumAppState extends State<CompendiumApp>
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
   );
+  final _eventRulesCheckPerformSwapNotifier = PreferenceNotifier<bool>(
+    key: kEventRulesCheckPerformSwapKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
   final _suggestionsInPerformSwapNotifier = PreferenceNotifier<bool>(
     key: kSuggestionsInPerformSwapKey,
     defaultValue: false,
@@ -1440,6 +1446,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _showRepertoireNotifier,
     _suggestionsEnabledNotifier,
     _eventRulesEnabledNotifier,
+    _eventRulesCheckPerformSwapNotifier,
     _suggestionsInPerformSwapNotifier,
     _suggestionSettingsNotifier,
     _callingCardSettingsNotifier,
@@ -2487,6 +2494,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _showRepertoireNotifier.dispose();
     _suggestionsEnabledNotifier.dispose();
     _eventRulesEnabledNotifier.dispose();
+    _eventRulesCheckPerformSwapNotifier.dispose();
     _suggestionsInPerformSwapNotifier.dispose();
     _suggestionSettingsNotifier.dispose();
     _callingCardSettingsNotifier.dispose();
@@ -3171,6 +3179,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     ),
     (child) => EventRulesEnabledScope(
       notifier: _eventRulesEnabledNotifier,
+      child: child,
+    ),
+    (child) => EventRulesCheckPerformSwapScope(
+      notifier: _eventRulesCheckPerformSwapNotifier,
       child: child,
     ),
     (child) => SuggestionsInPerformSwapScope(

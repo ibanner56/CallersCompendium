@@ -14286,6 +14286,14 @@ class AppLocalizationsJa extends AppLocalizations {
       'プログラムにルール（例：Becketのダンスを2曲続けない）を追加すると、プログラムがルールに反したときにエディターが警告します。警告によって保存やコールが妨げられることはありません。';
 
   @override
+  String get settingsEventRulesCheckPerformSwapTitle =>
+      'パフォームモードの「このダンスを入れ替え」で確認する';
+
+  @override
+  String get settingsEventRulesCheckPerformSwapSubtitle =>
+      'パフォームモードでダンスを入れ替えるとき、プログラムのルールに反するダンスに印を付けて最後に並べます。どのダンスも除外されません。';
+
+  @override
   String get eventRulesManageTitle => 'ルールを管理';
 
   @override

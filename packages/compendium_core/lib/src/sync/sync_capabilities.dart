@@ -56,8 +56,10 @@ abstract final class SyncCapabilities {
   /// it cannot show or edit.
   static const String performSwapV1 = 'performSwap.v1';
 
-  /// Event rules (#2340): every `eventRule` record and the Experimental
-  /// Event rules toggle (`event_rules_enabled`). An older build has no
+  /// Event rules (#2340): every `eventRule` record, the Experimental
+  /// Event rules toggle (`event_rules_enabled`) and whether Perform's swap
+  /// sheet checks the rules (`event_rules_check_perform_swap`, #2347). An
+  /// older build has no
   /// `event_rules` table, so it could only keep such a record whole without
   /// using it; they wait so a peer never holds a rule it cannot show, edit or
   /// check. A program's applied rule ids (`eventRuleIds`) are not gated:
@@ -136,8 +138,9 @@ final class SyncCapabilityPolicy {
   /// [SyncCapabilities.performSwapV1] (#2346) gates the Swap a dance
   /// defaults, and this build advertises it.
   ///
-  /// [SyncCapabilities.eventRulesV1] (#2340) gates the caller's event rules
-  /// and their toggle, and this build advertises it. The sync server must
+  /// [SyncCapabilities.eventRulesV1] (#2340) gates the caller's event rules,
+  /// their toggle and, from #2347, whether Perform's swap sheet checks them,
+  /// and this build advertises it. The sync server must
   /// already accept the `eventRule` record kind: deploy it before the first
   /// build that advertises this (sync-spec §6.15).
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
@@ -166,6 +169,7 @@ final class SyncCapabilityPolicy {
       'suggestions_in_perform_swap': SyncCapabilities.suggestionsV1,
       'perform_swap_defaults': SyncCapabilities.performSwapV1,
       'event_rules_enabled': SyncCapabilities.eventRulesV1,
+      'event_rules_check_perform_swap': SyncCapabilities.eventRulesV1,
     },
     gatedSettingKeyPrefixes: {
       'program_template:': SyncCapabilities.programTemplatesV1,

@@ -14868,6 +14868,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Føj regler til et program, fx ingen to Becket-danse i træk, så advarer editoren dig, når programmet bryder en af dem. Advarsler forhindrer dig aldrig i at gemme eller kalde.';
 
   @override
+  String get settingsEventRulesCheckPerformSwapTitle =>
+      'Tjek Byt denne dans i Fremfør';
+
+  @override
+  String get settingsEventRulesCheckPerformSwapSubtitle =>
+      'Når du bytter en dans i Fremfør, markeres hver dans, der ville bryde en af programmets regler, og den vises sidst. Intet udelades.';
+
+  @override
   String get eventRulesManageTitle => 'Administrer regler';
 
   @override
