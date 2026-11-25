@@ -1300,6 +1300,37 @@ void main() {
       expect(await repos.savedSearches.get(search.id), isNotNull);
     });
 
+    testWidgets('an event rule deleted since it was counted leaves no blank '
+        'row in the message', (tester) async {
+      final repos = await _library();
+      repos.savedSearches.usage.register(
+        'test',
+        (id) async => const [
+          // Unnamed, and no longer here to read its sentence from.
+          SavedSearchUse(kind: eventRuleUseKind, label: '', id: 'r-vanished'),
+          SavedSearchUse(kind: 'slotRule', label: 'Contra night, slot 3'),
+        ],
+      );
+      final search = await _seed(
+        repos,
+        'Pet',
+        CollectionPanelState(text: 'Petronella'),
+      );
+      await _pump(tester, repos);
+      await _load(tester, search);
+
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-delete');
+
+      final dialog = find.byKey(const ValueKey('saved-search-in-use'));
+      expect(dialog, findsOneWidget);
+      expect(
+        find.descendant(of: dialog, matching: find.byType(ListTile)),
+        findsOneWidget,
+      );
+      expect(find.text('Contra night, slot 3'), findsOneWidget);
+    });
+
     testWidgets('at the limit, saving another says so and adds nothing', (
       tester,
     ) async {
