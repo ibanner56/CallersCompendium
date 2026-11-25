@@ -1144,6 +1144,7 @@ void main() {
     expect(bridgeTagFor(34), 'v0.6.0-beta');
     expect(bridgeTagFor(35), 'v0.9.2-beta');
     expect(bridgeTagFor(38), 'v0.9.2-beta');
+    expect(bridgeTagFor(39), 'v0.10.0-beta');
   });
 
   group('relocateLegacyDatabase', () {

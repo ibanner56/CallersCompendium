@@ -3,7 +3,7 @@
 // version and asserts the migration behaves.
 //
 // Coverage starts at [kMinSupportedSchemaVersion], not at v1. Schema versions
-// below the floor were retired (#837, floor since raised to v39) along with
+// below the floor were retired (#837, floor since raised to v40) along with
 // their `onUpgrade` steps, fixtures and dumps, so there is nothing left to
 // migrate from; a below-floor database is refused outright, which
 // `schema_floor_test.dart` covers.
@@ -11,8 +11,8 @@
 // This file builds its starting databases from the `drift_schemas/` dumps
 // (`GeneratedHelper`), which carry structure only; each test seeds the rows it
 // needs. One binary fixture remains, written by a real release and exercised by
-// `real_release_fixture_test.dart`: the floor version's (v39, from
-// v0.7.0-beta). That is the test that notices a migration destroying data
+// `real_release_fixture_test.dart`: the floor version's (v40, from
+// v0.8.0-beta). That is the test that notices a migration destroying data
 // these tests never seeded.
 //
 // Schema *shape* after migration is covered separately by
@@ -70,7 +70,7 @@ void main() {
 
     tearDown(() => dir.delete(recursive: true));
 
-    // Re-homed from the retired v11 group (#837; the floor is now v39). The
+    // Re-homed from the retired v11 group (#837; the floor is now v40). The
     // property is not specific to any start version: it asserts that a
     // *failed* derived rebuild is not memoized, so the next `ensureMigrated`
     // retries rather than treating the failure as done. The marker it relies
@@ -111,7 +111,7 @@ void main() {
       await db.close();
     });
 
-    // Also re-homed from the retired v11 group (#837; the floor is now v39).
+    // Also re-homed from the retired v11 group (#837; the floor is now v40).
     test('ensureMigrated with both derivedRebuildRequired and sectionRuleVersion '
         'pending performs exactly one rebuild', () async {
       // Guard for the alreadyRebuilt optimisation (#844): when derivedRebuildRequired
@@ -2455,140 +2455,6 @@ void main() {
       await db.customSelect('SELECT 1').get();
 
       expect(await indexNames(db), containsAll(indexes));
-    });
-  });
-
-  group('v39 -> v40 upgrade (user glossary, #709)', () {
-    test('adds empty user_glossary_entries and figure_notes tables and keeps '
-        'every row', () async {
-      final raw = sqlite3.sqlite3.openInMemory();
-      final historical = GeneratedHelper().databaseForVersion(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-        39,
-      );
-      await historical.customSelect('SELECT 1').get();
-      final before = await historical
-          .customSelect(
-            "SELECT name FROM sqlite_master WHERE type = 'table' "
-            "AND name IN ('user_glossary_entries', 'figure_notes')",
-          )
-          .get();
-      expect(before, isEmpty);
-      await historical.customStatement(
-        "INSERT INTO programs "
-        "(id, title, notes, status, hide_alternates, created_at, updated_at) "
-        "VALUES ('legacy-program', 'Legacy', 'keep', 'draft', 1, 0, 0)",
-      );
-      await historical.close();
-
-      final db = CompendiumDatabase(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-      );
-      addTearDown(() async {
-        await db.close();
-        raw.close();
-      });
-      await db.customSelect('SELECT 1').get();
-
-      Future<Set<String>> columnsOf(String table) async => {
-        for (final row
-            in await db.customSelect("PRAGMA table_info('$table')").get())
-          row.read<String>('name'),
-      };
-      expect(await columnsOf('user_glossary_entries'), {
-        'id',
-        'kind',
-        'name',
-        'definition',
-        'description',
-        'keywords_json',
-        'notes',
-        'payload_json',
-        'created_at',
-        'updated_at',
-        'deleted_at',
-        'existence_at',
-      });
-      expect(await columnsOf('figure_notes'), {
-        'figure_id',
-        'notes',
-        'updated_at',
-        'deleted_at',
-        'existence_at',
-      });
-      expect(await db.select(db.userGlossaryEntries).get(), isEmpty);
-      expect(await db.select(db.figureNotes).get(), isEmpty);
-      final program = await db
-          .customSelect(
-            "SELECT notes FROM programs WHERE id = 'legacy-program'",
-          )
-          .getSingle();
-      expect(program.read<String>('notes'), 'keep');
-      final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), kCompendiumSchemaVersion);
-    });
-
-    // `_ensureV40Schema` documents its existence checks as what keeps the step
-    // idempotent. Nothing else pre-creates one of its tables, so without this a
-    // step that dropped and re-created a table it finds (losing the rows in it)
-    // would pass every other test.
-    test('keeps the rows of a v40 table that already exists', () async {
-      final raw = sqlite3.sqlite3.openInMemory();
-      final historical = GeneratedHelper().databaseForVersion(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-        39,
-      );
-      await historical.customSelect('SELECT 1').get();
-      await historical.close();
-
-      // The table's DDL as the v40 schema writes it, taken from a throwaway
-      // v40 file rather than retyped here.
-      final v40 = sqlite3.sqlite3.openInMemory();
-      final v40Db = GeneratedHelper().databaseForVersion(
-        NativeDatabase.opened(v40, closeUnderlyingOnClose: false),
-        40,
-      );
-      await v40Db.customSelect('SELECT 1').get();
-      final ddl =
-          v40
-                  .select(
-                    "SELECT sql FROM sqlite_master WHERE type = 'table' "
-                    "AND name = 'figure_notes'",
-                  )
-                  .single['sql']
-              as String;
-      await v40Db.close();
-      v40.close();
-
-      raw.execute(ddl);
-      raw.execute(
-        "INSERT INTO figure_notes "
-        "(figure_id, notes, updated_at, deleted_at, existence_at) "
-        "VALUES ('f-kept', 'keep me', 7, NULL, 7)",
-      );
-      expect(
-        raw.select(
-          "SELECT name FROM sqlite_master WHERE type = 'table' "
-          "AND name = 'user_glossary_entries'",
-        ),
-        isEmpty,
-        reason: 'only figure_notes is pre-created; the step must add the other',
-      );
-
-      final db = CompendiumDatabase(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-      );
-      addTearDown(() async {
-        await db.close();
-        raw.close();
-      });
-      await db.customSelect('SELECT 1').get();
-
-      final notes = await db.select(db.figureNotes).get();
-      expect(notes.map((n) => (n.figureId, n.notes)), [('f-kept', 'keep me')]);
-      expect(await db.select(db.userGlossaryEntries).get(), isEmpty);
-      final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), kCompendiumSchemaVersion);
     });
   });
 }

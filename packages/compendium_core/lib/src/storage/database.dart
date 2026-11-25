@@ -588,34 +588,36 @@ const int kCompendiumSchemaVersion = 42;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
-/// Schema versions below this were retired (#837, then raised to v35, and to
-/// v39 when every release before v0.7.0 was retired): their `onUpgrade` steps,
-/// fixture databases and `drift_schemas/generated/` dumps have been deleted, so
-/// there is no migration path from such a file to head. `onUpgrade` refuses one
+/// Schema versions below this were retired (#837, then raised to v35, to v39
+/// when every release before v0.7.0 was retired, and to v40 when v0.7.0 was
+/// retired): their `onUpgrade` steps, fixture databases and
+/// `drift_schemas/generated/` dumps have been deleted, so there is no
+/// migration path from such a file to head. `onUpgrade` refuses one
 /// explicitly rather than running only the surviving steps and silently
 /// producing a structurally wrong database.
 ///
 /// The value is the schema version shipped by the oldest *supported release*,
-/// `v0.7.0-beta` — not simply the oldest version whose code still exists.
-/// v0.6.0-beta shipped v38 (the last version below this floor ever shipped)
-/// and v0.7.0-beta shipped v39, so a database last opened by v0.6.0-beta or
+/// `v0.8.0-beta` — not simply the oldest version whose code still exists.
+/// v0.7.0-beta shipped v39 (the last version below this floor ever shipped)
+/// and v0.8.0-beta shipped v40, so a database last opened by v0.7.0-beta or
 /// earlier is below the floor and will be refused; that is deliberate, on the
-/// basis that every release before v0.7.0 is retired (maintainer, 2026-11-12).
+/// basis that v0.7.0 reaches its end of life on 2026-11-30 and the next
+/// release is cut after that date (maintainer, 2026-11-25).
 ///
 /// Raising this is a user-visible change: databases below the new floor stop
 /// opening. It needs an app `changelog.d/` fragment, stated in user-facing
 /// terms, with the release whose schema version is being adopted named as the reason.
 ///
-/// The floor keeps a real fixture, `test/storage/fixtures/v39.sqlite`, captured
+/// The floor keeps a real fixture, `test/storage/fixtures/v40.sqlite`, captured
 /// from that release's tag. Its name is derived from this constant in
 /// `test/storage/real_release_fixture_test.dart`, so raising the floor fails
 /// that test until a fixture for the new floor is committed.
-const int kMinSupportedSchemaVersion = 39;
+const int kMinSupportedSchemaVersion = 40;
 
 /// The Caller's Compendium local database.
 ///
 /// The per-version schema log — every version from v1, including the
-/// v1–v38 entries retired by #837 and the floor raises since — lives in `docs/design/storage.md` under
+/// v1–v39 entries retired by #837 and the floor raises since — lives in `docs/design/storage.md` under
 /// "Schema version history". **Every bump appends an entry there in the same
 /// PR**; `tools/ci/check_version_history.py` fails the build otherwise. It is
 /// kept there because it is a ledger of decisions already shipped, and it grew
@@ -724,60 +726,6 @@ class CompendiumDatabase extends _$CompendiumDatabase {
            closeStreamsSynchronously: closeStreamsSynchronously,
          ),
        );
-
-  /// The v39 additions, each created only if absent.
-  Future<void> _ensureV39Schema(Migrator m) async {
-    // Fields a newer version of the app added, kept so this device
-    // shares them back unchanged (spec §6.7). A new table and nothing
-    // else; the existence check only keeps the step idempotent.
-    final existing = await customSelect(
-      "SELECT name FROM sqlite_master WHERE type = 'table' "
-      "AND name = '${retainedSyncFields.actualTableName}'",
-    ).get();
-    if (existing.isEmpty) await m.createTable(retainedSyncFields);
-
-    // What this device last published, so a pass with nothing new to
-    // share sends nothing (sync-spec §6.3 step 8). Both columns are
-    // nullable and start empty: the first pass after the upgrade
-    // publishes as every pass did before it. The live-schema check only
-    // keeps the step idempotent.
-    final stateColumns = await customSelect(
-      "SELECT name FROM pragma_table_info('${baselineState.actualTableName}')",
-    ).get();
-    final present = {for (final row in stateColumns) row.read<String>('name')};
-    if (!present.contains(baselineState.publishedManifestHash.name)) {
-      await m.addColumn(baselineState, baselineState.publishedManifestHash);
-    }
-    if (!present.contains(baselineState.publishedVerifiedAt.name)) {
-      await m.addColumn(baselineState, baselineState.publishedVerifiedAt);
-    }
-
-    // Each peer's last verified manifest, so a restart does not fetch
-    // them all again (sync-spec §5.2). A new, empty table: the first
-    // pass after the upgrade fetches every manifest, as before.
-    final peerManifestTable = await customSelect(
-      "SELECT name FROM sqlite_master WHERE type = 'table' "
-      "AND name = '${peerManifests.actualTableName}'",
-    ).get();
-    if (peerManifestTable.isEmpty) await m.createTable(peerManifests);
-  }
-
-  /// The v40 additions (#709), each created only if absent: the user's own
-  /// glossary entries and their notes on shipped figures. Two new, empty
-  /// tables and nothing else; the existence checks only keep the step
-  /// idempotent.
-  Future<void> _ensureV40Schema(Migrator m) async {
-    for (final table in <TableInfo<Table, Object?>>[
-      userGlossaryEntries,
-      figureNotes,
-    ]) {
-      final existing = await customSelect(
-        "SELECT name FROM sqlite_master WHERE type = 'table' "
-        "AND name = '${table.actualTableName}'",
-      ).get();
-      if (existing.isEmpty) await m.createTable(table);
-    }
-  }
 
   /// The v41 additions (#1935): the cited-id lookup indexes. No table or
   /// column changes, so no data is touched and no derived rebuild is needed;
@@ -1036,12 +984,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       // throw before any DDL, so there is nothing for them to roll back.
       //
       // `test/storage/migration_atomicity_test.dart` covers both windows: one
-      // test injects a throw after the v40 step's DDL and asserts the stamp and
+      // test injects a throw after the v41 step's DDL and asserts the stamp and
       // the DDL are unchanged; another lets this transaction commit and then
       // throws from `beforeOpen`, asserting `user_version` already reads the
       // new value even though drift's own stamp never ran.
       await transaction(() async {
-        if (from < 40) await _ensureV40Schema(m);
         if (from < 41) await _ensureV41Schema();
         if (from < 42) {
           await _ensureV42Schema(m);
@@ -1057,11 +1004,6 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
       if (details.wasCreated) return;
-      // v39 shipped in pieces: a development build stamped it before every
-      // piece existed, so a file at v39 can lack some. v39 is the floor, so no
-      // upgrade step adds them; this is the only place they are ensured. The
-      // step is idempotent; run it on every open.
-      if (details.versionNow >= 39) await _ensureV39Schema(createMigrator());
       // v42 is filling the same way while unreleased: a test build stamped it
       // before later pieces joined it (alternate titles, the square dance
       // fields, the program calendar and time columns, a slot's placeholder

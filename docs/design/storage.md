@@ -208,7 +208,7 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
   a test that instantiates the previous version from its generated schema
   snapshot (`GeneratedHelper`) and seeds the rows it asserts on.
 - The **floor version also keeps a real binary fixture**:
-  `test/storage/fixtures/v39.sqlite`, written by the `v0.7.0-beta` release with
+  `test/storage/fixtures/v40.sqlite`, written by the `v0.8.0-beta` release with
   representative rows. A schema snapshot carries structure only, so it cannot
   show that `onUpgrade` preserved data; `real_release_fixture_test.dart`
   opens the fixture, migrates it to head and reads the rows, FTS content,
@@ -315,15 +315,18 @@ indistinguishable from, because startup re-creates them.
 
 | Fixture | Written by | Schema | sha256 |
 | --- | --- | --- | --- |
-| `v39.sqlite` (the floor) | `v0.7.0-beta` (`1cf5af66`) | 39 | `fb3a9119d160cda6a6a63f0438a12a8ca31aed0964e13a6c4a765e029b27f1bd` |
+| `v40.sqlite` (the floor) | `v0.8.0-beta` (`e233ce40`) | 40 | `81f02295404f90d170533af19e99e8a92f0a26ea00259e5422f9d291a1017856` |
 
 The floor fixture's name is derived from the constant, so raising the floor
 without a new fixture fails the existence test, and a test fails if any
 `v*.sqlite` below the floor is left in the fixtures directory. (Until the floor
 reached v39 a second fixture, `v38.sqlite` from `v0.6.0-beta`, covered the
 release the below-floor bridge then sent v20–v34 collections through. It was
-retired with the versions below v39; the bridge for v35–v38, `v0.9.2-beta`,
-writes head, so a fixture from it would exercise no migration.) Neither guard stops someone deleting the test itself
+retired with the versions below v39; the bridges since, `v0.9.2-beta` for
+v35–v38 and `v0.10.0-beta` for v39, write schema v41, which every supported
+build migrates from, so a fixture from either would add nothing the floor
+fixture does not. The v39 fixture, from `v0.7.0-beta`, was retired when the
+floor reached v40.) Neither guard stops someone deleting the test itself
 or editing both the constant and the expectations in the same PR: review still
 has to notice that.
 
@@ -350,13 +353,14 @@ adding the matching entry. A change added to a version that has not shipped yet
 entry instead. The gate cannot see that case, because the constant does not
 move.
 
-### Retired (v1–v38): history only
+### Retired (v1–v39): history only
 
-**v1–v38 are RETIRED** (#837, then floor raises since, the latest to v39 once
-every release before `v0.7.0-beta` was retired, maintainer, 2026-11-12): they
-predate `v0.7.0-beta`, the oldest supported release, so their migration steps,
-fixtures and schema dumps have been deleted and [kMinSupportedSchemaVersion]
-refuses a database stamped below v39. Their entries are kept below as history — they explain why later
+**v1–v39 are RETIRED** (#837, then floor raises since: to v39 once every
+release before `v0.7.0-beta` was retired, maintainer, 2026-11-12, and to v40
+when v0.7.0 was retired, maintainer, 2026-11-25): they predate `v0.8.0-beta`,
+the oldest supported release, so their migration steps, fixtures and schema
+dumps have been deleted and [kMinSupportedSchemaVersion] refuses a database
+stamped below v40. Their entries are kept below as history — they explain why later
 columns exist and are still referenced by the steps that survive — but there
 is no longer any code path that migrates from them.
 
@@ -711,14 +715,6 @@ is no longer any code path that migrates from them.
   instead of restoring it without them; the core archive version is unchanged,
   so share files are not affected (#1885). Additive `addColumn`s; no back-fill
   and no derived rebuild.
-### Supported (v39 and later)
-
-These are the versions a database can still be stamped at. v39 is the floor:
-its own migration step is retired along with the older ones, because a floor
-database already carries it. (`beforeOpen` still ensures v39's pieces on every
-open, because a development build stamped v39 before all of them existed.) The
-steps that can still fire are v40 onward.
-
 - v39 (sync-spec §6.7): adds the `retained_sync_fields` table — `kind`,
   `record_id`, `whole_record` (bool) and `payload` (canonical JSON text), keyed
   by `(kind, record_id)`. It holds what this device keeps of a synced record
@@ -749,6 +745,15 @@ steps that can still fire are v40 onward.
   bookkeeping. It is cleared with the baseline, and so on
   an epoch change, detach and restore. Never backed up, exported or
   synchronized. Additive `createTable`; no back-fill.
+### Supported (v40 and later)
+
+These are the versions a database can still be stamped at. v40 is the floor:
+its own migration step is retired along with the older ones, because a floor
+database already carries it. The steps that can still fire are v41 onward.
+(v39's on-open repair, for files a development build stamped v39 before all of
+its pieces existed, was retired with v39: every build that could stamp such a
+file past v39 already ran that repair on the same open.)
+
 - v40 (issue #709): adds two tables for the user's own glossary.
   `user_glossary_entries` holds every kind of user entry in one table, keyed
   by a UUID `id`: `kind` (`compound`, #709; `customFigure` and `term`,
@@ -1042,7 +1047,8 @@ steps that can still fire are v40 onward.
 
   Because test builds stamped v42 before these later pieces joined it,
   `beforeOpen` also ensures v42's pieces on every open of a file at v42 or
-  later, as it does for v39 (`v42_partial_stamp_repair_test.dart`).
+  later, as it did for v39 until v39 was retired
+  (`v42_partial_stamp_repair_test.dart`).
 
 ## The delete model
 
