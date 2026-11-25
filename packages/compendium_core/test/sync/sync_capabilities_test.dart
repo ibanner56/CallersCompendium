@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
@@ -235,6 +237,78 @@ void main() {
         build.capabilityFor(SyncRecordKind.setting, 'default_starting_program'),
         isNull,
       );
+    });
+
+    test('a program template that carries event rules waits on '
+        'eventRules.v1 as well as programTemplates.v1; one without waits on '
+        'programTemplates.v1 alone (#2342)', () {
+      const key = 'program_template:3f1c9a52-6a0f-4d7b-9a51-0b5e4f2d7c11';
+      Set<String> waits(Object? value) => build.capabilitiesFor(
+        SyncRecordKind.setting,
+        key,
+        body: {'value': value},
+      );
+      // As the app stores it: the template's JSON, as a string.
+      String template(Map<String, Object?> value) => jsonEncode(value);
+      const both = {
+        SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.eventRulesV1,
+      };
+      expect(
+        waits(
+          template({
+            'version': 3,
+            'name': 'Family dance',
+            'slots': <Object?>[],
+            'eventRuleIds': ['r1'],
+          }),
+        ),
+        both,
+      );
+      expect(
+        waits({
+          'version': 3,
+          'eventRuleIds': ['r1'],
+        }),
+        both,
+        reason: 'an object as well as a string holding one',
+      );
+      for (final (label, value) in <(String, Object?)>[
+        ('v1', template({'version': 1, 'name': 'X', 'slots': <Object?>[]})),
+        ('v2', template({'version': 2, 'name': 'X', 'slots': <Object?>[]})),
+        ('an empty list', template({'eventRuleIds': <Object?>[]})),
+        ('null', template({'eventRuleIds': null})),
+        ('not JSON', '{'),
+        ('no value', null),
+      ]) {
+        expect(waits(value), {
+          SyncCapabilities.programTemplatesV1,
+        }, reason: label);
+      }
+      // Only template keys look at their value.
+      expect(
+        build.capabilitiesFor(
+          SyncRecordKind.setting,
+          'program_template_order',
+          body: {
+            'value': {
+              'eventRuleIds': ['r1'],
+            },
+          },
+        ),
+        {SyncCapabilities.programTemplatesV1},
+      );
+      expect(
+        build.capabilitiesFor(
+          SyncRecordKind.setting,
+          'theme_mode',
+          body: {'value': '{"eventRuleIds":["r1"]}'},
+        ),
+        isEmpty,
+      );
+      expect(build.capabilitiesFor(SyncRecordKind.eventRule, 'r1'), {
+        SyncCapabilities.eventRulesV1,
+      });
     });
 
     test('gates every saved_search: key on savedSearches.v1', () {

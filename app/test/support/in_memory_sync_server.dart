@@ -134,9 +134,11 @@ final class InMemorySyncDevice {
     InMemorySyncServer server, {
     required this.deviceId,
     required this.repositories,
+    SyncCapabilityPolicy capabilityPolicy = SyncCapabilityPolicy.build,
   }) : coordinator = SyncCoordinator(
          syncId: 'in-memory',
          deviceId: deviceId,
+         capabilityPolicy: capabilityPolicy,
          store: CompendiumSyncCoordinatorStore(
            repositories,
            syncId: 'in-memory',

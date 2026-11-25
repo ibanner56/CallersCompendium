@@ -14510,6 +14510,34 @@
   "@programsRulesPickerFull": {
     "x-sourceSha256": "9d4ccf1254faeea96ac0569e98a59b80d292209766737f0dd0355ce05523bd6f"
   },
+  "programTemplateRulesLabel": "Regels",
+  "@programTemplateRulesLabel": {
+    "x-sourceSha256": "4228aeb07c410ffc9d15b458bf7c2bf8d9dfa7af632f2c339e69f8cb54654da3"
+  },
+  "programTemplateRulesNone": "Geen",
+  "@programTemplateRulesNone": {
+    "x-sourceSha256": "dc937b59892604f5a86ac96936cd7ff09e25f18ae6b758e8014a24c7fa039e91"
+  },
+  "programTemplateRulesHelp": "Toegevoegd aan elk nieuw programma dat met dit sjabloon wordt gemaakt.",
+  "@programTemplateRulesHelp": {
+    "x-sourceSha256": "78e5f1977f7429c49733b64700a138e80d30c89e72165c0fccd44fa4de0a6bf2"
+  },
+  "programTemplateRuleRemoved": "Verwijderd: {rule}",
+  "@programTemplateRuleRemoved": {
+    "x-sourceSha256": "9d5df0a088d8b8460775e6b44026d42f231f247934827c011a7ef143ae12ea1e"
+  },
+  "programTemplateRuleRemovedUnknown": "Verwijderd: een regel die niet op dit apparaat staat",
+  "@programTemplateRuleRemovedUnknown": {
+    "x-sourceSha256": "c1c09c9abcef4143bb960f232a083639dd0de19bf45eb0542206522fabadee1c"
+  },
+  "programTemplateRulesPickerTitle": "Regels voor dit sjabloon",
+  "@programTemplateRulesPickerTitle": {
+    "x-sourceSha256": "51bf43c2e9fe9425ff180991f7a3c02cd6911b10177bc344de2dc98d68994374"
+  },
+  "programTemplateRulesPickerFull": "Dit sjabloon gebruikt {max} regels, het maximum. Vink er een uit om een andere toe te voegen.",
+  "@programTemplateRulesPickerFull": {
+    "x-sourceSha256": "c936f81169534317cdce0fdb5bab9aafec0fb70b0c9fb047eb34bffe5ab8d6d2"
+  },
   "programsRulesPickerNotHere": "{count, plural, =1{1 regel niet op dit apparaat} other{{count} regels niet op dit apparaat}}",
   "@programsRulesPickerNotHere": {
     "x-sourceSha256": "d1e47d6f22bef283a52643127816c87337c04d06523be6779f7a60039fb1db49"

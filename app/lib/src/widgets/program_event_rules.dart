@@ -558,10 +558,15 @@ typedef ApplyEventRuleIdsChange =
 /// ([ProgramRepository.updateEventRuleIds]), so a rule another writer
 /// applied while the picker was open is kept; the picker then shows the
 /// list stored.
+///
+/// A program template's Rules row (#2342) opens the same picker with
+/// [forTemplate], which only changes its title and its "full" line to name
+/// the template; [onChange] then changes the template's list.
 Future<void> showProgramRulesPicker(
   BuildContext context, {
   required List<String> applied,
   required ApplyEventRuleIdsChange onChange,
+  bool forTemplate = false,
 }) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
@@ -570,7 +575,11 @@ Future<void> showProgramRulesPicker(
   useSafeArea: true,
   showDragHandle: true,
   sheetAnimationStyle: AppMotion.styleFor(context),
-  builder: (_) => _RulesPicker(applied: applied, onChange: onChange),
+  builder: (_) => _RulesPicker(
+    applied: applied,
+    onChange: onChange,
+    forTemplate: forTemplate,
+  ),
 );
 
 /// Calls [onStored] with the rule ids stored for the program [programId]
@@ -609,10 +618,15 @@ StreamSubscription<Set<TableUpdate>> watchStoredEventRuleIds(
 const kEventRulePickerSearchThreshold = 8;
 
 class _RulesPicker extends StatefulWidget {
-  const _RulesPicker({required this.applied, required this.onChange});
+  const _RulesPicker({
+    required this.applied,
+    required this.onChange,
+    required this.forTemplate,
+  });
 
   final List<String> applied;
   final ApplyEventRuleIdsChange onChange;
+  final bool forTemplate;
 
   @override
   State<_RulesPicker> createState() => _RulesPickerState();
@@ -858,7 +872,9 @@ class _RulesPickerState extends State<_RulesPicker> {
                               horizontal: AppSpacing.md,
                             ),
                             child: Text(
-                              l10n.programsRulesPickerTitle,
+                              widget.forTemplate
+                                  ? l10n.programTemplateRulesPickerTitle
+                                  : l10n.programsRulesPickerTitle,
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ),
@@ -887,9 +903,13 @@ class _RulesPickerState extends State<_RulesPicker> {
                               vertical: AppSpacing.xs,
                             ),
                             child: Text(
-                              l10n.programsRulesPickerFull(
-                                maxProgramEventRules,
-                              ),
+                              widget.forTemplate
+                                  ? l10n.programTemplateRulesPickerFull(
+                                      maxProgramEventRules,
+                                    )
+                                  : l10n.programsRulesPickerFull(
+                                      maxProgramEventRules,
+                                    ),
                             ),
                           ),
                         if (_notHere case final notHere when notHere.isNotEmpty)

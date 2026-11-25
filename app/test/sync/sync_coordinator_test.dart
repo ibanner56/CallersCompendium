@@ -8269,6 +8269,104 @@ void main() {
       expect(awaiting(result), isEmpty);
     });
 
+    test('a program template that carries event rules (#2342) waits for '
+        'eventRules.v1 too: beside peers that advertise programTemplates.v1 '
+        'but not eventRules.v1 it is held back while a template without '
+        'rules publishes, and it publishes once every device advertises '
+        'both', () async {
+      const build = SyncCapabilityPolicy.build;
+      // As the app stores them: each template's JSON, as a string value.
+      final withRules = SyncMergeCandidate.fromBlob(
+        _setting(
+          'program_template:family',
+          jsonEncode({
+            'version': 3,
+            'name': 'Family dance',
+            'slots': <Object?>[],
+            'eventRuleIds': ['r1'],
+          }),
+        ),
+      );
+      final withoutRules = SyncMergeCandidate.fromBlob(
+        _setting(
+          'program_template:contra',
+          jsonEncode({'version': 1, 'name': 'Contra', 'slots': <Object?>[]}),
+        ),
+      );
+      final everyDevice = ['p1', 'p2'];
+      // A build with templates and without event rules.
+      final previous = {...build.advertised}
+        ..remove(SyncCapabilities.eventRulesV1);
+
+      Future<(SyncPassResult, _FakeTransport, _FakeStore)> pass(
+        Map<String, Set<String>> recorded,
+      ) async {
+        final records = [
+          for (final MapEntry(key: peer, value: advertised) in recorded.entries)
+            capabilityOf(peer, advertised),
+        ];
+        final local = {
+          for (final c in [withRules, withoutRules, plain, ...records])
+            c.address: c,
+        };
+        final store = _FakeStore(local: local);
+        final transport = transportFor(
+          everyDevice,
+          missing: {
+            for (final c in [withRules, withoutRules, plain]) c.wireHash,
+          },
+        );
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: build,
+        ).syncNow();
+        expect(result.status, SyncPassStatus.completed);
+        return (result, transport, store);
+      }
+
+      // 1. Every peer on the build before event rules.
+      var (result, transport, store) = await pass({
+        for (final peer in everyDevice) peer: previous,
+      });
+      expect(
+        publishedSettings(transport),
+        contains(withoutRules.blob.id),
+        reason: 'a template without rules waits for programTemplates.v1 only',
+      );
+      expect(uploaded(transport), contains(withoutRules.wireHash));
+      expect(publishedSettings(transport), isNot(contains(withRules.blob.id)));
+      expect(uploaded(transport), isNot(contains(withRules.wireHash)));
+      expect(store.publishedRecords, contains(withRules.address));
+      expect(
+        awaiting(result).map((r) => r.peerId).toSet(),
+        everyDevice.toSet(),
+      );
+      for (final report in awaiting(result)) {
+        expect(report.message, contains(SyncCapabilities.eventRulesV1));
+        expect(
+          report.message,
+          isNot(contains(SyncCapabilities.programTemplatesV1)),
+        );
+      }
+
+      // 2. One peer updated: still held back, and only the other is named.
+      (result, transport, store) = await pass({
+        'p1': build.advertised,
+        'p2': previous,
+      });
+      expect(publishedSettings(transport), isNot(contains(withRules.blob.id)));
+      expect(awaiting(result).map((r) => r.peerId).toSet(), {'p2'});
+
+      // 3. Every device advertises both: it publishes.
+      (result, transport, store) = await pass({
+        for (final peer in everyDevice) peer: build.advertised,
+      });
+      expect(publishedSettings(transport), contains(withRules.blob.id));
+      expect(uploaded(transport), contains(withRules.wireHash));
+      expect(awaiting(result), isEmpty);
+    });
+
     test('rollout: the suggestion settings (#2343) wait beside peers with no '
         'record and peers on the previous build, and publish once every '
         'device advertises suggestions.v1', () async {

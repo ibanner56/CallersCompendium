@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/event_rules_scope.dart';
 import 'package:compendium_app/src/data/program_templates.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -710,6 +711,265 @@ void main() {
       expect(await repos.savedSearches.get(used.id), isNotNull);
       await repos.savedSearches.delete(unused.id);
       expect(await repos.savedSearches.get(unused.id), isNull);
+    });
+  });
+
+  group('event rules on a template (#2342)', () {
+    Future<EventRule> rule(CompendiumRepositories repos, String nickname) =>
+        repos.eventRules.create(
+          savedSearchId: 'search-1',
+          quantifier: EventRuleQuantifier.atMost,
+          count: 1,
+          scope: EventRuleScope.wholeProgram,
+          nickname: nickname,
+        );
+
+    test('a template without event rules is written exactly as before, as v1 '
+        'or v2', () {
+      expect(
+        encodeProgramTemplate(
+          const ProgramTemplate(
+            id: 'contra',
+            name: 'Contra night',
+            entries: [ProgramTemplateEntry(text: 'Waltz')],
+          ),
+        ),
+        '{"version":1,"name":"Contra night","slots":[{"text":"Waltz"}]}',
+      );
+      expect(
+        encodeProgramTemplate(
+          const ProgramTemplate(
+            id: 'contra',
+            name: 'Contra night',
+            entries: [
+              ProgramTemplateEntry.rule(savedSearchId: 's', label: 'Opener'),
+            ],
+          ),
+        ),
+        '{"version":2,"name":"Contra night","slots":['
+        '{"savedSearchId":"s","label":"Opener"}]}',
+      );
+    });
+
+    test('event rules are written last, in a v3 value, and read back with '
+        'the slots and their slot rules', () {
+      const template = ProgramTemplate(
+        id: 'family',
+        name: 'Family dance',
+        entries: [
+          ProgramTemplateEntry(text: 'Waltz'),
+          ProgramTemplateEntry.rule(savedSearchId: 's', label: 'Opener'),
+        ],
+        eventRuleIds: ['r2', 'r1'],
+      );
+      final stored = encodeProgramTemplate(template);
+      expect(
+        stored,
+        '{"version":3,"name":"Family dance","slots":[{"text":"Waltz"},'
+        '{"savedSearchId":"s","label":"Opener"}],"eventRuleIds":["r2","r1"]}',
+      );
+      final decoded = tryDecodeProgramTemplate('family', stored)!;
+      expect(decoded.name, 'Family dance');
+      expect(decoded.entries, template.entries);
+      expect(decoded.eventRuleIds, ['r2', 'r1']);
+      expect(
+        jsonDecode(
+          encodeProgramTemplate(
+            const ProgramTemplate(id: 'x', name: 'X', eventRuleIds: ['r1']),
+          ),
+        ),
+        {
+          'version': 3,
+          'name': 'X',
+          'slots': <Object?>[],
+          'eventRuleIds': ['r1'],
+        },
+        reason: 'event rules alone are a v3 value',
+      );
+    });
+
+    test('the ids are written as a program keeps them: each once, none '
+        'blank or over the length, at most the most a program may apply', () {
+      final long = 'x' * (kMaxProgramTemplateEventRuleIdLength + 1);
+      final many = [for (var i = 0; i < maxProgramEventRules + 5; i++) 'r$i'];
+      ProgramTemplate decodeBack(List<String> ids) => tryDecodeProgramTemplate(
+        't',
+        encodeProgramTemplate(
+          ProgramTemplate(id: 't', name: 'T', eventRuleIds: ids),
+        ),
+      )!;
+      expect(decodeBack(['a', 'b', 'a', '', ' ', long, 'c']).eventRuleIds, [
+        'a',
+        'b',
+        'c',
+      ]);
+      expect(decodeBack(many).eventRuleIds, many.take(maxProgramEventRules));
+      expect(
+        (jsonDecode(
+              encodeProgramTemplate(
+                const ProgramTemplate(
+                  id: 't',
+                  name: 'T',
+                  eventRuleIds: ['', ' '],
+                ),
+              ),
+            )
+            as Map)['version'],
+        1,
+        reason: 'no id left: no field, and the version it had before',
+      );
+    });
+
+    test('copyWith keeps the event rules unless it is given new ones', () {
+      const template = ProgramTemplate(
+        id: 't',
+        name: 'T',
+        eventRuleIds: ['r1'],
+      );
+      expect(template.copyWith(name: 'U').eventRuleIds, ['r1']);
+      expect(template.copyWith(entries: const []).eventRuleIds, ['r1']);
+      expect(template.copyWith(eventRuleIds: const []).eventRuleIds, isEmpty);
+    });
+
+    test('decoding and backup validation accept exactly what is written, '
+        'and refuse a malformed eventRuleIds', () {
+      final good = encodeProgramTemplate(
+        const ProgramTemplate(id: 'x', name: 'X', eventRuleIds: ['r1', 'r2']),
+      );
+      expect(validateBackupSettingValue(programTemplateKey('x'), good), isTrue);
+      expect(tryDecodeProgramTemplate('x', good)!.eventRuleIds, ['r1', 'r2']);
+      String raw(int version, Object? ids) => jsonEncode({
+        'version': version,
+        'name': 'X',
+        'slots': <Object?>[],
+        'eventRuleIds': ids,
+      });
+      for (final (label, stored) in <(String, String)>[
+        ('event rules in a v1 value', raw(1, ['r1'])),
+        ('event rules in a v2 value', raw(2, ['r1'])),
+        (
+          'a v3 value without the field',
+          jsonEncode({'version': 3, 'name': 'X', 'slots': <Object?>[]}),
+        ),
+        ('an empty list', raw(3, <Object?>[])),
+        ('not a list', raw(3, 'r1')),
+        ('an id that is not text', raw(3, [1])),
+        ('a blank id', raw(3, [' '])),
+        ('a repeated id', raw(3, ['r1', 'r1'])),
+        (
+          'an id over the length',
+          raw(3, ['x' * (kMaxProgramTemplateEventRuleIdLength + 1)]),
+        ),
+        (
+          'more ids than a program may apply',
+          raw(3, [for (var i = 0; i <= maxProgramEventRules; i++) 'r$i']),
+        ),
+        ('a version this build does not know', raw(4, ['r1'])),
+        (
+          'an unknown field beside it',
+          jsonEncode({
+            'version': 3,
+            'name': 'X',
+            'slots': <Object?>[],
+            'eventRuleIds': ['r1'],
+            'later': true,
+          }),
+        ),
+      ]) {
+        expect(tryDecodeProgramTemplate('x', stored), isNull, reason: label);
+        expect(
+          validateBackupSettingValue(programTemplateKey('x'), stored),
+          isFalse,
+          reason: label,
+        );
+      }
+    });
+
+    test('a value from a newer build is not shown, and no write here '
+        'rewrites it, so none of its fields is dropped', () async {
+      final repos = openTestRepositories();
+      final newer = jsonEncode({
+        'version': 4,
+        'name': 'From a newer build',
+        'slots': <Object?>[],
+        'eventRuleIds': ['r1'],
+        'later': {'kept': true},
+      });
+      await repos.settings.set(programTemplateKey('newer'), newer);
+      await saveProgramTemplate(
+        repos.settings,
+        const ProgramTemplate(id: 'mine', name: 'Mine'),
+      );
+      await saveProgramTemplateOrder(repos.settings, const ['mine', 'newer']);
+      await saveProgramTemplateDefaultIfUnset(repos.settings, 'mine');
+      final loaded = await loadProgramTemplates(repos.settings);
+      expect([for (final t in loaded.templates) t.id], ['mine']);
+      expect(await repos.settings.get(programTemplateKey('newer')), newer);
+    });
+
+    test("a new program takes the live rules, in the template's order, only "
+        'while Event rules is on', () async {
+      final repos = openTestRepositories();
+      final a = await rule(repos, 'a');
+      final b = await rule(repos, 'b');
+      final template = ProgramTemplate(
+        id: 't',
+        name: 'T',
+        eventRuleIds: [b.id, 'not-here-yet', a.id],
+      );
+      expect(
+        await newProgramEventRuleIds(repos, template),
+        isEmpty,
+        reason: 'Event rules is off by default',
+      );
+      await repos.settings.set(kEventRulesEnabledKey, true);
+      expect(await newProgramEventRuleIds(repos, template), [b.id, a.id]);
+      expect(await newProgramEventRuleIds(repos, null), isEmpty);
+      await repos.settings.set(kEventRulesEnabledKey, false);
+      expect(await newProgramEventRuleIds(repos, template), isEmpty);
+    });
+
+    test('a deleted rule is skipped and kept on the template; an Undo of its '
+        'delete brings it back', () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kEventRulesEnabledKey, true);
+      final a = await rule(repos, 'a');
+      final b = await rule(repos, 'b');
+      await saveProgramTemplate(
+        repos.settings,
+        ProgramTemplate(id: 't', name: 'T', eventRuleIds: [a.id, b.id]),
+      );
+      Future<ProgramTemplate> stored() async =>
+          (await loadProgramTemplates(repos.settings)).byId('t')!;
+
+      await repos.eventRules.delete(a.id);
+      expect(await newProgramEventRuleIds(repos, await stored()), [b.id]);
+      expect((await stored()).eventRuleIds, [a.id, b.id]);
+
+      await repos.eventRules.restore(a.id);
+      expect(await newProgramEventRuleIds(repos, await stored()), [a.id, b.id]);
+    });
+
+    test('the Default template gives programs made elsewhere its rules, and '
+        'Blank program none', () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kEventRulesEnabledKey, true);
+      final a = await rule(repos, 'a');
+      await saveProgramTemplate(
+        repos.settings,
+        ProgramTemplate(id: 't', name: 'T', eventRuleIds: [a.id]),
+      );
+      await saveProgramTemplateOrder(repos.settings, const ['t']);
+      await saveProgramTemplateDefault(repos.settings, 't');
+      expect(
+        await newProgramEventRuleIds(
+          repos,
+          await defaultProgramTemplate(repos.settings),
+        ),
+        [a.id],
+      );
+      await saveProgramTemplateDefault(repos.settings, null);
+      expect(await defaultProgramTemplate(repos.settings), isNull);
     });
   });
 }

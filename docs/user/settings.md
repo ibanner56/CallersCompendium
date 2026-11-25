@@ -752,6 +752,18 @@ Select **Program defaults** to open this group.
   can't be deleted; the message names the template and the rule. If the saved
   search is gone anyway (deleted on another device, say), or can't be opened,
   the rule's row says so, and the placeholder still offers Fill.
+- **Rules** (optional, *Experimental*) — while [Event rules](#event-rules) is
+  on, a template has a **Rules** row under its name, listing the template's
+  rules. Select it to open the same rule picker a program has, with **New
+  rule…** at the top: tick the rules a program made from this template should
+  start with, and untick one to take it off. They are added to each new
+  program made from the template (see [Rules that come with a
+  template](./programs.md#check-your-program-against-your-rules)); changing
+  them later changes no program already made. A rule you delete stays on the
+  template, shown as **Removed**, and isn't added to new programs; **Undo** of
+  the delete brings it back on the template too. A template can carry up to
+  64 rules; once it does, only the rules you deleted are let go to make room
+  for another.
 - **Default template** — the template a new program starts from when you are
   not asked to choose, or **Blank program**. The first template you add
   becomes the default unless you have chosen Blank program. With two or more
@@ -769,7 +781,8 @@ your first template, named "Starting program", and your Default template, so
 **New program** works as it did. Each template syncs to your other devices as
 its own setting, so editing two different templates on two devices keeps both
 edits; templates wait to sync until every device in the store has a version
-of the app that knows them.
+of the app that knows them, and a template that carries rules waits until
+every device knows event rules too.
 
 ### Import defaults
 
@@ -1336,12 +1349,15 @@ lists your rules:
   program counts, and one in **Recently deleted** doesn't.
 
 While it is on, [Settings ▸ Program ▸ Programs](#programs) has a **Manage
-rules** link to the same list. With [Suggestions](#suggestions) on too, the
-builder's picker, in its **Suggested** order, marks the dances that would break a rule the
-program uses and lists them last. Turning it off hides the builder's **Rules**
-button, its warnings and its markers, and the swap sheet's markers, and nothing
-is checked; your rules and
-the rules each program uses are kept for when you turn it on again.
+rules** link to the same list, and each [program template](#program-defaults)
+has a **Rules** row whose rules are added to the programs made from it. With
+[Suggestions](#suggestions) on too, the builder's picker, in its **Suggested**
+order, marks the dances that would break a rule the program uses and lists
+them last. Turning it off hides the builder's **Rules** button, its warnings
+and its markers, the swap sheet's markers, and the templates' **Rules** rows,
+nothing is checked, and new programs get no rules from a template; your rules,
+the rules each program uses and the rules each template carries are kept for
+when you turn it on again.
 
 Your rules are in your [backup](#backup--restore), with the rules each program
 uses and **Check Perform's Swap this dance**, and sync with [Device Sync](#device-sync) once every device connected to

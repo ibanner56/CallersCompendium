@@ -1,0 +1,18 @@
+{
+  "id": "2342-template-event-rules",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "With the Experimental Event rules feature on, a program template has a Rules row: the same rule picker a program has, with New rule… at the top. A program made from the template, with New program or as a draft a calendar import makes from your Default template, starts with the template's rules, and you can untick them as you would any rule. Changing the template later changes no program already made from it.",
+      "A rule you delete stays on a template, shown as removed, and isn't added to new programs; Undo of the delete brings it back on the template too. With Event rules off, the Rules row is hidden and new programs get no rules from a template, but the template keeps its rules for when you turn it back on."
+    ],
+    "changed": [
+      "A program template that carries rules syncs once every device in the store has a version of the app that knows event rules, as well as templates."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add SyncCapabilityPolicy.gatedSettingValueFields and capabilitiesFor: a settings key can wait for a second capability while its value holds a given top-level field, and a program_template: value with a non-empty eventRuleIds waits for eventRules.v1 as well as programTemplates.v1."
+    ]
+  }
+}
