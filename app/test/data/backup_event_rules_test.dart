@@ -6,6 +6,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/saved_searches.dart';
 import '../support/test_repositories.dart';
 
 /// The caller's event rules in a backup (#2340): `app.eventRules`, its
@@ -20,6 +21,11 @@ void main() {
 
   Future<(CompendiumRepositories, EventRule)> seeded() async {
     final repos = openTestRepositories();
+    await storeSavedSearches(repos.settings, [
+      'search-1',
+      'search-2',
+      'search-3',
+    ]);
     final rule = await repos.eventRules.create(
       savedSearchId: 'search-1',
       quantifier: EventRuleQuantifier.atMost,

@@ -14875,6 +14875,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Save a search in the Collection first: a rule uses a saved search to say which dances it means.';
 
   @override
+  String get eventRuleSavedSearchGone =>
+      'That saved search was just deleted, so the rule wasn\'t saved. Choose another.';
+
+  @override
   String get eventRuleQuantifierLabel => 'How many';
 
   @override
@@ -15212,6 +15216,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programTemplateRulesNone => 'None';
+
+  @override
+  String get programTemplateSlotRuleNotSavedSearchGone =>
+      'That saved search was just deleted, so the slot rule wasn\'t saved.';
 
   @override
   String get programTemplateRulesHelp =>

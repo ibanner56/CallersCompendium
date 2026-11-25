@@ -191,10 +191,10 @@ void main() {
         spec: specFor('a'),
       );
       // A writer that adds a rule only while the search is live, started in
-      // the window after the event rules' lookup has answered "no uses". No
-      // real writer checks this yet (see `delete`'s doc comment): the check
-      // is what gives the race an outcome to observe. It runs outside the
-      // delete's zone, as another writer would.
+      // the window after the event rules' lookup has answered "no uses". The
+      // test double checks for itself, so this pins the delete's atomicity
+      // alone; the next test races the real writer, which checks too. It
+      // runs outside the delete's zone, as another writer would.
       Future<void>? racer;
       repos.savedSearches.usage.register('racer', (id) async {
         racer ??= Zone.root.run(
@@ -227,6 +227,41 @@ void main() {
             'deleted: $deleted, live rules using it: ${users.length}; the '
             'delete and the rule must not both succeed',
       );
+    });
+
+    test('a rule the editor creates in that window is refused, not left '
+        'naming the deleted search (#2529)', () async {
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      final s = await repos.savedSearches.create(
+        name: 'Raced',
+        spec: specFor('a'),
+      );
+      // The real writer this time, with no check of its own, started in the
+      // same window outside the delete's zone.
+      Future<Object?>? racer;
+      repos.savedSearches.usage.register('racer', (id) async {
+        racer ??= Zone.root.run(
+          () => repos.eventRules
+              .create(
+                savedSearchId: id,
+                quantifier: EventRuleQuantifier.none,
+                scope: EventRuleScope.wholeProgram,
+              )
+              .then<Object?>((rule) => rule, onError: (Object e) => e),
+        );
+        return const [];
+      });
+
+      await repos.savedSearches.delete(s.id);
+      final outcome = await racer;
+
+      expect(await repos.savedSearches.get(s.id), isNull);
+      expect(
+        outcome,
+        isA<SavedSearchGone>().having((e) => e.id, 'id', s.id),
+        reason: 'the create lands after the delete and must see it',
+      );
+      expect(await repos.eventRules.usesOfSavedSearch(s.id), isEmpty);
     });
   });
 

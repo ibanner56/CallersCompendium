@@ -17,6 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import '../support/saved_searches.dart';
 import '../support/test_repositories.dart';
 
 String _cal(List<List<String>> events) => [
@@ -289,6 +290,7 @@ void main() {
         'while Event rules is on, and a later edit to the template changes '
         'none of them (#2342)', () async {
       final repos = openTestRepositories();
+      await storeSavedSearches(repos.settings, ['search-1']);
       Future<EventRule> rule(String nickname) => repos.eventRules.create(
         savedSearchId: 'search-1',
         quantifier: EventRuleQuantifier.none,

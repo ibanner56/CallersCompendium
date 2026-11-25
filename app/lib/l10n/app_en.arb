@@ -20109,6 +20109,10 @@
   "@eventRuleNoSavedSearches": {
     "description": "Shown in the rule editor when there are no saved searches to choose (#2340)."
   },
+  "eventRuleSavedSearchGone": "That saved search was just deleted, so the rule wasn't saved. Choose another.",
+  "@eventRuleSavedSearchGone": {
+    "description": "Snackbar in the rule editor when saving fails because the chosen saved search was deleted after the editor opened (#2529). The search choice is then cleared."
+  },
   "eventRuleQuantifierLabel": "How many",
   "@eventRuleQuantifierLabel": {
     "description": "Label of the rule editor choice between At most, At least and None (#2340)."
@@ -20554,6 +20558,10 @@
   "programTemplateRulesNone": "None",
   "@programTemplateRulesNone": {
     "description": "Shown under the template editor's Rules row when the template carries no event rules (#2342)."
+  },
+  "programTemplateSlotRuleNotSavedSearchGone": "That saved search was just deleted, so the slot rule wasn't saved.",
+  "@programTemplateSlotRuleNotSavedSearchGone": {
+    "description": "Snackbar in the program template editor when a new or changed slot rule names a saved search that was deleted while its dialog was open (#2529). The slots go back to how they were saved."
   },
   "programTemplateRulesHelp": "Added to each new program made from this template.",
   "@programTemplateRulesHelp": {

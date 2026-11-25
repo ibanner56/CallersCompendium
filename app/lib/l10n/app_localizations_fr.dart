@@ -15089,6 +15089,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Enregistrez d\'abord une recherche dans la Collection : une règle utilise une recherche enregistrée pour dire de quelles danses elle parle.';
 
   @override
+  String get eventRuleSavedSearchGone =>
+      'Cette recherche enregistrée vient d\'être supprimée : la règle n\'a donc pas été enregistrée. Choisissez-en une autre.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Combien';
 
   @override
@@ -15436,6 +15440,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programTemplateRulesNone => 'Aucune';
+
+  @override
+  String get programTemplateSlotRuleNotSavedSearchGone =>
+      'Cette recherche enregistrée vient d\'être supprimée : la règle d\'emplacement n\'a donc pas été enregistrée.';
 
   @override
   String get programTemplateRulesHelp =>

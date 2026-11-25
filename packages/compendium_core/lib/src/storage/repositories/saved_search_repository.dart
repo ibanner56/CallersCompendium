@@ -81,6 +81,25 @@ final class SavedSearchInUse implements Exception {
   String toString() => 'SavedSearchInUse($id, ${uses.length} use(s))';
 }
 
+/// A write that would start using the saved search [id] was refused because
+/// no such search is stored here: it was deleted, perhaps after the editor
+/// that named it opened, or never arrived (#2529).
+final class SavedSearchGone implements Exception {
+  const SavedSearchGone(this.id);
+
+  final String id;
+
+  @override
+  String toString() => 'SavedSearchGone($id)';
+}
+
+/// Whether the saved search [id] is stored here and not deleted, readable or
+/// not. A write that starts using a saved search checks this in its own
+/// transaction, so a delete ([SavedSearchRepository.delete], which checks
+/// for uses in its own) cannot land between the check and the write.
+Future<bool> isSavedSearchStored(SettingsRepository settings, String id) =>
+    settings.contains('$savedSearchKeyPrefix$id');
+
 /// Adding another saved search would pass [savedSearchMaxCount].
 final class SavedSearchLimitReached implements Exception {
   const SavedSearchLimitReached();
@@ -287,10 +306,13 @@ class SavedSearchRepository {
   /// write elsewhere lands wholly before the check, which then sees it, or
   /// wholly after the removal: the check never passes on a use that is
   /// already there when the search is removed. A use written after the
-  /// removal is not prevented. No writer here checks that its saved search is
-  /// still live (the rule editor and the template editor write the search
-  /// they were opened with, and a peer's rule arrives by sync unchecked), so
-  /// a dependent must still handle a missing id.
+  /// removal is not prevented by the delete itself: a writer that starts
+  /// using a saved search checks [isSavedSearchStored] in its own transaction
+  /// and throws [SavedSearchGone] instead (an event rule's create, or a save
+  /// that changes its search; a template's new or changed slot rule). Writes
+  /// that bring a use back rather than start one (Undo, restore, a copy) and
+  /// a peer's rule arriving by sync are not checked, so a dependent must still
+  /// handle a missing id.
   Future<void> delete(String id, {DateTime? at}) =>
       _settings.transaction(() async {
         final uses = await usage.usesOf(id);

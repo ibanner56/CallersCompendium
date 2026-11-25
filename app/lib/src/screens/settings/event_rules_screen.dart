@@ -414,6 +414,22 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
         saved = (await repos.eventRules.get(existing.id))!;
       }
       navigator.pop(saved);
+    } on SavedSearchGone {
+      // diagnostics: silent — expected, not a fault: the saved search was deleted after the editor opened (#2529); the editor says so and offers the searches that are left.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('event-rule-saved-search-gone'),
+          content: Text(AppLocalizations.of(context).eventRuleSavedSearchGone),
+        ),
+      );
+      setState(() {
+        _saving = false;
+        // Cleared now, not only once the list is read again, so a second tap
+        // cannot try the same search.
+        _searchId = null;
+      });
+      await _read();
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'event_rule_editor._save');
       if (mounted) setState(() => _saving = false);

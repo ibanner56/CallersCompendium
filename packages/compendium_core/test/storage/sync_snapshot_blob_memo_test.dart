@@ -156,6 +156,7 @@ void main() {
       at: _stamp,
     );
     await repositories.figureNotes.set('swing', 'Notes.', at: _stamp);
+    await storeSavedSearches(repositories.settings, ['search-1']);
     await repositories.eventRules.save(
       EventRule.of(
         id: 'rule-1',

@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/l10n_harness.dart';
+import 'support/pump_until.dart';
 import 'support/test_repositories.dart';
 
 /// Counts and optionally fails the two dance reads the template editor
@@ -482,6 +483,67 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('Family dances'), findsOneWidget);
+    });
+
+    testWidgets('a saved search deleted while the slot rule dialog is open: '
+        'the editor says so and goes back to the saved slots (#2529)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final family = await saveSearch(repos, 'Family dances');
+      const template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [ProgramTemplateEntry(text: 'Waltz')],
+      );
+      await _seed(repos, const [template]);
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('program-template-add-rule')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-search')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(ValueKey('program-template-rule-search-${family.id}')).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-template-rule-label')),
+        'Easy family opener',
+      );
+      await tester.pumpAndSettle();
+      // Deleted elsewhere (the Collection, or a peer by sync) meanwhile.
+      await repos.savedSearches.delete(family.id);
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-save')),
+      );
+      await tester.pumpAndSettle();
+
+      await pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('program-template-slot-rule-search-gone')),
+      );
+      expect(
+        find.text(
+          "That saved search was just deleted, so the slot rule wasn't saved.",
+        ),
+        findsOneWidget,
+      );
+      await pumpUntil(
+        tester,
+        () => find.text('Easy family opener').evaluate().isEmpty,
+        description: 'the refused slot rule to leave the list',
+      );
+      expect((await _stored(repos)).byId('a')!.entries, const [
+        ProgramTemplateEntry(text: 'Waltz'),
+      ]);
+      expect(find.text('Waltz'), findsOneWidget);
     });
 
     testWidgets('without a saved search, Add slot rule says where to make one '
