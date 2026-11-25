@@ -2,6 +2,9 @@ import 'package:compendium_app/src/export/program_matrix_pdf.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_core/testing.dart';
+import 'package:pdf/widgets.dart' as pw;
+
+import '../support/pdf_probe.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -225,6 +228,44 @@ void main() {
           expect(seen, matrix.rows);
         },
       );
+    });
+  });
+
+  group('combined matrix (#2349)', () {
+    Future<String> printed({List<int>? rowBlocks}) async => pdfText(
+      await buildProgramMatrixPdf(
+        buildProgramMatrix([
+          dance('d1', 'Butterfly', [move('balance')]),
+          dance('d2', 'Baby Rose', [move('balance')]),
+          dance('d3', 'Chorus Jig', [move('balance')]),
+        ]),
+        taxonomy: contraTaxonomy,
+        dialect: Dialect.canonical,
+        programTitle: 'Combined matrix',
+        theme: pw.ThemeData.base(),
+        rowBlocks: rowBlocks,
+        blockLabels: const ['SATBLOCK', 'SUNBLOCK'],
+      ),
+    );
+
+    test('prints a heading above each program\'s first dance', () async {
+      final text = await printed(rowBlocks: const [0, 0, 1]);
+      expect('SATBLOCK'.allMatches(text), hasLength(1));
+      expect('SUNBLOCK'.allMatches(text), hasLength(1));
+      expect(text.indexOf('SATBLOCK'), lessThan(text.indexOf('Butterfly')));
+      expect(text.indexOf('Baby Rose'), lessThan(text.indexOf('SUNBLOCK')));
+      expect(text.indexOf('SUNBLOCK'), lessThan(text.indexOf('Chorus Jig')));
+    });
+
+    test('one program\'s matrix prints no heading', () async {
+      final text = await printed();
+      // Positive control: the probe reads the dance titles.
+      expect(text, contains('Chorus Jig'));
+      expect(text, isNot(contains('BLOCK')));
+    });
+
+    test('rows and blocks must be aligned', () {
+      expect(() => printed(rowBlocks: const [0]), throwsArgumentError);
     });
   });
 }

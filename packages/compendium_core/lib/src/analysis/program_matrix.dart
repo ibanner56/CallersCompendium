@@ -48,6 +48,8 @@ import '../model/figure.dart';
 import '../model/figure_source.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
+import '../model/program.dart';
+import '../search/title_sort_key.dart' show foldForTitleMatch;
 import '../taxonomy/taxonomy_registry.dart';
 import '../taxonomy/taxonomy.dart';
 import '../taxonomy/user_figure_use.dart';
@@ -1708,4 +1710,252 @@ Iterable<int> _adjacentIndices(List<int?> groups, int index) sync* {
       yield ++r;
     }
   }
+}
+
+/// The order a weekend or series of [programs] reads in (#2349): by event
+/// date, earliest first, and on one date by start time
+/// ([Program.startMinute]), so an afternoon and an evening on one day read in
+/// the order they happen; a program with no start time comes after the timed
+/// ones that day. Programs with no date come after every dated one, by title.
+/// Remaining ties fall back to title, then id, so the order never depends on
+/// the order the programs were selected in.
+List<Program> orderProgramsForSeries(Iterable<Program> programs) {
+  int byTitle(Program a, Program b) {
+    final t = foldForTitleMatch(a.title).compareTo(foldForTitleMatch(b.title));
+    return t != 0 ? t : a.id.compareTo(b.id);
+  }
+
+  return programs.toList()..sort((a, b) {
+    final ad = a.eventDate;
+    final bd = b.eventDate;
+    if (ad == null && bd == null) return byTitle(a, b);
+    if (ad == null) return 1;
+    if (bd == null) return -1;
+    final d = ad.compareTo(bd);
+    if (d != 0) return d;
+    final aStart = a.startMinute;
+    final bStart = b.startMinute;
+    if (aStart != bStart) {
+      if (aStart == null) return 1;
+      if (bStart == null) return -1;
+      return aStart.compareTo(bStart);
+    }
+    return byTitle(a, b);
+  });
+}
+
+/// The inputs [buildProgramMatrix] takes for one matrix over several programs
+/// (#2349), built by [combineProgramsForMatrix]. Every list is aligned to
+/// [dances], one entry per row.
+@immutable
+class CombinedProgramMatrixInput {
+  const CombinedProgramMatrixInput({
+    required this.programs,
+    required this.dances,
+    required this.sections,
+    required this.alternateGroups,
+    required this.programIndexByRow,
+    required this.altRowIndices,
+    required this.omittedFreeTextCount,
+  });
+
+  /// The programs, in the order their blocks appear
+  /// ([orderProgramsForSeries]).
+  final List<Program> programs;
+
+  /// One dance per dance slot, program by program, in slot order.
+  final List<Dance> dances;
+
+  /// Each row's section, for [buildProgramMatrix]: never `null`, and never
+  /// shared between two programs, so a program's boundary separates its dances
+  /// from the next program's as a break does, whether or not either program
+  /// has a break of its own. Within a program, its own breaks still separate
+  /// as they do on its own matrix. A number here is not one a caller would
+  /// recognise (the second program's first section is not "1st"), so it is not
+  /// for display: show [programIndexByRow]'s block instead.
+  final List<int> sections;
+
+  /// Each row's alternate group, for [buildProgramMatrix]: the program's own
+  /// groups ([Program.alternateGroupsForSlots]), offset so no two programs
+  /// share one.
+  final List<int> alternateGroups;
+
+  /// The index in [programs] of the program each row belongs to.
+  final List<int> programIndexByRow;
+
+  /// The rows whose slot is an alternate.
+  final Set<int> altRowIndices;
+
+  /// The free-text slots (breaks, waltzes, notes) left out of the rows,
+  /// across every program.
+  final int omittedFreeTextCount;
+}
+
+/// The rows of one matrix over several [programs] (#2349): each program's
+/// dance slots in slot order, the programs in [orderProgramsForSeries] order.
+///
+/// [resolveDance] gives the dance a slot's id names, as each program's own
+/// matrix would show it (a dance in Recently deleted marked as such, a dance
+/// that is gone as a stand-in row). Free-text slots are left out and counted,
+/// as on a program's own matrix.
+///
+/// The matrix built from the result marks **Introduced here** once across the
+/// whole set (the first row, in this order, to use a move), and its
+/// adjacent-dance alert works within each program exactly as on that
+/// program's own matrix but never between the last dance of one program and
+/// the first of the next ([CombinedProgramMatrixInput.sections]).
+CombinedProgramMatrixInput combineProgramsForMatrix(
+  Iterable<Program> programs, {
+  required Dance Function(String danceId) resolveDance,
+}) {
+  final ordered = orderProgramsForSeries(programs);
+  final dances = <Dance>[];
+  final sections = <int>[];
+  final groups = <int>[];
+  final programIndexByRow = <int>[];
+  final altRows = <int>{};
+  var omitted = 0;
+  var sectionOffset = 0;
+  var groupOffset = 0;
+  for (var p = 0; p < ordered.length; p++) {
+    final slots = _slotsInOrder(ordered[p]);
+    final programSections = Program.sectionsForSlots(slots);
+    final programGroups = Program.alternateGroupsForSlots(slots);
+    var maxSection = 1;
+    var maxGroup = -1;
+    for (var i = 0; i < slots.length; i++) {
+      final section = programSections[i] ?? 1;
+      if (section > maxSection) maxSection = section;
+      if (programGroups[i] > maxGroup) maxGroup = programGroups[i];
+      final danceId = slots[i].danceId;
+      if (danceId == null) {
+        omitted++;
+        continue;
+      }
+      if (slots[i].isAlt) altRows.add(dances.length);
+      dances.add(resolveDance(danceId));
+      sections.add(sectionOffset + section);
+      groups.add(groupOffset + programGroups[i]);
+      programIndexByRow.add(p);
+    }
+    sectionOffset += maxSection;
+    groupOffset += maxGroup + 1;
+  }
+  return CombinedProgramMatrixInput(
+    programs: List.unmodifiable(ordered),
+    dances: List.unmodifiable(dances),
+    sections: List.unmodifiable(sections),
+    alternateGroups: List.unmodifiable(groups),
+    programIndexByRow: List.unmodifiable(programIndexByRow),
+    altRowIndices: Set.unmodifiable(altRows),
+    omittedFreeTextCount: omitted,
+  );
+}
+
+List<ProgramSlot> _slotsInOrder(Program program) =>
+    program.slots.sorted((a, b) => a.position.compareTo(b.position));
+
+/// One place a repeated dance appears ([RepeatedDance.uses]).
+@immutable
+class RepeatedDanceUse {
+  const RepeatedDanceUse({
+    required this.programIndex,
+    required this.danceNumber,
+    required this.isAlternate,
+  });
+
+  /// The index of the program in the list [findRepeatedDances] was given.
+  final int programIndex;
+
+  /// The program's set-list number for the position
+  /// ([Program.danceNumbersForSlots]): the slot's own for a primary, its
+  /// primary's for an alternate. `null` for an alternate with no numbered
+  /// primary (an alternate at the very top of a program).
+  final int? danceNumber;
+
+  /// Whether the slot is an alternate.
+  final bool isAlternate;
+
+  @override
+  bool operator ==(Object other) =>
+      other is RepeatedDanceUse &&
+      other.programIndex == programIndex &&
+      other.danceNumber == danceNumber &&
+      other.isAlternate == isAlternate;
+
+  @override
+  int get hashCode => Object.hash(programIndex, danceNumber, isAlternate);
+
+  @override
+  String toString() =>
+      'RepeatedDanceUse($programIndex, #$danceNumber'
+      '${isAlternate ? ', alt' : ''})';
+}
+
+/// A dance that appears in two or more programs of a set
+/// ([findRepeatedDances]).
+@immutable
+class RepeatedDance {
+  const RepeatedDance({required this.danceId, required this.uses});
+
+  final String danceId;
+
+  /// Every slot that holds the dance, program by program, in slot order.
+  final List<RepeatedDanceUse> uses;
+
+  /// How many different programs the dance is in.
+  int get programCount => {for (final u in uses) u.programIndex}.length;
+
+  /// Whether every use is an alternate: the dance is planned in none of the
+  /// programs, only a standby in each.
+  bool get isOnlyAlternate => uses.every((u) => u.isAlternate);
+
+  /// Whether every use in at least one program is an alternate: the dance
+  /// is only a standby there. True too when [isOnlyAlternate].
+  bool get isAlternateSomewhere {
+    final primaryIn = {
+      for (final u in uses)
+        if (!u.isAlternate) u.programIndex,
+    };
+    return uses.any((u) => !primaryIn.contains(u.programIndex));
+  }
+}
+
+/// The dances that appear in two or more of [programs] (#2349), with every
+/// slot that holds each one.
+///
+/// Counts **programs**, not slots: a dance used twice in one program and in
+/// no other is not listed. Primaries and alternates both count, and each use
+/// says which it is, so a dance that is a primary in one program and only an
+/// alternate in another is listed and can be shown as such. Only the given
+/// programs are looked at; calling history and other programs play no part.
+///
+/// Listed in the order each dance is first used, program by program in the
+/// order given (pass [orderProgramsForSeries]' order to read like the
+/// matrix).
+List<RepeatedDance> findRepeatedDances(List<Program> programs) {
+  final uses = <String, List<RepeatedDanceUse>>{};
+  for (var p = 0; p < programs.length; p++) {
+    final slots = _slotsInOrder(programs[p]);
+    final numbers = Program.danceNumbersForSlots(slots);
+    int? primaryNumber;
+    for (var i = 0; i < slots.length; i++) {
+      final slot = slots[i];
+      if (!slot.isAlt) primaryNumber = numbers[i];
+      final danceId = slot.danceId;
+      if (danceId == null) continue;
+      (uses[danceId] ??= []).add(
+        RepeatedDanceUse(
+          programIndex: p,
+          danceNumber: slot.isAlt ? primaryNumber : numbers[i],
+          isAlternate: slot.isAlt,
+        ),
+      );
+    }
+  }
+  return [
+    for (final entry in uses.entries)
+      if ({for (final u in entry.value) u.programIndex}.length >= 2)
+        RepeatedDance(danceId: entry.key, uses: List.unmodifiable(entry.value)),
+  ];
 }

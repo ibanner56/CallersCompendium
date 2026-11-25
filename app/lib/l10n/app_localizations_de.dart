@@ -15540,4 +15540,110 @@ class AppLocalizationsDe extends AppLocalizations {
   String programsFillSearchUnreadable(String label) {
     return 'Die gespeicherte Suche für „$label“ lässt sich nicht öffnen: Sie wurde von einer neueren Version der App gespeichert oder ist beschädigt. Alle Tänze werden angezeigt.';
   }
+
+  @override
+  String get settingsExperimentalSeriesHeader => 'Wochenenden und Reihen';
+
+  @override
+  String get settingsExperimentalSeriesTitle =>
+      'Mehrere Programme gemeinsam prüfen';
+
+  @override
+  String get settingsExperimentalSeriesSubtitle =>
+      'Wähle in der Programmliste unter Weitere Aktionen „Programme auswählen“, wähle zwei oder mehr aus und sieh eine Matrix über alle und die Tänze, die sich wiederholen. Es wird nichts Neues gespeichert.';
+
+  @override
+  String get programsSelectPrograms => 'Programme auswählen';
+
+  @override
+  String programsSelectProgramLabel(String title) {
+    return '$title auswählen';
+  }
+
+  @override
+  String get programsCombinedView => 'Gesamtansicht';
+
+  @override
+  String get programsCombinedViewNeedsTwo =>
+      'Wähle mindestens zwei Programme aus';
+
+  @override
+  String get programsCombinedRepeatsTab => 'Wiederholungen';
+
+  @override
+  String get programsCombinedLoadError =>
+      'Die Programme konnten nicht geladen werden. Es wurde nichts geändert. Versuche es erneut.';
+
+  @override
+  String get programsCombinedGoneTitle => 'Diese Programme gibt es nicht mehr';
+
+  @override
+  String get programsCombinedGoneBody =>
+      'Die ausgewählten Programme wurden gelöscht. Geh zurück zur Programmliste, um andere auszuwählen.';
+
+  @override
+  String programsCombinedBlockLabel(String title, String date) {
+    return '$title · $date';
+  }
+
+  @override
+  String programsCombinedRowInProgram(String title, String program) {
+    return '$title, in $program';
+  }
+
+  @override
+  String get programsCombinedPdfTitle => 'Gesamtmatrix';
+
+  @override
+  String get programsCombinedRepeatsEmptyTitle => 'Keine wiederholten Tänze';
+
+  @override
+  String get programsCombinedRepeatsEmptyBody =>
+      'Kein Tanz kommt in mehr als einem dieser Programme vor.';
+
+  @override
+  String programsCombinedRepeatsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze kommen in mehr als einem Programm vor',
+      one: '1 Tanz kommt in mehr als einem Programm vor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsCombinedRepeatProgramCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'In $count Programmen',
+      one: 'In 1 Programm',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsCombinedRepeatAlternateChip => 'Teils nur Alternative';
+
+  @override
+  String programsCombinedRepeatUse(String program, String position) {
+    return '$program: $position';
+  }
+
+  @override
+  String programsCombinedPositionDance(int number) {
+    return 'Tanz $number';
+  }
+
+  @override
+  String programsCombinedPositionAlternateFor(int number) {
+    return 'Alternative für Tanz $number';
+  }
+
+  @override
+  String get programsCombinedPositionAlternate => 'Alternative';
+
+  @override
+  String get programsCombinedRepeatAlternateEverywhereChip => 'Nur Alternative';
 }

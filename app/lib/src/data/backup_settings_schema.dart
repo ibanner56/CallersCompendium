@@ -34,6 +34,7 @@ import 'event_rules_scope.dart'
         kEventRuleOrderKey,
         kEventRulesCheckPerformSwapKey,
         kEventRulesEnabledKey;
+import 'weekends_and_series_scope.dart' show kWeekendsAndSeriesEnabledKey;
 import 'suggestions_scope.dart'
     show
         kSuggestionSettingsKey,
@@ -166,6 +167,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kSuggestionsInPerformSwapKey,
     kEventRulesEnabledKey,
     kEventRulesCheckPerformSwapKey,
+    kWeekendsAndSeriesEnabledKey,
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
     kShowPerformedTogglesKey,

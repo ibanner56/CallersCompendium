@@ -43,6 +43,8 @@ class ProgramMatrixTable extends StatefulWidget {
     this.hiddenColumns = const {},
     this.showPhrases = false,
     this.onHideColumn,
+    this.rowBlocks,
+    this.blockLabels = const [],
   });
 
   final ProgramMatrix matrix;
@@ -104,6 +106,18 @@ class ProgramMatrixTable extends StatefulWidget {
   /// tests/embeds).
   final ValueChanged<String>? onHideColumn;
 
+  /// For a matrix over several programs (#2349): the index in [blockLabels]
+  /// of the program each row belongs to, aligned to [matrix]'s rows. Each
+  /// program's rows are then shown as a labelled block, and no row shows the
+  /// single-program section badge ("1st", "2nd"), whose number would run on
+  /// from one program to the next. `null` (the default) is one program's
+  /// matrix.
+  final List<int>? rowBlocks;
+
+  /// Each block's heading (a program's title and date), indexed by
+  /// [rowBlocks].
+  final List<String> blockLabels;
+
   static const double columnWidth = 64;
   static const double rowHeaderWidth = 168;
 
@@ -132,6 +146,12 @@ class ProgramMatrixTable extends StatefulWidget {
   static double rowHeightFor(BuildContext context) =>
       2 * MediaQuery.textScalerOf(context).scale(rowLineHeight) +
       rowVerticalPadding;
+
+  /// A program block's heading row (#2349) under the ambient text scale: one
+  /// line of the heading and padding, the same height in the pinned column
+  /// and the scrolling body so their rows stay aligned.
+  static double blockHeadingHeightFor(BuildContext context) =>
+      MediaQuery.textScalerOf(context).scale(rowLineHeight) + 2 * AppSpacing.xs;
 
   /// The column-header strip's height under the ambient text scale: the full
   /// 48dp hide-column button on top (it does not scale: it is a touch target),
@@ -200,6 +220,11 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final matrix = widget.matrix;
+    assert(
+      widget.rowBlocks == null ||
+          widget.rowBlocks!.length == matrix.rows.length,
+      'rowBlocks must be aligned to the matrix rows',
+    );
 
     if (matrix.isEmpty) {
       return _EmptyState(omittedFreeTextCount: widget.omittedFreeTextCount);
@@ -245,6 +270,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                 hiddenColumns: widget.hiddenColumns,
                 showPhrases: widget.showPhrases,
                 formationLabelBuilder: widget.formationLabelBuilder,
+                blockLabelOf: _blockLabelOf,
               )
             : _wideTable(labels, visibleRows);
         return Column(
@@ -278,6 +304,23 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
         );
       },
     );
+  }
+
+  /// The block heading of [rowIndex]'s program, or `null` on one program's
+  /// matrix ([ProgramMatrixTable.rowBlocks]).
+  String? _blockLabelOf(int rowIndex) {
+    final blocks = widget.rowBlocks;
+    if (blocks == null) return null;
+    final block = blocks[rowIndex];
+    return block < widget.blockLabels.length ? widget.blockLabels[block] : '';
+  }
+
+  /// Whether a block heading goes above [visibleRows]`[i]`: its program
+  /// differs from the row shown above it's.
+  bool _startsBlock(List<int> visibleRows, int i) {
+    final blocks = widget.rowBlocks;
+    if (blocks == null) return false;
+    return i == 0 || blocks[visibleRows[i]] != blocks[visibleRows[i - 1]];
   }
 
   bool _isAlternateRow(int rowIndex) {
@@ -364,28 +407,34 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                 physics: const NeverScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    for (final r in visibleRows)
+                    for (var i = 0; i < visibleRows.length; i++) ...[
+                      if (_startsBlock(visibleRows, i))
+                        _BlockHeading(label: _blockLabelOf(visibleRows[i])!),
                       Row(
                         children: [
                           _RowHeader(
-                            title: matrix.rows[r].title,
-                            isAlt: _isAlternateRow(r),
-                            section: matrix.rows[r].section,
+                            title: matrix.rows[visibleRows[i]].title,
+                            program: _blockLabelOf(visibleRows[i]),
+                            isAlt: _isAlternateRow(visibleRows[i]),
+                            section: widget.rowBlocks == null
+                                ? matrix.rows[visibleRows[i]].section
+                                : null,
                           ),
                           _FormationCell(
-                            danceTitle: matrix.rows[r].title,
-                            formation: matrix.rows[r].formation,
+                            danceTitle: matrix.rows[visibleRows[i]].title,
+                            formation: matrix.rows[visibleRows[i]].formation,
                             label:
                                 widget.formationLabelBuilder?.call(
-                                  matrix.rows[r],
+                                  matrix.rows[visibleRows[i]],
                                 ) ??
                                 formationLabel(
                                   AppLocalizations.of(context),
-                                  matrix.rows[r].formation,
+                                  matrix.rows[visibleRows[i]].formation,
                                 ),
                           ),
                         ],
                       ),
+                    ],
                   ],
                 ),
               ),
@@ -403,37 +452,54 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                         scrollDirection: Axis.horizontal,
                         child: Column(
                           children: [
-                            for (final r in visibleRows)
-                              Row(
-                                children: [
-                                  for (
-                                    var c = 0;
-                                    c < matrix.columns.length;
-                                    c++
-                                  )
-                                    if (!widget.hiddenColumns.contains(
-                                      matrix.columns[c].moveId,
-                                    ))
-                                      _Cell(
-                                        danceTitle: matrix.rows[r].title,
-                                        moveLabel: labels[c],
-                                        present: matrix.isPresent(r, c),
-                                        first: matrix.isFirst(r, c),
-                                        programDebut: matrix.isProgramDebut(
-                                          r,
-                                          c,
+                            for (var i = 0; i < visibleRows.length; i++)
+                              for (final r in [visibleRows[i]]) ...[
+                                if (_startsBlock(visibleRows, i))
+                                  ExcludeSemantics(
+                                    child: SizedBox(
+                                      height:
+                                          ProgramMatrixTable.blockHeadingHeightFor(
+                                            context,
+                                          ),
+                                      width:
+                                          ProgramMatrixTable.columnWidth *
+                                          _visibleColumnCount(
+                                            matrix,
+                                            widget.hiddenColumns,
+                                          ),
+                                    ),
+                                  ),
+                                Row(
+                                  children: [
+                                    for (
+                                      var c = 0;
+                                      c < matrix.columns.length;
+                                      c++
+                                    )
+                                      if (!widget.hiddenColumns.contains(
+                                        matrix.columns[c].moveId,
+                                      ))
+                                        _Cell(
+                                          danceTitle: matrix.rows[r].title,
+                                          moveLabel: labels[c],
+                                          present: matrix.isPresent(r, c),
+                                          first: matrix.isFirst(r, c),
+                                          programDebut: matrix.isProgramDebut(
+                                            r,
+                                            c,
+                                          ),
+                                          collision: matrix.isCollision(r, c),
+                                          collisionMode: matrix.collisionMode,
+                                          phraseLabels: _phraseLabelsForCell(
+                                            matrix,
+                                            r,
+                                            c,
+                                          ),
+                                          showPhrases: widget.showPhrases,
                                         ),
-                                        collision: matrix.isCollision(r, c),
-                                        collisionMode: matrix.collisionMode,
-                                        phraseLabels: _phraseLabelsForCell(
-                                          matrix,
-                                          r,
-                                          c,
-                                        ),
-                                        showPhrases: widget.showPhrases,
-                                      ),
-                                ],
-                              ),
+                                  ],
+                                ),
+                              ],
                           ],
                         ),
                       ),
@@ -734,12 +800,71 @@ class _FullTextOnLongPress extends StatelessWidget {
   }
 }
 
+/// A program block's heading on a matrix over several programs (#2349): the
+/// program's title and date across the pinned dance and formation columns, a
+/// header to assistive technology. The body beside it is an empty strip of
+/// the same height ([ProgramMatrixTable.blockHeadingHeightFor]).
+class _BlockHeading extends StatelessWidget {
+  const _BlockHeading({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      header: true,
+      label: label,
+      excludeSemantics: true,
+      child: Container(
+        key: const ValueKey('program-matrix-block-heading'),
+        width:
+            ProgramMatrixTable.rowHeaderWidth +
+            ProgramMatrixTable.formationColumnWidth,
+        height: ProgramMatrixTable.blockHeadingHeightFor(context),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+        alignment: AlignmentDirectional.centerStart,
+        color: theme.colorScheme.secondaryContainer,
+        child: Row(
+          children: [
+            Icon(
+              Icons.event_note_outlined,
+              size: 16,
+              color: theme.colorScheme.onSecondaryContainer,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onSecondaryContainer,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _RowHeader extends StatelessWidget {
-  const _RowHeader({required this.title, required this.isAlt, this.section});
+  const _RowHeader({
+    required this.title,
+    required this.isAlt,
+    this.section,
+    this.program,
+  });
 
   final String title;
   final bool isAlt;
   final int? section;
+
+  /// The program the row belongs to, on a matrix over several programs
+  /// (#2349): announced with the title, since the block heading is read once.
+  final String? program;
 
   @override
   Widget build(BuildContext context) {
@@ -752,7 +877,9 @@ class _RowHeader extends StatelessWidget {
     return Semantics(
       header: true,
       label: l10n.programsMatrixSectionRowHeaderSemantic(
-        title,
+        program == null
+            ? title
+            : l10n.programsCombinedRowInProgram(title, program!),
         isAlt ? 'yes' : 'no',
         sectionLabel,
       ),
@@ -1025,7 +1152,12 @@ class _CompactMatrix extends StatelessWidget {
     this.formationLabelBuilder,
     this.hiddenColumns = const {},
     required this.showPhrases,
+    required this.blockLabelOf,
   });
+
+  /// The program heading of a row on a matrix over several programs, or
+  /// `null` ([ProgramMatrixTable.rowBlocks]).
+  final String? Function(int row) blockLabelOf;
 
   final ProgramMatrix matrix;
   final List<String> labels;
@@ -1068,7 +1200,8 @@ class _CompactMatrix extends StatelessWidget {
               isAlt: altRowIndices != null
                   ? altRowIndices!.contains(r)
                   : altDanceIds.contains(matrix.rows[r].danceId),
-              section: matrix.rows[r].section,
+              program: blockLabelOf(r),
+              section: blockLabelOf(r) == null ? matrix.rows[r].section : null,
               row: matrix.rows[r],
               phraseLabels: _phraseLabelsForCell(matrix, r, c),
             ),
@@ -1237,8 +1370,12 @@ class _DanceUse {
     required this.isAlt,
     required this.row,
     this.section,
+    this.program,
     this.phraseLabels = const [],
   });
+
+  /// The row's program, on a matrix over several programs (#2349).
+  final String? program;
 
   final String title;
   final bool first;
@@ -1360,6 +1497,7 @@ class _MoveCard extends StatelessWidget {
                   phraseLabels: d.phraseLabels,
                   isAlt: d.isAlt,
                   section: d.section,
+                  program: d.program,
                   formation: d.formation,
                   formationLabel:
                       formationLabelBuilder?.call(d.row) ??
@@ -1387,7 +1525,12 @@ class _DanceChip extends StatelessWidget {
     required this.formation,
     required this.formationLabel,
     this.section,
+    this.program,
   });
+
+  /// The dance's program on a matrix over several programs (#2349), shown
+  /// after the title and announced with it.
+  final String? program;
 
   final String danceTitle;
   final String moveLabel;
@@ -1414,7 +1557,9 @@ class _DanceChip extends StatelessWidget {
         ? 'none'
         : _localizedSectionLabel(l10n, sectionValue);
     final who = l10n.programsMatrixSectionChipQualifiedTitle(
-      danceTitle,
+      program == null
+          ? danceTitle
+          : l10n.programsCombinedRowInProgram(danceTitle, program!),
       isAlt ? 'yes' : 'no',
       sectionLabel,
     );
@@ -1522,6 +1667,25 @@ class _DanceChip extends StatelessWidget {
             if (section != null) ...[
               const SizedBox(width: 4),
               _SectionBadge(section: section!),
+            ],
+            if (program != null) ...[
+              const SizedBox(width: 4),
+              Icon(
+                Icons.event_note_outlined,
+                size: 13,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 2),
+              Flexible(
+                child: Text(
+                  program!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
             ],
           ],
         ),

@@ -88,8 +88,9 @@ void main() {
     );
 
     test('advertises glossary.v1, glossary.v2, programTemplates.v1, '
-        'savedSearches.v1, suggestions.v1, performSwap.v1 and eventRules.v1, '
-        'and gates on each (#1023, #2325, #2337, #2340, #2343, #2346)', () {
+        'savedSearches.v1, suggestions.v1, performSwap.v1, eventRules.v1 and '
+        'weekendsAndSeries.v1, and gates on each (#1023, #2325, #2337, #2340, '
+        '#2343, #2346, #2349)', () {
       expect(build.advertised, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
@@ -98,6 +99,7 @@ void main() {
         SyncCapabilities.suggestionsV1,
         SyncCapabilities.performSwapV1,
         SyncCapabilities.eventRulesV1,
+        SyncCapabilities.weekendsAndSeriesV1,
       });
       // Every gated capability is advertised: the whole of each feature,
       // saved searches included now saving and using them is in, is in this build.
@@ -114,19 +116,48 @@ void main() {
         SyncCapabilities.suggestionsV1: {'a', 'b'},
         SyncCapabilities.performSwapV1: {'a', 'b'},
         SyncCapabilities.eventRulesV1: {'a', 'b'},
+        SyncCapabilities.weekendsAndSeriesV1: {'a', 'b'},
       });
     });
 
     test('rollout: beside peers on the build before this one, which '
-        'advertise every capability but eventRules.v1, every peer holds '
-        'eventRules.v1 closed and is named (#2340)', () {
+        'advertise every capability but weekendsAndSeries.v1, every peer '
+        'holds it closed and is named (#2349)', () {
       final previous = {...build.advertised}
-        ..remove(SyncCapabilities.eventRulesV1);
+        ..remove(SyncCapabilities.weekendsAndSeriesV1);
+      expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
+        SyncCapabilities.weekendsAndSeriesV1: {'a', 'b'},
+      });
+      expect(closedBeside(['a', 'b'], {'a': build.advertised, 'b': previous}), {
+        SyncCapabilities.weekendsAndSeriesV1: {'b'},
+      });
+    });
+
+    test('the Weekends and series toggle waits on weekendsAndSeries.v1 '
+        '(#2349)', () {
+      expect(
+        build.capabilityFor(
+          SyncRecordKind.setting,
+          'weekends_and_series_enabled',
+        ),
+        SyncCapabilities.weekendsAndSeriesV1,
+      );
+    });
+
+    test('rollout: beside peers on the build before this one, which '
+        'advertise every capability but eventRules.v1 (and the later '
+        'weekendsAndSeries.v1), every peer holds eventRules.v1 closed and is '
+        'named (#2340)', () {
+      final previous = {...build.advertised}
+        ..remove(SyncCapabilities.eventRulesV1)
+        ..remove(SyncCapabilities.weekendsAndSeriesV1);
       expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
         SyncCapabilities.eventRulesV1: {'a', 'b'},
+        SyncCapabilities.weekendsAndSeriesV1: {'a', 'b'},
       });
       expect(closedBeside(['a', 'b'], {'a': build.advertised, 'b': previous}), {
         SyncCapabilities.eventRulesV1: {'b'},
+        SyncCapabilities.weekendsAndSeriesV1: {'b'},
       });
     });
 
@@ -161,7 +192,8 @@ void main() {
     });
 
     test('rollout: beside peers on the build before this one, which '
-        'advertise every capability but savedSearches.v1 and eventRules.v1, '
+        'advertise every capability but savedSearches.v1, eventRules.v1 and '
+        'weekendsAndSeries.v1, '
         'every peer holds savedSearches.v1 closed and is named', () {
       const previous = {
         SyncCapabilities.glossaryV1,
@@ -173,11 +205,13 @@ void main() {
       expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
         SyncCapabilities.savedSearchesV1: {'a', 'b'},
         SyncCapabilities.eventRulesV1: {'a', 'b'},
+        SyncCapabilities.weekendsAndSeriesV1: {'a', 'b'},
       });
       // Once one of them is updated, only the other holds it closed.
       expect(closedBeside(['a', 'b'], {'a': build.advertised, 'b': previous}), {
         SyncCapabilities.savedSearchesV1: {'b'},
         SyncCapabilities.eventRulesV1: {'b'},
+        SyncCapabilities.weekendsAndSeriesV1: {'b'},
       });
     });
 
@@ -194,6 +228,7 @@ void main() {
         SyncCapabilities.performSwapV1: {'a', 'b'},
         SyncCapabilities.savedSearchesV1: {'a', 'b'},
         SyncCapabilities.eventRulesV1: {'a', 'b'},
+        SyncCapabilities.weekendsAndSeriesV1: {'a', 'b'},
       });
     });
 

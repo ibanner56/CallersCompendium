@@ -10,6 +10,8 @@ import '../data/program_forms.dart';
 import '../data/display_defaults.dart';
 import '../data/program_templates.dart' show ProgramTemplateChoice;
 import '../data/repositories_scope.dart';
+import '../data/weekends_and_series_scope.dart';
+import '../search/collection_selection.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../export/program_calendar_export.dart';
@@ -31,6 +33,7 @@ import '../widgets/sync_now_action.dart';
 import '../widgets/weekday_header_strip.dart';
 import 'app_shell_search_scope.dart';
 import 'calendar_import_screen.dart';
+import 'combined_programs_screen.dart';
 import 'contradb_program_import_screen.dart';
 import 'plaintext_program_import_screen.dart';
 import 'program_editor_screen.dart';
@@ -52,6 +55,7 @@ enum _ProgramsCompactAction {
   toggleArchived,
   exportCsv,
   recentlyDeleted,
+  selectPrograms,
 }
 
 /// Programs list (`docs/design/ux.md` §4): non-deleted programs with title,
@@ -184,9 +188,45 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   /// see the class comment for when it resets.
   bool _showArchived = false;
 
+  /// Whether the list is selecting programs for the combined view (#2349),
+  /// with Settings ▸ Experimental ▸ Weekends and series on. Session-only, like
+  /// [_showArchived]: it ends when the Programs destination is left or the
+  /// setting is turned off.
+  bool _selectionMode = false;
+
+  /// The programs checked while [_selectionMode] is on. Like the Collection's
+  /// (docs/design/bulk-selection.md, N4-1), a program the type filter or
+  /// "Hide archived" stops listing stays checked, and the count line says how
+  /// many are not shown; a program deleted or gone is dropped.
+  final CollectionSelection _selection = CollectionSelection();
+
+  void _enterSelectionMode() => setState(() => _selectionMode = true);
+
+  void _exitSelectionMode() => setState(() {
+    _selectionMode = false;
+    _selection.clear();
+  });
+
+  Set<String> get _shownIds => {for (final p in _visiblePrograms) p.id};
+
+  /// Opens the combined view of the checked programs, in the order the view
+  /// sorts them (by event date), not the order they were checked in.
+  Future<void> _openCombinedView() async {
+    final ids = _selection.snapshot();
+    if (ids.length < 2) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CombinedProgramsScreen(programIds: ids),
+      ),
+    );
+  }
+
   @override
   void didUpdateWidget(ProgramsListScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive && !widget.isActive && _selectionMode) {
+      _exitSelectionMode();
+    }
     if (oldWidget.isActive && !widget.isActive && _showArchived) {
       setState(() => _showArchived = false);
       _closeHiddenSelection();
@@ -255,6 +295,14 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Turning Weekends and series off ends a selection in progress; the build
+    // that follows shows the plain list. Read whether or not a selection is
+    // in progress, so the dependency is always registered.
+    final seriesOn = WeekendsAndSeriesScope.of(context);
+    if (_selectionMode && !seriesOn) {
+      _selectionMode = false;
+      _selection.clear();
+    }
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
@@ -467,6 +515,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       _venuesById = snapshot.venuesById;
       _dropStaleFormFilter();
       _loadError = null;
+      // A checked program that was deleted, here or on another device, is
+      // gone rather than hidden (N4-1).
+      _selection.reconcile({for (final p in snapshot.programs) p.id});
     });
     _closeHiddenSelection();
     final focusIds = _pendingFocusIds;
@@ -875,142 +926,150 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     final l10n = AppLocalizations.of(context);
     final searchPrograms = AppShellSearchScope.of(context)?.searchPrograms;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.programsTitle),
-        actions: [
-          // Phone-only: a search of programs alone (the bottom-right FAB slot
-          // is reserved for the "New program" FAB). On wide layouts the nav
-          // rail owns search, so no scope is present and this action is omitted.
-          if (searchPrograms != null)
-            IconButton(
-              key: const ValueKey('programs-search'),
-              tooltip: l10n.programsSearchTooltip,
-              icon: const Icon(Icons.search),
-              onPressed: searchPrograms,
+      appBar: _selectionMode
+          ? _buildSelectionAppBar(l10n)
+          : AppBar(
+              title: Text(l10n.programsTitle),
+              actions: [
+                // Phone-only: a search of programs alone (the bottom-right FAB slot
+                // is reserved for the "New program" FAB). On wide layouts the nav
+                // rail owns search, so no scope is present and this action is omitted.
+                if (searchPrograms != null)
+                  IconButton(
+                    key: const ValueKey('programs-search'),
+                    tooltip: l10n.programsSearchTooltip,
+                    icon: const Icon(Icons.search),
+                    onPressed: searchPrograms,
+                  ),
+                // Second entry to Settings ▸ Sync now; renders nothing unless Device
+                // Sync is on and paired.
+                const SyncNowAction(),
+                if (_programs != null) ...[
+                  // Overflow ⋮ goes last, as on every other app bar.
+                  if (searchPrograms == null)
+                    PopupMenuButton<_ProgramImportSource>(
+                      key: const ValueKey('programs-import'),
+                      tooltip: l10n.importProgramTooltip,
+                      icon: const Icon(Icons.file_download_outlined),
+                      onSelected: (source) => switch (source) {
+                        _ProgramImportSource.plaintext =>
+                          _openPlaintextImport(),
+                        _ProgramImportSource.contraDb => _openContraDbImport(),
+                        _ProgramImportSource.calendar => _openCalendarImport(),
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          key: const ValueKey('programs-import-plaintext'),
+                          value: _ProgramImportSource.plaintext,
+                          child: ListTile(
+                            leading: const Icon(Icons.playlist_add),
+                            title: Text(l10n.importFromTitleList),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                        PopupMenuItem(
+                          key: const ValueKey('programs-import-contradb'),
+                          value: _ProgramImportSource.contraDb,
+                          child: ListTile(
+                            leading: const Icon(Icons.cloud_download_outlined),
+                            title: Text(l10n.importFromContraDb),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                        PopupMenuItem(
+                          key: const ValueKey('programs-import-calendar'),
+                          value: _ProgramImportSource.calendar,
+                          child: ListTile(
+                            leading: const Icon(Icons.event_outlined),
+                            title: Text(l10n.importFromCalendar),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ],
+                    ),
+                  // Nothing to sort until there is a program.
+                  if (_programs!.isNotEmpty) ...[
+                    PopupMenuButton<ProgramSort>(
+                      key: const ValueKey('programs-sort'),
+                      tooltip: l10n.programsSortByTooltip(
+                        programSortLabel(l10n, _sort),
+                      ),
+                      initialValue: _sort,
+                      icon: const Icon(Icons.sort),
+                      onSelected: (value) {
+                        setState(() {
+                          _sortUserSet = true;
+                          _sort = value;
+                          _sortDir = value.defaultDirection;
+                        });
+                        _persistLastUsedSort();
+                      },
+                      itemBuilder: (context) => [
+                        for (final option in ProgramSort.values)
+                          PopupMenuItem(
+                            value: option,
+                            child: Text(programSortLabel(l10n, option)),
+                          ),
+                      ],
+                    ),
+                    IconButton(
+                      key: const ValueKey('programs-sort-direction'),
+                      tooltip: _sortDir == SortDirection.ascending
+                          ? l10n.collectionSortAscendingTooltip
+                          : l10n.collectionSortDescendingTooltip,
+                      icon: Icon(
+                        _sortDir == SortDirection.ascending
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _sortUserSet = true;
+                          _sortDir = _sortDir == SortDirection.ascending
+                              ? SortDirection.descending
+                              : SortDirection.ascending;
+                        });
+                        _persistLastUsedSort();
+                      },
+                    ),
+                  ],
+                  if (searchPrograms != null)
+                    _buildCompactMoreActions(l10n)
+                  else
+                    PopupMenuButton<_ProgramsCompactAction>(
+                      key: const ValueKey('programs-more-actions'),
+                      tooltip: l10n.danceMoreActions,
+                      icon: const Icon(Icons.more_vert),
+                      onSelected: (action) => switch (action) {
+                        _ProgramsCompactAction.toggleArchived =>
+                          _toggleShowArchived(),
+                        _ProgramsCompactAction.exportCalendar =>
+                          _exportCalendar(),
+                        _ProgramsCompactAction.exportCsv => _exportCsv(),
+                        _ProgramsCompactAction.selectPrograms =>
+                          _enterSelectionMode(),
+                        _ => _openRecentlyDeleted(),
+                      },
+                      itemBuilder: (context) => [
+                        ?_selectProgramsMenuItem(l10n),
+                        _exportCalendarMenuItem(l10n),
+                        _exportCsvMenuItem(l10n),
+                        _showArchivedMenuItem(l10n),
+                        PopupMenuItem(
+                          key: const ValueKey('programs-recently-deleted'),
+                          value: _ProgramsCompactAction.recentlyDeleted,
+                          child: Text(l10n.collectionRecentlyDeletedTooltip),
+                        ),
+                      ],
+                    ),
+                ],
+              ],
             ),
-          // Second entry to Settings ▸ Sync now; renders nothing unless Device
-          // Sync is on and paired.
-          const SyncNowAction(),
-          if (_programs != null) ...[
-            // Overflow ⋮ goes last, as on every other app bar.
-            if (searchPrograms == null)
-              PopupMenuButton<_ProgramImportSource>(
-                key: const ValueKey('programs-import'),
-                tooltip: l10n.importProgramTooltip,
-                icon: const Icon(Icons.file_download_outlined),
-                onSelected: (source) => switch (source) {
-                  _ProgramImportSource.plaintext => _openPlaintextImport(),
-                  _ProgramImportSource.contraDb => _openContraDbImport(),
-                  _ProgramImportSource.calendar => _openCalendarImport(),
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    key: const ValueKey('programs-import-plaintext'),
-                    value: _ProgramImportSource.plaintext,
-                    child: ListTile(
-                      leading: const Icon(Icons.playlist_add),
-                      title: Text(l10n.importFromTitleList),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                  PopupMenuItem(
-                    key: const ValueKey('programs-import-contradb'),
-                    value: _ProgramImportSource.contraDb,
-                    child: ListTile(
-                      leading: const Icon(Icons.cloud_download_outlined),
-                      title: Text(l10n.importFromContraDb),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                  PopupMenuItem(
-                    key: const ValueKey('programs-import-calendar'),
-                    value: _ProgramImportSource.calendar,
-                    child: ListTile(
-                      leading: const Icon(Icons.event_outlined),
-                      title: Text(l10n.importFromCalendar),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ],
-              ),
-            // Nothing to sort until there is a program.
-            if (_programs!.isNotEmpty) ...[
-              PopupMenuButton<ProgramSort>(
-                key: const ValueKey('programs-sort'),
-                tooltip: l10n.programsSortByTooltip(
-                  programSortLabel(l10n, _sort),
-                ),
-                initialValue: _sort,
-                icon: const Icon(Icons.sort),
-                onSelected: (value) {
-                  setState(() {
-                    _sortUserSet = true;
-                    _sort = value;
-                    _sortDir = value.defaultDirection;
-                  });
-                  _persistLastUsedSort();
-                },
-                itemBuilder: (context) => [
-                  for (final option in ProgramSort.values)
-                    PopupMenuItem(
-                      value: option,
-                      child: Text(programSortLabel(l10n, option)),
-                    ),
-                ],
-              ),
-              IconButton(
-                key: const ValueKey('programs-sort-direction'),
-                tooltip: _sortDir == SortDirection.ascending
-                    ? l10n.collectionSortAscendingTooltip
-                    : l10n.collectionSortDescendingTooltip,
-                icon: Icon(
-                  _sortDir == SortDirection.ascending
-                      ? Icons.arrow_upward
-                      : Icons.arrow_downward,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _sortUserSet = true;
-                    _sortDir = _sortDir == SortDirection.ascending
-                        ? SortDirection.descending
-                        : SortDirection.ascending;
-                  });
-                  _persistLastUsedSort();
-                },
-              ),
-            ],
-            if (searchPrograms != null)
-              _buildCompactMoreActions(l10n)
-            else
-              PopupMenuButton<_ProgramsCompactAction>(
-                key: const ValueKey('programs-more-actions'),
-                tooltip: l10n.danceMoreActions,
-                icon: const Icon(Icons.more_vert),
-                onSelected: (action) => switch (action) {
-                  _ProgramsCompactAction.toggleArchived =>
-                    _toggleShowArchived(),
-                  _ProgramsCompactAction.exportCalendar => _exportCalendar(),
-                  _ProgramsCompactAction.exportCsv => _exportCsv(),
-                  _ => _openRecentlyDeleted(),
-                },
-                itemBuilder: (context) => [
-                  _exportCalendarMenuItem(l10n),
-                  _exportCsvMenuItem(l10n),
-                  _showArchivedMenuItem(l10n),
-                  PopupMenuItem(
-                    key: const ValueKey('programs-recently-deleted'),
-                    value: _ProgramsCompactAction.recentlyDeleted,
-                    child: Text(l10n.collectionRecentlyDeletedTooltip),
-                  ),
-                ],
-              ),
-          ],
-        ],
-      ),
       body: _buildBody(),
       // The floating New is for a list: the empty state carries its own New
-      // program button, so it waits until there is a program.
-      floatingActionButton: _programs?.isNotEmpty != true
+      // program button, so it waits until there is a program. Selecting
+      // programs hides it, as selecting dances hides New dance.
+      floatingActionButton: _programs?.isNotEmpty != true || _selectionMode
           ? null
           : adaptiveExtendedFab(
               context,
@@ -1020,6 +1079,61 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               icon: const Icon(Icons.add),
               label: l10n.programsNewProgram,
             ),
+    );
+  }
+
+  /// **Select programs** in the ⋮ menu (#2349): only while Settings ▸
+  /// Experimental ▸ Weekends and series is on and there is a program.
+  PopupMenuItem<_ProgramsCompactAction>? _selectProgramsMenuItem(
+    AppLocalizations l10n,
+  ) {
+    if (!WeekendsAndSeriesScope.of(context)) return null;
+    if (_programs?.isNotEmpty != true) return null;
+    return PopupMenuItem(
+      key: const ValueKey('programs-select-programs'),
+      value: _ProgramsCompactAction.selectPrograms,
+      child: Text(l10n.programsSelectPrograms),
+    );
+  }
+
+  /// The selection bar while selecting programs (#2349), laid out as the
+  /// Collection's: a close button, the live-region count, and the one action,
+  /// **Combined view**, which needs two programs.
+  PreferredSizeWidget _buildSelectionAppBar(AppLocalizations l10n) {
+    final count = _selection.length;
+    final canCombine = count >= 2;
+    return AppBar(
+      leading: IconButton(
+        key: const ValueKey('programs-selection-exit'),
+        tooltip: l10n.collectionExitSelectionTooltip,
+        icon: const Icon(Icons.close),
+        onPressed: _exitSelectionMode,
+      ),
+      title: Semantics(
+        liveRegion: true,
+        child: Text(l10n.collectionSelectedCount(count)),
+      ),
+      actions: [
+        // An icon with a tooltip, like the Collection's batch actions, so the
+        // bar fits a narrow list pane in every language.
+        IconButton(
+          key: const ValueKey('programs-combined-view'),
+          tooltip: canCombine
+              ? l10n.programsCombinedView
+              : l10n.programsCombinedViewNeedsTwo,
+          onPressed: canCombine ? _openCombinedView : null,
+          icon: const Icon(Icons.table_chart_outlined),
+        ),
+        // Show archived stays reachable while selecting, so an archived
+        // program can be added to the set (#2349), as the type chips stay.
+        PopupMenuButton<_ProgramsCompactAction>(
+          key: const ValueKey('programs-selection-more'),
+          tooltip: l10n.danceMoreActions,
+          icon: const Icon(Icons.more_vert),
+          onSelected: (_) => _toggleShowArchived(),
+          itemBuilder: (context) => [_showArchivedMenuItem(l10n)],
+        ),
+      ],
     );
   }
 
@@ -1145,9 +1259,12 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             _exportCsv();
           case _ProgramsCompactAction.recentlyDeleted:
             _openRecentlyDeleted();
+          case _ProgramsCompactAction.selectPrograms:
+            _enterSelectionMode();
         }
       },
       itemBuilder: (context) => [
+        ?_selectProgramsMenuItem(l10n),
         PopupMenuItem(
           value: _ProgramsCompactAction.importPlaintext,
           child: Text(l10n.importProgramFromTitleList),
@@ -1169,6 +1286,40 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           value: _ProgramsCompactAction.recentlyDeleted,
           child: Text(l10n.collectionRecentlyDeletedTooltip),
         ),
+      ],
+    );
+  }
+
+  /// The program count, and while selecting, how many checked programs the
+  /// list does not show, with **Deselect those not shown** (N4-1).
+  Widget _countLine(AppLocalizations l10n, int shownCount) {
+    final style = Theme.of(context).textTheme.bodySmall;
+    final hidden = _selectionMode ? _selection.notShown(_shownIds) : 0;
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Semantics(
+          liveRegion: true,
+          child: Text(l10n.programsCount(shownCount), style: style),
+        ),
+        // Outside the live region: the bar title already announces each
+        // change to the selection count.
+        if (hidden > 0) ...[
+          Text(
+            ' · ${l10n.collectionSelectionNotShown(_selection.length, hidden)}',
+            key: const ValueKey('programs-selection-not-shown'),
+            style: style,
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          TextButton(
+            key: const ValueKey('programs-deselect-not-shown'),
+            onPressed: () {
+              final shown = _shownIds;
+              setState(() => _selection.deselectNotShown(shown));
+            },
+            child: Text(l10n.collectionDeselectNotShown),
+          ),
+        ],
       ],
     );
   }
@@ -1218,8 +1369,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       ignoreLeadingArticles: SortIgnoreArticlesScope.of(context),
     );
     if (sorted.isEmpty) {
-      // Every program is archived, and archived programs are hidden.
-      return EmptyState(
+      // Every program is archived, and archived programs are hidden. While
+      // selecting, the count line stays, so checked archived programs are
+      // still said to be selected but not shown (N4-1), and New program
+      // waits, as the floating one does.
+      final empty = EmptyState(
         key: const ValueKey('all-archived-state'),
         icon: EmptyState.glyph(context, Icons.archive_outlined),
         title: l10n.programsAllArchivedTitle,
@@ -1231,12 +1385,31 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             icon: const Icon(Icons.visibility_outlined),
             label: Text(l10n.programsShowArchived),
           ),
-          FilledButton.icon(
-            key: const ValueKey('empty-new-program'),
-            onPressed: _openNewProgram,
-            icon: const Icon(Icons.add),
-            label: Text(l10n.programsNewProgram),
+          if (!_selectionMode)
+            FilledButton.icon(
+              key: const ValueKey('empty-new-program'),
+              onPressed: _openNewProgram,
+              icon: const Icon(Icons.add),
+              label: Text(l10n.programsNewProgram),
+            ),
+        ],
+      );
+      if (!_selectionMode) return empty;
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.xs,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _countLine(l10n, 0),
+            ),
           ),
+          Expanded(child: empty),
         ],
       );
     }
@@ -1262,13 +1435,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           ),
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Semantics(
-              liveRegion: true,
-              child: Text(
-                l10n.programsCount(sorted.length),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
+            child: _countLine(l10n, sorted.length),
           ),
         ),
         const Divider(height: 1),
@@ -1284,6 +1451,18 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               // never deletes. It routes into the same soft-delete + Undo flow
               // as the ⋮ menu, with no extra dialog on this path. The "Confirm
               // before delete" setting continues to gate only the ⋮ menu below.
+              if (_selectionMode) {
+                return ProgramListTile(
+                  key: ValueKey('program-row-${program.id}'),
+                  program: program,
+                  venuesById: _venuesById,
+                  forms: _formsById[program.id],
+                  selectionMode: true,
+                  checked: _selection.contains(program.id),
+                  selected: _selection.contains(program.id),
+                  onTap: () => setState(() => _selection.toggle(program.id)),
+                );
+              }
               return Slidable(
                 key: ValueKey('slidable-${program.id}'),
                 groupTag: 'programs-list',

@@ -30,7 +30,17 @@ class ProgramListTile extends StatelessWidget {
     this.onDuplicate,
     this.onArchive,
     this.onUnarchive,
+    this.selectionMode = false,
+    this.checked = false,
   });
+
+  /// Whether the Programs list is selecting programs (#2349): the row leads
+  /// with a checkbox, tapping it ([onTap]) checks or unchecks it, and the row
+  /// offers no ⋮ menu or chevron.
+  final bool selectionMode;
+
+  /// Whether the row is checked while [selectionMode] is on.
+  final bool checked;
 
   final Program program;
 
@@ -91,6 +101,16 @@ class ProgramListTile extends StatelessWidget {
     final tile = ListTile(
       selected: selected,
       shape: selectedRowShape(context, selected: selected),
+      leading: selectionMode
+          ? Checkbox(
+              key: ValueKey('program-select-${program.id}'),
+              value: checked,
+              // Toggled by tapping the row (ListTile.onTap); the checkbox
+              // mirrors that so a tap on the box itself works too.
+              onChanged: onTap == null ? null : (_) => onTap!(),
+              semanticLabel: l10n.programsSelectProgramLabel(program.title),
+            )
+          : null,
       // Same style as a dance row's title. The explicit style carries its own
       // colour, which would hide ListTile's selected colour, so the selected
       // title is set to it here.
@@ -122,13 +142,14 @@ class ProgramListTile extends StatelessWidget {
         ),
       ),
       isThreeLine: true,
-      trailing: _buildTrailing(l10n),
+      trailing: selectionMode ? null : _buildTrailing(l10n),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.xs,
       ),
     );
+    if (selectionMode) return tile;
     // A right-click on the row opens the ⋮ menu ([_actionsMenu]).
     return RightClickMenu(menuKey: _actionsMenuKey, child: tile);
   }
