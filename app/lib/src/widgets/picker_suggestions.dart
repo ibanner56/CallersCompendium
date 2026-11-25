@@ -92,7 +92,11 @@ typedef CandidateRuleChecker =
 /// kept as an alternate. The picker checks only while Settings ▸
 /// Experimental ▸ Event rules is on and **Suggested** shows (or, with
 /// [inEveryOrder], in any sort), and lists a marked dance after every
-/// unmarked one ([markRuleBreakingSuggestions], [orderMarkedLast]).
+/// unmarked one ([markRuleBreakingSuggestions], [orderMarkedLast]). The
+/// picker's pinned dances ([CollectionPicker.pinned], the swap sheet's
+/// **Your alternates**, #2347) are checked with the results, marked the
+/// same way and listed last among the pinned dances, under their own
+/// heading as before.
 ///
 /// Two are equal when their [revision]s and [inEveryOrder] are: a host
 /// builds one on every build, with a new closure, and the picker checks
@@ -113,10 +117,13 @@ class PickerEventRules {
   /// at the same place.
   final Object? revision;
 
-  /// Whether the plain sorts are marked too, not only **Suggested**. The
-  /// program builder leaves it off (#2345: another sort lists the dances as
-  /// before); a host whose results should be marked in their own order
-  /// turns it on.
+  /// Whether every result is marked, whatever the order: the plain sorts
+  /// too, not only **Suggested**, and under **Suggested** the English dances
+  /// it lists unranked as well (`includeEnglish` of
+  /// [markRuleBreakingSuggestions]). The program builder leaves it off
+  /// (#2345: another sort lists the dances as before, and English dances
+  /// are left as #2343 lists them); Perform's swap sheet, whose every result
+  /// is checked (#2347), turns it on.
   final bool inEveryOrder;
 
   @override

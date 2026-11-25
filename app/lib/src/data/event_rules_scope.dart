@@ -43,3 +43,50 @@ class EventRulesEnabledScope extends InheritedNotifier<ValueNotifier<bool>> {
     return scope.notifier!;
   }
 }
+
+/// Persisted-settings key for **Check Perform's Swap this dance** (#2347),
+/// under Settings ▸ Experimental ▸ Event rules: whether Perform's swap sheet
+/// marks the dances that would break the program's applied rules. Stored as
+/// a `bool`; unset means on (the default), and it does nothing while
+/// [kEventRulesEnabledKey] is off.
+const String kEventRulesCheckPerformSwapKey = 'event_rules_check_perform_swap';
+
+/// Exposes **Check Perform's Swap this dance**
+/// ([kEventRulesCheckPerformSwapKey], #2347) as a live [ValueNotifier].
+/// Perform's swap sheet checks its results against the program's rules only
+/// while this and [EventRulesEnabledScope] are both `true`.
+class EventRulesCheckPerformSwapScope
+    extends InheritedNotifier<ValueNotifier<bool>> {
+  const EventRulesCheckPerformSwapScope({
+    super.key,
+    required ValueNotifier<bool> notifier,
+    required super.child,
+  }) : super(notifier: notifier);
+
+  /// The stored setting, whatever Event rules is. Registers a rebuild
+  /// dependency. `true` with no ancestor: the on-by-default behaviour.
+  static bool of(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<EventRulesCheckPerformSwapScope>()
+          ?.notifier
+          ?.value ??
+      true;
+
+  /// Whether Perform's swap sheet checks its results: Event rules and this
+  /// setting both on. Registers a rebuild dependency on both.
+  static bool activeOf(BuildContext context) =>
+      EventRulesEnabledScope.of(context) && of(context);
+
+  /// The notifier, to change the setting. Does not register a dependency.
+  static ValueNotifier<bool> notifierOf(BuildContext context) {
+    final scope = context
+        .getInheritedWidgetOfExactType<EventRulesCheckPerformSwapScope>();
+    if (scope == null) {
+      throw FlutterError(
+        'EventRulesCheckPerformSwapScope.notifierOf() called with a context '
+        'that has no EventRulesCheckPerformSwapScope ancestor.',
+      );
+    }
+    return scope.notifier!;
+  }
+}

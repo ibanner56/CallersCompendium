@@ -235,8 +235,11 @@ class CollectionPicker extends StatefulWidget {
   /// at [programContext]'s position is marked, naming the rules, and listed
   /// after every unmarked dance ([markRuleBreakingSuggestions]). With
   /// [PickerEventRules.inEveryOrder], the plain sorts mark and order the
-  /// results the same way ([orderMarkedLast]). Otherwise the picker never
-  /// calls it. Online results and [pinned] dances are never checked.
+  /// results the same way ([orderMarkedLast]), and so does **Suggested** for
+  /// the English dances it lists unranked. Otherwise the picker never calls
+  /// it. The [pinned] dances are checked with the results (#2347), each
+  /// marked dance listed after the unmarked ones under the pinned heading.
+  /// Online results are never checked.
   final PickerEventRules? eventRules;
 
   /// Where "today" comes from, for a calling-history window, Suggested and
@@ -1135,7 +1138,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _rulesPendingRevision = rules.revision;
     });
     try {
+      // The pinned dances too (#2347): they are left out of the results.
       final marks = await rules.check(position, [
+        ...{...?widget.pinned?.danceIds},
         for (final entry in results) entry.dance.id,
       ]);
       if (!mounted || seq != _ruleSeq) return;
@@ -1192,7 +1197,11 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final marks = _currentRuleMarks;
     if (marks == null) return ranking;
     if (!identical(_markedFrom, ranking) || !identical(_markedWith, marks)) {
-      final marked = markRuleBreakingSuggestions(ranking, marks.brokenBy);
+      final marked = markRuleBreakingSuggestions(
+        ranking,
+        marks.brokenBy,
+        includeEnglish: widget.eventRules!.inEveryOrder,
+      );
       _markedRanking = marked;
       _markedById = {for (final r in marked.order) r.danceId: r};
       _markedFrom = ranking;
@@ -1203,9 +1212,27 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   /// The marks for the plain order: [_currentRuleMarks] in a plain sort,
   /// which only [PickerEventRules.inEveryOrder] checks. Null under
-  /// Suggested, whose plain order shows unmarked until its ranking does.
-  CandidateRuleMarks? get _plainRuleMarks =>
-      _suggested ? null : _currentRuleMarks;
+  /// Suggested, whose plain order shows unmarked until its ranking does;
+  /// but when the ranking failed, a host that marks every order
+  /// ([PickerEventRules.inEveryOrder], #2347) has the plain order it falls
+  /// back to marked, since no ranking will come.
+  CandidateRuleMarks? get _plainRuleMarks {
+    if (!_suggested) return _currentRuleMarks;
+    final everyOrder = widget.eventRules?.inEveryOrder ?? false;
+    return everyOrder && _rankFailed ? _currentRuleMarks : null;
+  }
+
+  /// The marks for the [CollectionPicker.pinned] dances (#2347): the last
+  /// check's, while rules are checked at this position. Every check covers
+  /// the pinned dances whatever the query, so unlike [_currentRuleMarks]
+  /// they are kept while a new search's check runs: the pinned rows neither
+  /// lose their markers nor move meanwhile.
+  CandidateRuleMarks? get _pinnedRuleMarks {
+    final marks = _ruleMarks;
+    if (marks == null || !_checksRules || !marks.checksAnything) return null;
+    if (_ruleMarksAt != widget.programContext?.position) return null;
+    return marks;
+  }
 
   /// The results as shown: ranked when Suggested has a ranking for exactly
   /// these results at this position, else in the plain order, with any
@@ -2124,7 +2151,17 @@ class _CollectionPickerState extends State<CollectionPicker> {
     return SliverMainAxisGroup(
       slivers: [
         heading(pinned.heading, const ValueKey('picker-pinned-heading')),
-        _buildResultRows(pinnedEntries, null),
+        _buildResultRows(
+          switch (_pinnedRuleMarks) {
+            null => pinnedEntries,
+            final marks => orderMarkedLast(
+              pinnedEntries,
+              (entry) => marks.brokenBy(entry.dance.id).isNotEmpty,
+            ),
+          },
+          null,
+          pinned: true,
+        ),
         heading(
           pinned.resultsHeading,
           const ValueKey('picker-results-heading'),
@@ -2184,25 +2221,31 @@ class _CollectionPickerState extends State<CollectionPicker> {
     );
   }
 
+  /// [shown] as result rows. [pinned] rows ([CollectionPicker.pinned]) are
+  /// never ranked; while the rules are checked, each is marked by the check
+  /// whatever the order (#2347).
   Widget _buildResultRows(
     List<DanceListEntry> shown,
-    SuggestionReasonLabels? labels,
-  ) {
+    SuggestionReasonLabels? labels, {
+    bool pinned = false,
+  }) {
     final l10n = AppLocalizations.of(context);
     return SliverList.builder(
       itemCount: shown.length,
       itemBuilder: (context, index) {
         final entry = shown[index];
         final ranked = _shownRankFor(entry.dance.id);
-        final ruleMarks = _currentRuleMarks;
+        final ruleMarks = pinned ? _pinnedRuleMarks : _currentRuleMarks;
         final plainMarks = _plainRuleMarks;
         final wouldBreak = ruleMarks == null
             ? const <String>[]
             : suggestionRuleSentences(
                 l10n,
-                ranked?.wouldBreak ??
-                    plainMarks?.brokenBy(entry.dance.id) ??
-                    const [],
+                pinned
+                    ? ruleMarks.brokenBy(entry.dance.id)
+                    : ranked?.wouldBreak ??
+                          plainMarks?.brokenBy(entry.dance.id) ??
+                          const [],
                 ruleMarks,
               );
         final confirming = _confirmTimers.containsKey(entry.dance.id);

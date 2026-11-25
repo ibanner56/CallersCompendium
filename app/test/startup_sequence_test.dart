@@ -53,6 +53,8 @@ import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart';
 import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
+import 'package:compendium_app/src/data/event_rules_scope.dart'
+    show EventRulesCheckPerformSwapScope, kEventRulesCheckPerformSwapKey;
 import 'package:compendium_app/src/data/suggestions_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
 import 'package:compendium_app/src/data/default_program_caller_scope.dart';
@@ -2481,6 +2483,11 @@ void main() {
             key: kSuggestionsInPerformSwapKey,
             read: SuggestionsInPerformSwapScope.of,
             defaultValue: false,
+          ),
+          (
+            key: kEventRulesCheckPerformSwapKey,
+            read: EventRulesCheckPerformSwapScope.of,
+            defaultValue: true,
           ),
           (
             key: kAggressiveBeatsUpdateKey,

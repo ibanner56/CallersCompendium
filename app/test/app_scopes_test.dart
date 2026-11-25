@@ -103,6 +103,7 @@ const _expectedAppScopeTypes = <Type>[
   ShowRepertoireScope,
   SuggestionsEnabledScope,
   EventRulesEnabledScope,
+  EventRulesCheckPerformSwapScope,
   SuggestionsInPerformSwapScope,
   SuggestionSettingsScope,
   CallingCardSettingsScope,

@@ -513,7 +513,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**143 settings keys**: 93 shareable, 15 device-local, 33 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
+**144 settings keys**: 94 shareable, 15 device-local, 33 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -594,6 +594,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `default_starting_program` | `dpv:NonPersonalData` | app user | shareable | Legacy user-authored semantic slot template for manually created programs (the Starting program). No longer written: it is shown as the first program template and copied into one at the user's first change to their templates (#2337), and left in place so a device on an older build keeps it. It contains selected dance references and caller notes, so it travels with the user preference in local backups. |
 | `ecd_convert_prompt_dismissed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `event_rule_order` | `dpv:NonPersonalData` | app user | shareable |  |
+| `event_rules_check_perform_swap` | `dpv:NonPersonalData` | app user | shareable |  |
 | `event_rules_enabled` | `dpv:NonPersonalData` | app user | shareable |  |
 | `first_day_of_week` | `dpv:NonPersonalData` | app user | shareable |  |
 | `formation_color_overrides` | `dpv:NonPersonalData` | app user | shareable |  |

@@ -15051,6 +15051,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ajoutez des règles à un programme, par exemple pas deux danses Becket à la suite, et l\'éditeur vous avertit quand le programme en enfreint une. Les avertissements ne vous empêchent jamais d\'enregistrer ni d\'appeler.';
 
   @override
+  String get settingsEventRulesCheckPerformSwapTitle =>
+      'Vérifier Échanger cette danse en mode Perform';
+
+  @override
+  String get settingsEventRulesCheckPerformSwapSubtitle =>
+      'Quand vous échangez une danse en mode Perform, marque chaque danse qui enfreindrait une des règles du programme et la place en dernier. Rien n’est écarté.';
+
+  @override
   String get eventRulesManageTitle => 'Gérer les règles';
 
   @override

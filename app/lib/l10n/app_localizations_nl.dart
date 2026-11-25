@@ -14977,6 +14977,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Voeg regels toe aan een programma, bijvoorbeeld geen twee Becket-dansen achter elkaar, en de editor waarschuwt je wanneer het programma er een overtreedt. Waarschuwingen houden je nooit tegen bij opslaan of callen.';
 
   @override
+  String get settingsEventRulesCheckPerformSwapTitle =>
+      'Controleren bij Deze dans wisselen in Uitvoeren';
+
+  @override
+  String get settingsEventRulesCheckPerformSwapSubtitle =>
+      'Als je in Uitvoeren een dans wisselt, wordt elke dans die een van de regels van het programma zou breken gemarkeerd en als laatste getoond. Er valt niets weg.';
+
+  @override
   String get eventRulesManageTitle => 'Regels beheren';
 
   @override

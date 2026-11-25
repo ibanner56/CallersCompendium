@@ -5296,11 +5296,14 @@ field covers.
 
 **`eventRules.v1`.** Gates every `eventRule` record, tombstones included, and
 the exact settings keys `event_rules_enabled`, the Experimental toggle (#2340),
-and `event_rule_order`, the rule picker's **Rule order** (`manual` or
-`mostUsed`, #2341). The order key joined this capability while it was
-unreleased rather than taking one of its own: one capability per feature, and
-a build without event rules has no picker to order. **Most used** is derived
-from the programs' `eventRuleIds` on each device and never sent.
+`event_rule_order`, the rule picker's **Rule order** (`manual` or
+`mostUsed`, #2341), and `event_rules_check_perform_swap`, whether Perform's
+swap sheet checks the rules (#2347). Neither of the last two took a capability of its
+own: each joined this one while it was unreleased (one capability per
+feature; #2347 asks for its key to be gated with #2340's capability), and a
+build without event rules has no picker to order and no rules to check.
+**Most used** is derived from the programs' `eventRuleIds` on each device and
+never sent.
 A build without it has no `event_rules` table, so it could only keep such a
 record whole, without a manager to edit it or a builder to check it. A
 program's `eventRuleIds` are not gated: they are a top-level field of the
