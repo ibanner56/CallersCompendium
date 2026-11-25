@@ -3427,8 +3427,8 @@ class EventRules extends Table with TableInfo {
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL',
   );
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
+  late final GeneratedColumn<String> nickname = GeneratedColumn<String>(
+    'nickname',
     aliasedName,
     true,
     type: DriftSqlType.string,
@@ -3475,7 +3475,7 @@ class EventRules extends Table with TableInfo {
     quantifier,
     count,
     scope,
-    name,
+    nickname,
     position,
     updatedAt,
     deletedAt,

@@ -25,7 +25,7 @@ void main() {
       quantifier: EventRuleQuantifier.atMost,
       count: 1,
       scope: EventRuleScope.neighbouring,
-      name: 'No two Beckets',
+      nickname: 'No two Beckets',
     );
     await repos.programs.create(
       Program(
@@ -66,6 +66,47 @@ void main() {
     expect(outcome.applied, isTrue);
     expect(await target.eventRules.listAll(), [rule]);
     expect((await target.programs.getById('p1'))!.eventRuleIds, [rule.id]);
+  });
+
+  test('a backup that cuts a deleted rule from a program keeps the other '
+      'rules\' nicknames and order (#2341)', () async {
+    final (source, first) = await seeded();
+    final second = await source.eventRules.create(
+      savedSearchId: 'search-2',
+      quantifier: EventRuleQuantifier.atLeast,
+      count: 2,
+      scope: EventRuleScope.wholeProgram,
+      nickname: 'Two contras',
+    );
+    final gone = await source.eventRules.create(
+      savedSearchId: 'search-3',
+      quantifier: EventRuleQuantifier.none,
+      scope: EventRuleScope.wholeProgram,
+    );
+    await source.eventRules.reorder([second.id, first.id, gone.id]);
+    await source.programs.setEventRuleIds('p1', [first.id, gone.id, second.id]);
+    await source.eventRules.delete(gone.id);
+    final kept = await source.eventRules.listAll();
+    expect([for (final r in kept) r.id], [second.id, first.id]);
+
+    final json = await BackupService(source).exportToJson();
+    final target = openTestRepositories();
+    await BackupService(target).restoreFromJson(json);
+
+    expect((await target.programs.getById('p1'))!.eventRuleIds, [
+      first.id,
+      second.id,
+    ], reason: 'the deleted rule is cut from the program');
+    final restored = await target.eventRules.listAll();
+    expect([for (final r in restored) r.id], [second.id, first.id]);
+    expect(
+      [for (final r in restored) r.nickname],
+      ['Two contras', 'No two Beckets'],
+    );
+    expect(
+      [for (final r in restored) r.position],
+      [for (final r in kept) r.position],
+    );
   });
 
   test('a rule a newer build wrote comes back as it was', () async {

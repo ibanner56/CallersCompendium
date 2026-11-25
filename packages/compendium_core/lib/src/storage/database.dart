@@ -888,12 +888,27 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   /// called from the `from < 42` step and from `beforeOpen` for a file
   /// already stamped 42, so it stays self-contained beside the other v42
   /// pieces. The live-schema checks only keep it idempotent.
+  ///
+  /// `event_rules.nickname` (#2341) joined later still: a file stamped 42
+  /// whose table was made without it gains it here, NULL for every rule.
   Future<void> _ensureV42EventRules(Migrator m) async {
     final table = await customSelect(
       "SELECT name FROM sqlite_master WHERE type = 'table' "
       "AND name = '${eventRules.actualTableName}'",
     ).get();
-    if (table.isEmpty) await m.createTable(eventRules);
+    if (table.isEmpty) {
+      await m.createTable(eventRules);
+    } else {
+      final ruleColumns = await customSelect(
+        "SELECT name FROM pragma_table_info('${eventRules.actualTableName}')",
+      ).get();
+      final presentRuleColumns = {
+        for (final row in ruleColumns) row.read<String>('name'),
+      };
+      if (!presentRuleColumns.contains(eventRules.nickname.name)) {
+        await m.addColumn(eventRules, eventRules.nickname);
+      }
+    }
     final columns = await customSelect(
       "SELECT name FROM pragma_table_info('${programs.actualTableName}')",
     ).get();

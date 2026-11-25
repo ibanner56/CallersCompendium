@@ -7994,6 +7994,32 @@ class AppLocalizationsDa extends AppLocalizations {
       'Denne dansekode indeholder ingen danse eller programmer.';
 
   @override
+  String get importScanDanceCode => 'Scan en dansekode';
+
+  @override
+  String get importScanNoCode =>
+      'Der blev ikke fundet nogen dansekode i billedet. Sørg for, at hele koden er med og skarp.';
+
+  @override
+  String get importScanUnreadable => 'Billedet kunne ikke læses.';
+
+  @override
+  String get importDanceCodePicture => 'Dansekode fra et billede…';
+
+  @override
+  String importScanTooLarge(int limit) {
+    return 'Dette billede er større end $limit MB, så det blev ikke læst. Vælg et mindre.';
+  }
+
+  @override
+  String get importScanNoCamera =>
+      'Denne enhed har ingen kameraapp til at tage billedet. Vælg i stedet »Dansekode fra et billede…«.';
+
+  @override
+  String get importScanCameraOff =>
+      'Kameraadgang er slået fra for Caller\'s Compendium. Slå den til i appen Indstillinger for at scanne en kode.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Den fil er ikke en delefil fra Caller’s Compendium.';
 
@@ -14880,7 +14906,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get eventRulesManageSubtitle =>
-      'Se, tilføj, rediger og slet dine regler.';
+      'Se, tilføj, rediger, omarranger og slet dine regler.';
 
   @override
   String get eventRulesEmpty =>
@@ -14945,7 +14971,33 @@ class AppLocalizationsDa extends AppLocalizations {
   String get eventRuleScopeNeighbouring => 'To vilkårlige nabodanse';
 
   @override
-  String get eventRuleNameLabel => 'Navn (valgfrit)';
+  String get eventRuleNicknameLabel => 'Kaldenavn (valgfrit)';
+
+  @override
+  String get eventRuleNicknameHelp =>
+      'Vises over reglens sætning og findes af regelvælgerens søgning.';
+
+  @override
+  String get eventRulesOrderTitle => 'Rækkefølge af regler';
+
+  @override
+  String get eventRulesOrderManual => 'Min rækkefølge';
+
+  @override
+  String get eventRulesOrderManualSubtitle =>
+      'Regelvælgeren viser dine regler i den rækkefølge, du har givet dem i Administrer regler.';
+
+  @override
+  String get eventRulesOrderMostUsed => 'Mest brugte';
+
+  @override
+  String get eventRulesOrderMostUsedSubtitle =>
+      'Regelvælgeren viser først de regler, dine programmer bruger mest, uden at tælle programmer i For nylig slettet.';
+
+  @override
+  String eventRulesDragToReorder(String rule) {
+    return 'Træk for at flytte $rule';
+  }
 
   @override
   String eventRuleSentenceAtMostWhole(int count, String search) {
@@ -15097,6 +15149,22 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsRulesPickerEmpty => 'Du har ingen regler endnu.';
 
   @override
+  String get programsRulesPickerSearchHint => 'Søg i regler';
+
+  @override
+  String get programsRulesPickerSearchClear => 'Ryd søgning';
+
+  @override
+  String programsRulesPickerNoMatches(String query) {
+    return 'Ingen regel matcher \"$query\".';
+  }
+
+  @override
+  String programsRulesPickerNewNamed(String nickname) {
+    return 'Ny regel \"$nickname\"…';
+  }
+
+  @override
   String programsRulesStripBroken(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -15188,6 +15256,25 @@ class AppLocalizationsDa extends AppLocalizations {
   String programsRulesPickerFull(int max) {
     return 'Dette program bruger $max regler, det højeste antal. Fjern fluebenet ved en for at tilføje en anden.';
   }
+
+  @override
+  String programsRulesPickerNotHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count regler findes ikke på denne enhed',
+      one: '1 regel findes ikke på denne enhed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesPickerNotHereHelp =>
+      'Tilføjet på en anden enhed og stadig på vej, eller væk for altid. Fjern tager dem af dette program.';
+
+  @override
+  String get programsRulesChangeFailed =>
+      'Kunne ikke ændre dette programs regler. Prøv igen.';
 
   @override
   String get eventRuleCountNeighbouringHelp =>

@@ -17,14 +17,14 @@ void main() {
     String id = 'r1',
     String quantifier = 'atMost',
     String scope = 'wholeProgram',
-    String? name = 'Few squares',
+    String? nickname = 'Few squares',
   }) => EventRule(
     id: id,
     savedSearchId: 'search-1',
     quantifierName: quantifier,
     count: 1,
     scopeName: scope,
-    name: name,
+    nickname: nickname,
     position: 4,
   );
 
@@ -45,10 +45,15 @@ void main() {
       );
     });
 
-    test('a name is sent only when the caller typed one', () {
-      expect(syncEventRuleBody(rule(name: null)).containsKey('name'), isFalse);
+    test('a nickname is sent only when the rule has one', () {
       expect(
-        decodeSyncEventRuleBody(syncEventRuleBody(rule(name: null))).name,
+        syncEventRuleBody(rule(nickname: null)).containsKey('nickname'),
+        isFalse,
+      );
+      expect(
+        decodeSyncEventRuleBody(
+          syncEventRuleBody(rule(nickname: null)),
+        ).nickname,
         isNull,
       );
     });
@@ -71,8 +76,8 @@ void main() {
         {'count': maxEventRuleCount + 1},
         {'count': '2'},
         {'scope': 7},
-        {'name': ''},
-        {'name': 'n' * (maxEventRuleNameLength + 1)},
+        {'nickname': ''},
+        {'nickname': 'n' * (maxEventRuleNicknameLength + 1)},
         {'position': -1},
       ]) {
         expect(

@@ -340,6 +340,11 @@ class _FromImageState extends State<_FromImage> {
               );
             case PhotoCaptureFailure.accessDenied:
               throw const _CameraOff();
+            case PhotoCaptureFailure.noCamera:
+              // As before the camera knew this failure: reading failed.
+              throw const TextRecognitionException(
+                TextRecognitionFailure.failed,
+              );
           }
         }
     }

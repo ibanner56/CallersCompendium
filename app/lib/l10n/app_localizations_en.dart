@@ -7955,6 +7955,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'This dance code doesn\'t contain any dances or programs.';
 
   @override
+  String get importScanDanceCode => 'Scan a dance code';
+
+  @override
+  String get importScanNoCode =>
+      'No dance code was found in the picture. Make sure the whole code is in it and sharp.';
+
+  @override
+  String get importScanUnreadable => 'The picture couldn\'t be read.';
+
+  @override
+  String get importDanceCodePicture => 'Dance code from a picture…';
+
+  @override
+  String importScanTooLarge(int limit) {
+    return 'This picture is larger than $limit MB, so it wasn\'t read. Choose a smaller one.';
+  }
+
+  @override
+  String get importScanNoCamera =>
+      'This device has no camera app to take the photo. Choose \"Dance code from a picture…\" instead.';
+
+  @override
+  String get importScanCameraOff =>
+      'Camera access is off for Caller\'s Compendium. To scan a code, turn it on in the Settings app.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'That file isn\'t a Caller\'s Compendium share file.';
 
@@ -14823,7 +14849,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get eventRulesManageSubtitle =>
-      'View, add, edit and delete your rules.';
+      'View, add, edit, reorder and delete your rules.';
 
   @override
   String get eventRulesEmpty =>
@@ -14887,7 +14913,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eventRuleScopeNeighbouring => 'Any two neighboring dances';
 
   @override
-  String get eventRuleNameLabel => 'Name (optional)';
+  String get eventRuleNicknameLabel => 'Nickname (optional)';
+
+  @override
+  String get eventRuleNicknameHelp =>
+      'Shown above the rule\'s sentence, and found by the rule picker\'s search.';
+
+  @override
+  String get eventRulesOrderTitle => 'Rule order';
+
+  @override
+  String get eventRulesOrderManual => 'My order';
+
+  @override
+  String get eventRulesOrderManualSubtitle =>
+      'The rule picker lists your rules in the order you gave them in Manage rules.';
+
+  @override
+  String get eventRulesOrderMostUsed => 'Most used';
+
+  @override
+  String get eventRulesOrderMostUsedSubtitle =>
+      'The rule picker lists first the rules your programs use most, not counting programs in Recently deleted.';
+
+  @override
+  String eventRulesDragToReorder(String rule) {
+    return 'Drag to reorder $rule';
+  }
 
   @override
   String eventRuleSentenceAtMostWhole(int count, String search) {
@@ -15043,6 +15095,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsRulesPickerEmpty => 'You have no rules yet.';
 
   @override
+  String get programsRulesPickerSearchHint => 'Search rules';
+
+  @override
+  String get programsRulesPickerSearchClear => 'Clear search';
+
+  @override
+  String programsRulesPickerNoMatches(String query) {
+    return 'No rule matches \"$query\".';
+  }
+
+  @override
+  String programsRulesPickerNewNamed(String nickname) {
+    return 'New rule \"$nickname\"…';
+  }
+
+  @override
   String programsRulesStripBroken(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -15133,6 +15201,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String programsRulesPickerFull(int max) {
     return 'This program uses $max rules, the most it can. Untick one to add another.';
   }
+
+  @override
+  String programsRulesPickerNotHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count rules not on this device',
+      one: '1 rule not on this device',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesPickerNotHereHelp =>
+      'Added on another device and still on the way, or gone for good. Remove takes them off this program.';
+
+  @override
+  String get programsRulesChangeFailed =>
+      'Couldn\'t change this program\'s rules. Try again.';
 
   @override
   String get eventRuleCountNeighbouringHelp =>

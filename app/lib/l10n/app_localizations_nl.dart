@@ -8038,6 +8038,32 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze danscode bevat geen dansen of programma\'s.';
 
   @override
+  String get importScanDanceCode => 'Danscode scannen';
+
+  @override
+  String get importScanNoCode =>
+      'Er is geen danscode in de afbeelding gevonden. Zorg dat de hele code erop staat en scherp is.';
+
+  @override
+  String get importScanUnreadable => 'De afbeelding kon niet worden gelezen.';
+
+  @override
+  String get importDanceCodePicture => 'Danscode uit een afbeelding…';
+
+  @override
+  String importScanTooLarge(int limit) {
+    return 'Deze afbeelding is groter dan $limit MB en is dus niet gelezen. Kies een kleinere.';
+  }
+
+  @override
+  String get importScanNoCamera =>
+      'Dit apparaat heeft geen camera-app om de foto te maken. Kies in plaats daarvan ‘Danscode uit een afbeelding…’.';
+
+  @override
+  String get importScanCameraOff =>
+      'Cameratoegang staat uit voor Caller\'s Compendium. Zet hem aan in de app Instellingen om een code te scannen.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Dat bestand is geen deelbestand van Caller’s Compendium.';
 
@@ -14963,7 +14989,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get eventRulesManageSubtitle =>
-      'Je regels bekijken, toevoegen, bewerken en verwijderen.';
+      'Je regels bekijken, toevoegen, bewerken, herschikken en verwijderen.';
 
   @override
   String get eventRulesEmpty =>
@@ -15028,7 +15054,33 @@ class AppLocalizationsNl extends AppLocalizations {
   String get eventRuleScopeNeighbouring => 'Elke twee aangrenzende dansen';
 
   @override
-  String get eventRuleNameLabel => 'Naam (optioneel)';
+  String get eventRuleNicknameLabel => 'Bijnaam (optioneel)';
+
+  @override
+  String get eventRuleNicknameHelp =>
+      'Wordt boven de zin van de regel getoond en gevonden door de zoekfunctie van de regelkiezer.';
+
+  @override
+  String get eventRulesOrderTitle => 'Volgorde van regels';
+
+  @override
+  String get eventRulesOrderManual => 'Mijn volgorde';
+
+  @override
+  String get eventRulesOrderManualSubtitle =>
+      'De regelkiezer toont je regels in de volgorde die je ze in Regels beheren hebt gegeven.';
+
+  @override
+  String get eventRulesOrderMostUsed => 'Meest gebruikt';
+
+  @override
+  String get eventRulesOrderMostUsedSubtitle =>
+      'De regelkiezer toont eerst de regels die je programma\'s het meest gebruiken; programma\'s in Onlangs verwijderd tellen niet mee.';
+
+  @override
+  String eventRulesDragToReorder(String rule) {
+    return 'Sleep om $rule te verplaatsen';
+  }
 
   @override
   String eventRuleSentenceAtMostWhole(int count, String search) {
@@ -15188,6 +15240,22 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsRulesPickerEmpty => 'Je hebt nog geen regels.';
 
   @override
+  String get programsRulesPickerSearchHint => 'Regels zoeken';
+
+  @override
+  String get programsRulesPickerSearchClear => 'Zoekopdracht wissen';
+
+  @override
+  String programsRulesPickerNoMatches(String query) {
+    return 'Geen regel komt overeen met \"$query\".';
+  }
+
+  @override
+  String programsRulesPickerNewNamed(String nickname) {
+    return 'Nieuwe regel \"$nickname\"…';
+  }
+
+  @override
   String programsRulesStripBroken(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -15279,6 +15347,25 @@ class AppLocalizationsNl extends AppLocalizations {
   String programsRulesPickerFull(int max) {
     return 'Dit programma gebruikt $max regels, het maximum. Vink er een uit om een andere toe te voegen.';
   }
+
+  @override
+  String programsRulesPickerNotHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count regels niet op dit apparaat',
+      one: '1 regel niet op dit apparaat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesPickerNotHereHelp =>
+      'Toegevoegd op een ander apparaat en nog onderweg, of voorgoed weg. Verwijderen haalt ze van dit programma.';
+
+  @override
+  String get programsRulesChangeFailed =>
+      'Kan de regels van dit programma niet wijzigen. Probeer het opnieuw.';
 
   @override
   String get eventRuleCountNeighbouringHelp =>

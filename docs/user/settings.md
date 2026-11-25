@@ -1300,9 +1300,12 @@ and lists it last. Nothing is left out, and you can still swap a marked dance
 in. Turn it off and the swap sheet lists its dances as usual, without
 checking them. See [Swap a dance](./perform.md#swap-a-dance).
 
-It also shows **Manage rules**, which lists your rules as sentences. Use
-**New rule…** to add one, select a rule to edit it, and the bin to delete it,
-with **Undo** in the message at the bottom of the screen. A rule has:
+It also shows **Manage rules**, which lists your rules as sentences, or by
+their nicknames with the sentence under each. Use **New rule…** to add one,
+select a rule to edit it, and the bin to delete it, with **Undo** in the
+message at the bottom of the screen. To change the order of your rules, drag a
+rule by its handle, or use the **Move up** and **Move down** buttons beside it.
+A rule has:
 
 - **Which dances** — one of your
   [saved searches](./collection.md#save-a-search-and-use-it-again). Save a
@@ -1317,8 +1320,20 @@ with **Undo** in the message at the bottom of the screen. A rule has:
 - **Where** — **The whole program**, **Before the first break**, **After the
   first break**, or **Any two neighboring dances**, which checks each pair of
   dances next to each other.
-- **Name (optional)** — shown in place of the sentence, with the sentence
-  under it.
+- **Nickname (optional)** — a short name of your own, such as *family* or
+  *one petronella*, shown in place of the sentence with the sentence under
+  it, here and in a program's rule picker, where you can
+  [search for it](./programs.md#check-your-program-against-your-rules). Clear
+  it to show the sentence alone again.
+
+Also shown while it is on, **Rule order** chooses how a program's rule picker
+lists your rules:
+
+- **My order** (the default) — the order in **Manage rules**.
+- **Most used** — the rules your programs use most come first, with rules
+  used equally often in alphabetical order. A rule's use is the number of
+  programs it is added to, counted when you open the picker; an archived
+  program counts, and one in **Recently deleted** doesn't.
 
 While it is on, [Settings ▸ Program ▸ Programs](#programs) has a **Manage
 rules** link to the same list. With [Suggestions](#suggestions) on too, the

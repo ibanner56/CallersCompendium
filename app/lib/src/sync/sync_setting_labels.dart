@@ -1,5 +1,9 @@
 import 'package:compendium_core/compendium_core.dart'
-    show savedSearchKeyPrefix, shownDialectName, syncCapabilityKeyPrefix;
+    show
+        EventRuleOrder,
+        savedSearchKeyPrefix,
+        shownDialectName,
+        syncCapabilityKeyPrefix;
 
 import '../../l10n/app_localizations.dart';
 
@@ -120,6 +124,7 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'suggestion_settings' => l10n.settingsSuggestionsEditorTitle,
   'suggestions_in_perform_swap' => l10n.settingsSuggestionsInPerformSwapTitle,
   'event_rules_enabled' => l10n.settingsExperimentalEventRulesTitle,
+  'event_rule_order' => l10n.eventRulesOrderTitle,
   'event_rules_check_perform_swap' =>
     l10n.settingsEventRulesCheckPerformSwapTitle,
   'calling_card_print' => l10n.settingsCallingCardsHeader,
@@ -175,6 +180,14 @@ String syncSettingValueText(
   if (key != null && key.startsWith(savedSearchKeyPrefix) && value is Map) {
     final name = value['name'];
     if (name is String && name.trim().isNotEmpty) return _clip(name);
+  }
+  // The rule picker's order (#2341), as Settings names it.
+  // A value this build does not know falls through to its text.
+  if (key == 'event_rule_order') {
+    if (value == EventRuleOrder.manual.name) return l10n.eventRulesOrderManual;
+    if (value == EventRuleOrder.mostUsed.name) {
+      return l10n.eventRulesOrderMostUsed;
+    }
   }
   switch (value) {
     case null:

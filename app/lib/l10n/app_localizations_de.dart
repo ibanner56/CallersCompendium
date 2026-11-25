@@ -8062,6 +8062,32 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Tanzcode enthält keine Tänze oder Programme.';
 
   @override
+  String get importScanDanceCode => 'Tanzcode scannen';
+
+  @override
+  String get importScanNoCode =>
+      'Im Bild wurde kein Tanzcode gefunden. Achten Sie darauf, dass der ganze Code darauf und scharf ist.';
+
+  @override
+  String get importScanUnreadable => 'Das Bild konnte nicht gelesen werden.';
+
+  @override
+  String get importDanceCodePicture => 'Tanzcode aus einem Bild…';
+
+  @override
+  String importScanTooLarge(int limit) {
+    return 'Dieses Bild ist größer als $limit MB und wurde daher nicht gelesen. Wählen Sie ein kleineres.';
+  }
+
+  @override
+  String get importScanNoCamera =>
+      'Dieses Gerät hat keine Kamera-App für das Foto. Wählen Sie stattdessen „Tanzcode aus einem Bild…“.';
+
+  @override
+  String get importScanCameraOff =>
+      'Der Kamerazugriff ist für Caller\'s Compendium ausgeschaltet. Um einen Code zu scannen, schalten Sie ihn in der App „Einstellungen“ ein.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Diese Datei ist keine Freigabedatei von Caller’s Compendium.';
 
@@ -15005,7 +15031,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get eventRulesManageSubtitle =>
-      'Deine Regeln ansehen, hinzufügen, bearbeiten und löschen.';
+      'Deine Regeln ansehen, hinzufügen, bearbeiten, neu anordnen und löschen.';
 
   @override
   String get eventRulesEmpty =>
@@ -15070,7 +15096,33 @@ class AppLocalizationsDe extends AppLocalizations {
   String get eventRuleScopeNeighbouring => 'Je zwei benachbarte Tänze';
 
   @override
-  String get eventRuleNameLabel => 'Name (optional)';
+  String get eventRuleNicknameLabel => 'Spitzname (optional)';
+
+  @override
+  String get eventRuleNicknameHelp =>
+      'Wird über dem Satz der Regel angezeigt und von der Suche der Regelauswahl gefunden.';
+
+  @override
+  String get eventRulesOrderTitle => 'Reihenfolge der Regeln';
+
+  @override
+  String get eventRulesOrderManual => 'Meine Reihenfolge';
+
+  @override
+  String get eventRulesOrderManualSubtitle =>
+      'Die Regelauswahl zeigt deine Regeln in der Reihenfolge, die du ihnen unter Regeln verwalten gegeben hast.';
+
+  @override
+  String get eventRulesOrderMostUsed => 'Am häufigsten verwendet';
+
+  @override
+  String get eventRulesOrderMostUsedSubtitle =>
+      'Die Regelauswahl zeigt zuerst die Regeln, die deine Programme am häufigsten verwenden; Programme unter Zuletzt gelöscht zählen nicht.';
+
+  @override
+  String eventRulesDragToReorder(String rule) {
+    return 'Ziehen, um $rule neu anzuordnen';
+  }
 
   @override
   String eventRuleSentenceAtMostWhole(int count, String search) {
@@ -15227,6 +15279,22 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsRulesPickerEmpty => 'Du hast noch keine Regeln.';
 
   @override
+  String get programsRulesPickerSearchHint => 'Regeln durchsuchen';
+
+  @override
+  String get programsRulesPickerSearchClear => 'Suche löschen';
+
+  @override
+  String programsRulesPickerNoMatches(String query) {
+    return 'Keine Regel passt zu „$query“.';
+  }
+
+  @override
+  String programsRulesPickerNewNamed(String nickname) {
+    return 'Neue Regel „$nickname“…';
+  }
+
+  @override
   String programsRulesStripBroken(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -15318,6 +15386,25 @@ class AppLocalizationsDe extends AppLocalizations {
   String programsRulesPickerFull(int max) {
     return 'Dieses Programm nutzt $max Regeln, mehr geht nicht. Entferne einen Haken, um eine andere hinzuzufügen.';
   }
+
+  @override
+  String programsRulesPickerNotHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Regeln nicht auf diesem Gerät',
+      one: '1 Regel nicht auf diesem Gerät',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesPickerNotHereHelp =>
+      'Auf einem anderen Gerät hinzugefügt und noch unterwegs, oder endgültig weg. Entfernen nimmt sie aus diesem Programm.';
+
+  @override
+  String get programsRulesChangeFailed =>
+      'Die Regeln dieses Programms konnten nicht geändert werden. Versuche es noch einmal.';
 
   @override
   String get eventRuleCountNeighbouringHelp =>

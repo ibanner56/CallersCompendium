@@ -1,0 +1,14 @@
+{
+  "id": "tcb-formed-wave-rory",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "In a Caller's Box dance that forms a wave on one line (\"…; form wave of four\" or \"Pass the ocean\"), then balances it with a line such as \"Balance wave of four (NR,WL)\" and slides, the balance and slide now import as a Rory O'More after the wave, as they already did without the forming line. A two-place slide there (\"Slide right, men slide two places\") no longer stays as text. A dance imported earlier picks this up when you import it again."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The Caller's Box adapter folds a short-wave or pass-the-ocean forming line, a balance-wave line and a slide into the forming figure (the balance line's holds, no `balance`) and a balanced `rory_o_more`."
+    ]
+  }
+}

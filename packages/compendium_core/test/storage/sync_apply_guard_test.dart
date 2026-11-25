@@ -149,7 +149,7 @@ void main() {
             quantifierName: 'exactly',
             count: 1,
             scopeName: 'lastHour',
-            name: 'Later',
+            nickname: 'Later',
           ),
         ),
         // A setting this build does not sync, kept whole.

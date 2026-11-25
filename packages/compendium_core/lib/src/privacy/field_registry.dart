@@ -507,15 +507,18 @@ final Map<String, DataClassification> fieldClassifications = {
   'event_rules.quantifier': _eventRuleData,
   'event_rules.count': _eventRuleData,
   'event_rules.scope': _eventRuleData,
-  'event_rules.name': const DataClassification(
+  'event_rules.nickname': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.appUser,
     egress: EgressClass.shareable,
     note:
-        'A name the caller typed for one of their event rules (#2340), or '
-        'NULL. Free text the caller writes about their own planning; syncs '
-        'and is kept in backups, but left out of a shared program file and '
-        'the PDF.',
+        'The nickname the caller gave one of their event rules (#2341), or '
+        'NULL: a short name shown above the rule\'s sentence and matched by '
+        'the rule picker\'s search. Free text the caller writes about their '
+        'own planning, classified as the issue proposed and the maintainer '
+        'approved (issue review, 2026-11-22): egress as the rest of '
+        'event_rules, so it syncs and is kept in backups, but is left out of '
+        'a shared program file and the PDF.',
   ),
   'event_rules.position': _eventRuleData,
   'event_rules.updated_at': _recordStamp,

@@ -446,7 +446,7 @@ class ProgramRepository {
   ///
   /// [keepStoredEventRuleIds] does the same for the applied event rules
   /// (#2340), which the builder's Rules picker writes on its own
-  /// ([setEventRuleIds]): a pick that lands while a save is in flight
+  /// ([updateEventRuleIds]): a pick that lands while a save is in flight
   /// survives it.
   Future<Program> updateAndReadBack(
     Program program, {
@@ -728,10 +728,11 @@ class ProgramRepository {
   Future<bool> unarchive(String id, {required DateTime at}) =>
       _setArchivedAt(id, archivedAt: null, at: at);
 
-  /// Sets the event rules applied to the live program [id] (#2340): the
-  /// builder's Rules picker writes them here directly, as Archive writes the
-  /// archived state, so an edit to the rest of the program never carries a
-  /// stale list. [ids] is normalized ([normalizeEventRuleIds]). Returns
+  /// Replaces the whole list of event rules applied to the live program [id]
+  /// (#2340) with [ids]. The builder's Rules picker does not use this: it
+  /// applies each tick to the list as stored, through [updateEventRuleIds],
+  /// so a change made elsewhere is not overwritten by the picker's copy.
+  /// [ids] is normalized ([normalizeEventRuleIds]). Returns
   /// `false` when the program is missing or in Recently deleted, or already
   /// applies exactly these rules.
   Future<bool> setEventRuleIds(

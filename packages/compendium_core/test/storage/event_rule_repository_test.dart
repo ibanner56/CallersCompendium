@@ -23,18 +23,18 @@ void main() {
     today: DateTime.utc(2026, 1, 1),
   ).value!;
 
-  Future<EventRule> addRule(String savedSearchId, {String? name}) =>
+  Future<EventRule> addRule(String savedSearchId, {String? nickname}) =>
       repos.eventRules.create(
         savedSearchId: savedSearchId,
         quantifier: EventRuleQuantifier.atMost,
         count: 1,
         scope: EventRuleScope.wholeProgram,
-        name: name,
+        nickname: nickname,
       );
 
   group('the repository', () {
     test('adds, edits, lists in order, deletes and restores', () async {
-      final a = await addRule('s1', name: 'One petronella');
+      final a = await addRule('s1', nickname: 'One petronella');
       final b = await repos.eventRules.create(
         savedSearchId: 's2',
         quantifier: EventRuleQuantifier.none,
@@ -54,7 +54,7 @@ void main() {
       final edited = await repos.eventRules.get(a.id);
       expect(edited!.count, 2);
       expect(edited.scope, EventRuleScope.neighbouring);
-      expect(edited.name, 'One petronella');
+      expect(edited.nickname, 'One petronella');
 
       await repos.eventRules.reorder([b.id, a.id]);
       expect(
@@ -110,6 +110,41 @@ void main() {
       expect(read, newer, reason: 'kept as stored, to publish it back');
       expect(read!.isReadable, isFalse);
     });
+
+    // #2341: Manage rules reorders every rule, a newer build's included,
+    // and keeps such a rule as it came.
+    test(
+      'reorders past a rule a newer build wrote, writing only its place',
+      () async {
+        final a = await addRule('s1');
+        const newer = EventRule(
+          id: 'n',
+          savedSearchId: 's',
+          quantifierName: 'exactly',
+          count: 1,
+          scopeName: 'dancesNtoM',
+          position: 1,
+        );
+        await repos.eventRules.writeFromSync(newer);
+        final b = await addRule('s2');
+        expect(
+          [for (final r in await repos.eventRules.listAll()) r.id],
+          [a.id, 'n', b.id],
+        );
+
+        await repos.eventRules.reorder([a.id, b.id, 'n'], at: t0);
+        expect(
+          [for (final r in await repos.eventRules.listAll()) r.id],
+          [a.id, b.id, 'n'],
+        );
+        final moved = (await repos.eventRules.get('n'))!;
+        expect(moved, newer.copyWith(position: 2));
+        final row = await (db.select(
+          db.eventRules,
+        )..where((t) => t.id.equals('n'))).getSingle();
+        expect(row.updatedAt!.toUtc(), t0, reason: 'the new place syncs');
+      },
+    );
   });
 
   group('a saved search a rule uses', () {
@@ -119,7 +154,7 @@ void main() {
         name: 'Petronella',
         spec: specFor('petronella'),
       );
-      final named = await addRule(search.id, name: 'One petronella');
+      final named = await addRule(search.id, nickname: 'One petronella');
       final unnamed = await addRule(search.id);
       await addRule('another-search');
 
@@ -239,6 +274,43 @@ void main() {
       // Without it, the copy's rules are written, as for any other field.
       final plain = await repos.programs.updateAndReadBack(copy);
       expect(plain.eventRuleIds, isEmpty);
+    });
+
+    // #2341: "Most used" counts the live programs applying each rule. Shown
+    // red against a count that included programs in Recently deleted.
+    test('usage counts live and archived programs, not trashed ones, and '
+        'each program once', () async {
+      final a = await addRule('s1');
+      final b = await addRule('s2');
+      final c = await addRule('s3');
+      await repos.programs.create(program('live', rules: [a.id, c.id]));
+      await repos.programs.create(program('archived', rules: [a.id]));
+      await repos.programs.archive('archived', at: t0);
+      // b is applied only by programs in Recently deleted: more of them than
+      // apply a, so counting them would put b first.
+      for (final id in ['trash1', 'trash2', 'trash3']) {
+        await repos.programs.create(program(id, rules: [b.id]));
+        await repos.programs.softDelete(id, at: t0);
+      }
+      // A stored list that repeats an id counts its program once.
+      await db.customStatement(
+        "UPDATE programs SET event_rule_ids = "
+        "'[\"${a.id}\",\"${c.id}\",\"${c.id}\"]' "
+        "WHERE id = 'live'",
+      );
+
+      final usage = await repos.eventRules.usageCounts();
+      expect(usage[a.id], 2, reason: 'a live and an archived program');
+      expect(usage[b.id] ?? 0, 0, reason: 'trashed programs do not count');
+      expect(usage[c.id], 1);
+
+      final ordered = orderEventRules(
+        await repos.eventRules.listAll(),
+        EventRuleOrder.mostUsed,
+        usage: usage,
+        title: (r) => r.savedSearchId,
+      );
+      expect([for (final r in ordered) r.id], [a.id, c.id, b.id]);
     });
 
     test('creating a program applies none', () async {

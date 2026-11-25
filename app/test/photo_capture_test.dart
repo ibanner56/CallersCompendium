@@ -249,11 +249,11 @@ void main() {
     });
   });
 
-  test('only iOS gets a camera', () {
+  test('only iOS and Android get a camera', () {
     for (final platform in TargetPlatform.values) {
       expect(
         photoCaptureServiceFor(platform, isWeb: false) != null,
-        platform == TargetPlatform.iOS,
+        platform == TargetPlatform.iOS || platform == TargetPlatform.android,
         reason: platform.name,
       );
     }
@@ -274,6 +274,7 @@ void main() {
     test('is read, then deleted', () async {
       final (temp, photo) = await photoIn();
       final camera = SystemCameraPhotoCapture(
+        platform: TargetPlatform.iOS,
         capture: () async => XFile(photo.path),
         temporaryDirectory: temp,
       );
@@ -284,6 +285,7 @@ void main() {
     test('is deleted when it is over the cap, unread', () async {
       final (temp, photo) = await photoIn(bytes: List.filled(2048, 1));
       final camera = SystemCameraPhotoCapture(
+        platform: TargetPlatform.iOS,
         capture: () async => XFile(photo.path),
         temporaryDirectory: temp,
       );
@@ -303,6 +305,7 @@ void main() {
     test('is deleted when reading it fails', () async {
       final (temp, photo) = await photoIn();
       final camera = SystemCameraPhotoCapture(
+        platform: TargetPlatform.iOS,
         capture: () async => _UnreadableXFile(photo.path),
         temporaryDirectory: temp,
       );
@@ -316,6 +319,7 @@ void main() {
     for (final code in ['camera_access_denied', 'camera_access_restricted']) {
       test('$code reads as camera access off', () async {
         final camera = SystemCameraPhotoCapture(
+          platform: TargetPlatform.iOS,
           capture: () async => throw PlatformException(code: code),
         );
         await expectLater(
@@ -333,8 +337,8 @@ void main() {
 
     test('another camera error is passed on as it is', () async {
       final camera = SystemCameraPhotoCapture(
-        capture: () async =>
-            throw PlatformException(code: 'no_available_camera'),
+        platform: TargetPlatform.iOS,
+        capture: () async => throw PlatformException(code: 'invalid_image'),
       );
       await expectLater(
         camera.takePhoto(maxBytes: 1024),
@@ -345,6 +349,7 @@ void main() {
     test('a cancelled camera returns null and deletes nothing', () async {
       final (temp, earlier) = await photoIn();
       final camera = SystemCameraPhotoCapture(
+        platform: TargetPlatform.iOS,
         capture: () async => null,
         temporaryDirectory: temp,
       );
@@ -365,6 +370,7 @@ void main() {
         if (photo.existsSync()) await photo.delete();
       });
       await SystemCameraPhotoCapture(
+        platform: TargetPlatform.iOS,
         capture: () async => XFile(photo.path),
       ).takePhoto(maxBytes: 1024);
       expect(photo.existsSync(), isFalse);
@@ -376,6 +382,7 @@ void main() {
       addTearDown(() => links.delete(recursive: true));
       final link = await Link(p.join(links.path, 'tmp')).create(temp.path);
       await SystemCameraPhotoCapture(
+        platform: TargetPlatform.iOS,
         capture: () async => XFile(p.join(link.path, p.basename(photo.path))),
         temporaryDirectory: Directory(link.path),
       ).takePhoto(maxBytes: 1024);
@@ -436,6 +443,177 @@ void main() {
         );
         await deleteCapturedPhoto('', temporaryDirectory: temp);
       });
+    });
+  });
+
+  group('on Android', () {
+    const uuid = '0f8fad5b-d9cb-469f-a165-70867728950e';
+
+    Future<Directory> cacheDir() async {
+      final cache = await Directory.systemTemp.createTemp('camera-cache');
+      addTearDown(() => cache.delete(recursive: true));
+      return cache;
+    }
+
+    Future<File> fileIn(Directory dir, String name) async {
+      final file = File(p.join(dir.path, name));
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(_photoBytes);
+      return file;
+    }
+
+    SystemCameraPhotoCapture androidCamera(Directory cache, File photo) =>
+        SystemCameraPhotoCapture(
+          platform: TargetPlatform.android,
+          capture: () async => XFile(photo.path),
+          temporaryDirectory: cache,
+        );
+
+    test(
+      'the photo the plugin writes in the cache is read, then deleted',
+      () async {
+        final cache = await cacheDir();
+        for (final name in ['${uuid}1234567890.jpg', 'scaled_${uuid}42.jpg']) {
+          final photo = await fileIn(cache, name);
+          expect(
+            await androidCamera(cache, photo).takePhoto(maxBytes: 1024),
+            _photoBytes,
+          );
+          expect(photo.existsSync(), isFalse, reason: name);
+        }
+      },
+    );
+
+    test('a resized photo\'s original beside it is deleted too', () async {
+      final cache = await cacheDir();
+      // Written while the camera was open, so after the capture began: the
+      // sweep of older files would not take it.
+      final original = await fileIn(cache, '${uuid}55.jpg');
+      await original.setLastModified(
+        DateTime.now().add(const Duration(minutes: 1)),
+      );
+      final scaled = await fileIn(cache, 'scaled_${uuid}55.jpg');
+      expect(
+        await androidCamera(cache, scaled).takePhoto(maxBytes: 1024),
+        _photoBytes,
+      );
+      expect(scaled.existsSync(), isFalse);
+      expect(original.existsSync(), isFalse);
+    });
+
+    test('other files are left alone', () async {
+      final cache = await cacheDir();
+      for (final name in [
+        'image_picker_1.jpg',
+        'notes.jpg',
+        '${uuid}1.png',
+        'kept/${uuid}1.jpg',
+      ]) {
+        final file = await fileIn(cache, name);
+        await androidCamera(cache, file).takePhoto(maxBytes: 1024);
+        expect(file.existsSync(), isTrue, reason: name);
+      }
+    });
+
+    test('after a cancel, the file the plugin made for it is deleted, and a '
+        'newer one kept', () async {
+      final cache = await cacheDir();
+      final made = await fileIn(cache, '${uuid}31.jpg');
+      await made.setLastModified(
+        DateTime.now().subtract(const Duration(seconds: 5)),
+      );
+      final newer = await fileIn(cache, '${uuid}32.jpg');
+      await newer.setLastModified(
+        DateTime.now().add(const Duration(minutes: 1)),
+      );
+      final camera = SystemCameraPhotoCapture(
+        platform: TargetPlatform.android,
+        capture: () async => null,
+        temporaryDirectory: cache,
+      );
+      expect(await camera.takePhoto(maxBytes: 1024), isNull);
+      expect(made.existsSync(), isFalse);
+      expect(newer.existsSync(), isTrue);
+    });
+
+    test('on iOS a cancel deletes nothing', () async {
+      final cache = await cacheDir();
+      final earlier = await fileIn(cache, 'image_picker_9.jpg');
+      await earlier.setLastModified(
+        DateTime.now().subtract(const Duration(seconds: 5)),
+      );
+      final camera = SystemCameraPhotoCapture(
+        platform: TargetPlatform.iOS,
+        capture: () async => null,
+        temporaryDirectory: cache,
+      );
+      expect(await camera.takePhoto(maxBytes: 1024), isNull);
+      expect(earlier.existsSync(), isTrue);
+    });
+
+    test('a device without a camera app is noCamera', () async {
+      final camera = SystemCameraPhotoCapture(
+        platform: TargetPlatform.android,
+        capture: () =>
+            Future.error(PlatformException(code: 'no_available_camera')),
+      );
+      await expectLater(
+        camera.takePhoto(maxBytes: 1024),
+        throwsA(
+          isA<PhotoCaptureException>().having(
+            (e) => e.reason,
+            'reason',
+            PhotoCaptureFailure.noCamera,
+          ),
+        ),
+      );
+    });
+
+    test('at start, a photo left from an earlier run is deleted, and the '
+        'lost photo claimed', () async {
+      final cache = await cacheDir();
+      final left = await fileIn(cache, '${uuid}77.jpg');
+      final scaled = await fileIn(cache, 'scaled_${uuid}77.jpg');
+      final other = await fileIn(cache, 'share.ccshare');
+      final picked = await fileIn(cache, '$uuid/code.png');
+      for (final file in [left, scaled, other, picked]) {
+        await file.setLastModified(
+          DateTime.now().subtract(const Duration(minutes: 5)),
+        );
+      }
+      var claimed = 0;
+      await deleteLeftoverCapturedPhotos(
+        retrieveLostData: () async {
+          claimed++;
+          return LostDataResponse.empty();
+        },
+        cacheDirectory: () async => cache,
+      );
+      expect(claimed, 1);
+      expect(left.existsSync(), isFalse);
+      expect(scaled.existsSync(), isFalse);
+      expect(other.existsSync(), isTrue);
+      expect(picked.existsSync(), isTrue);
+    });
+
+    test('at start, a photo written after the sweep began is kept', () async {
+      final cache = await cacheDir();
+      final fresh = await fileIn(cache, '${uuid}88.jpg');
+      await fresh.setLastModified(
+        DateTime.now().add(const Duration(minutes: 1)),
+      );
+      await deleteLeftoverCapturedPhotos(
+        retrieveLostData: () async => LostDataResponse.empty(),
+        cacheDirectory: () async => cache,
+      );
+      expect(fresh.existsSync(), isTrue);
+    });
+
+    test('at start, a failing plugin or folder is no error', () async {
+      await deleteLeftoverCapturedPhotos(
+        retrieveLostData: () => Future.error(Exception('no plugin')),
+        cacheDirectory: () => Future.error(Exception('no folder')),
+      );
     });
   });
 

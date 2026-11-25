@@ -4,6 +4,8 @@ import 'package:compendium_app/src/data/backup_reminder.dart'
     show kBackupReminderCadenceKey;
 import 'package:compendium_app/src/data/capitalize_figures_scope.dart'
     show kCapitalizeFiguresKey;
+import 'package:compendium_app/src/data/event_rules_scope.dart'
+    show kEventRuleOrderKey;
 import 'package:compendium_app/src/data/show_glossary_scope.dart'
     show kShowGlossaryKey;
 import 'package:compendium_app/src/data/backup_service.dart'
@@ -408,6 +410,24 @@ void main() {
       for (final bad in <Object?>[6, 7, 20, 30, -1, 3600, 10.0, '10', null]) {
         expect(
           validateBackupSettingValue(kUndoPromptSecondsKey, bad),
+          isFalse,
+          reason: '$bad',
+        );
+      }
+    });
+
+    test("the rule picker's order (#2341) accepts only an order Settings "
+        'offers', () {
+      for (final offered in ['manual', 'mostUsed']) {
+        expect(
+          validateBackupSettingValue(kEventRuleOrderKey, offered),
+          isTrue,
+          reason: offered,
+        );
+      }
+      for (final bad in <Object?>['', 'MostUsed', 'byName', 1, true, null]) {
+        expect(
+          validateBackupSettingValue(kEventRuleOrderKey, bad),
           isFalse,
           reason: '$bad',
         );

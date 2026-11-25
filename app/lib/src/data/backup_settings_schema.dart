@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart'
     show
+        EventRuleOrder,
         MatrixColumnConfig,
         SavedSearch,
         isValidStoredPerformSwapDefaults,
@@ -29,7 +30,10 @@ import 'calling_card_settings_scope.dart'
     show CallingCardSettings, kCallingCardSettingsKey;
 import 'show_glossary_scope.dart' show kShowGlossaryKey;
 import 'event_rules_scope.dart'
-    show kEventRulesCheckPerformSwapKey, kEventRulesEnabledKey;
+    show
+        kEventRuleOrderKey,
+        kEventRulesCheckPerformSwapKey,
+        kEventRulesEnabledKey;
 import 'suggestions_scope.dart'
     show
         kSuggestionSettingsKey,
@@ -259,6 +263,9 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   kCalendarImportOnStartupKey: _isBool,
   kCalendarStartupModeKey: (v) =>
       v is String && CalendarStartupMode.fromStored(v).name == v,
+  // The rule picker's order (#2341): only an order Settings offers.
+  kEventRuleOrderKey: (v) =>
+      v is String && EventRuleOrder.fromStored(v).name == v,
 
   // Structured container blobs. Their controllers decode the CONTENTS
   // defensively (skipping bad entries), so here we only enforce the outer

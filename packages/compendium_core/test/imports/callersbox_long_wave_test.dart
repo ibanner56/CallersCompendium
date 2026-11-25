@@ -438,8 +438,10 @@ void main() {
       expect(_total(figures), 20);
     });
 
-    test('a refused in-center balance still leaves the centre wave, with its '
-        'beats', () async {
+    test('a role\'s in-center balance makes that role\'s centre wave, with '
+        'the beats of both lines', () async {
+      // Maintainer ruling 2026-11-24: the role named on the balance forms the
+      // centre wave and balances it.
       final figures = await _import({
         'A1': [
           '(12) Partner swing',
@@ -447,9 +449,9 @@ void main() {
           '(4) Men balance long wave in center',
         ],
       });
+      expect(figures, hasLength(2));
       expect(figures[1].move, 'form_a_long_wave');
-      expect(figures[1].params, {'beats': 4});
-      expect(figures[2].isCustom, isTrue);
+      expect(figures[1].params, {'who': 'role1s', 'beats': 8, 'balance': true});
       expect(_total(figures), 20);
     });
   });
@@ -475,18 +477,18 @@ void main() {
       },
     );
 
-    test('dance 5771 B2: Men … in center is refused, the wave still turns '
-        'into the centre wave', () async {
+    test('dance 5771 B2: Men … in center is the larks\' centre wave, '
+        'balanced', () async {
       final figures = await _import({
         'B2': [
           '(8) Men do-si-do 1 & 1/4; form long wave',
           '(4) Men balance long wave in center',
         ],
       });
+      expect(figures, hasLength(2));
       expect(figures[1].move, 'form_a_long_wave');
-      expect(figures[1].params, isEmpty);
-      expect(figures[2].isCustom, isTrue);
-      expect(figures[2].params['text'], contains('in center'));
+      expect(figures[1].params['who'], 'role1s');
+      expect(figures[1].params['balance'], isTrue);
       expect(_total(figures), 12);
     });
 

@@ -360,8 +360,8 @@ class SavedSearchActions {
       return true;
     } on SavedSearchInUse catch (inUse) {
       // diagnostics: silent — an expected refusal; the dialog names each use.
-      // An event rule (#2340) is named by its sentence, or its typed name
-      // above it, and the search it uses is the one being deleted.
+      // An event rule (#2340) is named by its sentence, or its nickname
+      // (#2341) above it, and the search it uses is the one being deleted.
       final uses = <(IconData, String, String?)>[];
       var usedByRules = false;
       for (final use in inUse.uses) {
@@ -370,14 +370,18 @@ class SavedSearchActions {
             : null;
         if (rule == null) {
           // Anything else (a template's slot rule, #2338) in its own words.
-          uses.add((Icons.link, savedSearchUseText(l10n, use), null));
+          // An unnamed event rule deleted since it was counted has neither a
+          // name nor a sentence left to show, and no longer uses the search.
+          final text = savedSearchUseText(l10n, use);
+          if (text.trim().isEmpty) continue;
+          uses.add((Icons.link, text, null));
         } else {
           usedByRules = true;
           final sentence = eventRuleSentence(l10n, rule, label);
           uses.add(
-            rule.name == null
+            rule.nickname == null
                 ? (eventRuleWarningIcon, sentence, null)
-                : (eventRuleWarningIcon, rule.name!, sentence),
+                : (eventRuleWarningIcon, rule.nickname!, sentence),
           );
         }
       }

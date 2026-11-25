@@ -178,6 +178,24 @@ void main() {
       },
     );
 
+    test('names the rule order and its choices, not the stored names '
+        '(#2341)', () {
+      expect(
+        syncSettingLabel(l10n, 'event_rule_order'),
+        l10n.eventRulesOrderTitle,
+      );
+      expect(
+        syncSettingValueText(l10n, 'manual', key: 'event_rule_order'),
+        l10n.eventRulesOrderManual,
+      );
+      expect(
+        syncSettingValueText(l10n, 'mostUsed', key: 'event_rule_order'),
+        l10n.eventRulesOrderMostUsed,
+      );
+      // The same strings under another key are shown as they are.
+      expect(syncSettingValueText(l10n, 'mostUsed', key: 'theme'), 'mostUsed');
+    });
+
     test('a saved search\'s setting is labelled as one', () {
       expect(
         syncSettingLabel(l10n, 'saved_search:abc'),

@@ -1595,14 +1595,14 @@ Join rows are not separate records; they ride inline with their parent.
 
 **Event rules (#2340).** An `eventRule` body is `id`, `savedSearchId`,
 `quantifier`, `count`, `scope` and `position`, every key always present, and
-`name` only when the caller typed one (`syncEventRuleBody`). `quantifier` and
-`scope` are the stored names (`atMost`, `atLeast`, `none`; `wholeProgram`,
+`nickname` only when the rule has one (#2341; `syncEventRuleBody`).
+`quantifier` and `scope` are the stored names (`atMost`, `atLeast`, `none`; `wholeProgram`,
 `beforeFirstBreak`, `afterFirstBreak`, `neighbouring`) and travel verbatim: a
 build that receives a name it does not know stores the rule as it came, shows
 it as needing attention, never checks it, and publishes it back byte for
 byte. A body whose `id`, `savedSearchId`, `quantifier` or `scope` is not text
 of 1–200 units, whose `count` or `position` is not an integer in range, or
-whose `name` is not short non-empty text is malformed. A program's applied
+whose `nickname` is not short non-empty text is malformed. A program's applied
 rules are not records of their own: they travel as `eventRuleIds`, a
 top-level array of rule ids in the `program` body, written only when not
 empty so a program without rules keeps its wire hash. A build that does not
@@ -5277,10 +5277,14 @@ field covers.
 
 **`eventRules.v1`.** Gates every `eventRule` record, tombstones included, and
 the exact settings keys `event_rules_enabled`, the Experimental toggle (#2340),
-and `event_rules_check_perform_swap`, whether Perform's swap sheet checks the
-rules (#2347). The second key adds no capability of its own: #2347 asks for
-it to be gated with #2340's capability, and `eventRules.v1` was not yet in a
-release when it was added.
+`event_rule_order`, the rule picker's **Rule order** (`manual` or
+`mostUsed`, #2341), and `event_rules_check_perform_swap`, whether Perform's
+swap sheet checks the rules (#2347). Neither of the last two took a capability of its
+own: each joined this one while it was unreleased (one capability per
+feature; #2347 asks for its key to be gated with #2340's capability), and a
+build without event rules has no picker to order and no rules to check.
+**Most used** is derived from the programs' `eventRuleIds` on each device and
+never sent.
 A build without it has no `event_rules` table, so it could only keep such a
 record whole, without a manager to edit it or a builder to check it. A
 program's `eventRuleIds` are not gated: they are a top-level field of the

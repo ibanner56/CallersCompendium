@@ -142,8 +142,10 @@ final Map<String, DataClassification> settingsClassifications = {
   // Suggested sort looks for; and whether Perform's swap sheet orders by it
   // (#2348).
   'suggestions_enabled': _preference,
-  // Experimental Event rules (#2340): the toggle.
+  // Experimental Event rules (#2340): the toggle; and the rule picker's
+  // order, My order or Most used (#2341).
   'event_rules_enabled': _preference,
+  'event_rule_order': _preference,
   // Whether Perform's swap sheet checks the program's event rules (#2347).
   'event_rules_check_perform_swap': _preference,
   'suggestions_in_perform_swap': _preference,

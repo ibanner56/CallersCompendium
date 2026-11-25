@@ -66,7 +66,11 @@ class EventRuleBreach {
 ///   first break is section 1, after it sections 2 and later. A program with
 ///   no break has neither. Neighbours come from [programNeighbourIndices],
 ///   the matrix's rule, over the program's dance slots: a break separates two
-///   dances, a note between them does not.
+///   dances, a note between them does not. An unfilled placeholder (#2338,
+///   [ProgramSlot.isPlaceholder]) stands for a dance still to be chosen: it
+///   separates the dances either side of it, matches nothing, and a pair
+///   with it is not judged until it is filled. (The matrix, which has no row
+///   for it, treats it as the note it is.)
 /// - **Alternates.** Each alternate is checked as if it were called instead
 ///   of its group's primary ([Program.alternateGroupsForSlots]); a leading
 ///   alternate with no primary is checked as if it were called where it
@@ -152,10 +156,12 @@ _Check _check(
     // The dance rows of the program being called, as the matrix's rows are:
     // free-text slots are left out, so a note between two dances does not
     // separate them, and each row is its own group (alternates were swapped
-    // in above).
+    // in above). An unfilled placeholder is a row too, for the dance it will
+    // hold: it keeps the dances either side of it apart, and a pair with it
+    // waits until it is filled.
     final rows = [
       for (final i in called)
-        if (slots[i].danceId != null) i,
+        if (slots[i].danceId != null || slots[i].isPlaceholder) i,
     ];
     final rowSections = [for (final i in rows) sections[i]];
     final rowGroups = [for (var r = 0; r < rows.length; r++) r];
@@ -170,6 +176,7 @@ _Check _check(
       for (final n in neighbours) {
         if (n <= r) continue; // each pair once
         final pair = [rows[r], rows[n]];
+        if (pair.any((i) => slots[i].isPlaceholder)) continue;
         if (!breaks(pair.where(matches).length)) continue;
         brokenPairs++;
         involved.addAll(

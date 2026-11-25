@@ -498,7 +498,7 @@ Map<String, Object?> _eventRuleJson(EventRule r) => {
   'quantifier': r.quantifierName,
   'count': r.count,
   'scope': r.scopeName,
-  if (r.name != null) 'name': r.name,
+  if (r.nickname != null) 'nickname': r.nickname,
   'position': r.position,
 };
 
@@ -512,7 +512,7 @@ EventRule? _eventRuleFromJson(Object? raw) {
   final quantifier = raw['quantifier'];
   final count = raw['count'];
   final scope = raw['scope'];
-  final name = raw['name'];
+  final nickname = raw['nickname'];
   final position = raw['position'] ?? 0;
   if (id is! String ||
       id.isEmpty ||
@@ -523,7 +523,7 @@ EventRule? _eventRuleFromJson(Object? raw) {
       count is! int ||
       scope is! String ||
       scope.isEmpty ||
-      (name != null && name is! String) ||
+      (nickname != null && nickname is! String) ||
       position is! int) {
     return null;
   }
@@ -533,7 +533,7 @@ EventRule? _eventRuleFromJson(Object? raw) {
     quantifierName: quantifier,
     count: count,
     scopeName: scope,
-    name: name as String?,
+    nickname: nickname as String?,
     position: position,
   );
 }

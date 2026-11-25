@@ -11920,6 +11920,48 @@ abstract class AppLocalizations {
   /// **'This dance code doesn\'t contain any dances or programs.'**
   String get danceLinkRefusedNoContent;
 
+  /// Button in Import dances, on iPhone, iPad and Android, that opens the system camera to photograph a dance's QR code (shown by another device's Show code screen). The code is read on the device and opens the same import review as a pasted dance link.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a dance code'**
+  String get importScanDanceCode;
+
+  /// Shown under the Scan a dance code and Dance code from a picture buttons when the photo or chosen picture contains no QR code the app can find. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'No dance code was found in the picture. Make sure the whole code is in it and sharp.'**
+  String get importScanNoCode;
+
+  /// Shown under the Scan a dance code and Dance code from a picture buttons when the photo or chosen picture could not be opened or searched for a code. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'The picture couldn\'t be read.'**
+  String get importScanUnreadable;
+
+  /// Button in Import dances, on every platform, that opens the system file picker to choose a picture holding a dance's QR code (a saved photo, or a screenshot of another device's Show code screen). The code is read on the device and opens the same import review as a pasted dance link. The ellipsis means a picker opens.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance code from a picture…'**
+  String get importDanceCodePicture;
+
+  /// Shown under the Scan a dance code and Dance code from a picture buttons when the photo or chosen file is over the size cap. Nothing is searched for a code or imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This picture is larger than {limit} MB, so it wasn\'t read. Choose a smaller one.'**
+  String importScanTooLarge(int limit);
+
+  /// Shown under the Scan a dance code button when the device has no camera app to take the photo (some Android tablets). Dance code from a picture… is the button beside it; keep its name as translated there.
+  ///
+  /// In en, this message translates to:
+  /// **'This device has no camera app to take the photo. Choose \"Dance code from a picture…\" instead.'**
+  String get importScanNoCamera;
+
+  /// Shown under the Scan a dance code button when the user has turned off camera access for the app in iOS Settings, so the camera did not open. Settings is the iOS Settings app.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access is off for Caller\'s Compendium. To scan a code, turn it on in the Settings app.'**
+  String get importScanCameraOff;
+
   /// Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail.
   ///
   /// In en, this message translates to:
@@ -21575,10 +21617,10 @@ abstract class AppLocalizations {
   /// **'Manage rules'**
   String get eventRulesManageTitle;
 
-  /// Subtitle of the Manage rules row (#2340).
+  /// Subtitle of the Manage rules row (#2340, #2341).
   ///
   /// In en, this message translates to:
-  /// **'View, add, edit and delete your rules.'**
+  /// **'View, add, edit, reorder and delete your rules.'**
   String get eventRulesManageSubtitle;
 
   /// Shown in the event rules manager when there are no rules (#2340).
@@ -21695,11 +21737,53 @@ abstract class AppLocalizations {
   /// **'Any two neighboring dances'**
   String get eventRuleScopeNeighbouring;
 
-  /// Label of the rule editor's optional name field (#2340).
+  /// Label of the rule editor's optional nickname field (#2341): a short name the caller gives a rule, shown as its title above the rule's sentence in the rule picker and Manage rules, and matched by the picker's search.
   ///
   /// In en, this message translates to:
-  /// **'Name (optional)'**
-  String get eventRuleNameLabel;
+  /// **'Nickname (optional)'**
+  String get eventRuleNicknameLabel;
+
+  /// Helper text under the rule editor's Nickname field (#2341). The rule picker is the list where the caller chooses which rules apply to a program.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown above the rule\'s sentence, and found by the rule picker\'s search.'**
+  String get eventRuleNicknameHelp;
+
+  /// Title of the Settings > Experimental > Event rules setting for how a program's rule picker lists the caller's rules (#2341).
+  ///
+  /// In en, this message translates to:
+  /// **'Rule order'**
+  String get eventRulesOrderTitle;
+
+  /// Rule order choice (#2341): the rule picker lists rules in the order the caller set in Manage rules.
+  ///
+  /// In en, this message translates to:
+  /// **'My order'**
+  String get eventRulesOrderManual;
+
+  /// Subtitle of the Rule order setting while My order is chosen (#2341). 'Manage rules' is the screen's title (eventRulesManageTitle).
+  ///
+  /// In en, this message translates to:
+  /// **'The rule picker lists your rules in the order you gave them in Manage rules.'**
+  String get eventRulesOrderManualSubtitle;
+
+  /// Rule order choice (#2341): the rule picker lists first the rules applied to the most programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Most used'**
+  String get eventRulesOrderMostUsed;
+
+  /// Subtitle of the Rule order setting while Most used is chosen (#2341). A rule's use is the number of programs it is applied to; 'Recently deleted' is the app's trash for programs.
+  ///
+  /// In en, this message translates to:
+  /// **'The rule picker lists first the rules your programs use most, not counting programs in Recently deleted.'**
+  String get eventRulesOrderMostUsedSubtitle;
+
+  /// Screen-reader label on the drag handle of a rule in Manage rules (#2341).
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder {rule}'**
+  String eventRulesDragToReorder(String rule);
 
   /// An event rule as a sentence (#2340). {search} is the name of a saved search.
   ///
@@ -21827,6 +21911,30 @@ abstract class AppLocalizations {
   /// **'You have no rules yet.'**
   String get programsRulesPickerEmpty;
 
+  /// Hint in the rule picker's search field (#2341), which finds rules by nickname and by the words of their sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Search rules'**
+  String get programsRulesPickerSearchHint;
+
+  /// Tooltip of the button that empties the rule picker's search field (#2341).
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get programsRulesPickerSearchClear;
+
+  /// Shown in the rule picker when its search finds no rule (#2341); the pinned line above then offers a new rule with that nickname.
+  ///
+  /// In en, this message translates to:
+  /// **'No rule matches \"{query}\".'**
+  String programsRulesPickerNoMatches(String query);
+
+  /// The rule picker's pinned first line when its search finds no rule (#2341): opens the rule editor for a new rule with the typed text as its nickname.
+  ///
+  /// In en, this message translates to:
+  /// **'New rule \"{nickname}\"…'**
+  String programsRulesPickerNewNamed(String nickname);
+
   /// The Rules strip on the program builder's Build tab: how many applied rules the program breaks (#2340).
   ///
   /// In en, this message translates to:
@@ -21898,6 +22006,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This program uses {max} rules, the most it can. Untick one to add another.'**
   String programsRulesPickerFull(int max);
+
+  /// Line in a program's Rules picker (#2340) when the program applies rules this device does not have: added on another device and not synced here yet, or gone for good. 'Remove' (commonRemove) is beside it.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 rule not on this device} other{{count} rules not on this device}}'**
+  String programsRulesPickerNotHere(int count);
+
+  /// Under programsRulesPickerNotHere in a program's Rules picker (#2340): what those rules are, and what Remove beside it does.
+  ///
+  /// In en, this message translates to:
+  /// **'Added on another device and still on the way, or gone for good. Remove takes them off this program.'**
+  String get programsRulesPickerNotHereHelp;
+
+  /// Message at the bottom of the screen when ticking or unticking a rule in a program's Rules picker could not be saved (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t change this program\'s rules. Try again.'**
+  String get programsRulesChangeFailed;
 
   /// Help under the rule editor's number field when the rule counts any two neighboring dances, which is why the number is limited (#2340).
   ///

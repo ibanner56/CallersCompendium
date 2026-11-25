@@ -152,10 +152,11 @@ Internal testing (≤100 teammates, instant) is already live. "Open beta" is
   login-free; give steps to trigger an import (paste a ContraDB link) so the one
   network feature is demonstrable.
 - [ ] **Privacy string / permission mismatch** — the one runtime permission is
-  the **camera** (#2328): **Take a photo** in **Add figures from text** opens
-  the system camera through `image_picker`, and `NSCameraUsageDescription` in
+  the **camera** (#2328): **Take a photo** in **Add figures from text**, and
+  **Scan a dance code** in **Import…** (#2336), open the system camera through
+  `image_picker`, and `NSCameraUsageDescription` in
   `app/ios/Runner/Info.plist` says why. The prompt appears the first time a
-  user taps **Take a photo**, never at launch. The photo is read on the device
+  user taps either, never at launch. The photo is read on the device
   and deleted, so the App Privacy answers do not change
   ([`listing-copy.md`](listing-copy.md#app-privacy-apple)).
   `NSPhotoLibraryUsageDescription` is there too, although the app never asks
@@ -168,9 +169,10 @@ Internal testing (≤100 teammates, instant) is already live. "Open beta" is
   change the wording there too when it changes in `Info.plist`.
   `app/test/photo_capture_test.dart` fails if either string is removed, or if
   a language's translation is missing or still English. On a Mac running the
-  iPad app, **Take a photo** finds no camera and the plugin shows its own "Camera not available" alert; keep that in mind
-  before offering the iPad app on Apple silicon Macs. A dance's QR code is
-  read by the system **Camera** app, not by ours: it opens the app through the
+  iPad app, **Take a photo** or **Scan a dance code** finds no camera and the
+  plugin shows its own "Camera not available" alert; keep that in mind
+  before offering the iPad app on Apple silicon Macs. A dance's QR code can
+  also be read by the system **Camera** app: it opens the app through the
   `ccdance` URL scheme in `Info.plist` (#2335), which needs no permission and no
   review note.
 - [x] **Support URL / privacy URL must resolve** — dead links are an easy reject.
