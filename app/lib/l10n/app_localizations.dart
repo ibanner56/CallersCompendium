@@ -21677,6 +21677,48 @@ abstract class AppLocalizations {
   /// **'Nickname (optional)'**
   String get eventRuleNicknameLabel;
 
+  /// Helper text under the rule editor's Nickname field (#2341). The rule picker is the list where the caller chooses which rules apply to a program.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown above the rule\'s sentence, and found by the rule picker\'s search.'**
+  String get eventRuleNicknameHelp;
+
+  /// Title of the Settings > Experimental > Event rules setting for how a program's rule picker lists the caller's rules (#2341).
+  ///
+  /// In en, this message translates to:
+  /// **'Rule order'**
+  String get eventRulesOrderTitle;
+
+  /// Rule order choice (#2341): the rule picker lists rules in the order the caller set in Manage rules.
+  ///
+  /// In en, this message translates to:
+  /// **'My order'**
+  String get eventRulesOrderManual;
+
+  /// Subtitle of the Rule order setting while My order is chosen (#2341). 'Manage rules' is the screen's title (eventRulesManageTitle).
+  ///
+  /// In en, this message translates to:
+  /// **'The rule picker lists your rules in the order you set in Manage rules.'**
+  String get eventRulesOrderManualSubtitle;
+
+  /// Rule order choice (#2341): the rule picker lists first the rules applied to the most programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Most used'**
+  String get eventRulesOrderMostUsed;
+
+  /// Subtitle of the Rule order setting while Most used is chosen (#2341). A rule's use is the number of programs it is applied to; 'Recently deleted' is the app's trash for programs.
+  ///
+  /// In en, this message translates to:
+  /// **'The rule picker lists first the rules your programs use most, not counting programs in Recently deleted.'**
+  String get eventRulesOrderMostUsedSubtitle;
+
+  /// Screen-reader label on the drag handle of a rule in Manage rules (#2341).
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder {rule}'**
+  String eventRulesDragToReorder(String rule);
+
   /// An event rule as a sentence (#2340). {search} is the name of a saved search.
   ///
   /// In en, this message translates to:
@@ -21802,6 +21844,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You have no rules yet.'**
   String get programsRulesPickerEmpty;
+
+  /// Hint in the rule picker's search field (#2341), which finds rules by nickname and by the words of their sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Search rules'**
+  String get programsRulesPickerSearchHint;
+
+  /// Tooltip of the button that empties the rule picker's search field (#2341).
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get programsRulesPickerSearchClear;
+
+  /// Shown in the rule picker when its search finds no rule (#2341); the pinned line above then offers a new rule with that nickname.
+  ///
+  /// In en, this message translates to:
+  /// **'No rule matches \"{query}\".'**
+  String programsRulesPickerNoMatches(String query);
+
+  /// The rule picker's pinned first line when its search finds no rule (#2341): opens the rule editor for a new rule with the typed text as its nickname.
+  ///
+  /// In en, this message translates to:
+  /// **'New rule \"{nickname}\"…'**
+  String programsRulesPickerNewNamed(String nickname);
 
   /// The Rules strip on the program builder's Build tab: how many applied rules the program breaks (#2340).
   ///

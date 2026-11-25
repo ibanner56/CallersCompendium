@@ -14918,6 +14918,32 @@ class AppLocalizationsDa extends AppLocalizations {
   String get eventRuleNicknameLabel => 'Navn (valgfrit)';
 
   @override
+  String get eventRuleNicknameHelp =>
+      'Shown above the rule\'s sentence, and found by the rule picker\'s search.';
+
+  @override
+  String get eventRulesOrderTitle => 'Rule order';
+
+  @override
+  String get eventRulesOrderManual => 'My order';
+
+  @override
+  String get eventRulesOrderManualSubtitle =>
+      'The rule picker lists your rules in the order you set in Manage rules.';
+
+  @override
+  String get eventRulesOrderMostUsed => 'Most used';
+
+  @override
+  String get eventRulesOrderMostUsedSubtitle =>
+      'The rule picker lists first the rules your programs use most, not counting programs in Recently deleted.';
+
+  @override
+  String eventRulesDragToReorder(String rule) {
+    return 'Drag to reorder $rule';
+  }
+
+  @override
   String eventRuleSentenceAtMostWhole(int count, String search) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -15065,6 +15091,22 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsRulesPickerEmpty => 'Du har ingen regler endnu.';
+
+  @override
+  String get programsRulesPickerSearchHint => 'Search rules';
+
+  @override
+  String get programsRulesPickerSearchClear => 'Clear search';
+
+  @override
+  String programsRulesPickerNoMatches(String query) {
+    return 'No rule matches \"$query\".';
+  }
+
+  @override
+  String programsRulesPickerNewNamed(String nickname) {
+    return 'New rule \"$nickname\"…';
+  }
 
   @override
   String programsRulesStripBroken(int count) {

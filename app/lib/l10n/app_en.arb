@@ -20097,6 +20097,40 @@
   "@eventRuleNicknameLabel": {
     "description": "Label of the rule editor's optional nickname field (#2341): a short name the caller gives a rule, shown as its title above the rule's sentence in the rule picker and Manage rules, and matched by the picker's search."
   },
+  "eventRuleNicknameHelp": "Shown above the rule's sentence, and found by the rule picker's search.",
+  "@eventRuleNicknameHelp": {
+    "description": "Helper text under the rule editor's Nickname field (#2341). The rule picker is the list where the caller chooses which rules apply to a program."
+  },
+  "eventRulesOrderTitle": "Rule order",
+  "@eventRulesOrderTitle": {
+    "description": "Title of the Settings > Experimental > Event rules setting for how a program's rule picker lists the caller's rules (#2341)."
+  },
+  "eventRulesOrderManual": "My order",
+  "@eventRulesOrderManual": {
+    "description": "Rule order choice (#2341): the rule picker lists rules in the order the caller set in Manage rules."
+  },
+  "eventRulesOrderManualSubtitle": "The rule picker lists your rules in the order you set in Manage rules.",
+  "@eventRulesOrderManualSubtitle": {
+    "description": "Subtitle of the Rule order setting while My order is chosen (#2341). 'Manage rules' is the screen's title (eventRulesManageTitle)."
+  },
+  "eventRulesOrderMostUsed": "Most used",
+  "@eventRulesOrderMostUsed": {
+    "description": "Rule order choice (#2341): the rule picker lists first the rules applied to the most programs."
+  },
+  "eventRulesOrderMostUsedSubtitle": "The rule picker lists first the rules your programs use most, not counting programs in Recently deleted.",
+  "@eventRulesOrderMostUsedSubtitle": {
+    "description": "Subtitle of the Rule order setting while Most used is chosen (#2341). A rule's use is the number of programs it is applied to; 'Recently deleted' is the app's trash for programs."
+  },
+  "eventRulesDragToReorder": "Drag to reorder {rule}",
+  "@eventRulesDragToReorder": {
+    "description": "Screen-reader label on the drag handle of a rule in Manage rules (#2341).",
+    "placeholders": {
+      "rule": {
+        "type": "String",
+        "example": "One petronella"
+      }
+    }
+  },
   "eventRuleSentenceAtMostWhole": "{count, plural, =1{At most 1 dance matching \"{search}\" in the whole program} other{At most {count} dances matching \"{search}\" in the whole program}}",
   "@eventRuleSentenceAtMostWhole": {
     "description": "An event rule as a sentence (#2340). {search} is the name of a saved search.",
@@ -20290,6 +20324,34 @@
   "programsRulesPickerEmpty": "You have no rules yet.",
   "@programsRulesPickerEmpty": {
     "description": "Shown in the rule picker under the pinned New rule line when there are no rules (#2340)."
+  },
+  "programsRulesPickerSearchHint": "Search rules",
+  "@programsRulesPickerSearchHint": {
+    "description": "Hint in the rule picker's search field (#2341), which finds rules by nickname and by the words of their sentence."
+  },
+  "programsRulesPickerSearchClear": "Clear search",
+  "@programsRulesPickerSearchClear": {
+    "description": "Tooltip of the button that empties the rule picker's search field (#2341)."
+  },
+  "programsRulesPickerNoMatches": "No rule matches \"{query}\".",
+  "@programsRulesPickerNoMatches": {
+    "description": "Shown in the rule picker when its search finds no rule (#2341); the pinned line above then offers a new rule with that nickname.",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "family"
+      }
+    }
+  },
+  "programsRulesPickerNewNamed": "New rule \"{nickname}\"…",
+  "@programsRulesPickerNewNamed": {
+    "description": "The rule picker's pinned first line when its search finds no rule (#2341): opens the rule editor for a new rule with the typed text as its nickname.",
+    "placeholders": {
+      "nickname": {
+        "type": "String",
+        "example": "family"
+      }
+    }
   },
   "programsRulesStripBroken": "{count, plural, =1{1 rule not met} other{{count} rules not met}}",
   "@programsRulesStripBroken": {

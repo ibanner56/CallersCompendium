@@ -1,7 +1,13 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
+import 'dart:async';
+
+import 'package:compendium_core/compendium_core.dart' show EventRuleOrder;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../diagnostics/error_log.dart';
+import '../../widgets/app_dropdown_field.dart';
+import '../../widgets/settings_dropdown_row.dart';
 import '../../data/backup_io.dart';
 import '../../data/event_rules_scope.dart';
 import '../../data/persisted_preference.dart';
@@ -174,6 +180,84 @@ class EventRulesSection extends StatelessWidget {
                 ),
               ),
             ),
+          if (enabled) const _EventRuleOrderTile(),
+        ],
+      ),
+    );
+  }
+}
+
+/// **Rule order** (#2341): how a program's rule picker lists the rules, **My
+/// order** (Manage rules' order, the default) or **Most used**. Reads and
+/// writes `event_rule_order` itself; the picker reads it when it opens.
+class _EventRuleOrderTile extends StatefulWidget {
+  const _EventRuleOrderTile();
+
+  @override
+  State<_EventRuleOrderTile> createState() => _EventRuleOrderTileState();
+}
+
+class _EventRuleOrderTileState extends State<_EventRuleOrderTile> {
+  EventRuleOrder _order = EventRuleOrder.manual;
+  bool _read = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_read) return;
+    _read = true;
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    try {
+      final stored = await RepositoriesScope.of(
+        context,
+      ).settings.get(kEventRuleOrderKey);
+      if (mounted) setState(() => _order = EventRuleOrder.fromStored(stored));
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'event_rule_order._load');
+    }
+  }
+
+  Future<void> _set(EventRuleOrder order) {
+    setState(() => _order = order);
+    return persistSetting(
+      RepositoriesScope.of(context).settings,
+      kEventRuleOrderKey,
+      order.name,
+      source: 'event_rule_order._set',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SettingsDropdownRow(
+      tileKey: const ValueKey('experimental-event-rule-order'),
+      title: Text(l10n.eventRulesOrderTitle),
+      subtitle: Text(switch (_order) {
+        EventRuleOrder.manual => l10n.eventRulesOrderManualSubtitle,
+        EventRuleOrder.mostUsed => l10n.eventRulesOrderMostUsedSubtitle,
+      }),
+      isThreeLine: true,
+      dropdownBuilder: (expanded) => AppDropdownField<EventRuleOrder>(
+        key: const ValueKey('experimental-event-rule-order-field'),
+        compact: true,
+        fillWidth: expanded,
+        value: _order,
+        onChanged: (order) => unawaited(_set(order)),
+        entries: [
+          AppDropdownEntry(
+            value: EventRuleOrder.manual,
+            label: l10n.eventRulesOrderManual,
+            key: const ValueKey('experimental-event-rule-order-manual'),
+          ),
+          AppDropdownEntry(
+            value: EventRuleOrder.mostUsed,
+            label: l10n.eventRulesOrderMostUsed,
+            key: const ValueKey('experimental-event-rule-order-most-used'),
+          ),
         ],
       ),
     );

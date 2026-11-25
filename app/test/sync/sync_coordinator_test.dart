@@ -7927,6 +7927,7 @@ void main() {
         'suggestions_in_perform_swap': SyncCapabilities.suggestionsV1,
         'perform_swap_defaults': SyncCapabilities.performSwapV1,
         'event_rules_enabled': SyncCapabilities.eventRulesV1,
+        'event_rule_order': SyncCapabilities.eventRulesV1,
       });
       expect(SyncCapabilityPolicy.build.gatedGlossaryEntryKinds, {
         'term': SyncCapabilities.glossaryV2,
@@ -8464,7 +8465,11 @@ void main() {
       final toggle = SyncMergeCandidate.fromBlob(
         _setting('event_rules_enabled', 'true'),
       );
-      final gated = [rule, toggle];
+      // The rule picker's order (#2341) waits on the same capability.
+      final order = SyncMergeCandidate.fromBlob(
+        _setting('event_rule_order', 'mostUsed'),
+      );
+      final gated = [rule, toggle, order];
       for (final candidate in gated) {
         expect(
           build.capabilityFor(candidate.blob.kind, candidate.blob.id),
@@ -8522,6 +8527,7 @@ void main() {
         final (result, transport) = await pass(recorded);
         expect(publishedSettings(transport), contains('theme_mode'));
         expect(publishedSettings(transport), isNot(contains(toggle.blob.id)));
+        expect(publishedSettings(transport), isNot(contains(order.blob.id)));
         expect(publishedRules(transport), isEmpty);
         for (final c in gated) {
           expect(uploaded(transport), isNot(contains(c.wireHash)));
@@ -8536,6 +8542,7 @@ void main() {
         for (final peer in everyDevice) peer: build.advertised,
       });
       expect(publishedSettings(transport), contains(toggle.blob.id));
+      expect(publishedSettings(transport), contains(order.blob.id));
       expect(publishedRules(transport), {'rule-1'});
       for (final c in gated) {
         expect(uploaded(transport), contains(c.wireHash));

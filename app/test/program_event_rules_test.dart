@@ -708,9 +708,14 @@ void main() {
     bool ticked(EventRule rule) =>
         tester.widget<CheckboxListTile>(box(rule)).value ?? false;
     await pumpUntilFound(tester, box(seeded.oneBecket));
+    // The rules' list, not the search field above it (#2341), which scrolls
+    // its text.
     final sheet = find
         .descendant(
-          of: find.byType(BottomSheet),
+          of: find.descendant(
+            of: find.byType(BottomSheet),
+            matching: find.byType(ListView),
+          ),
           matching: find.byType(Scrollable),
         )
         .first;

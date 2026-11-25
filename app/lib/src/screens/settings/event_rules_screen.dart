@@ -14,6 +14,7 @@ import '../../utils/undo_snack_bar.dart';
 import '../../widgets/app_bar_text_action.dart';
 import '../../widgets/app_dropdown_field.dart';
 import '../../widgets/event_rule_text.dart';
+import '../../widgets/reorder_move_buttons.dart';
 
 /// The names of the readable saved searches, by id, read once for a screen.
 Future<Map<String, String>> _savedSearchNames(
@@ -23,8 +24,8 @@ Future<Map<String, String>> _savedSearchNames(
     if (stored.search case final search?) search.id: search.name,
 };
 
-/// **Manage rules** (#2340): the caller's event rules, to view, add, edit and
-/// delete (with Undo). Reached from Settings ▸ Experimental ▸ Event rules,
+/// **Manage rules** (#2340): the caller's event rules, to view, add, edit,
+/// reorder (#2341) and delete (with Undo). Reached from Settings ▸ Experimental ▸ Event rules,
 /// and from Settings ▸ Program while the feature is on.
 class EventRulesScreen extends StatefulWidget {
   const EventRulesScreen({super.key});
@@ -110,56 +111,130 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
                 key: const ValueKey('event-rules-empty'),
               ),
             )
-          : ListView(
+          // The caller's order (#2341): drag a rule by its handle, or move it
+          // with Move up / Move down, never drag alone (the Matrix columns
+          // editor's precedent). The program's rule picker lists rules in
+          // this order under Rule order's My order.
+          : ReorderableListView(
               padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
+              buildDefaultDragHandles: false,
+              onReorderItem: (from, to) => _move(rules, from, to),
               children: [
-                for (final rule in rules)
+                for (var i = 0; i < rules.length; i++)
                   _EventRuleTile(
-                    rule: rule,
-                    searchName: _searchNames[rule.savedSearchId],
-                    onTap: () => _edit(rule),
-                    onDelete: () => _delete(rule),
+                    key: ValueKey('event-rule-${rules[i].id}'),
+                    rule: rules[i],
+                    index: i,
+                    searchName: _searchNames[rules[i].savedSearchId],
+                    onTap: () => _edit(rules[i]),
+                    onDelete: () => _delete(rules[i]),
+                    onMoveUp: i == 0
+                        ? null
+                        : () => _move(rules, i, i - 1, announce: true),
+                    onMoveDown: i == rules.length - 1
+                        ? null
+                        : () => _move(rules, i, i + 1, announce: true),
                   ),
               ],
             ),
     );
   }
+
+  /// Moves the rule at [from] in [rules] to [to]: on screen at once, then
+  /// stored ([EventRuleRepository.reorder]), which the list's watch shows.
+  /// With [announce], a screen reader hears where it landed (Move up / Move
+  /// down keep their focus while the row moves).
+  Future<void> _move(
+    List<EventRule> rules,
+    int from,
+    int to, {
+    bool announce = false,
+  }) async {
+    if (from == to || to < 0 || to >= rules.length) return;
+    final order = [...rules];
+    final moved = order.removeAt(from);
+    order.insert(to, moved);
+    setState(() => _rules = order);
+    final repos = RepositoriesScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    try {
+      await repos.eventRules.reorder([for (final r in order) r.id]);
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'event_rules_screen._move');
+      return;
+    }
+    if (announce && mounted) {
+      announceMoved(
+        context,
+        name: eventRuleTitle(l10n, moved, _searchNames[moved.savedSearchId]),
+        position: to + 1,
+        count: order.length,
+      );
+    }
+  }
 }
 
 class _EventRuleTile extends StatelessWidget {
   const _EventRuleTile({
+    super.key,
     required this.rule,
+    required this.index,
     required this.searchName,
     required this.onTap,
     required this.onDelete,
+    required this.onMoveUp,
+    required this.onMoveDown,
   });
 
   final EventRule rule;
+  final int index;
   final String? searchName;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final sentence = eventRuleSentence(l10n, rule, searchName);
+    final title = rule.nickname ?? sentence;
     final attention = !rule.isReadable
         ? const EventRuleUnreadable()
         : searchName == null
         ? const EventRuleSearchGone()
         : null;
+    final error = Theme.of(context).colorScheme.error;
     return ListTile(
-      key: ValueKey('event-rule-${rule.id}'),
-      leading: Icon(attention == null ? Icons.rule : Icons.warning_amber),
-      title: Text(rule.nickname ?? sentence),
+      leading: ReorderableDragStartListener(
+        index: index,
+        child: Semantics(
+          label: l10n.eventRulesDragToReorder(title),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+            child: Icon(Icons.drag_handle),
+          ),
+        ),
+      ),
+      // The nickname (#2341) is the title, with the sentence beneath it; a
+      // rule without one shows its sentence alone.
+      title: Text(title),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (rule.nickname != null) Text(sentence),
           if (attention != null) ...[
-            Text(
-              l10n.savedSearchNeedsAttention,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            Row(
+              children: [
+                Icon(Icons.warning_amber, size: 16, color: error),
+                const SizedBox(width: AppSpacing.xxs),
+                Flexible(
+                  child: Text(
+                    l10n.savedSearchNeedsAttention,
+                    style: TextStyle(color: error),
+                  ),
+                ),
+              ],
             ),
             for (final line in eventRuleAttentionLines(l10n, attention))
               Text(line),
@@ -167,37 +242,54 @@ class _EventRuleTile extends StatelessWidget {
         ],
       ),
       // A rule a newer version wrote cannot be edited here; it can still be
-      // deleted.
+      // moved and deleted.
       onTap: rule.isReadable ? onTap : null,
-      trailing: IconButton(
-        key: ValueKey('event-rule-delete-${rule.id}'),
-        tooltip: l10n.commonDelete,
-        icon: const Icon(Icons.delete_outline),
-        onPressed: onDelete,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ReorderMoveButtons(
+            keyPrefix: 'event-rule-${rule.id}',
+            name: title,
+            onMoveUp: onMoveUp,
+            onMoveDown: onMoveDown,
+          ),
+          IconButton(
+            key: ValueKey('event-rule-delete-${rule.id}'),
+            tooltip: l10n.commonDelete,
+            icon: const Icon(Icons.delete_outline),
+            onPressed: onDelete,
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Opens the rule editor for [rule], or for a new rule when it is null.
+/// Opens the rule editor for [rule], or for a new rule when it is null,
+/// its Nickname field holding [nickname] (the picker's search text, #2341).
 /// Returns the rule as saved, or null when nothing was saved.
 Future<EventRule?> showEventRuleEditor(
   BuildContext context, {
   EventRule? rule,
+  String? nickname,
 }) => Navigator.of(context).push<EventRule>(
   MaterialPageRoute(
     fullscreenDialog: true,
-    builder: (_) => EventRuleEditorScreen(rule: rule),
+    builder: (_) => EventRuleEditorScreen(rule: rule, nickname: nickname),
   ),
 );
 
 /// The rule editor (#2340): which dances (a saved search), how many, and
-/// where, with the sentence the rule reads as.
+/// where, with the sentence the rule reads as, and an optional nickname
+/// (#2341).
 class EventRuleEditorScreen extends StatefulWidget {
-  const EventRuleEditorScreen({super.key, this.rule});
+  const EventRuleEditorScreen({super.key, this.rule, this.nickname});
 
   /// The rule to edit, or null for a new one.
   final EventRule? rule;
+
+  /// The nickname a new rule starts with; ignored when editing [rule].
+  final String? nickname;
 
   @override
   State<EventRuleEditorScreen> createState() => _EventRuleEditorScreenState();
@@ -208,8 +300,16 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
     text: '${(widget.rule?.count ?? 0) > 0 ? widget.rule!.count : 1}',
   );
   late final TextEditingController _nickname = TextEditingController(
-    text: widget.rule?.nickname ?? '',
+    text: widget.rule == null
+        ? _clipNickname(widget.nickname?.trim() ?? '')
+        : widget.rule!.nickname ?? '',
   );
+
+  /// [text] cut to the field's [maxEventRuleNicknameLength].
+  static String _clipNickname(String text) =>
+      text.length <= maxEventRuleNicknameLength
+      ? text
+      : text.substring(0, maxEventRuleNicknameLength);
   late String? _searchId = widget.rule?.savedSearchId;
   late EventRuleQuantifier _quantifier =
       widget.rule?.quantifier ?? EventRuleQuantifier.atMost;
@@ -452,6 +552,8 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
                   maxLength: maxEventRuleNicknameLength,
                   decoration: InputDecoration(
                     labelText: l10n.eventRuleNicknameLabel,
+                    helperText: l10n.eventRuleNicknameHelp,
+                    helperMaxLines: 3,
                   ),
                 ),
               ],
