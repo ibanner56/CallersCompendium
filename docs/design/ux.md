@@ -345,7 +345,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   defaults; no numbers. With Event rules on too and rules applied (#2345), a
   dance that would break one at that place carries a marker above its reason
   line, rule icon plus "Would break: *rule title*" (the rule's nickname, else
-  its sentence, #2530; screen-reader label "Would break the event rule: …"),
+  its sentence, #2530; screen-reader label "Would break the event rule: …",
+  which reads a nicknamed rule as "*nickname* (*sentence*)", #2535),
   and is listed after every unmarked dance;
   **Why?** lists the rule first. The ranking shows unmarked first and the
   marks follow when the check finishes. See [suggestions.md](suggestions.md).
@@ -379,7 +380,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   not checked. Involved slots carry a marker in the slot row, icon plus
   "Breaks a rule" (or "Breaks a rule if called" on an alternate), with a
   screen-reader label naming the rules ("Breaks the rule if called: …" on an
-  alternate). Nothing blocks Save, Perform or
+  alternate; a nicknamed rule read as "*nickname* (*sentence*)", #2535).
+  Nothing blocks Save, Perform or
   export. Off, no button, strip or marker is built and nothing is checked.
   The manager (Settings ▸ Experimental ▸ Event rules ▸ Manage rules, also
   linked from Settings ▸ Program while on) is a full-screen list of rules
@@ -496,7 +498,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   and rules applied, each listed dance, Your alternates included, that would
   break a rule in the swapped slot carries the builder's marker (rule icon
   plus "Would break: *rule title*", screen-reader label "Would break the
-  event rule: …") and is listed after the unmarked ones, in any order and
+  event rule: …" with a nicknamed rule's sentence too, #2535) and is listed
+  after the unmarked ones, in any order and
   within Your alternates. The results show at once, unmarked and tappable;
   the marks follow. Nothing is hidden; rows keep their 44 pt targets. With
   either off, or no rules applied, as #2346.

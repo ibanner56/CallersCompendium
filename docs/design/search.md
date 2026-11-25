@@ -216,7 +216,9 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    stored previous, next, third and fourth neighbors, and `shadows` also second
    shadows (over-match); the five dancer values that are only stored under
    another category (`prevNeighbors`, `nextNeighbors`, `thirdNeighbors`,
-   `fourthNeighbors`, `secondShadows`) can never match and are left out. A hey
+   `fourthNeighbors`, `secondShadows`) can never match and are left out, as
+   are v40's `prevRole1s`, `prevRole2s`, `nextRole1s` and `nextRole2s`, which
+   ContraDB has no value for. A hey
    ricochet that is `true` over-matches when the first pass is not a pair. A
    hey length of `half`, a down/up hall `forward` facing, a pass-through
    `along`, a promenade `across` and its direction, and a long wave's `in` and

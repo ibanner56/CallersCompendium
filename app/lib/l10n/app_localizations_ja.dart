@@ -14392,6 +14392,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get eventRuleNicknameHelp => 'ルールの文の上に表示され、ルール選択の検索で見つけられます。';
 
   @override
+  String eventRuleSpokenTitle(String nickname, String sentence) {
+    return '$nickname（$sentence）';
+  }
+
+  @override
   String get eventRulesOrderTitle => 'ルールの並び順';
 
   @override

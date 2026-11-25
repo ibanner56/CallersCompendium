@@ -191,6 +191,18 @@ void main() {
     });
   });
 
+  test(
+    'a wording condition names a role selector in the dialect\'s role words',
+    () {
+      final who = _renderer.moveWordingVocabulary(
+        'sq_swing',
+        Dialect.larksRobins,
+      )['who']!;
+      expect(who.wordFor('headRole1s'), 'head larks');
+      expect(who.wordFor('sideRole2s'), 'side robins');
+    },
+  );
+
   group('default beats follow the held squares (§7.1)', () {
     test('a swing is 8, or 16 with a balance', () {
       expect(_beats('sq_swing'), 8);

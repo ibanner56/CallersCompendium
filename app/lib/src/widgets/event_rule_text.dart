@@ -55,6 +55,47 @@ String eventRuleTitle(
   String? searchName,
 ) => rule.nickname ?? eventRuleSentence(l10n, rule, searchName);
 
+/// How a marker names a rule it says is broken: [title] to show
+/// ([eventRuleTitle]: its nickname, else its sentence, #2530) and [spoken]
+/// for its screen-reader label ([eventRuleName]).
+@immutable
+class EventRuleName {
+  const EventRuleName({required this.title, required this.spoken});
+
+  /// What the marker shows: the rule's nickname, else its sentence.
+  final String title;
+
+  /// What a screen reader hears: the rule's nickname with its sentence
+  /// (#2535), else its sentence, so a caller who cannot glance at the rule
+  /// picker still hears what the rule requires.
+  final String spoken;
+
+  @override
+  bool operator ==(Object other) =>
+      other is EventRuleName && other.title == title && other.spoken == spoken;
+
+  @override
+  int get hashCode => Object.hash(title, spoken);
+}
+
+/// [rule]'s [EventRuleName]: a rule with a nickname shows it and is read as
+/// its nickname and sentence ([AppLocalizations.eventRuleSpokenTitle],
+/// #2535); a rule without one shows and is read as its sentence.
+EventRuleName eventRuleName(
+  AppLocalizations l10n,
+  EventRule rule,
+  String? searchName,
+) {
+  final sentence = eventRuleSentence(l10n, rule, searchName);
+  final nickname = rule.nickname;
+  return nickname == null
+      ? EventRuleName(title: sentence, spoken: sentence)
+      : EventRuleName(
+          title: nickname,
+          spoken: l10n.eventRuleSpokenTitle(nickname, sentence),
+        );
+}
+
 /// Why a rule is not checked, as lines to show: the reason, then each
 /// missing thing its saved search names.
 List<String> eventRuleAttentionLines(

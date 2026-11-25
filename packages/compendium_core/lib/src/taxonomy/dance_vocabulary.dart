@@ -78,9 +78,9 @@ const Map<String, String> dancerWords = {
 
 /// The neighbour, partner and shadow series as the figure display names them
 /// (#2121): an ordinal, then the relationship (`prev neighbor`, `third
-/// partner`, `second shadow`). Keyed by the relationship's singular, then by
-/// the ordinal. Read with [seriesDancer], which also takes the plural and the
-/// British spelling.
+/// partner`, `second shadow`), and since v40 a role (`next role1`). Keyed by
+/// the relationship's singular, then by the ordinal. Read with
+/// [seriesDancer], which also takes the plural and the British spelling.
 ///
 /// These are two-word names: neither word alone names the set, and `next`,
 /// `third` and `second` are ordinary words elsewhere in a call. `previous` is
@@ -105,6 +105,20 @@ const Map<String, Map<String, String>> seriesDancerWords = {
     'fifth': 'fifthPartners',
   },
   'shadow': {'second': 'secondShadows'},
+  // v40: the role1s and role2s among the previous and next neighbors. The
+  // role words are canonical by the time a figure is read (`next lark` arrives
+  // as `next role1`), so these are the display's `prev larks` and `next
+  // robins`. There are no third or fourth: the display never writes them.
+  'role1': {
+    'prev': 'prevRole1s',
+    'previous': 'prevRole1s',
+    'next': 'nextRole1s',
+  },
+  'role2': {
+    'prev': 'prevRole2s',
+    'previous': 'prevRole2s',
+    'next': 'nextRole2s',
+  },
 };
 
 /// The dancer set [ordinal] then [relationship] names in [seriesDancerWords],

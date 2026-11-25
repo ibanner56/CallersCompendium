@@ -38,6 +38,7 @@ import 'advanced_query_builder.dart';
 import 'by_phrase_panel.dart';
 import 'collection_search_controls.dart';
 import 'dance_list_tile.dart';
+import 'event_rule_text.dart' show EventRuleName;
 import 'facet_panel.dart';
 import 'online_import_dialogs.dart';
 import 'online_more_footer.dart';
@@ -2238,8 +2239,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
         final ruleMarks = pinned ? _pinnedRuleMarks : _currentRuleMarks;
         final plainMarks = _plainRuleMarks;
         final wouldBreak = ruleMarks == null
-            ? const <String>[]
-            : suggestionRuleTitles(
+            ? const <EventRuleName>[]
+            : suggestionRuleNames(
                 l10n,
                 pinned
                     ? ruleMarks.brokenBy(entry.dance.id)

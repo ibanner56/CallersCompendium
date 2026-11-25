@@ -18280,7 +18280,7 @@
   },
   "suggestionWouldBreakSemantic": "{count, plural, =1{Would break the event rule: {rules}} other{Would break {count} event rules: {rules}}}",
   "@suggestionWouldBreakSemantic": {
-    "description": "Screen-reader label of the marker on a suggested dance that would break the program's applied event rules (#2345), naming the rules.",
+    "description": "Screen-reader label of the marker on a suggested dance that would break the program's applied event rules (#2345), naming the rules. {rules} is each rule's sentence, or for a rule with a nickname its nickname and sentence (eventRuleSpokenTitle, #2535), joined by semicolons.",
     "placeholders": {
       "count": {
         "type": "int",
@@ -20171,6 +20171,20 @@
   "@eventRuleNicknameHelp": {
     "description": "Helper text under the rule editor's Nickname field (#2341). The rule picker is the list where the caller chooses which rules apply to a program."
   },
+  "eventRuleSpokenTitle": "{nickname} ({sentence})",
+  "@eventRuleSpokenTitle": {
+    "description": "How a screen reader names a rule that has a nickname in a marker saying the rule is broken (#2535): the nickname the caller gave it, then the sentence that says what it requires. Never shown; the marker's visible text names the rule by its nickname alone. Several rules are joined by semicolons, so keep any punctuation here distinct from a semicolon.",
+    "placeholders": {
+      "nickname": {
+        "type": "String",
+        "example": "Family petronella"
+      },
+      "sentence": {
+        "type": "String",
+        "example": "At most 1 dance matching \"Petronella\" in the whole program"
+      }
+    }
+  },
   "eventRulesOrderTitle": "Rule order",
   "@eventRulesOrderTitle": {
     "description": "Title of the Settings > Experimental > Event rules setting for how a program's rule picker lists the caller's rules (#2341)."
@@ -20493,7 +20507,7 @@
   },
   "programsSlotRuleMarkerSemantic": "{count, plural, =1{Breaks the rule: {rules}} other{Breaks {count} rules: {rules}}}",
   "@programsSlotRuleMarkerSemantic": {
-    "description": "Screen-reader label of a slot's event rule marker, naming the rules (#2340).",
+    "description": "Screen-reader label of a slot's event rule marker, naming the rules (#2340). {rules} is each rule's sentence, or for a rule with a nickname its nickname and sentence (eventRuleSpokenTitle, #2535), joined by semicolons.",
     "placeholders": {
       "count": {
         "type": "int",
@@ -20507,7 +20521,7 @@
   },
   "programsSlotRuleMarkerAlternateSemantic": "{count, plural, =1{Breaks the rule if called: {rules}} other{Breaks {count} rules if called: {rules}}}",
   "@programsSlotRuleMarkerAlternateSemantic": {
-    "description": "Screen-reader label of an alternate slot's event rule marker: it breaks the rules only if it is called instead of its dance (#2340).",
+    "description": "Screen-reader label of an alternate slot's event rule marker: it breaks the rules only if it is called instead of its dance (#2340). {rules} is each rule's sentence, or for a rule with a nickname its nickname and sentence (eventRuleSpokenTitle, #2535), joined by semicolons.",
     "placeholders": {
       "count": {
         "type": "int",

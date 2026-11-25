@@ -19769,7 +19769,7 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Would break: {rules}} other{Would break {count} rules: {rules}}}'**
   String suggestionWouldBreak(int count, String rules);
 
-  /// Screen-reader label of the marker on a suggested dance that would break the program's applied event rules (#2345), naming the rules.
+  /// Screen-reader label of the marker on a suggested dance that would break the program's applied event rules (#2345), naming the rules. {rules} is each rule's sentence, or for a rule with a nickname its nickname and sentence (eventRuleSpokenTitle, #2535), joined by semicolons.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{Would break the event rule: {rules}} other{Would break {count} event rules: {rules}}}'**
@@ -21749,6 +21749,12 @@ abstract class AppLocalizations {
   /// **'Shown above the rule\'s sentence, and found by the rule picker\'s search.'**
   String get eventRuleNicknameHelp;
 
+  /// How a screen reader names a rule that has a nickname in a marker saying the rule is broken (#2535): the nickname the caller gave it, then the sentence that says what it requires. Never shown; the marker's visible text names the rule by its nickname alone. Several rules are joined by semicolons, so keep any punctuation here distinct from a semicolon.
+  ///
+  /// In en, this message translates to:
+  /// **'{nickname} ({sentence})'**
+  String eventRuleSpokenTitle(String nickname, String sentence);
+
   /// Title of the Settings > Experimental > Event rules setting for how a program's rule picker lists the caller's rules (#2341).
   ///
   /// In en, this message translates to:
@@ -21983,13 +21989,13 @@ abstract class AppLocalizations {
   /// **'Breaks a rule if called'**
   String get programsSlotRuleMarkerAlternate;
 
-  /// Screen-reader label of a slot's event rule marker, naming the rules (#2340).
+  /// Screen-reader label of a slot's event rule marker, naming the rules (#2340). {rules} is each rule's sentence, or for a rule with a nickname its nickname and sentence (eventRuleSpokenTitle, #2535), joined by semicolons.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{Breaks the rule: {rules}} other{Breaks {count} rules: {rules}}}'**
   String programsSlotRuleMarkerSemantic(int count, String rules);
 
-  /// Screen-reader label of an alternate slot's event rule marker: it breaks the rules only if it is called instead of its dance (#2340).
+  /// Screen-reader label of an alternate slot's event rule marker: it breaks the rules only if it is called instead of its dance (#2340). {rules} is each rule's sentence, or for a rule with a nickname its nickname and sentence (eventRuleSpokenTitle, #2535), joined by semicolons.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{Breaks the rule if called: {rules}} other{Breaks {count} rules if called: {rules}}}'**

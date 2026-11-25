@@ -332,8 +332,9 @@ void main() {
       });
     }
 
-    testWidgets('a rule with a nickname is named by it, as stored, in the '
-        'marker and its screen-reader label (#2530)', (tester) async {
+    testWidgets('a rule with a nickname is shown by it, as stored, in the '
+        'marker (#2530), and its screen-reader label adds its sentence '
+        '(#2535)', (tester) async {
       final semantics = tester.ensureSemantics();
       await _pump(tester, nickname: 'Family petronella');
       await _openSwap(tester, 'adjust-swap-current');
@@ -354,7 +355,7 @@ void main() {
       expect(
         tester.getSemantics(_marker('pa')),
         matchesSemantics(
-          label: 'Would break the event rule: Family petronella',
+          label: 'Would break the event rule: Family petronella ($_sentence)',
         ),
       );
       semantics.dispose();

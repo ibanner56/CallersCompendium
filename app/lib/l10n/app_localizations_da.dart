@@ -14978,6 +14978,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Vises over reglens sætning og findes af regelvælgerens søgning.';
 
   @override
+  String eventRuleSpokenTitle(String nickname, String sentence) {
+    return '$nickname ($sentence)';
+  }
+
+  @override
   String get eventRulesOrderTitle => 'Rækkefølge af regler';
 
   @override

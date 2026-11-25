@@ -413,18 +413,18 @@ Map<String, SlotRuleMarker> eventRuleSlotMarkers(
   AppLocalizations l10n,
   EventRuleCheck check,
 ) {
-  final primaries = <String, List<String>>{};
-  final alternates = <String, List<String>>{};
+  final primaries = <String, List<EventRuleName>>{};
+  final alternates = <String, List<EventRuleName>>{};
   for (final status in check.broken) {
     final breach = status.breach!;
-    final title = eventRuleTitle(l10n, status.rule, status.searchName);
+    final name = eventRuleName(l10n, status.rule, status.searchName);
     if (breach.brokenAsPlanned) {
       for (final id in breach.slotIds) {
-        primaries.putIfAbsent(id, () => []).add(title);
+        primaries.putIfAbsent(id, () => []).add(name);
       }
     }
     for (final id in breach.alternateSlotIds) {
-      alternates.putIfAbsent(id, () => []).add(title);
+      alternates.putIfAbsent(id, () => []).add(name);
     }
   }
   return {

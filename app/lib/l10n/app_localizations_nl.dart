@@ -15061,6 +15061,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'Wordt boven de zin van de regel getoond en gevonden door de zoekfunctie van de regelkiezer.';
 
   @override
+  String eventRuleSpokenTitle(String nickname, String sentence) {
+    return '$nickname ($sentence)';
+  }
+
+  @override
   String get eventRulesOrderTitle => 'Volgorde van regels';
 
   @override
