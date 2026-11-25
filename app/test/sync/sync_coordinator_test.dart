@@ -9008,6 +9008,150 @@ void main() {
       });
     });
 
+    group('capability record stamps (#2528)', () {
+      final clock = DateTime.utc(2026, 11, 25, 12);
+      final key = syncCapabilityRecordKey('device-a');
+      const tick = Duration(seconds: 1);
+
+      Future<DateTime?> stampOf(CompendiumSyncCoordinatorStore store) async =>
+          (await store.snapshot())
+              .local[(kind: SyncRecordKind.setting, recordId: key)]
+              ?.blob
+              .updatedAt;
+
+      test('a rewritten record is stamped strictly after the stored one, '
+          'whatever the clock says', () async {
+        final repositories = openTestRepositories();
+        final store = CompendiumSyncCoordinatorStore(
+          repositories,
+          now: () => clock,
+        );
+        // Stored ahead of the clock but inside the quarantine window, as after
+        // the clock moved back.
+        final ahead = clock.add(const Duration(hours: 12));
+        await repositories.settings.set(
+          key,
+          syncCapabilityRecordValue({'a.v1'}),
+          at: ahead,
+        );
+        expect(await stampOf(store), ahead);
+
+        await store.ensureCapabilityRecord('device-a', {'a.v1', 'b.v1'});
+        expect(await stampOf(store), ahead.add(tick));
+        // Rewrites in a row each move it on.
+        await store.ensureCapabilityRecord('device-a', {'b.v1'});
+        expect(await stampOf(store), ahead.add(tick * 2));
+      });
+
+      test('a stored stamp past the quarantine window does not hold the '
+          'rewrite out of it', () async {
+        final repositories = openTestRepositories();
+        final store = CompendiumSyncCoordinatorStore(
+          repositories,
+          now: () => clock,
+        );
+        // Written while the device's clock was wrong: every device holds a
+        // record this far ahead out, so stepping past it would never recover.
+        final beyond = syncQuarantineWindowEnd(
+          clock,
+        ).add(const Duration(hours: 24));
+        await repositories.settings.set(
+          key,
+          syncCapabilityRecordValue({'a.v1'}),
+          at: beyond,
+        );
+
+        await store.ensureCapabilityRecord('device-a', {'a.v1', 'b.v1'});
+        expect(await stampOf(store), clock);
+      });
+
+      test('a rewrite outranks the stamp of a record removed with its '
+          'device', () async {
+        final repositories = openTestRepositories();
+        final store = CompendiumSyncCoordinatorStore(
+          repositories,
+          now: () => clock,
+        );
+        await repositories.settings.set(
+          key,
+          syncCapabilityRecordValue({'a.v1'}),
+          at: clock,
+        );
+        final removedAt = clock.add(const Duration(hours: 1));
+        await repositories.settings.remove(key, at: removedAt);
+        expect(await repositories.settings.get(key), isNull);
+
+        // Present again, as for a removed device that is still attached.
+        await store.ensureCapabilityRecord('device-a', {'a.v1'});
+        expect(await repositories.settings.get(key), {
+          'capabilities': ['a.v1'],
+        });
+        expect(await stampOf(store), removedAt.add(tick));
+      });
+
+      test('a row with no updated_at is outranked through its existence_at, '
+          'as its wire stamp reads it', () async {
+        final repositories = openTestRepositories();
+        final store = CompendiumSyncCoordinatorStore(
+          repositories,
+          now: () => clock,
+        );
+        final db = repositories.db;
+        await db.customStatement(
+          'INSERT INTO settings (key, value_json, existence_at) '
+          'VALUES (?, ?, ?)',
+          [
+            key,
+            jsonEncode(syncCapabilityRecordValue({'a.v1'})),
+            unixSeconds(clock),
+          ],
+        );
+        expect(await stampOf(store), clock, reason: 'the wire stamp fallback');
+
+        await store.ensureCapabilityRecord('device-a', {'a.v1', 'b.v1'});
+        expect(await stampOf(store), clock.add(tick));
+      });
+
+      test('a rewrite in the same second as the stored record does not tie with '
+          'it (#2528)', () async {
+        final repositories = openTestRepositories();
+        final key = syncCapabilityRecordKey('device-a');
+        // A sub-second reading, so the clock's own value would round down to the
+        // stored stamp's second.
+        final clock = DateTime.utc(2026, 11, 25, 12, 0, 0, 900);
+        final store = CompendiumSyncCoordinatorStore(
+          repositories,
+          now: () => clock,
+        );
+        Future<DateTime?> stampOf() async => (await store.snapshot())
+            .local[(kind: SyncRecordKind.setting, recordId: key)]
+            ?.blob
+            .updatedAt;
+
+        await store.ensureCapabilityRecord('device-a', {'a.v1'});
+        final first = await stampOf();
+        expect(
+          first,
+          DateTime.utc(2026, 11, 25, 12),
+          reason: 'the clock, floored',
+        );
+
+        await store.ensureCapabilityRecord('device-a', {'a.v1', 'b.v1'});
+        final second = await stampOf();
+        expect(second!.isAfter(first!), isTrue, reason: 'strictly later');
+        expect(second, first.add(const Duration(seconds: 1)));
+
+        // Once the clock is past the stored stamp, the clock decides again.
+        final later = DateTime.utc(2026, 11, 25, 12, 5);
+        final laterStore = CompendiumSyncCoordinatorStore(
+          repositories,
+          now: () => later,
+        );
+        await laterStore.ensureCapabilityRecord('device-a', {'b.v1'});
+        expect(await stampOf(), later);
+      });
+    });
+
     group('saved searches (#2325)', () {
       const savedPolicy = SyncCapabilityPolicy(
         advertised: {SyncCapabilities.savedSearchesV1},
