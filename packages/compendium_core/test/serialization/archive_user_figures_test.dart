@@ -5,8 +5,9 @@ import 'package:test/test.dart';
 
 /// A shared archive's `userFigures` section (#1023, plan C12): the user's own
 /// new figures its dances use, without their notes, written in share mode only
-/// and never a version bump (maintainer decision on PR 10), and read back only
-/// whole and only when a dance in the archive uses it.
+/// and stamped [archiveSchemaVersionUserFigures] when written (#1885; written
+/// unversioned from #1804 until then), and read back only whole and only when
+/// a dance in the archive uses it.
 void main() {
   final created = DateTime.utc(2026, 10, 16);
 
@@ -37,7 +38,9 @@ void main() {
   CompendiumArchive archive(
     List<UserGlossaryEntry> figures, {
     Iterable<String>? uses,
+    int schemaVersion = archiveSchemaVersionBase,
   }) => CompendiumArchive(
+    schemaVersion: schemaVersion,
     exportedAt: created,
     dances: [
       Dance(
@@ -63,8 +66,8 @@ void main() {
       ((encoded(archive([zoom()]))['userFigures']! as List).single as Map)
           .cast<String, Object?>();
 
-  test('share mode writes each figure without its notes or kind, and the '
-      'stamp is what it would be without them', () {
+  test('share mode writes each figure without its notes or kind, stamped '
+      'archiveSchemaVersionUserFigures', () {
     final json = encoded(archive([zoom(notes: 'mine only')]));
     final figure = ((json['userFigures']! as List).single as Map)
         .cast<String, Object?>();
@@ -72,11 +75,66 @@ void main() {
     expect(figure['payload'], payload());
     expect(figure.containsKey('notes'), isFalse);
     expect(figure.containsKey('kind'), isFalse);
-    expect(
-      json['schemaVersion'],
-      encoded(archive(const [], uses: ['zoom-id']))['schemaVersion'],
-    );
+    expect(json['schemaVersion'], archiveSchemaVersionUserFigures);
     expect(json['schemaVersion'], lessThanOrEqualTo(archiveSchemaVersion));
+  });
+
+  test('the same share archive with no figure keeps its earlier stamp', () {
+    final without = encoded(archive(const [], uses: ['zoom-id']));
+    expect(without['schemaVersion'], archiveSchemaVersionBase);
+  });
+
+  test('a backup is never stamped for the figures it does not write', () {
+    // A backup carries the glossary in its own section, so an archive holding
+    // figures must stamp exactly what it would without them.
+    final withFigures = encoded(
+      archive([zoom()]),
+      mode: ArchiveSerializationMode.backup,
+    );
+    final withoutFigures = encoded(
+      archive(const [], uses: ['zoom-id']),
+      mode: ArchiveSerializationMode.backup,
+    );
+    expect(withFigures['schemaVersion'], withoutFigures['schemaVersion']);
+    expect(
+      withFigures['schemaVersion'],
+      lessThan(archiveSchemaVersionUserFigures),
+    );
+  });
+
+  test('requiredSchemaVersion with no arguments ignores userFigures', () {
+    // A call without `includeUserFigures` must answer as it did before the
+    // section was stamped; only the encoder, in share mode, opts in.
+    expect(
+      requiredSchemaVersion(archive([zoom()])),
+      requiredSchemaVersion(archive(const [], uses: ['zoom-id'])),
+    );
+    expect(
+      requiredSchemaVersion(archive([zoom()])),
+      lessThan(archiveSchemaVersionVenues),
+    );
+  });
+
+  test('a share archive with a figure and a tombstoned tag is stamped for '
+      'the figure', () {
+    // Share mode never writes `deletedTags`, so the tombstone must not decide
+    // the stamp, and the figure must.
+    final base = archive([zoom()]);
+    final withTombstone = CompendiumArchive(
+      exportedAt: base.exportedAt,
+      dances: base.dances,
+      userFigures: base.userFigures,
+      deletedTags: [
+        ArchivedDeletedTag(
+          tag: Tag(id: 't-gone', name: 'Gone'),
+          deletedAt: created,
+          danceIds: const ['d1'],
+        ),
+      ],
+    );
+    final json = encoded(withTombstone);
+    expect(json.containsKey('deletedTags'), isFalse);
+    expect(json['schemaVersion'], archiveSchemaVersionUserFigures);
   });
 
   test('backup mode never writes the section', () {
@@ -98,7 +156,10 @@ void main() {
     final read = result.archive.userFigures.single;
     expect(read.kind, UserGlossaryEntryKind.customFigure);
     expect(read.notes, isNull);
-    expect(result.archive, archive([zoom()]));
+    expect(
+      result.archive,
+      archive([zoom()], schemaVersion: archiveSchemaVersionUserFigures),
+    );
   });
 
   test('a missing, empty or blank description is read as none, not a figure '

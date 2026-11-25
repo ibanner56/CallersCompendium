@@ -1311,15 +1311,21 @@ PR that added this mapping).
     so no tombstone makes a later import of the same file offer it as a
     copy, and sync has nothing to publish), and restores what was replaced,
     after its own undo restores the dances.
-  - **Not versioned, by the maintainer's decision.** Every build before the
-    one that added the array refuses a shared archive newer than it knows when
-    it is opened from the share sheet or "Open with" (its Import screen still
-    reads one, with a warning), so a bump would keep such a bundle out of
-    those builds there. Without one, an older build ignores the unknown key
-    and imports the dances. The same build stopped that intake refusing a
-    newer archive: the review reads the fields it knows and warns once for the
-    file, as the Import screen always did. So a later build can bump for this
-    array, and builds from then on warn, as the earlier bumps intended.
+  - **Stamped v8 when written** (`archiveSchemaVersionUserFigures`, #1885):
+    a share archive carrying the array is stamped at least v8, so a build that
+    predates the array warns that the file is from a newer version instead of
+    dropping the definitions without a word. A backup never writes the array
+    and is never stamped on its account. Builds 0.8.0 to 0.10.0 read the array
+    but know only v7, so they show the same warning for such a file although
+    they lose nothing of it.
+    It was written unversioned from #1804, by the maintainer's decision, until
+    that gate was met: every build through 0.7.0 refuses a shared archive
+    newer than it knows when it is opened from the share sheet or "Open with"
+    (its Import screen still reads one, with a warning), so a stamp would have
+    kept such a bundle out of those builds there. #1804 stopped that intake
+    refusing a newer archive, and every release from 0.8.0 carries that, so
+    the stamp waited for 0.7.0's end of life (2026-11-30) and is for releases
+    cut after it. It joined archive v8 while v8 was unreleased.
 - Received programs (audit F6, maintainer decision 2026-10-28). A program in a
   shared file is imported the way `Program.duplicate` copies one:
   `buildArchivePrograms` sets it to Draft and clears every slot's

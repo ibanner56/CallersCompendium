@@ -1,0 +1,9 @@
+{
+  "id": "1885-archive-user-figures-stamp",
+  "user_visible": false,
+  "core": {
+    "changed": [
+      "A shared archive that carries the user's own figures (`userFigures`) is now stamped archive envelope v8 (archiveSchemaVersionUserFigures), joining the unreleased v8, so a reader that predates the section warns instead of dropping the definitions silently. requiredSchemaVersion takes includeUserFigures, false by default, and encodeArchive passes it in share mode only; a backup is never stamped on its account."
+    ]
+  }
+}
