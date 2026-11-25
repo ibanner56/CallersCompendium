@@ -448,9 +448,11 @@ raising or lowering it.
 - Ordering takes a moment on a large collection. Meanwhile the list shows in
   its plain order with a spinner by the count, and you can add dances as usual.
 - English dances aren't covered yet. They are listed after the ordered
-  dances, in their usual order, and say so.
-- A dance already in the program stays in the list but goes to the very
-  bottom, after the English dances, marked *Already in this program*. Any
+  dances, in their usual order, and say so. They aren't checked against your
+  [rules](#check-your-program-against-your-rules) either.
+- A dance already in the program stays in the list but goes to the bottom,
+  after the English dances (and before any dance marked for breaking one of
+  your rules, below), marked *Already in this program*. Any
   type of dance goes there, English included. Dances there keep their usual
   order.
 - If the dances can't be ordered, the list stays in its usual order and says
@@ -475,7 +477,11 @@ its reasons.
   1*. For neighboring dances that means the dance before or after the place,
   as the rule sees its neighbors; an alternate is checked as if called
   instead of its dance. *At least* over the whole program or half of it never
-  marks a dance, since adding one never takes a dance away.
+  marks a dance you are adding, since adding one never takes a dance away.
+  With **Replace…** it does take one away: a dance is marked when the program
+  meets the rule now and wouldn't with that dance in the slot.
+- English dances are left where they are, unmarked (see above). An English
+  dance already in the program is checked with the other dances there.
 - The order without rules shows first; the marks, and the new order, follow
   once the check is done. A rule that needs attention isn't checked.
 - With Event rules off, a program with no rules, or another sort, the picker

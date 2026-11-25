@@ -6,9 +6,9 @@
 /// place is a [SuggestionPosition], as [rankSuggestions] ranks for, and the
 /// check is [evaluateEventRules] (#2340) on the program with the candidate
 /// in that place. One position serves every host: the builder's end of the
-/// program, an add before or after a slot, and **Replace…**; Perform's swap
-/// sheet gives the place of the slot being swapped
-/// ([SuggestionPosition.replacing]).
+/// program, an add before or after a slot, and **Replace…**
+/// ([SuggestionPosition.replacing]); a later host such as Perform's swap
+/// sheet (#2347) can give the place of the slot being swapped.
 library;
 
 import '../model/event_rule.dart';

@@ -12995,7 +12995,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '追加すると$count件のルールに反します：$rules',
+      other: '$count件のルールに反します：$rules',
     );
     return '$_temp0';
   }
@@ -13005,7 +13005,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '追加すると$count件のイベントルールに反します：$rules',
+      other: '$count件のイベントルールに反します：$rules',
     );
     return '$_temp0';
   }

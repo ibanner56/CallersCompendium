@@ -173,8 +173,8 @@ class CandidateRuleMarks {
 /// over the program's dances and every candidate together
 /// ([DanceRepository.matchingAmong]); nothing is searched per candidate.
 /// [position] is the builder's add at the end, add before or after a slot,
-/// or **Replace…** ([SuggestionPosition.replacing]), which Perform's swap
-/// sheet uses for the slot being swapped.
+/// or **Replace…** ([SuggestionPosition.replacing]); any other host may
+/// pass the place it checks, such as a swapped slot.
 Future<CandidateRuleMarks> checkCandidateEventRules({
   required CompendiumRepositories repos,
   required List<String> ruleIds,

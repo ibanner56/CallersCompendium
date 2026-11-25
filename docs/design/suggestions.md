@@ -244,11 +244,14 @@ features are on, Suggested shows and the program applies a rule.
   the candidate would break a rule when its slot is among the slots the
   breach names (`slotIds`, or `alternateSlotIds` for a candidate taking an
   alternate's place): the slot the builder's own marker would flag once the
-  dance is added. So *At least* over the whole program or a half never marks a
-  dance, and a pair that already breaks a neighbouring rule elsewhere marks no
-  candidate. *Rejected:* marking whenever the program with the candidate
-  breaks the rule, which would mark every candidate once the program already
-  breaks it.
+  dance is added. It also would break a rule when the program as it stands
+  (with `SuggestionPosition.replaced` back in its place) meets the rule as
+  planned and the program with the candidate does not: for **Replace…**, a
+  dance that takes away the only match of an *At least* rule. So *At least*
+  over the whole program or a half never marks a dance being added, and a
+  pair that already breaks a neighbouring rule elsewhere marks no candidate.
+  *Rejected:* marking whenever the program with the candidate breaks the
+  rule, which would mark every candidate once the program already breaks it.
 - **No search per candidate.** The app resolves each applied rule's saved
   search once and runs it once, over the program's dances and every
   candidate together (`checkCandidateEventRules`, `DanceRepository.matchingAmong`).
@@ -259,11 +262,18 @@ features are on, Suggested shows and the program applies a rule.
   it; the ranking shows as soon as it is ready, unmarked, and the marks and
   the new order follow once the check is done. A failed check leaves the
   ranking unmarked.
-- **English dances** are checked like any other: a rule is a saved search, and
-  nothing in it assumes contra's phrases.
-- **One position for every host.** The check takes the position Suggested
-  ranks for, so Perform's swap sheet (#2347) passes the slot being swapped
-  (`SuggestionPosition.replacing`) through `CollectionPicker.eventRules`.
+- **English dances** that the ranking lists unranked keep that place and
+  are never marked: the issue's decision is that English candidates are
+  handled as #2343 handles them. One already in the program is in that group
+  with every other form, and is checked with it. *Rejected:* checking English
+  dances like any other (a rule is a saved search, so nothing technical
+  stops it), which would move an English dance out of #2343's group.
+- **One position for every host.** The check takes any `SuggestionPosition`.
+  The builder passes the one Suggested ranks for. Perform's swap sheet
+  (#2347, not yet wired) can pass the slot being swapped, built as that issue
+  asks, through `CollectionPicker.eventRules`, with
+  `PickerEventRules.inEveryOrder` to mark its plain order too. The pinned
+  **Your alternates** rows are not checked by the picker.
 
 ## Stored settings
 
