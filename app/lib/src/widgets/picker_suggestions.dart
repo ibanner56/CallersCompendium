@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
+import '../search/event_rule_check.dart' show CandidateRuleMarks;
 import '../search/facet_labels.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
+import 'event_rule_text.dart' show eventRuleTitle, eventRuleWarningIcon;
 
 /// The program a [CollectionPicker] adds to (history-filters Q3, extended for
 /// suggestions, #2343, #2344): its id, its venue, and where in it the chosen
@@ -67,6 +69,100 @@ class PickerProgramContext {
   @override
   int get hashCode =>
       Object.hash(programId, venueId, venue, venueLabel, position);
+}
+
+/// Checks candidate dances against a program's applied event rules for one
+/// place in it (#2345): which rules each would break if it went there.
+/// [checkCandidateEventRules] does the work; the builder's is
+/// [ProgramEventRulesController.checkCandidates].
+typedef CandidateRuleChecker =
+    Future<CandidateRuleMarks> Function(
+      SuggestionPosition position,
+      List<String> candidateIds,
+    );
+
+/// The program's applied event rules, for a [CollectionPicker] to mark the
+/// dances under **Suggested** that would break one (#2345).
+///
+/// The picker checks the dances it ranks, for the same position
+/// ([PickerProgramContext.position]): the end of the program or an add
+/// before or after a slot in the builder, or the slot being replaced
+/// ([SuggestionPosition.replacing]), as in **Replace…** and Perform's swap
+/// sheet. It does so only while Settings ▸ Experimental ▸ Event rules is on
+/// and **Suggested** shows, and lists a marked dance after every unmarked
+/// one ([markRuleBreakingSuggestions]).
+///
+/// Two are equal when their [revision]s are: a host builds one on every
+/// build, with a new closure, and the picker checks again only when the
+/// revision changes. So a host passes a new [revision] whenever the rules it
+/// applies, or what they read, may have changed.
+@immutable
+class PickerEventRules {
+  const PickerEventRules({required this.check, required this.revision});
+
+  final CandidateRuleChecker check;
+
+  /// Changes whenever a check could give another answer for the same dances
+  /// at the same place.
+  final Object? revision;
+
+  @override
+  bool operator ==(Object other) =>
+      other is PickerEventRules && other.revision == revision;
+
+  @override
+  int get hashCode => revision.hashCode;
+}
+
+/// The sentence (or name) of each rule [rules] lists, as the builder's Rules
+/// strip calls it ([eventRuleTitle]), with the saved search names [marks]
+/// read.
+List<String> suggestionRuleSentences(
+  AppLocalizations l10n,
+  List<EventRule> rules,
+  CandidateRuleMarks marks,
+) => [
+  for (final rule in rules)
+    eventRuleTitle(l10n, rule, marks.searchNames[rule.id]),
+];
+
+/// The marker on a suggested dance that would break the program's applied
+/// event rules where the suggestions are for (#2345): the rules icon with
+/// "Would break: …" and each rule's sentence ([rules]), so it never relies
+/// on colour alone, and a screen-reader label that names the rules.
+class SuggestionRuleMarker extends StatelessWidget {
+  const SuggestionRuleMarker({super.key, required this.rules});
+
+  /// Each rule's sentence or name, in the order the program applies them.
+  /// Not empty.
+  final List<String> rules;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.error;
+    final joined = rules.join('; ');
+    return Semantics(
+      container: true,
+      label: l10n.suggestionWouldBreakSemantic(rules.length, joined),
+      child: ExcludeSemantics(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(eventRuleWarningIcon, size: 16, color: color),
+            const SizedBox(width: AppSpacing.xxs),
+            Expanded(
+              child: Text(
+                l10n.suggestionWouldBreak(rules.length, joined),
+                style: theme.textTheme.bodySmall?.copyWith(color: color),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Ranks a [SuggestionRequest]. The picker uses a [SuggestionWorker] of its
@@ -258,13 +354,16 @@ String suggestionFactorTitle(AppLocalizations l10n, SuggestionFactor factor) =>
       SuggestionFactor.venueRecency => l10n.suggestionFactorVenueRecencyTitle,
     };
 
-/// The **Why?** dialog: every reason that moved [suggestion], each marked as
-/// raising or lowering it, then its notes (a factor that was skipped).
+/// The **Why?** dialog: first, each event rule [suggestion] would break
+/// there ([wouldBreak], its sentences, #2345), then every reason that moved
+/// it, each marked as raising or lowering it, then its notes (a factor that
+/// was skipped).
 Future<void> showSuggestionWhyDialog(
   BuildContext context, {
   required String title,
   required RankedSuggestion suggestion,
   required SuggestionReasonLabels labels,
+  List<String> wouldBreak = const [],
 }) {
   final l10n = AppLocalizations.of(context);
   return showDialog<void>(
@@ -278,6 +377,12 @@ Future<void> showSuggestionWhyDialog(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            for (final (i, rule) in wouldBreak.indexed)
+              Padding(
+                key: ValueKey('suggestion-why-rule-$i'),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                child: SuggestionRuleMarker(rules: [rule]),
+              ),
             for (final reason in suggestion.reasons)
               _WhyRow(reason: reason, text: labels.text(reason), l10n: l10n),
           ],

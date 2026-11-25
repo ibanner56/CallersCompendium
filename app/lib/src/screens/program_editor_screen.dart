@@ -66,7 +66,8 @@ import '../widgets/exclude_focus_when_collapsed.dart';
 import '../widgets/app_bar_text_action.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
-import '../widgets/picker_suggestions.dart' show PickerProgramContext;
+import '../widgets/picker_suggestions.dart'
+    show PickerEventRules, PickerProgramContext;
 import '../widgets/placeholder_fill.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/dirty_dialog_guard.dart';
@@ -4226,6 +4227,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                                   programContext: _pickerProgramContext(
                                     _addPosition(),
                                   ),
+                                  eventRules: _pickerEventRules(),
                                   onAddDance: _addDanceSlot,
                                   onDanceImported: _rememberImportedDance,
                                   onImportingChanged: _setPickerImportActivity,
@@ -4720,6 +4722,22 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     return SuggestionPosition.inserting(_slots, index, after: insertion.after);
   }
 
+  /// The program's applied event rules, for the builder's pickers to mark the
+  /// dances under **Suggested** that would break one where the dance will go
+  /// (#2345), or null when the program applies none. The pickers check only
+  /// while Event rules is on ([CollectionPicker.eventRules]), through the
+  /// rule checker, which shares its search context; they check again each
+  /// time it checks the program, since the rules or what they read may have
+  /// changed.
+  PickerEventRules? _pickerEventRules() {
+    final controller = _eventRules;
+    if (controller == null || _eventRuleIds.isEmpty) return null;
+    return PickerEventRules(
+      check: controller.checkCandidates,
+      revision: controller.checkGeneration,
+    );
+  }
+
   /// The program, as the builder's pickers need it (history-filters Q3,
   /// #2343, #2344): its id, its venue as calling history keys it, and
   /// [position], where the chosen dance will go, which Suggested ranks for:
@@ -4839,6 +4857,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             programContext: _pickerProgramContext(
                               _addPosition(),
                             ),
+                            eventRules: _pickerEventRules(),
                             // Keep the sheet open so callers can add several
                             // dances, unless this sheet is for one insertion.
                             onAddDance: insertion == null
@@ -5020,6 +5039,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             scrollController: scrollController,
                             addedDanceCounts: counts,
                             programContext: programContext,
+                            eventRules: _pickerEventRules(),
                             excludedDanceIds: {?slot.danceId},
                             rowAction: PickerRowAction.replace,
                             // Held by the sheet, so the picker applies it once

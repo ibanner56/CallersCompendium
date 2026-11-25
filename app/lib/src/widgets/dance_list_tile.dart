@@ -47,6 +47,7 @@ class DanceListTile extends StatelessWidget {
     this.onTagTap,
     this.visibleFields,
     this.reasonLine,
+    this.ruleMarker,
   }) : assert(
          !selectionMode || selected == selectedForBatch,
          'In selection mode the row highlight (selected) must match the '
@@ -111,6 +112,11 @@ class DanceListTile extends StatelessWidget {
   /// the program picker's Suggested order passes its top reasons (#2343).
   /// Null shows no line.
   final String? reasonLine;
+
+  /// Shown above [reasonLine]: the program picker's marker on a suggested
+  /// dance that would break the program's applied event rules
+  /// (`SuggestionRuleMarker`, #2345). Null shows none.
+  final Widget? ruleMarker;
 
   @override
   Widget build(BuildContext context) {
@@ -346,29 +352,36 @@ class DanceListTile extends StatelessWidget {
     return RightClickMenu(menuKey: _actionsMenuKey, child: tile);
   }
 
-  /// [chips] with [reasonLine] under it, when there is one.
+  /// [chips] with [ruleMarker] and [reasonLine] under it, when there are.
   Widget _withReasonLine(ThemeData theme, Widget chips) {
     final reason = reasonLine;
-    if (reason == null) return chips;
+    final marker = ruleMarker;
+    if (reason == null && marker == null) return chips;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         chips,
-        Padding(
-          padding: const EdgeInsets.only(top: AppSpacing.xxs),
-          child: Row(
-            key: ValueKey('suggestion-reason-${entry.dance.id}'),
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const ExcludeSemantics(
-                child: Icon(Icons.lightbulb_outline, size: 16),
-              ),
-              const SizedBox(width: AppSpacing.xxs),
-              Expanded(child: Text(reason, style: theme.textTheme.bodySmall)),
-            ],
+        if (marker != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            child: marker,
           ),
-        ),
+        if (reason != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            child: Row(
+              key: ValueKey('suggestion-reason-${entry.dance.id}'),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const ExcludeSemantics(
+                  child: Icon(Icons.lightbulb_outline, size: 16),
+                ),
+                const SizedBox(width: AppSpacing.xxs),
+                Expanded(child: Text(reason, style: theme.textTheme.bodySmall)),
+              ],
+            ),
+          ),
       ],
     );
   }

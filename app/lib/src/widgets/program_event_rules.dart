@@ -58,6 +58,13 @@ class ProgramEventRulesController extends ChangeNotifier {
   EventRuleCheck _check = EventRuleCheck.empty;
   EventRuleCheck get check => _check;
 
+  /// Bumped each time [check] is replaced: a check of the program ran, or
+  /// the feature was turned off. A picker marking suggestions
+  /// ([checkCandidates]) checks them again when it changes, since the rules
+  /// or what they read may have.
+  int get checkGeneration => _checkGeneration;
+  int _checkGeneration = 0;
+
   /// The ids of the rules this device holds deleted (tombstones), once read.
   Set<String>? _deletedRuleIds;
 
@@ -123,6 +130,7 @@ class ProgramEventRulesController extends ChangeNotifier {
       _savedSearchRows = null;
       if (!identical(_check, EventRuleCheck.empty)) {
         _check = EventRuleCheck.empty;
+        _checkGeneration++;
         _notifyLater();
       }
       return;
@@ -269,6 +277,7 @@ class ProgramEventRulesController extends ChangeNotifier {
     if (inputs.ruleIds.isEmpty) {
       if (!identical(_check, EventRuleCheck.empty)) {
         _check = EventRuleCheck.empty;
+        _checkGeneration++;
         _notifyLater();
       }
       return;
@@ -283,16 +292,14 @@ class ProgramEventRulesController extends ChangeNotifier {
           repos: repos,
           ruleIds: inputs.ruleIds,
           slots: inputs.slots,
-          readContext: () => _context ??= () {
-            contextReads++;
-            return inputs.readContext();
-          }(),
+          readContext: () => _sharedContext(inputs),
           dialect: inputs.dialect,
           enrichment: inputs.enrichment,
           evaluate: evaluate,
         );
         if (_disposed || seq != _seq) return;
         _check = result;
+        _checkGeneration++;
         notifyListeners();
       } catch (error, stackTrace) {
         // A rule that cannot be checked never blocks the builder. A context
@@ -307,6 +314,42 @@ class ProgramEventRulesController extends ChangeNotifier {
         }
       }
     }());
+  }
+
+  /// The search context, read at most once until something it reads changes.
+  Future<SavedSearchContext> _sharedContext(_Inputs inputs) => _context ??= () {
+    contextReads++;
+    return inputs.readContext();
+  }();
+
+  /// Which of the program's applied rules each of [candidateIds] would break
+  /// in the place [position] describes (#2345), for the builder's picker
+  /// under **Suggested**: [checkCandidateEventRules] with this program's
+  /// rules, sharing this controller's search context. Empty while the
+  /// feature is off or the program applies no rule.
+  Future<CandidateRuleMarks> checkCandidates(
+    SuggestionPosition position,
+    List<String> candidateIds,
+  ) async {
+    final inputs = _inputs;
+    if (inputs == null || inputs.ruleIds.isEmpty) {
+      return CandidateRuleMarks.empty;
+    }
+    try {
+      return await checkCandidateEventRules(
+        repos: repos,
+        ruleIds: inputs.ruleIds,
+        position: position,
+        candidateIds: candidateIds,
+        readContext: () => _sharedContext(inputs),
+        dialect: inputs.dialect,
+        enrichment: inputs.enrichment,
+      );
+    } catch (_) {
+      // A context that failed to read is read again next time, not kept.
+      _context = null;
+      rethrow;
+    }
   }
 
   void _notifyLater() => scheduleMicrotask(() {

@@ -104,13 +104,138 @@ Future<EventRuleCheck> checkEventRules({
   EventRuleEvaluator evaluate = evaluateEventRules,
 }) async {
   if (ruleIds.isEmpty) return EventRuleCheck.empty;
-  final rules = await repos.eventRules.getMany(ruleIds);
-  if (rules.isEmpty) return EventRuleCheck.empty;
+  final resolved = await _resolveEventRules(
+    repos: repos,
+    ruleIds: ruleIds,
+    readContext: readContext,
+  );
+  if (resolved.rules.isEmpty) return EventRuleCheck.empty;
+  final statuses = resolved.statuses;
   final danceIds = {for (final slot in slots) ?slot.danceId};
+  final matching = await _matchSets(
+    repos,
+    resolved.checkable,
+    danceIds,
+    dialect: dialect,
+    enrichment: enrichment,
+  );
+  if (resolved.checkable.isNotEmpty) {
+    final breaches = evaluate(
+      slots: slots,
+      rules: [for (final (rule, _) in resolved.checkable) rule],
+      matchingDanceIds: matching,
+    );
+    for (final breach in breaches) {
+      final status = statuses[breach.rule.id]!;
+      statuses[breach.rule.id] = EventRuleStatus(
+        rule: status.rule,
+        searchName: status.searchName,
+        breach: breach,
+      );
+    }
+  }
+  return EventRuleCheck([
+    for (final rule in resolved.rules) ?statuses[rule.id],
+  ]);
+}
+
+/// Which applied rules each candidate dance would break in one place in the
+/// program (#2345), with the names of the saved searches the rules use, for
+/// their sentences.
+class CandidateRuleMarks {
+  const CandidateRuleMarks({this.check, this.searchNames = const {}});
+
+  /// No rule checked: nothing is marked.
+  static const empty = CandidateRuleMarks();
+
+  /// The check, or null when no applied rule could be checked.
+  final CandidateRuleCheck? check;
+
+  /// The name of the saved search each rule uses, by rule id, when it is
+  /// here.
+  final Map<String, String?> searchNames;
+
+  /// Whether any applied rule was checked.
+  bool get checksAnything => check?.checksAnything ?? false;
+
+  /// The rules [danceId] would break there.
+  List<EventRule> brokenBy(String danceId) =>
+      check?.brokenBy(danceId) ?? const [];
+}
+
+/// Checks [candidateIds] against the rules [ruleIds] for the place
+/// [position] describes (#2345): which rules each candidate would break if
+/// it went there, as the builder would mark its slot once it did
+/// ([CandidateRuleCheck]).
+///
+/// Rules are read and resolved as [checkEventRules] does, and a rule that
+/// needs attention is skipped. Each checkable rule's filter runs **once**,
+/// over the program's dances and every candidate together
+/// ([DanceRepository.matchingAmong]); nothing is searched per candidate.
+/// [position] is the builder's add at the end, add before or after a slot,
+/// or **Replace…** ([SuggestionPosition.replacing]), which Perform's swap
+/// sheet uses for the slot being swapped.
+Future<CandidateRuleMarks> checkCandidateEventRules({
+  required CompendiumRepositories repos,
+  required List<String> ruleIds,
+  required SuggestionPosition position,
+  required Iterable<String> candidateIds,
+  required Future<SavedSearchContext> Function() readContext,
+  Dialect? dialect,
+  SearchEnrichment? enrichment,
+}) async {
+  if (ruleIds.isEmpty) return CandidateRuleMarks.empty;
+  final resolved = await _resolveEventRules(
+    repos: repos,
+    ruleIds: ruleIds,
+    readContext: readContext,
+  );
+  if (resolved.checkable.isEmpty) return CandidateRuleMarks.empty;
+  final ids = {
+    for (final slot in [...position.slotsBefore, ...position.slotsAfter])
+      ?slot.danceId,
+    ...candidateIds,
+  };
+  final matching = await _matchSets(
+    repos,
+    resolved.checkable,
+    ids,
+    dialect: dialect,
+    enrichment: enrichment,
+  );
+  return CandidateRuleMarks(
+    check: CandidateRuleCheck(
+      position: position,
+      rules: [for (final (rule, _) in resolved.checkable) rule],
+      matchingDanceIds: matching,
+    ),
+    searchNames: {
+      for (final (rule, _) in resolved.checkable)
+        rule.id: resolved.statuses[rule.id]?.searchName,
+    },
+  );
+}
+
+/// The applied rules still here, in the order applied; what became of
+/// resolving each ([statuses], by rule id, with no breach yet); and the
+/// ones that can be checked, each with its filter.
+typedef _ResolvedRules = ({
+  List<EventRule> rules,
+  Map<String, EventRuleStatus> statuses,
+  List<(EventRule, DanceFilter)> checkable,
+});
+
+/// Reads the rules [ruleIds] and resolves each one's saved search against
+/// [readContext]'s context, read once and only when some rule needs it.
+Future<_ResolvedRules> _resolveEventRules({
+  required CompendiumRepositories repos,
+  required List<String> ruleIds,
+  required Future<SavedSearchContext> Function() readContext,
+}) async {
+  final rules = await repos.eventRules.getMany(ruleIds);
   SavedSearchContext? ctx;
   final statuses = <String, EventRuleStatus>{};
-  final checkable = <EventRule>[];
-  final matching = <String, Set<String>>{};
+  final checkable = <(EventRule, DanceFilter)>[];
   for (final rule in rules) {
     final search = await repos.savedSearches.get(rule.savedSearchId);
     if (!rule.isReadable) {
@@ -143,31 +268,28 @@ Future<EventRuleCheck> checkEventRules({
           rule: rule,
           searchName: search.name,
         );
-        checkable.add(rule);
-        matching[rule.id] = danceIds.isEmpty
-            ? const {}
-            : await repos.dances.matchingAmong(
-                filter,
-                danceIds,
-                dialect: dialect,
-                enrichment: enrichment,
-              );
+        checkable.add((rule, filter));
     }
   }
-  if (checkable.isNotEmpty) {
-    final breaches = evaluate(
-      slots: slots,
-      rules: checkable,
-      matchingDanceIds: matching,
-    );
-    for (final breach in breaches) {
-      final status = statuses[breach.rule.id]!;
-      statuses[breach.rule.id] = EventRuleStatus(
-        rule: status.rule,
-        searchName: status.searchName,
-        breach: breach,
-      );
-    }
-  }
-  return EventRuleCheck([for (final rule in rules) ?statuses[rule.id]]);
+  return (rules: rules, statuses: statuses, checkable: checkable);
 }
+
+/// For each of [checkable], the dances among [danceIds] its filter matches:
+/// one [DanceRepository.matchingAmong] per rule.
+Future<Map<String, Set<String>>> _matchSets(
+  CompendiumRepositories repos,
+  List<(EventRule, DanceFilter)> checkable,
+  Set<String> danceIds, {
+  Dialect? dialect,
+  SearchEnrichment? enrichment,
+}) async => {
+  for (final (rule, filter) in checkable)
+    rule.id: danceIds.isEmpty
+        ? const <String>{}
+        : await repos.dances.matchingAmong(
+            filter,
+            danceIds,
+            dialect: dialect,
+            enrichment: enrichment,
+          ),
+};

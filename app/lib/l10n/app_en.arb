@@ -18230,6 +18230,34 @@
       }
     }
   },
+  "suggestionWouldBreak": "{count, plural, =1{Would break: {rules}} other{Would break {count} rules: {rules}}}",
+  "@suggestionWouldBreak": {
+    "description": "Marker under a dance in the picker's Suggested order that would break the program's applied event rules if added where the suggestions are for (#2345); shown with an icon. {rules} is each rule's sentence or name, joined by semicolons.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      },
+      "rules": {
+        "type": "String",
+        "example": "At most 1 dance matching \"Petronella\" in the whole program"
+      }
+    }
+  },
+  "suggestionWouldBreakSemantic": "{count, plural, =1{Would break the event rule: {rules}} other{Would break {count} event rules: {rules}}}",
+  "@suggestionWouldBreakSemantic": {
+    "description": "Screen-reader label of the marker on a suggested dance that would break the program's applied event rules (#2345), naming the rules.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      },
+      "rules": {
+        "type": "String",
+        "example": "At most 1 dance matching \"Petronella\" in the whole program"
+      }
+    }
+  },
   "figureParamSearchDancersHint": "Search dancers",
   "@figureParamSearchDancersHint": {
     "description": "Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list."

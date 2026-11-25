@@ -19721,6 +19721,18 @@ abstract class AppLocalizations {
   /// **'Lowers it: {reason}'**
   String suggestionWhyLowers(String reason);
 
+  /// Marker under a dance in the picker's Suggested order that would break the program's applied event rules if added where the suggestions are for (#2345); shown with an icon. {rules} is each rule's sentence or name, joined by semicolons.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Would break: {rules}} other{Would break {count} rules: {rules}}}'**
+  String suggestionWouldBreak(int count, String rules);
+
+  /// Screen-reader label of the marker on a suggested dance that would break the program's applied event rules (#2345), naming the rules.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Would break the event rule: {rules}} other{Would break {count} event rules: {rules}}}'**
+  String suggestionWouldBreakSemantic(int count, String rules);
+
   /// Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list.
   ///
   /// In en, this message translates to:
