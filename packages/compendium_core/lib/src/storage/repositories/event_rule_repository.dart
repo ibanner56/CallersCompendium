@@ -15,12 +15,12 @@ const String eventRuleUseKind = 'eventRule';
 const int maxEventRules = 500;
 
 /// Thrown when a rule cannot be stored: an empty id or saved-search id, a
-/// count or name over its bound, or a quantifier or scope this build does not
+/// count or nickname over its bound, or a quantifier or scope this build does not
 /// know (the editor writes only known ones).
 class EventRuleInvalid implements Exception {
   const EventRuleInvalid(this.field);
 
-  /// `id`, `savedSearchId`, `quantifier`, `scope`, `count`, `name` or
+  /// `id`, `savedSearchId`, `quantifier`, `scope`, `count`, `nickname` or
   /// `limit`.
   final String field;
 
@@ -75,6 +75,29 @@ class EventRuleRepository {
     return [for (final id in ids) ?byId[id]];
   }
 
+  /// How many live programs apply each rule, by rule id (#2341): the
+  /// picker's **Most used** order. A program in Recently deleted does not
+  /// count; an archived one does, as it still counts in calling history. Each
+  /// program counts a rule once, read as the builder reads its list
+  /// ([decodeEventRuleIds]), and an id no rule has (a deleted rule's, kept
+  /// for its Undo) is counted like any other. Derived on every call, never
+  /// stored, so nothing about it syncs.
+  Future<Map<String, int>> usageCounts() async {
+    final column = _db.programs.eventRuleIds;
+    final rows =
+        await (_db.selectOnly(_db.programs)
+              ..addColumns([column])
+              ..where(_db.programs.deletedAt.isNull()))
+            .get();
+    final counts = <String, int>{};
+    for (final row in rows) {
+      for (final id in decodeEventRuleIds(row.read(column))) {
+        counts[id] = (counts[id] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
   /// The live rules that use the saved search [savedSearchId], for the
   /// saved-search delete guard. A rule in the trash does not count.
   Future<List<SavedSearchUse>> usesOfSavedSearch(String savedSearchId) async {
@@ -87,7 +110,7 @@ class EventRuleRepository {
       for (final row in rows)
         SavedSearchUse(
           kind: eventRuleUseKind,
-          label: row.name ?? '',
+          label: row.nickname ?? '',
           id: row.id,
         ),
     ];
@@ -101,7 +124,7 @@ class EventRuleRepository {
     required EventRuleQuantifier quantifier,
     int count = 0,
     required EventRuleScope scope,
-    String? name,
+    String? nickname,
     DateTime? at,
   }) => _db.transaction(() async {
     final live = await _live().get();
@@ -116,7 +139,7 @@ class EventRuleRepository {
       quantifier: quantifier,
       count: count,
       scope: scope,
-      name: name,
+      nickname: nickname,
       position: last + 1,
     );
     await save(rule, at: at);
@@ -156,7 +179,14 @@ class EventRuleRepository {
       for (var i = 0; i < order.length; i++) {
         final rule = rules.firstWhere((r) => r.id == order[i]);
         if (rule.position == i) continue;
-        await save(rule.copyWith(position: i), at: now);
+        // Only the place changes, so a rule this build cannot check (a newer
+        // build's, which save() refuses) moves too and is otherwise kept as
+        // it came (#2341).
+        await (_db.update(
+          _db.eventRules,
+        )..where((t) => t.id.equals(rule.id) & t.deletedAt.isNull())).write(
+          EventRulesCompanion(position: Value(i), updatedAt: Value(now)),
+        );
       }
     });
   }
@@ -234,29 +264,31 @@ class EventRuleRepository {
     quantifierName: row.quantifier,
     count: row.count,
     scopeName: row.scope,
-    name: row.name,
+    nickname: row.nickname,
     position: row.position,
   );
 
   EventRulesCompanion _companion(EventRule rule, DateTime now) {
-    final name = _name(rule.name);
+    final nickname = _nickname(rule.nickname);
     return EventRulesCompanion.insert(
       id: rule.id,
       savedSearchId: normalizeShareableText(rule.savedSearchId),
       quantifier: normalizeShareableText(rule.quantifierName),
       count: Value(rule.count),
       scope: normalizeShareableText(rule.scopeName),
-      name: Value(name == null ? null : normalizeShareableText(name)),
+      nickname: Value(
+        nickname == null ? null : normalizeShareableText(nickname),
+      ),
       position: Value(rule.position),
       updatedAt: Value(now),
     );
   }
 
-  /// A typed name with invisible characters and edge spaces removed, or null
+  /// A nickname with invisible characters and edge spaces removed, or null
   /// when nothing is left.
-  static String? _name(String? name) {
-    if (name == null) return null;
-    final text = sanitizeShareableText(name).trim();
+  static String? _nickname(String? nickname) {
+    if (nickname == null) return null;
+    final text = sanitizeShareableText(nickname).trim();
     return text.isEmpty ? null : text;
   }
 
@@ -275,8 +307,8 @@ class EventRuleRepository {
     if (rule.count < 0 || rule.count > maxEventRuleCount) {
       throw const EventRuleInvalid('count');
     }
-    if ((rule.name?.length ?? 0) > maxEventRuleNameLength) {
-      throw const EventRuleInvalid('name');
+    if ((rule.nickname?.length ?? 0) > maxEventRuleNicknameLength) {
+      throw const EventRuleInvalid('nickname');
     }
   }
 

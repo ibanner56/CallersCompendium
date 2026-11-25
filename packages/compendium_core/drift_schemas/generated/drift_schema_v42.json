@@ -3584,8 +3584,8 @@
             "dsl_features": []
           },
           {
-            "name": "name",
-            "getter_name": "name",
+            "name": "nickname",
+            "getter_name": "nickname",
             "moor_type": "string",
             "nullable": true,
             "customConstraints": "NULL",

@@ -48,12 +48,12 @@ String eventRuleSentence(
   };
 }
 
-/// What a rule is called in a list: its typed name, else its sentence.
+/// What a rule is called in a list: its nickname (#2341), else its sentence.
 String eventRuleTitle(
   AppLocalizations l10n,
   EventRule rule,
   String? searchName,
-) => rule.name ?? eventRuleSentence(l10n, rule, searchName);
+) => rule.nickname ?? eventRuleSentence(l10n, rule, searchName);
 
 /// Why a rule is not checked, as lines to show: the reason, then each
 /// missing thing its saved search names.

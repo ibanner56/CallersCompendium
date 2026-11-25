@@ -5,7 +5,9 @@
 // `beforeOpen` repairs it.
 //
 // Mutations this catches: drop the `_ensureV42Schema` call, or the
-// `_ensureV42EventRules` call, from `beforeOpen`.
+// `_ensureV42EventRules` call, from `beforeOpen`; or drop the step of
+// `_ensureV42EventRules` that adds `event_rules.nickname` (#2341) to a table
+// made before it joined v42.
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/native.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
@@ -76,4 +78,37 @@ void main() {
       expect(columnsOf('program_slots'), contains('placeholder_search_id'));
     },
   );
+
+  test('an event_rules table stamped v42 before its nickname (#2341) joined '
+      'gains it on open, and its rules read', () async {
+    final raw = sqlite3.sqlite3.openInMemory();
+    addTearDown(raw.close);
+
+    final fresh = CompendiumDatabase(
+      NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+    );
+    await fresh.customSelect('SELECT 1').get();
+    await fresh.close();
+
+    raw.execute('ALTER TABLE event_rules DROP COLUMN nickname');
+    raw.execute(
+      "INSERT INTO event_rules (id, saved_search_id, quantifier, count, "
+      "scope, position) VALUES ('r1', 's1', 'atMost', 1, 'wholeProgram', 0)",
+    );
+    raw.execute('PRAGMA user_version = 42');
+
+    final reopened = CompendiumDatabase(
+      NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+    );
+    addTearDown(reopened.close);
+    final rules = await EventRuleRepository(reopened).listAll();
+
+    expect(
+      raw
+          .select("SELECT name FROM pragma_table_info('event_rules')")
+          .map((r) => r['name']),
+      contains('nickname'),
+    );
+    expect([for (final r in rules) (r.id, r.nickname)], [('r1', null)]);
+  });
 }

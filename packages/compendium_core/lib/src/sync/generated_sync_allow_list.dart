@@ -170,7 +170,7 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
   SyncRecordKind.eventRule: {
     'count',
     'id',
-    'name',
+    'nickname',
     'position',
     'quantifier',
     'savedSearchId',

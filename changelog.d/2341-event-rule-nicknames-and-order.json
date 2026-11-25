@@ -1,0 +1,14 @@
+{
+  "id": "2341-event-rule-nicknames-and-order",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Event rules (Experimental) can have a nickname, such as \"family\" or \"one petronella\": the rule editor's Nickname field, shown as the rule's title above its sentence in Manage rules and in a program's rule picker. With more than eight rules the picker has a search that finds rules by nickname and by the words of their sentence, ignoring capitals and accents; New rule… stays at the top, and when nothing matches it offers to start a rule with what you typed as its nickname. Manage rules can now reorder your rules by dragging or with Move up and Move down, and a new Rule order setting under Settings ▸ Experimental ▸ Event rules lists the picker's rules in your order or with the ones your programs use most first."
+    ]
+  },
+  "core": {
+    "added": [
+      "Store an event rule's nickname as event_rules.nickname (renamed from #2340's unreleased event_rules.name, inside schema v42), sync it as the eventRule body's nickname, and classify it and the event_rule_order settings key, which is gated on eventRules.v1. Add EventRuleOrder, orderEventRules, eventRuleMatchesQuery and EventRuleRepository.usageCounts, which counts the live programs applying each rule."
+    ]
+  }
+}

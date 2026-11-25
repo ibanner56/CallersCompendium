@@ -118,7 +118,7 @@ void main() {
       find.byKey(const ValueKey('event-rule-scope-wholeProgram')),
     );
     await tester.enterText(
-      find.byKey(const ValueKey('event-rule-name')),
+      find.byKey(const ValueKey('event-rule-nickname')),
       'Two Beckets',
     );
     await tester.pumpAndSettle();
@@ -131,7 +131,7 @@ void main() {
     );
     final edited = (await repos.eventRules.get(rule.id))!;
     expect(
-      (edited.quantifier, edited.count, edited.scope, edited.name),
+      (edited.quantifier, edited.count, edited.scope, edited.nickname),
       (
         EventRuleQuantifier.atLeast,
         2,
@@ -166,7 +166,7 @@ void main() {
       quantifier: EventRuleQuantifier.atMost,
       count: 1,
       scope: EventRuleScope.neighbouring,
-      name: 'No two Beckets',
+      nickname: 'No two Beckets',
     );
     final unnamed = await repos.eventRules.create(
       savedSearchId: search.id,
@@ -223,7 +223,7 @@ void main() {
       savedSearchId: search.id,
       quantifier: EventRuleQuantifier.none,
       scope: EventRuleScope.wholeProgram,
-      name: 'No Beckets',
+      nickname: 'No Beckets',
     );
     final on = await _pump(
       tester,
@@ -360,7 +360,7 @@ void main() {
     await tester.tap(find.text(sentence));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.byKey(const ValueKey('event-rule-name')),
+      find.byKey(const ValueKey('event-rule-nickname')),
       'Beckets apart',
     );
     await tester.pumpAndSettle();
@@ -368,10 +368,195 @@ void main() {
     await tester.tap(save);
     await tester.pumpAndSettle();
     final stored = (await repos.eventRules.get(rule.id))!;
-    expect(stored.name, 'Beckets apart');
+    expect(stored.nickname, 'Beckets apart');
     expect(
       (stored.quantifier, stored.count, stored.scope),
       (EventRuleQuantifier.atMost, 3, EventRuleScope.neighbouring),
     );
+  });
+
+  group('#2341', () {
+    testWidgets('a nickname set in the editor is the title with the '
+        'sentence beneath it; cleared, the sentence is the title again', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final search = await repos.savedSearches.create(
+        name: 'Becket',
+        spec: _spec(),
+      );
+      final rule = await repos.eventRules.create(
+        savedSearchId: search.id,
+        quantifier: EventRuleQuantifier.atMost,
+        count: 1,
+        scope: EventRuleScope.wholeProgram,
+      );
+      await _pump(tester, repos, const EventRulesScreen(), enabled: true);
+      const sentence = 'At most 1 dance matching "Becket" in the whole program';
+      final row = find.byKey(ValueKey('event-rule-${rule.id}'));
+      ListTile tile() => tester.widget<ListTile>(
+        find.descendant(of: row, matching: find.byType(ListTile)),
+      );
+      await pumpUntilFound(tester, row);
+      expect((tile().title! as Text).data, sentence);
+
+      Future<void> setNickname(String text) async {
+        await tester.tap(find.text(sentence).first);
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('event-rule-nickname')),
+          text,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('event-rule-save')));
+        await tester.pumpAndSettle();
+      }
+
+      await setNickname('Family');
+      await pumpUntilFound(tester, find.text('Family'));
+      expect((tile().title! as Text).data, 'Family');
+      expect(
+        find.descendant(of: row, matching: find.text(sentence)),
+        findsOneWidget,
+        reason: 'the sentence beneath the nickname',
+      );
+      expect((await repos.eventRules.get(rule.id))!.nickname, 'Family');
+
+      await setNickname('   ');
+      await pumpUntil(
+        tester,
+        () => find.text('Family').evaluate().isEmpty,
+        description: 'the nickname gone',
+      );
+      expect((tile().title! as Text).data, sentence);
+      expect(
+        find.descendant(of: row, matching: find.text(sentence)),
+        findsOneWidget,
+        reason: 'shown once, as the title',
+      );
+      expect((await repos.eventRules.get(rule.id))!.nickname, isNull);
+    });
+
+    testWidgets('Manage rules reorders by move up / move down and by drag, '
+        'and stores the order', (tester) async {
+      final repos = openTestRepositories();
+      final search = await repos.savedSearches.create(
+        name: 'Becket',
+        spec: _spec(),
+      );
+      final ids = [
+        for (final name in ['A', 'B', 'C'])
+          (await repos.eventRules.create(
+            savedSearchId: search.id,
+            quantifier: EventRuleQuantifier.atMost,
+            count: 1,
+            scope: EventRuleScope.wholeProgram,
+            nickname: name,
+          )).id,
+      ];
+      await _pump(tester, repos, const EventRulesScreen(), enabled: true);
+      await pumpUntilFound(tester, find.text('C'));
+      Future<List<String>> stored() async => [
+        for (final r in await repos.eventRules.listAll()) r.nickname!,
+      ];
+      List<String> shown() {
+        final titles = ['A', 'B', 'C'];
+        final tops = {
+          for (final t in titles) t: tester.getTopLeft(find.text(t)).dy,
+        };
+        return titles..sort((a, b) => tops[a]!.compareTo(tops[b]!));
+      }
+
+      IconButton button(String id, String which) => tester.widget<IconButton>(
+        find.byKey(ValueKey('event-rule-$id-move-$which')),
+      );
+      expect(button(ids[0], 'up').onPressed, isNull, reason: 'first');
+      expect(button(ids[2], 'down').onPressed, isNull, reason: 'last');
+      expect(button(ids[0], 'up').tooltip, 'Move A up');
+
+      await tester.tap(find.byKey(ValueKey('event-rule-${ids[2]}-move-up')));
+      await tester.pumpAndSettle();
+      expect(await stored(), ['A', 'C', 'B']);
+      expect(shown(), ['A', 'C', 'B']);
+
+      await tester.tap(find.byKey(ValueKey('event-rule-${ids[0]}-move-down')));
+      await tester.pumpAndSettle();
+      expect(await stored(), ['C', 'A', 'B']);
+
+      // Drag: each row has its own handle, labelled for a screen reader.
+      final list = find.byType(ReorderableListView);
+      expect(
+        find.descendant(
+          of: list,
+          matching: find.byType(ReorderableDragStartListener),
+        ),
+        findsNWidgets(3),
+      );
+      final semantics = tester.ensureSemantics();
+      await tester.pump();
+      expect(
+        find.bySemanticsLabel(RegExp('Drag to reorder B')),
+        findsOneWidget,
+      );
+      semantics.dispose();
+      tester.widget<ReorderableListView>(list).onReorderItem!(2, 0);
+      await tester.pumpAndSettle();
+      expect(await stored(), ['B', 'C', 'A']);
+      await pumpUntil(
+        tester,
+        () => shown().first == 'B',
+        description: 'B first',
+      );
+      expect(shown(), ['B', 'C', 'A']);
+    });
+
+    testWidgets('Rule order shows with Event rules on, My order by default, '
+        'and stores Most used', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        const Scaffold(body: SingleChildScrollView(child: EventRulesSection())),
+        enabled: true,
+      );
+      final field = find.byKey(
+        const ValueKey('experimental-event-rule-order-field'),
+      );
+      await pumpUntilFound(tester, field);
+      expect(find.text('Rule order'), findsOneWidget);
+      expect(find.text('My order'), findsOneWidget);
+      expect(await repos.settings.get(kEventRuleOrderKey), isNull);
+
+      await pickDropdownEntry(tester, field, 'Most used');
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get(kEventRuleOrderKey), 'mostUsed');
+      expect(
+        find.text(
+          'The rule picker lists first the rules your programs use most, '
+          'not counting programs in Recently deleted.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Rule order shows a value that arrives while it is open, as '
+        'by Device Sync or a restore', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        const Scaffold(body: SingleChildScrollView(child: EventRulesSection())),
+        enabled: true,
+      );
+      await pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('experimental-event-rule-order-field')),
+      );
+      expect(find.text('My order'), findsOneWidget);
+
+      await repos.settings.set(kEventRuleOrderKey, 'mostUsed');
+      await pumpUntilFound(tester, find.text('Most used'));
+      expect(find.text('My order'), findsNothing);
+    });
   });
 }

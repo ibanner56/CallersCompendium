@@ -14242,9 +14242,9 @@
   "@eventRulesManageTitle": {
     "x-sourceSha256": "9e4a85c7c70164ccbaf362fdd644cb01d83fbdc59303828a507f12c83da1f8ef"
   },
-  "eventRulesManageSubtitle": "ルールを表示、追加、編集、削除します。",
+  "eventRulesManageSubtitle": "ルールを表示、追加、編集、並べ替え、削除します。",
   "@eventRulesManageSubtitle": {
-    "x-sourceSha256": "f26accf09aedc4741c6179c30ace30a34e0d0900f740393b68a85396f3d3be76"
+    "x-sourceSha256": "e3201fa38d2cc62d010cbcd6d873777c0e5034d2c8c0a7c95b31fe0ab26ebe57"
   },
   "eventRulesEmpty": "ルールはまだありません。ルールは保存した検索を使って、対象のダンスを指定します。",
   "@eventRulesEmpty": {
@@ -14322,9 +14322,37 @@
   "@eventRuleScopeNeighbouring": {
     "x-sourceSha256": "d50cc2ccf014bb652fda876f4c9d7101674ed08bdfe9132f9705b722e91584d6"
   },
-  "eventRuleNameLabel": "名前（任意）",
-  "@eventRuleNameLabel": {
-    "x-sourceSha256": "e09b37bcc4f301f48329f9e0c5ee747acf821d692e9aac10abea5970ba70b1b4"
+  "eventRuleNicknameLabel": "ニックネーム（任意）",
+  "@eventRuleNicknameLabel": {
+    "x-sourceSha256": "7cbcb92acd6f441ed5d93b9321e7594f45f3aca0ac2c9a2ee1ad9ac65757a7bf"
+  },
+  "eventRuleNicknameHelp": "ルールの文の上に表示され、ルール選択の検索で見つけられます。",
+  "@eventRuleNicknameHelp": {
+    "x-sourceSha256": "2b49a0d5c0f6ef016a7b079c043894c7f578f6b38b8bbee36b7dfaddc4e13c72"
+  },
+  "eventRulesOrderTitle": "ルールの並び順",
+  "@eventRulesOrderTitle": {
+    "x-sourceSha256": "40274c011d1919f9614435d995f2694731a5a1a15b42f8996bbf9078ba7e76fe"
+  },
+  "eventRulesOrderManual": "自分の順番",
+  "@eventRulesOrderManual": {
+    "x-sourceSha256": "94ae00f8fb08f5c7decfdc9c3bce35030178a8eb3999cc9bc93274b7c64cfffb"
+  },
+  "eventRulesOrderManualSubtitle": "ルール選択では、「ルールを管理」で並べた順番でルールを表示します。",
+  "@eventRulesOrderManualSubtitle": {
+    "x-sourceSha256": "18b81226dfdf90d61654f8ac8c88bcd90ced23af0334bd3e00515a5a2c92c827"
+  },
+  "eventRulesOrderMostUsed": "よく使う順",
+  "@eventRulesOrderMostUsed": {
+    "x-sourceSha256": "d3365a6d0d4789d6c13da5d3219bde6bc4e71ce0a52cc07a3810235e70610a19"
+  },
+  "eventRulesOrderMostUsedSubtitle": "ルール選択では、プログラムで最もよく使われているルールから表示します。「最近削除したアイテム」にあるプログラムは数えません。",
+  "@eventRulesOrderMostUsedSubtitle": {
+    "x-sourceSha256": "408d26442398abcb048bd4b64fddf1a47983d0aee1596009349ceb0153a30a8e"
+  },
+  "eventRulesDragToReorder": "ドラッグして{rule}を並べ替え",
+  "@eventRulesDragToReorder": {
+    "x-sourceSha256": "1149182cc679bfb40fdcff708a77a340f1a2f16a612518040ef423e06ebd8985"
   },
   "eventRuleSentenceAtMostWhole": "{count, plural, other{プログラム全体で「{search}」に該当するダンスは最大{count}曲}}",
   "@eventRuleSentenceAtMostWhole": {
@@ -14409,6 +14437,22 @@
   "programsRulesPickerEmpty": "ルールはまだありません。",
   "@programsRulesPickerEmpty": {
     "x-sourceSha256": "4525b944ceb250381670b46f13d12d204cd01e1283e7ecfd40c8e38ff10032ef"
+  },
+  "programsRulesPickerSearchHint": "ルールを検索",
+  "@programsRulesPickerSearchHint": {
+    "x-sourceSha256": "0cfd5dddcff3e92ead37239063ac175f4866e566de499bed124dcb67a7d6cadd"
+  },
+  "programsRulesPickerSearchClear": "検索をクリア",
+  "@programsRulesPickerSearchClear": {
+    "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
+  },
+  "programsRulesPickerNoMatches": "「{query}」に一致するルールはありません。",
+  "@programsRulesPickerNoMatches": {
+    "x-sourceSha256": "9ec29b76d8ad562c9e7f87b151fb5c1f78f79594aa738a7c31b11feb79a2730a"
+  },
+  "programsRulesPickerNewNamed": "新しいルール「{nickname}」…",
+  "@programsRulesPickerNewNamed": {
+    "x-sourceSha256": "986f9d87beea6bcb67e36de5358f87b17c1c1b36e9abfded37e11c937a413ae1"
   },
   "programsRulesStripBroken": "{count, plural, other{満たされていないルール：{count}件}}",
   "@programsRulesStripBroken": {

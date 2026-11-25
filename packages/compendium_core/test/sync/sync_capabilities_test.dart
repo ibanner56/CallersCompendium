@@ -141,6 +141,14 @@ void main() {
       expect(build.capabilityFor(SyncRecordKind.program, 'p1'), isNull);
     });
 
+    test("the rule picker's order waits on eventRules.v1 too, not a "
+        'capability of its own (#2341)', () {
+      expect(
+        build.capabilityFor(SyncRecordKind.setting, 'event_rule_order'),
+        SyncCapabilities.eventRulesV1,
+      );
+    });
+
     test('rollout: beside peers on the build before this one, which '
         'advertise every capability but savedSearches.v1 and eventRules.v1, '
         'every peer holds savedSearches.v1 closed and is named', () {

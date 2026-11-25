@@ -14981,7 +14981,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get eventRulesManageSubtitle =>
-      'Je regels bekijken, toevoegen, bewerken en verwijderen.';
+      'Je regels bekijken, toevoegen, bewerken, herschikken en verwijderen.';
 
   @override
   String get eventRulesEmpty =>
@@ -15046,7 +15046,33 @@ class AppLocalizationsNl extends AppLocalizations {
   String get eventRuleScopeNeighbouring => 'Elke twee aangrenzende dansen';
 
   @override
-  String get eventRuleNameLabel => 'Naam (optioneel)';
+  String get eventRuleNicknameLabel => 'Bijnaam (optioneel)';
+
+  @override
+  String get eventRuleNicknameHelp =>
+      'Wordt boven de zin van de regel getoond en gevonden door de zoekfunctie van de regelkiezer.';
+
+  @override
+  String get eventRulesOrderTitle => 'Volgorde van regels';
+
+  @override
+  String get eventRulesOrderManual => 'Mijn volgorde';
+
+  @override
+  String get eventRulesOrderManualSubtitle =>
+      'De regelkiezer toont je regels in de volgorde die je ze in Regels beheren hebt gegeven.';
+
+  @override
+  String get eventRulesOrderMostUsed => 'Meest gebruikt';
+
+  @override
+  String get eventRulesOrderMostUsedSubtitle =>
+      'De regelkiezer toont eerst de regels die je programma\'s het meest gebruiken; programma\'s in Onlangs verwijderd tellen niet mee.';
+
+  @override
+  String eventRulesDragToReorder(String rule) {
+    return 'Sleep om $rule te verplaatsen';
+  }
 
   @override
   String eventRuleSentenceAtMostWhole(int count, String search) {
@@ -15204,6 +15230,22 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsRulesPickerEmpty => 'Je hebt nog geen regels.';
+
+  @override
+  String get programsRulesPickerSearchHint => 'Regels zoeken';
+
+  @override
+  String get programsRulesPickerSearchClear => 'Zoekopdracht wissen';
+
+  @override
+  String programsRulesPickerNoMatches(String query) {
+    return 'Geen regel komt overeen met \"$query\".';
+  }
+
+  @override
+  String programsRulesPickerNewNamed(String nickname) {
+    return 'Nieuwe regel \"$nickname\"…';
+  }
 
   @override
   String programsRulesStripBroken(int count) {

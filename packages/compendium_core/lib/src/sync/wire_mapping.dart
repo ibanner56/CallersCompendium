@@ -252,7 +252,7 @@ const _eventRuleFields = [
   SyncWireField('quantifier', ['event_rules.quantifier']),
   SyncWireField('count', ['event_rules.count']),
   SyncWireField('scope', ['event_rules.scope']),
-  SyncWireField('name', ['event_rules.name']),
+  SyncWireField('nickname', ['event_rules.nickname']),
   SyncWireField('position', ['event_rules.position']),
 ];
 

@@ -14315,7 +14315,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get eventRulesManageTitle => 'ルールを管理';
 
   @override
-  String get eventRulesManageSubtitle => 'ルールを表示、追加、編集、削除します。';
+  String get eventRulesManageSubtitle => 'ルールを表示、追加、編集、並べ替え、削除します。';
 
   @override
   String get eventRulesEmpty => 'ルールはまだありません。ルールは保存した検索を使って、対象のダンスを指定します。';
@@ -14378,7 +14378,32 @@ class AppLocalizationsJa extends AppLocalizations {
   String get eventRuleScopeNeighbouring => '隣接する任意の2曲';
 
   @override
-  String get eventRuleNameLabel => '名前（任意）';
+  String get eventRuleNicknameLabel => 'ニックネーム（任意）';
+
+  @override
+  String get eventRuleNicknameHelp => 'ルールの文の上に表示され、ルール選択の検索で見つけられます。';
+
+  @override
+  String get eventRulesOrderTitle => 'ルールの並び順';
+
+  @override
+  String get eventRulesOrderManual => '自分の順番';
+
+  @override
+  String get eventRulesOrderManualSubtitle =>
+      'ルール選択では、「ルールを管理」で並べた順番でルールを表示します。';
+
+  @override
+  String get eventRulesOrderMostUsed => 'よく使う順';
+
+  @override
+  String get eventRulesOrderMostUsedSubtitle =>
+      'ルール選択では、プログラムで最もよく使われているルールから表示します。「最近削除したアイテム」にあるプログラムは数えません。';
+
+  @override
+  String eventRulesDragToReorder(String rule) {
+    return 'ドラッグして$ruleを並べ替え';
+  }
 
   @override
   String eventRuleSentenceAtMostWhole(int count, String search) {
@@ -14515,6 +14540,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsRulesPickerEmpty => 'ルールはまだありません。';
+
+  @override
+  String get programsRulesPickerSearchHint => 'ルールを検索';
+
+  @override
+  String get programsRulesPickerSearchClear => '検索をクリア';
+
+  @override
+  String programsRulesPickerNoMatches(String query) {
+    return '「$query」に一致するルールはありません。';
+  }
+
+  @override
+  String programsRulesPickerNewNamed(String nickname) {
+    return '新しいルール「$nickname」…';
+  }
 
   @override
   String programsRulesStripBroken(int count) {

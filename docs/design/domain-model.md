@@ -381,10 +381,13 @@ An event rule (schema v42, #2340, Experimental) is a sentence about a program:
 `savedSearchId` (which dances, by a saved search's id), `quantifier`
 (`atMost`, `atLeast`, `none`), `count` (0 for `none`), `scope`
 (`wholeProgram`, `beforeFirstBreak`, `afterFirstBreak`, `neighbouring`),
-an optional `name`, and `position` in the caller's list. The quantifier and
-scope are kept as names, so a rule a newer build wrote is kept as it was
-(`isReadable` false) and never checked. A rule applies only to the programs
-whose `eventRuleIds` name it.
+an optional `nickname` (#2341), and `position` in the caller's list. The
+quantifier and scope are kept as names, so a rule a newer build wrote is kept
+as it was (`isReadable` false) and never checked. A rule applies only to the
+programs whose `eventRuleIds` name it. The program's rule picker lists rules
+by `position` or by how many live programs apply each
+(`EventRuleOrder`, `orderEventRules`; derived, never stored), and searches
+them by nickname and sentence (`eventRuleMatchesQuery`).
 
 Checking is `evaluateEventRules` (`analysis/event_rules.dart`), pure Dart:
 the saved search is resolved, run once restricted to the program's dance ids

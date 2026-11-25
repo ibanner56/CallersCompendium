@@ -2,14 +2,14 @@ import '../model/event_rule.dart';
 
 /// The body of an `eventRule` record (#2340): the rule as stored, its
 /// quantifier and scope as their stored names, so a rule a newer build wrote
-/// travels on as it came. `name` is sent only when the caller typed one.
+/// travels on as it came. `nickname` is sent only when the rule has one.
 Map<String, Object?> syncEventRuleBody(EventRule rule) => {
   'id': rule.id,
   'savedSearchId': rule.savedSearchId,
   'quantifier': rule.quantifierName,
   'count': rule.count,
   'scope': rule.scopeName,
-  if (rule.name != null) 'name': rule.name,
+  if (rule.nickname != null) 'nickname': rule.nickname,
   'position': rule.position,
 };
 
@@ -17,12 +17,12 @@ Map<String, Object?> syncEventRuleBody(EventRule rule) => {
 /// cannot store. A quantifier or scope it does not know is kept: the rule is
 /// stored, shown as needing attention and never checked.
 EventRule decodeSyncEventRuleBody(Map<String, Object?> body) {
-  final name = body['name'];
-  if (name != null &&
-      (name is! String ||
-          name.isEmpty ||
-          name.length > maxEventRuleNameLength)) {
-    throw const FormatException('event rule name must be short text');
+  final nickname = body['nickname'];
+  if (nickname != null &&
+      (nickname is! String ||
+          nickname.isEmpty ||
+          nickname.length > maxEventRuleNicknameLength)) {
+    throw const FormatException('event rule nickname must be short text');
   }
   return EventRule(
     id: _text(body, 'id'),
@@ -30,7 +30,7 @@ EventRule decodeSyncEventRuleBody(Map<String, Object?> body) {
     quantifierName: _text(body, 'quantifier'),
     count: _int(body, 'count', 0, maxEventRuleCount),
     scopeName: _text(body, 'scope'),
-    name: name as String?,
+    nickname: nickname as String?,
     position: _int(body, 'position', 0, 1 << 31),
   );
 }

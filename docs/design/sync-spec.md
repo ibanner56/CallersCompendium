@@ -1595,14 +1595,14 @@ Join rows are not separate records; they ride inline with their parent.
 
 **Event rules (#2340).** An `eventRule` body is `id`, `savedSearchId`,
 `quantifier`, `count`, `scope` and `position`, every key always present, and
-`name` only when the caller typed one (`syncEventRuleBody`). `quantifier` and
-`scope` are the stored names (`atMost`, `atLeast`, `none`; `wholeProgram`,
+`nickname` only when the rule has one (#2341; `syncEventRuleBody`).
+`quantifier` and `scope` are the stored names (`atMost`, `atLeast`, `none`; `wholeProgram`,
 `beforeFirstBreak`, `afterFirstBreak`, `neighbouring`) and travel verbatim: a
 build that receives a name it does not know stores the rule as it came, shows
 it as needing attention, never checks it, and publishes it back byte for
 byte. A body whose `id`, `savedSearchId`, `quantifier` or `scope` is not text
 of 1–200 units, whose `count` or `position` is not an integer in range, or
-whose `name` is not short non-empty text is malformed. A program's applied
+whose `nickname` is not short non-empty text is malformed. A program's applied
 rules are not records of their own: they travel as `eventRuleIds`, a
 top-level array of rule ids in the `program` body, written only when not
 empty so a program without rules keeps its wire hash. A build that does not
@@ -5276,7 +5276,12 @@ not overwrite it, so the capability is not bumped for a change the version
 field covers.
 
 **`eventRules.v1`.** Gates every `eventRule` record, tombstones included, and
-the exact settings key `event_rules_enabled`, the Experimental toggle (#2340).
+the exact settings keys `event_rules_enabled`, the Experimental toggle (#2340),
+and `event_rule_order`, the rule picker's **Rule order** (`manual` or
+`mostUsed`, #2341). The order key joined this capability while it was
+unreleased rather than taking one of its own: one capability per feature, and
+a build without event rules has no picker to order. **Most used** is derived
+from the programs' `eventRuleIds` on each device and never sent.
 A build without it has no `event_rules` table, so it could only keep such a
 record whole, without a manager to edit it or a builder to check it. A
 program's `eventRuleIds` are not gated: they are a top-level field of the

@@ -142,8 +142,8 @@ int eventRuleCountLimit(EventRuleQuantifier quantifier, EventRuleScope scope) =>
       _ => maxEventRuleCount,
     };
 
-/// Longest typed name an [EventRule] may have, in UTF-16 code units.
-const int maxEventRuleNameLength = 200;
+/// Longest nickname an [EventRule] may have, in UTF-16 code units.
+const int maxEventRuleNicknameLength = 200;
 
 /// An event rule (#2340): a sentence about a program, built from **which
 /// dances** (a saved search, by id), **how many** ([quantifier] and [count])
@@ -165,7 +165,7 @@ class EventRule {
     required this.quantifierName,
     required this.count,
     required this.scopeName,
-    this.name,
+    this.nickname,
     this.position = 0,
   });
 
@@ -176,7 +176,7 @@ class EventRule {
     required EventRuleQuantifier quantifier,
     int count = 0,
     required EventRuleScope scope,
-    String? name,
+    String? nickname,
     int position = 0,
   }) : this(
          id: id,
@@ -184,7 +184,7 @@ class EventRule {
          quantifierName: quantifier.name,
          count: quantifier == EventRuleQuantifier.none ? 0 : count,
          scopeName: scope.name,
-         name: name,
+         nickname: nickname,
          position: position,
        );
 
@@ -202,8 +202,9 @@ class EventRule {
   /// The stored scope ([EventRuleScope.name]).
   final String scopeName;
 
-  /// A name the caller typed for the rule, or null to show its sentence only.
-  final String? name;
+  /// The rule's nickname (#2341): a short name the caller typed, shown as the
+  /// rule's title above its sentence; null to show the sentence only.
+  final String? nickname;
 
   /// Where the rule sits in the caller's list of rules.
   final int position;
@@ -227,8 +228,8 @@ class EventRule {
     EventRuleQuantifier? quantifier,
     int? count,
     EventRuleScope? scope,
-    String? name,
-    bool clearName = false,
+    String? nickname,
+    bool clearNickname = false,
     int? position,
   }) {
     final q = quantifier?.name ?? quantifierName;
@@ -238,7 +239,7 @@ class EventRule {
       quantifierName: q,
       count: q == EventRuleQuantifier.none.name ? 0 : (count ?? this.count),
       scopeName: scope?.name ?? scopeName,
-      name: clearName ? null : (name ?? this.name),
+      nickname: clearNickname ? null : (nickname ?? this.nickname),
       position: position ?? this.position,
     );
   }
@@ -251,7 +252,7 @@ class EventRule {
       other.quantifierName == quantifierName &&
       other.count == count &&
       other.scopeName == scopeName &&
-      other.name == name &&
+      other.nickname == nickname &&
       other.position == position;
 
   @override
@@ -261,7 +262,7 @@ class EventRule {
     quantifierName,
     count,
     scopeName,
-    name,
+    nickname,
     position,
   );
 

@@ -350,7 +350,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `event_rules` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind. |
 | `event_rules` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. |
 | `event_rules` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
-| `event_rules` | `name` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | A name the caller typed for one of their event rules (#2340), or NULL. Free text the caller writes about their own planning; syncs and is kept in backups, but left out of a shared program file and the PDF. |
+| `event_rules` | `nickname` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | The nickname the caller gave one of their event rules (#2341), or NULL: a short name shown above the rule's sentence and matched by the rule picker's search. Free text the caller writes about their own planning, classified as the issue proposed and the maintainer approved (issue review, 2026-11-22): egress as the rest of event_rules, so it syncs and is kept in backups, but is left out of a shared program file and the PDF. |
 | `event_rules` | `position` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | Part of an event rule (#2340): how many dances it allows and where in a program it counts, or its place in the caller's list. The caller's own planning data: syncs to their devices and is kept in backups, but left out of a shared program file and the PDF. |
 | `event_rules` | `quantifier` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | Part of an event rule (#2340): how many dances it allows and where in a program it counts, or its place in the caller's list. The caller's own planning data: syncs to their devices and is kept in backups, but left out of a shared program file and the PDF. |
 | `event_rules` | `saved_search_id` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | Which of the caller's saved searches (#2325) an event rule (#2340) counts: an id, never a copy of the search. A saved search may name a choreographer (AuthorFilter); that is the saved search's own classification (saved_search: prefix), and the rule only references it. The caller's own planning data: syncs to their devices and is kept in backups, but left out of a shared program file and the PDF, which carry no rule data. |
@@ -513,7 +513,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**142 settings keys**: 92 shareable, 15 device-local, 33 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
+**143 settings keys**: 93 shareable, 15 device-local, 33 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -593,6 +593,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `default_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_starting_program` | `dpv:NonPersonalData` | app user | shareable | Legacy user-authored semantic slot template for manually created programs (the Starting program). No longer written: it is shown as the first program template and copied into one at the user's first change to their templates (#2337), and left in place so a device on an older build keeps it. It contains selected dance references and caller notes, so it travels with the user preference in local backups. |
 | `ecd_convert_prompt_dismissed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
+| `event_rule_order` | `dpv:NonPersonalData` | app user | shareable |  |
 | `event_rules_enabled` | `dpv:NonPersonalData` | app user | shareable |  |
 | `first_day_of_week` | `dpv:NonPersonalData` | app user | shareable |  |
 | `formation_color_overrides` | `dpv:NonPersonalData` | app user | shareable |  |

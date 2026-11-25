@@ -14898,7 +14898,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get eventRulesManageSubtitle =>
-      'Se, tilføj, rediger og slet dine regler.';
+      'Se, tilføj, rediger, omarranger og slet dine regler.';
 
   @override
   String get eventRulesEmpty =>
@@ -14963,7 +14963,33 @@ class AppLocalizationsDa extends AppLocalizations {
   String get eventRuleScopeNeighbouring => 'To vilkårlige nabodanse';
 
   @override
-  String get eventRuleNameLabel => 'Navn (valgfrit)';
+  String get eventRuleNicknameLabel => 'Kaldenavn (valgfrit)';
+
+  @override
+  String get eventRuleNicknameHelp =>
+      'Vises over reglens sætning og findes af regelvælgerens søgning.';
+
+  @override
+  String get eventRulesOrderTitle => 'Rækkefølge af regler';
+
+  @override
+  String get eventRulesOrderManual => 'Min rækkefølge';
+
+  @override
+  String get eventRulesOrderManualSubtitle =>
+      'Regelvælgeren viser dine regler i den rækkefølge, du har givet dem i Administrer regler.';
+
+  @override
+  String get eventRulesOrderMostUsed => 'Mest brugte';
+
+  @override
+  String get eventRulesOrderMostUsedSubtitle =>
+      'Regelvælgeren viser først de regler, dine programmer bruger mest, uden at tælle programmer i For nylig slettet.';
+
+  @override
+  String eventRulesDragToReorder(String rule) {
+    return 'Træk for at flytte $rule';
+  }
 
   @override
   String eventRuleSentenceAtMostWhole(int count, String search) {
@@ -15113,6 +15139,22 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsRulesPickerEmpty => 'Du har ingen regler endnu.';
+
+  @override
+  String get programsRulesPickerSearchHint => 'Søg i regler';
+
+  @override
+  String get programsRulesPickerSearchClear => 'Ryd søgning';
+
+  @override
+  String programsRulesPickerNoMatches(String query) {
+    return 'Ingen regel matcher \"$query\".';
+  }
+
+  @override
+  String programsRulesPickerNewNamed(String nickname) {
+    return 'Ny regel \"$nickname\"…';
+  }
 
   @override
   String programsRulesStripBroken(int count) {

@@ -150,7 +150,7 @@ programs(id PK, title, event_date, venue, venue_id NULL, notes, status,
 program_slots(id PK, program_id FK, position, dance_id NULL, text,
               is_alt, performed_at)
 
-event_rules(id PK, saved_search_id, quantifier, count, scope, name NULL,
+event_rules(id PK, saved_search_id, quantifier, count, scope, nickname NULL,
             position, updated_at, deleted_at, existence_at)  -- (v42, #2340)
 
 venues(id PK, name, address1, address2, city, state_prov, country,
@@ -989,8 +989,8 @@ steps that can still fire are v40 onward.
   `none`) and `scope` (`wholeProgram`, `beforeFirstBreak`, `afterFirstBreak`,
   `neighbouring`) are stored as names and read leniently, so a value a newer
   build wrote is kept and the rule reads as one this build cannot check;
-  `count` is 0 for `none`; `name` is optional; `position` orders the
-  manager's list; and the usual sync triple. No `created_at`. A delete is a
+  `count` is 0 for `none`; `nickname` is optional (#2341; see below);
+  `position` orders the manager's list; and the usual sync triple. No `created_at`. A delete is a
   tombstone, and a rule in the trash does not stop its saved search being
   deleted (`SavedSearchUsageRegistry`). Also adds
   `programs.event_rule_ids`, a JSON array of rule ids as TEXT, default
@@ -1009,6 +1009,20 @@ steps that can still fire are v40 onward.
   the `from < 42` step and from the on-open v42 ensure below, each time right
   after `_ensureV42Schema` (so after the placeholder column and the other v42
   columns), each only if absent. No data rewritten, no derived rebuild.
+
+  Also in v42, before it shipped: rule nicknames (#2341, Experimental).
+  `event_rules.nickname`, nullable TEXT, is the short name a caller gives a
+  rule, shown as its title above its sentence and matched by the rule
+  picker's search. #2340 first kept that name as `event_rules.name`; it was
+  renamed while neither had shipped, so no build reads `name`. The table is
+  created with `nickname`, and `_ensureV42EventRules` adds it, NULL for
+  every rule, to an `event_rules` table that lacks it (one a file stamped 42
+  made before it joined), from the `from < 42` step and the on-open ensure
+  alike, only if absent; a leftover `name` column is left as it is, unread.
+  The rule picker's **Most used** order counts the live programs whose
+  `event_rule_ids` hold each rule when the picker opens
+  (`EventRuleRepository.usageCounts`); no count is stored. The picker's
+  order setting is the settings key `event_rule_order`, not a column.
 
   Because test builds stamped v42 before these later pieces joined it,
   `beforeOpen` also ensures v42's pieces on every open of a file at v42 or

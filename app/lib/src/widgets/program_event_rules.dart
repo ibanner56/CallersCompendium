@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/event_rules_scope.dart' show kEventRuleOrderKey;
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../screens/settings/event_rules_screen.dart';
@@ -485,7 +486,7 @@ class EventRulesStrip extends StatelessWidget {
               key: ValueKey('program-rule-broken-${status.rule.id}'),
               title: eventRuleTitle(l10n, status.rule, status.searchName),
               lines: [
-                if (status.rule.name != null)
+                if (status.rule.nickname != null)
                   eventRuleSentence(l10n, status.rule, status.searchName),
                 if (status.breach!.brokenAsPlanned) ...[
                   if (status.rule.scope == EventRuleScope.neighbouring)
@@ -564,6 +565,9 @@ Future<void> showProgramRulesPicker(
 }) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
+  // With the keyboard up the sheet may take all the height above it, which
+  // would reach under the status bar or a notch without this (#2341).
+  useSafeArea: true,
   showDragHandle: true,
   sheetAnimationStyle: AppMotion.styleFor(context),
   builder: (_) => _RulesPicker(applied: applied, onChange: onChange),
@@ -596,6 +600,14 @@ StreamSubscription<Set<TableUpdate>> watchStoredEventRuleIds(
   });
 }
 
+/// The rule count above which the rule picker shows its search field
+/// (#2341). The same threshold as the add-to-program sheet's
+/// (`kAddToProgramSearchThreshold`, docs/design/add-to-program-sheet.md
+/// §4.1): about eight rows fit on a phone beside the title and the pinned New
+/// rule line, so a shorter list has little to search. A UI tuning value, not
+/// a data rule.
+const kEventRulePickerSearchThreshold = 8;
+
 class _RulesPicker extends StatefulWidget {
   const _RulesPicker({required this.applied, required this.onChange});
 
@@ -608,6 +620,9 @@ class _RulesPicker extends StatefulWidget {
 
 class _RulesPickerState extends State<_RulesPicker> {
   late List<String> _applied = [...widget.applied];
+
+  /// The live rules in the order Rule order chose (#2341), read again by
+  /// [_read] whenever a rule changes.
   List<EventRule>? _rules;
   Map<String, String> _names = const {};
 
@@ -617,6 +632,10 @@ class _RulesPickerState extends State<_RulesPicker> {
   /// current from [_rulesWatch], so a rule sync restores meanwhile is never
   /// dropped as deleted.
   Set<String> _deleted = const {};
+
+  /// The search (#2341): session-only, gone when the picker closes.
+  final _search = TextEditingController();
+  String _query = '';
 
   /// Reads the rules again whenever one changes (here, or by sync).
   StreamSubscription<List<EventRule>>? _rulesWatch;
@@ -632,6 +651,7 @@ class _RulesPickerState extends State<_RulesPicker> {
   @override
   void dispose() {
     unawaited(_rulesWatch?.cancel());
+    _search.dispose();
     super.dispose();
   }
 
@@ -647,9 +667,31 @@ class _RulesPickerState extends State<_RulesPicker> {
       for (final stored in await repos.savedSearches.list())
         if (stored.search case final search?) search.id: search.name,
     };
+    // The order is only how the list is sorted: if it can't be read, the
+    // rules are listed in My order rather than not at all.
+    var order = EventRuleOrder.manual;
+    var usage = const <String, int>{};
+    try {
+      order = EventRuleOrder.fromStored(
+        await repos.settings.get(kEventRuleOrderKey),
+      );
+      // Most used is counted when the picker opens, never stored (#2341).
+      if (order == EventRuleOrder.mostUsed) {
+        usage = await repos.eventRules.usageCounts();
+      }
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'program_rules_picker._read');
+      order = EventRuleOrder.manual;
+    }
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     setState(() {
-      _rules = rules;
+      _rules = orderEventRules(
+        rules,
+        order,
+        usage: usage,
+        title: (r) => eventRuleTitle(l10n, r, names[r.savedSearchId]),
+      );
       _names = names;
       _deleted = deleted;
     });
@@ -712,9 +754,14 @@ class _RulesPickerState extends State<_RulesPicker> {
 
   Future<void> _add(String id) => _toggle(id, on: true);
 
-  Future<void> _newRule() async {
-    final rule = await showEventRuleEditor(context);
+  /// Opens the rule editor for a new rule, its nickname [nickname] when the
+  /// search found nothing (#2341), and applies the rule once it is saved. The
+  /// search is cleared, so the new rule is in view.
+  Future<void> _newRule({String? nickname}) async {
+    final rule = await showEventRuleEditor(context, nickname: nickname);
     if (rule == null || !mounted) return;
+    _search.clear();
+    setState(() => _query = '');
     await _read();
     await _add(rule.id);
   }
@@ -723,90 +770,201 @@ class _RulesPickerState extends State<_RulesPicker> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final rules = _rules;
-    return SafeArea(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.8,
-        ),
-        // The title, New rule… and, once the program is full, why a rule
-        // cannot be ticked stay in view above the list as it scrolls.
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: Text(
-                l10n.programsRulesPickerTitle,
-                style: Theme.of(context).textTheme.titleMedium,
+    String sentence(EventRule r) =>
+        eventRuleSentence(l10n, r, _names[r.savedSearchId]);
+    final showSearch =
+        rules != null && rules.length > kEventRulePickerSearchThreshold;
+    // The text filters only while its field is shown: if a rule deleted
+    // elsewhere hides the field, nothing on screen could clear it.
+    final query = showSearch ? _query.trim() : '';
+    final shown = rules == null
+        ? null
+        : [
+            for (final rule in rules)
+              if (eventRuleMatchesQuery(
+                query,
+                nickname: rule.nickname,
+                sentence: sentence(rule),
+              ))
+                rule,
+          ];
+    // With nothing found, the pinned line offers the typed text as a new
+    // rule's nickname (#2341).
+    final offerTyped =
+        query.isNotEmpty && shown != null && shown.isEmpty && rules!.isNotEmpty;
+    // Laid out as the add-to-program sheet is (add-to-program-sheet.md §4.5):
+    // the sheet takes the height above the keyboard, and with the keyboard up
+    // it drops its title and holds New rule… to two lines, so the pinned line,
+    // the search field and the list all stay in view at any text size.
+    final media = MediaQuery.of(context);
+    final keyboard = media.viewInsets.bottom;
+    final keyboardUp = keyboard > 0;
+    final searchField = TextField(
+      key: const ValueKey('program-rules-search'),
+      controller: _search,
+      // No autofocus: on a phone the keyboard would cover the list
+      // (add-to-program-sheet.md §4.1).
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.search),
+        hintText: l10n.programsRulesPickerSearchHint,
+        border: const OutlineInputBorder(),
+        isDense: true,
+        suffixIcon: _query.isEmpty
+            ? null
+            : IconButton(
+                key: const ValueKey('program-rules-search-clear'),
+                icon: const Icon(Icons.clear),
+                tooltip: l10n.programsRulesPickerSearchClear,
+                onPressed: () {
+                  _search.clear();
+                  setState(() => _query = '');
+                },
               ),
-            ),
-            ListTile(
-              key: const ValueKey('program-rules-new'),
-              leading: const Icon(Icons.add),
-              title: Text(l10n.eventRulesNewRule),
-              onTap: _newRule,
-            ),
-            if (rules != null && _full)
-              Padding(
-                key: const ValueKey('program-rules-full'),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.xs,
-                ),
-                child: Text(l10n.programsRulesPickerFull(maxProgramEventRules)),
-              ),
-            if (_notHere case final notHere when notHere.isNotEmpty)
-              ListTile(
-                key: const ValueKey('program-rules-not-here'),
-                leading: const Icon(Icons.cloud_off_outlined),
-                title: Text(l10n.programsRulesPickerNotHere(notHere.length)),
-                subtitle: Text(l10n.programsRulesPickerNotHereHelp),
-                trailing: TextButton(
-                  key: const ValueKey('program-rules-remove-not-here'),
-                  onPressed: _removeNotHere,
-                  child: Text(l10n.commonRemove),
-                ),
-              ),
-            const Divider(height: 1),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  if (rules == null)
-                    const Padding(
-                      padding: EdgeInsets.all(AppSpacing.md),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (rules.isEmpty)
-                    ListTile(title: Text(l10n.programsRulesPickerEmpty))
-                  else
-                    for (final rule in rules)
-                      CheckboxListTile(
-                        key: ValueKey('program-rule-${rule.id}'),
-                        value: _applied.contains(rule.id),
-                        title: Text(
-                          eventRuleTitle(
-                            l10n,
-                            rule,
-                            _names[rule.savedSearchId],
+      ),
+      onChanged: (value) => setState(() => _query = value),
+    );
+    final newLabel = offerTyped
+        ? l10n.programsRulesPickerNewNamed(query)
+        : l10n.eventRulesNewRule;
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboard),
+      child: SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: keyboardUp ? double.infinity : media.size.height * 0.8,
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) => Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // The title, New rule…, once the program is full why a rule
+                // cannot be ticked, and any applied rules not on this device:
+                // pinned above the search and the list,
+                // capped so a large text size cannot push them out of the
+                // sheet (the cap is a backstop once the title is dropped).
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: constraints.maxHeight * 0.45,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (!keyboardUp)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                            ),
+                            child: Text(
+                              l10n.programsRulesPickerTitle,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
                           ),
+                        ListTile(
+                          key: const ValueKey('program-rules-new'),
+                          leading: const Icon(Icons.add),
+                          title: Semantics(
+                            label: keyboardUp ? newLabel : null,
+                            excludeSemantics: keyboardUp,
+                            child: Text(
+                              newLabel,
+                              maxLines: keyboardUp ? 2 : null,
+                              overflow: keyboardUp
+                                  ? TextOverflow.ellipsis
+                                  : null,
+                            ),
+                          ),
+                          onTap: () =>
+                              _newRule(nickname: offerTyped ? query : null),
                         ),
-                        subtitle: rule.name == null
-                            ? null
-                            : Text(
-                                eventRuleSentence(
-                                  l10n,
-                                  rule,
-                                  _names[rule.savedSearchId],
-                                ),
+                        if (rules != null && _full)
+                          Padding(
+                            key: const ValueKey('program-rules-full'),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.xs,
+                            ),
+                            child: Text(
+                              l10n.programsRulesPickerFull(
+                                maxProgramEventRules,
                               ),
-                        onChanged: (on) => _toggle(rule.id, on: on == true),
-                      ),
-                ],
-              ),
+                            ),
+                          ),
+                        if (_notHere case final notHere when notHere.isNotEmpty)
+                          ListTile(
+                            key: const ValueKey('program-rules-not-here'),
+                            leading: const Icon(Icons.cloud_off_outlined),
+                            title: Text(
+                              l10n.programsRulesPickerNotHere(notHere.length),
+                            ),
+                            subtitle: Text(l10n.programsRulesPickerNotHereHelp),
+                            trailing: TextButton(
+                              key: const ValueKey(
+                                'program-rules-remove-not-here',
+                              ),
+                              onPressed: _removeNotHere,
+                              child: Text(l10n.commonRemove),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (showSearch)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      AppSpacing.xxs,
+                      AppSpacing.md,
+                      AppSpacing.xs,
+                    ),
+                    child: searchField,
+                  ),
+                const Divider(height: 1),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      if (rules == null)
+                        const Padding(
+                          padding: EdgeInsets.all(AppSpacing.md),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (rules.isEmpty)
+                        ListTile(title: Text(l10n.programsRulesPickerEmpty))
+                      else if (shown!.isEmpty)
+                        ListTile(
+                          key: const ValueKey('program-rules-no-matches'),
+                          title: Text(l10n.programsRulesPickerNoMatches(query)),
+                        )
+                      else
+                        for (final rule in shown)
+                          CheckboxListTile(
+                            key: ValueKey('program-rule-${rule.id}'),
+                            value: _applied.contains(rule.id),
+                            // The nickname (#2341) is the title, with the
+                            // sentence beneath it; a rule without one shows
+                            // its sentence alone.
+                            title: Text(
+                              eventRuleTitle(
+                                l10n,
+                                rule,
+                                _names[rule.savedSearchId],
+                              ),
+                            ),
+                            subtitle: rule.nickname == null
+                                ? null
+                                : Text(sentence(rule)),
+                            onChanged: (on) => _toggle(rule.id, on: on == true),
+                          ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

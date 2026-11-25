@@ -15055,7 +15055,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get eventRulesManageSubtitle =>
-      'Afficher, ajouter, modifier et supprimer vos règles.';
+      'Afficher, ajouter, modifier, réordonner et supprimer vos règles.';
 
   @override
   String get eventRulesEmpty =>
@@ -15119,7 +15119,33 @@ class AppLocalizationsFr extends AppLocalizations {
   String get eventRuleScopeNeighbouring => 'Deux danses voisines quelconques';
 
   @override
-  String get eventRuleNameLabel => 'Nom (facultatif)';
+  String get eventRuleNicknameLabel => 'Surnom (facultatif)';
+
+  @override
+  String get eventRuleNicknameHelp =>
+      'Affiché au-dessus de la phrase de la règle, et trouvé par la recherche du sélecteur de règles.';
+
+  @override
+  String get eventRulesOrderTitle => 'Ordre des règles';
+
+  @override
+  String get eventRulesOrderManual => 'Mon ordre';
+
+  @override
+  String get eventRulesOrderManualSubtitle =>
+      'Le sélecteur de règles affiche vos règles dans l\'ordre que vous leur avez donné dans Gérer les règles.';
+
+  @override
+  String get eventRulesOrderMostUsed => 'Les plus utilisées';
+
+  @override
+  String get eventRulesOrderMostUsedSubtitle =>
+      'Le sélecteur de règles affiche d\'abord les règles que vos programmes utilisent le plus, sans compter les programmes dans Récemment supprimées.';
+
+  @override
+  String eventRulesDragToReorder(String rule) {
+    return 'Faire glisser pour réordonner $rule';
+  }
 
   @override
   String eventRuleSentenceAtMostWhole(int count, String search) {
@@ -15282,6 +15308,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsRulesPickerEmpty => 'Vous n\'avez encore aucune règle.';
+
+  @override
+  String get programsRulesPickerSearchHint => 'Rechercher une règle';
+
+  @override
+  String get programsRulesPickerSearchClear => 'Effacer la recherche';
+
+  @override
+  String programsRulesPickerNoMatches(String query) {
+    return 'Aucune règle ne correspond à « $query ».';
+  }
+
+  @override
+  String programsRulesPickerNewNamed(String nickname) {
+    return 'Nouvelle règle « $nickname »…';
+  }
 
   @override
   String programsRulesStripBroken(int count) {

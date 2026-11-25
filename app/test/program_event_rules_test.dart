@@ -86,7 +86,7 @@ Future<_Seeded> _seed({
     savedSearchId: becket.id,
     quantifier: EventRuleQuantifier.none,
     scope: EventRuleScope.beforeFirstBreak,
-    name: 'Easy start',
+    nickname: 'Easy start',
   );
   await repos.programs.create(
     Program(
@@ -652,7 +652,7 @@ void main() {
       quantifier: EventRuleQuantifier.atLeast,
       count: 1,
       scope: EventRuleScope.wholeProgram,
-      name: 'Some Becket',
+      nickname: 'Some Becket',
     );
     await _pump(tester, repos, enabled: true);
     expect(find.text('Rules'), findsOneWidget);
@@ -883,7 +883,7 @@ void main() {
       quantifier: EventRuleQuantifier.atLeast,
       count: 1,
       scope: EventRuleScope.wholeProgram,
-      name: 'Extra',
+      nickname: 'Extra',
     );
     await _pump(tester, repos, enabled: true);
     await tester.tap(find.byKey(const ValueKey('program-rules')));
@@ -903,9 +903,14 @@ void main() {
     await tester.scrollUntilVisible(
       box,
       200,
+      // The rule list's own Scrollable: the pinned header and the search
+      // field (#2341) scroll too, and come first.
       scrollable: find
           .descendant(
-            of: find.byType(BottomSheet),
+            of: find.descendant(
+              of: find.byType(BottomSheet),
+              matching: find.byType(ListView),
+            ),
             matching: find.byType(Scrollable),
           )
           .first,
@@ -1031,7 +1036,7 @@ void main() {
       quantifier: EventRuleQuantifier.atLeast,
       count: n,
       scope: EventRuleScope.wholeProgram,
-      name: 'Extra $n',
+      nickname: 'Extra $n',
     );
     final last = await another(1);
     final past = await another(2);
@@ -1044,9 +1049,14 @@ void main() {
     bool ticked(EventRule rule) =>
         tester.widget<CheckboxListTile>(box(rule)).value ?? false;
     await pumpUntilFound(tester, box(seeded.oneBecket));
+    // The rules' list, not the search field above it (#2341), which scrolls
+    // its text.
     final sheet = find
         .descendant(
-          of: find.byType(BottomSheet),
+          of: find.descendant(
+            of: find.byType(BottomSheet),
+            matching: find.byType(ListView),
+          ),
           matching: find.byType(Scrollable),
         )
         .first;

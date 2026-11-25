@@ -95,6 +95,9 @@ const _sites = <String, List<(String, String)>>{
     ("const ValueKey('calendar-settings-window-field')", 'false'),
     ("const ValueKey('calendar-settings-startup-mode-field')", 'false'),
   ],
+  'lib/src/screens/settings/experimental_section.dart': [
+    ("const ValueKey('experimental-event-rule-order-field')", 'false'),
+  ],
   'lib/src/screens/settings/matrix_column_editor.dart': [
     ("const ValueKey('matrix-parameterized-move')", 'true'),
     (r"ValueKey('matrix-compound-step-move-$index')", 'true'),
