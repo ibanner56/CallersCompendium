@@ -66,7 +66,8 @@ import '../widgets/exclude_focus_when_collapsed.dart';
 import '../widgets/app_bar_text_action.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
-import '../widgets/picker_suggestions.dart' show PickerProgramContext;
+import '../widgets/picker_suggestions.dart'
+    show PickerEventRules, PickerProgramContext;
 import '../widgets/placeholder_fill.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/dirty_dialog_guard.dart';
@@ -4269,6 +4270,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                                   programContext: _pickerProgramContext(
                                     _addPosition(),
                                   ),
+                                  eventRules: _pickerEventRules(),
                                   onAddDance: _addDanceSlot,
                                   onDanceImported: _rememberImportedDance,
                                   onImportingChanged: _setPickerImportActivity,
@@ -4763,6 +4765,24 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     return SuggestionPosition.inserting(_slots, index, after: insertion.after);
   }
 
+  /// The program's applied event rules, for the builder's pickers to mark the
+  /// dances under **Suggested** that would break one where the dance will go
+  /// (#2345), or null when the program applies none. The pickers check only
+  /// while Event rules is on ([CollectionPicker.eventRules]), through the
+  /// rule checker, which shares its search context; they check again when
+  /// the rule ids change, or what the rules read
+  /// ([ProgramEventRulesController.readsRevision]).
+  PickerEventRules? _pickerEventRules() {
+    final controller = _eventRules;
+    final ruleIds = _eventRuleIds;
+    if (controller == null || ruleIds.isEmpty) return null;
+    return PickerEventRules(
+      check: (position, candidateIds) =>
+          controller.checkCandidates(position, candidateIds, ruleIds: ruleIds),
+      revision: Object.hash(Object.hashAll(ruleIds), controller.readsRevision),
+    );
+  }
+
   /// The program, as the builder's pickers need it (history-filters Q3,
   /// #2343, #2344): its id, its venue as calling history keys it, and
   /// [position], where the chosen dance will go, which Suggested ranks for:
@@ -4866,9 +4886,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                         ],
                       ),
                       Expanded(
-                        child: ValueListenableBuilder<Map<String, int>>(
-                          valueListenable: _pickerCounts,
-                          builder: (context, counts, _) => CollectionPicker(
+                        // The rule checker too: a modal route does not
+                        // rebuild with the builder, and its rules or what
+                        // they read can change while it is open (#2345).
+                        child: ListenableBuilder(
+                          listenable: Listenable.merge([
+                            _pickerCounts,
+                            ?_eventRules,
+                          ]),
+                          builder: (context, _) => CollectionPicker(
                             key: const ValueKey('sheet-picker'),
                             data: data,
                             dialect: _dialect,
@@ -4876,12 +4902,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                                 _dialectForSuggestedColumn,
                             enrichment: _enrichment,
                             scrollController: scrollController,
-                            addedDanceCounts: counts,
+                            addedDanceCounts: _pickerCounts.value,
                             // The sheet is modal: [insertion] is the pending
                             // one, or null for adds at the end.
                             programContext: _pickerProgramContext(
                               _addPosition(),
                             ),
+                            eventRules: _pickerEventRules(),
                             // Keep the sheet open so callers can add several
                             // dances, unless this sheet is for one insertion.
                             onAddDance: insertion == null
@@ -5051,9 +5078,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                         ],
                       ),
                       Expanded(
-                        child: ValueListenableBuilder<Map<String, int>>(
-                          valueListenable: _pickerCounts,
-                          builder: (context, counts, _) => CollectionPicker(
+                        // The rule checker too, as in the add sheet.
+                        child: ListenableBuilder(
+                          listenable: Listenable.merge([
+                            _pickerCounts,
+                            ?_eventRules,
+                          ]),
+                          builder: (context, _) => CollectionPicker(
                             key: const ValueKey('replace-picker'),
                             data: data,
                             dialect: _dialect,
@@ -5061,8 +5092,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                                 _dialectForSuggestedColumn,
                             enrichment: _enrichment,
                             scrollController: scrollController,
-                            addedDanceCounts: counts,
+                            addedDanceCounts: _pickerCounts.value,
                             programContext: programContext,
+                            eventRules: _pickerEventRules(),
                             excludedDanceIds: {?slot.danceId},
                             rowAction: PickerRowAction.replace,
                             // Held by the sheet, so the picker applies it once

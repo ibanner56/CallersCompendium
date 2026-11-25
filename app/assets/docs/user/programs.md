@@ -448,14 +448,45 @@ raising or lowering it.
 - Ordering takes a moment on a large collection. Meanwhile the list shows in
   its plain order with a spinner by the count, and you can add dances as usual.
 - English dances aren't covered yet. They are listed after the ordered
-  dances, in their usual order, and say so.
-- A dance already in the program stays in the list but goes to the very
-  bottom, after the English dances, marked *Already in this program*. Any
+  dances, in their usual order, and say so. They aren't checked against your
+  [rules](#check-your-program-against-your-rules) either.
+- A dance already in the program stays in the list but goes to the bottom,
+  after the English dances (and before any dance marked for breaking one of
+  your rules, below), marked *Already in this program*. Any
   type of dance goes there, English included. Dances there keep their usual
   order.
 - If the dances can't be ordered, the list stays in its usual order and says
   so above the first dance.
 - Nothing is saved by suggesting: it only changes the order of the list.
+
+**With your event rules.** If [Event rules](#check-your-program-against-your-rules)
+is on too and the program uses rules, Suggested also checks each dance
+against them, as if you added it where the dance will go: at the end, at the
+place you are adding before or after, or in the slot you are replacing. A
+dance that would break a rule there is marked with an icon and **Would
+break:** and the rule, such as *Would break: At most 1 dance matching
+"Petronella" in the whole program*, above its reason, and a screen reader
+reads which rules. Select the question mark to see the rule at the top of
+its reasons.
+
+- Marked dances are listed after every other dance, the ones already in the
+  program included, each group in the Suggested order. Nothing is hidden: you
+  can still add a marked dance if you mean to break your own rule.
+- A dance is marked when the builder would mark it once added: it is one of
+  the dances that break the rule, such as a second Petronella under *At most
+  1*. For neighboring dances that means the dance before or after the place,
+  as the rule sees its neighbors; an alternate is checked as if called
+  instead of its dance. *At least* over the whole program or half of it never
+  marks a dance you are adding, since adding one never takes a dance away.
+  With **Replace…** it does take one away: a dance is marked when the program
+  meets the rule now and wouldn't with that dance in the slot.
+- English dances are left where they are, unmarked (see above). An English
+  dance already in the program is checked with the other dances there.
+- The order without rules shows first; the marks, and the new order, follow
+  once the check is done. A rule that needs attention isn't checked.
+- With Event rules off, a program with no rules, or another sort, the picker
+  lists the dances exactly as it would without rules. There is nothing to
+  turn on: it works whenever both features are on.
 
 ### Check your program against your rules
 
