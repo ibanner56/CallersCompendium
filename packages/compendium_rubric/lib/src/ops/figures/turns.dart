@@ -7,7 +7,8 @@ part of '../operation.dart';
 /// whole turn returns the dancers to place, a half exchanges them, and a
 /// quarter or three-quarter lands the pair in a short wave (§8.5.6), except
 /// that an `allemande` pair already holding its hand in a wave turns from
-/// there instead (§8.5.7), a centre long-wave pair included.
+/// there instead (§8.5.7), a centre long-wave pair included, and an
+/// `allemande` pair across the set turns into the centre column.
 /// `allemande` and `shoulder_round` each carry a direction token that fixes
 /// that wave's handedness and so implement it; the rest of the family carries
 /// no usable direction token, or has no worked example, and refuses both
@@ -36,9 +37,10 @@ OpError? _requireWholeOrHalf(num amount, String moveName, String param) {
 /// Refuses a quarter-turn amount whose pair is standing **across** the set.
 ///
 /// The wave landing of §8.5.1 is defined over an along-the-set pair; an
-/// across-the-set quarter is a separate figure with its own geometry and is
-/// deferred. Shared by `do_si_do`, `allemande` and `shoulder_round` so they all
-/// refuse alike.
+/// across-the-set quarter is a separate figure with its own geometry. Only
+/// `allemande` has it (§8.5.6), and only where [quarterTurnAcrossIntoCentre]
+/// lands the pair; every other across pair is refused here. Shared by
+/// `do_si_do`, `allemande` and `shoulder_round` so they all refuse alike.
 OpError? _requireAlongTheSet(
   Formation formation,
   String moveName,
@@ -76,6 +78,10 @@ OpError? _requireAlongTheSet(
 /// and a long wave and ¾ in a short wave (§8.5.7). *(User-ruled.)* A centre
 /// long-wave pair turns the same way into the centre of a short wave, and the
 /// band's side dancers join it as the ends. *(Agent's call, 2026-11-24.)*
+///
+/// A pair standing **across** the set turns a quarter or three quarters into
+/// the centre column instead, standing along the set as the
+/// centre long wave of §8.5.5 (§8.5.6; agent's call, 2026-11-25).
 final class Allemande extends Operation {
   const Allemande({
     this.who = WhoSet.neighbors,
@@ -133,17 +139,83 @@ final class Allemande extends Operation {
     // A pair already holding this hand in a wave turns from there (§8.5.7).
     // Every other pair leaves the wave first, exactly as before, and is held
     // to the along-the-set rule from the settled cells.
+    final settled = normalizeWaveOffsets(formation, alsoOutsideBands: true);
+    final pairs = whoPairsInSet(formation, who);
+    final unheld = [
+      for (final pair in pairs)
+        if (!_heldFor(formation, pair)) pair,
+    ];
+    final across = _acrossLandings(
+      settled,
+      unheld,
+      reserved: _heldLandings(formation, pairs),
+    );
     return _requireAlongTheSet(
-      normalizeWaveOffsets(formation, alsoOutsideBands: true),
+      settled,
       name,
       'turn',
       turn,
       pairs: [
-        for (final pair in whoPairsInSet(formation, who))
-          if (!_heldFor(formation, pair)) pair,
+        for (final pair in unheld)
+          if (!across.containsKey(pair)) pair,
       ],
     );
   }
+
+  /// Where each across-the-set pair of [pairs] lands in the centre column.
+  ///
+  /// A pair is left out when it has no landing, and so is every pair whose
+  /// landing shares a cell with another's: two couples of one hands four
+  /// turning across at once would both claim its centre cells, and which
+  /// way that resolves is not known, so it stays deferred *(agent's call)*.
+  /// So is every pair landing on a cell in [reserved], where a pair turning
+  /// from its hold in the same figure ends: the centre pair of a short wave
+  /// turns into the same centre cells as its ends would.
+  Map<DancerPair, Map<DancerId, DancerState>> _acrossLandings(
+    Formation settled,
+    Iterable<DancerPair> pairs, {
+    required Map<DancerId, DancerState> reserved,
+  }) {
+    final landings = <DancerPair, Map<DancerId, DancerState>>{};
+    for (final pair in pairs) {
+      if (settled.stateOf(pair.a).col == settled.stateOf(pair.b).col) continue;
+      final landing = quarterTurnAcrossIntoCentre(
+        settled,
+        pair,
+        hand: hand,
+        threeQuarters: rotationAmountOf(turn) == RotationAmount.threeQuarter,
+      );
+      if (landing != null) landings[pair] = landing;
+    }
+    final claims = <Position, int>{};
+    for (final landing in landings.values) {
+      for (final state in landing.values) {
+        claims.update(state.position, (n) => n + 1, ifAbsent: () => 1);
+      }
+    }
+    final held = {for (final state in reserved.values) state.position};
+    landings.removeWhere(
+      (_, landing) => landing.values.any(
+        (state) => claims[state.position]! > 1 || held.contains(state.position),
+      ),
+    );
+    return landings;
+  }
+
+  /// Where the pairs of [pairs] already holding this [hand] in a wave land,
+  /// turning from the hold (§8.5.7).
+  Map<DancerId, DancerState> _heldLandings(
+    Formation formation,
+    List<DancerPair> pairs,
+  ) => quarterTurnFromWaveHold(
+    formation,
+    [
+      for (final pair in pairs)
+        if (_heldFor(formation, pair)) pair,
+    ],
+    hand: hand,
+    threeQuarters: rotationAmountOf(turn) == RotationAmount.threeQuarter,
+  );
 
   @override
   Result<Formation, OpError> perform(Formation formation) {
@@ -158,25 +230,25 @@ final class Allemande extends Operation {
       ];
       // Everyone not turning from a hold leaves the wave as any other figure
       // would (§8.5.4); the held pairs are then turned from where they stood.
+      final normalized = normalizeWaveOffsets(
+        formation,
+        alsoOutsideBands: true,
+      );
+      final turnedFromHold = _heldLandings(formation, pairs);
+      final across = _acrossLandings(normalized, [
+        for (final pair in pairs)
+          if (!held.contains(pair)) pair,
+      ], reserved: turnedFromHold);
       final settled = quarterTurnIntoWave(
-        normalizeWaveOffsets(formation, alsoOutsideBands: true),
+        normalized,
         [
           for (final pair in pairs)
-            if (!held.contains(pair)) pair,
+            if (!held.contains(pair) && !across.containsKey(pair)) pair,
         ],
         hand: hand,
         afterHalfTurn: threeQuarters,
-      );
-      return Ok(
-        settled.withUpdates(
-          quarterTurnFromWaveHold(
-            formation,
-            held,
-            hand: hand,
-            threeQuarters: threeQuarters,
-          ),
-        ),
-      );
+      ).withUpdates({for (final landing in across.values) ...landing});
+      return Ok(settled.withUpdates(turnedFromHold));
     }
     return Ok(
       swapPairs(

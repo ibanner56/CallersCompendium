@@ -51,7 +51,7 @@ enum ErrorKind {
 
   /// A parameter value that is legal in the baseline taxonomy but
   /// **deliberately not implemented** — the Held-table cases (an
-  /// across-the-set quarter `allemande`, a same-sense fractional `gate`,
+  /// across-the-set quarter `do_si_do`, a same-sense fractional `gate`,
   /// `down_the_hall` `moving: center`, the held hall `ender`s).
   ///
   /// Distinct from a malformed parameter: this says "valid, but out of scope",

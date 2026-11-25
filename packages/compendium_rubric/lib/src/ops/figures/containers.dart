@@ -164,6 +164,13 @@ final class FiguresInOrder extends _Container {
 ///
 /// It is its own progression if any part is, since a part that carries dancers
 /// on to the next couple does so whatever the others do *(agent's call)*.
+///
+/// A [Shift] part is the exception to "from the same starting state": the
+/// shifting dancers step around the others, so every shift part is danced
+/// after the other parts are merged, all together in one step
+/// ([Shift.danceTogether]), from where they leave the set *(agent's call,
+/// 2026-11-25)*. A dancer a shift and another part both move is refused. Danced from the start instead, the men of Mary Cay's Reel
+/// would be refused for stepping where the women's allemande begins.
 final class Meanwhile extends _Container {
   const Meanwhile(super.figures);
 
@@ -207,7 +214,12 @@ final class Meanwhile extends _Container {
     // remembers a shadow but leaves the dancer where and as they were looks
     // unchanged, and a later part's refacing would overwrite it.
     final remembered = <DancerId, DancerId>{};
+    final shifts = [
+      for (final figure in figures)
+        if (figure is Shift) figure,
+    ];
     for (final figure in figures) {
+      if (figure is Shift) continue;
       final result = figure.apply(start, progressions: progressions);
       final Formation danced;
       switch (result) {
@@ -258,13 +270,36 @@ final class Meanwhile extends _Container {
       }
       occupied[state.position] = entry.key;
     }
-    return Ok(
-      start.withUpdates({
-        ...merged,
-        for (final MapEntry(key: id, value: shadow) in remembered.entries)
-          id: (merged[id] ?? start.stateOf(id)).copyWith(shadow: shadow),
-      }),
-    );
+    final danced = start.withUpdates({
+      ...merged,
+      for (final MapEntry(key: id, value: shadow) in remembered.entries)
+        id: (merged[id] ?? start.stateOf(id)).copyWith(shadow: shadow),
+    });
+    if (shifts.isEmpty) return Ok(danced);
+    // A shift travels around the parts danced beside it: it steps from where
+    // the others have left the set (agent's call, 2026-11-25). Every shift
+    // part steps at once, so their order cannot matter either.
+    final Formation shifted;
+    switch (Shift.danceTogether(danced, shifts)) {
+      case Err() && final error:
+        return error;
+      case Ok(:final value):
+        shifted = value;
+    }
+    for (final MapEntry(key: id, value: state) in shifted.dancers.entries) {
+      final earlier = movedBy[id];
+      if (earlier == null || state.position == danced.stateOf(id).position) {
+        continue;
+      }
+      return Err<Formation, OpError>(
+        OpError(
+          ErrorKind.unresolvableDancerSet,
+          'meanwhile: shift and $earlier both move $id; the parts of a '
+          'meanwhile are danced by different dancers',
+        ),
+      );
+    }
+    return Ok(shifted);
   }
 
   @override

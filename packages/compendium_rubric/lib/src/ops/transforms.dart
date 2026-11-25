@@ -780,3 +780,56 @@ Formation mapBandFacing(
   }
   return formation.withUpdates(changes);
 }
+
+/// Where an across-the-set quarter turn lands [pair], or `null` when it cannot.
+///
+/// A pair standing across the set (whichever way they face: the landing sets
+/// the facing) that turns a quarter (or three quarters) ends standing **along** it, in the centre column: the centre long
+/// wave of §8.5.5, the dancer the rotation carries north in the band's top row,
+/// both facing across and holding [hand]. The two must share one hands four's
+/// band, and its two centre cells must be free once [pair] has left its own.
+/// *(Agent's call, 2026-11-25.)*
+Map<DancerId, DancerState>? quarterTurnAcrossIntoCentre(
+  Formation formation,
+  DancerPair pair, {
+  required Hand hand,
+  required bool threeQuarters,
+}) {
+  final a = formation.stateOf(pair.a);
+  final b = formation.stateOf(pair.b);
+  if (a.col == b.col) return null;
+  final band = handsFourBands(formation)
+      .where(
+        (band) => [
+          a.row,
+          b.row,
+        ].every((row) => row == band.topRow || row == band.bottomRow),
+      )
+      .firstOrNull;
+  if (band == null) return null;
+  const centre = kColumnCount ~/ 2;
+  for (final row in [band.topRow, band.bottomRow]) {
+    final there = formation.dancerAt(Position(row, centre));
+    if (there != null && there != pair.a && there != pair.b) return null;
+  }
+  // Clockwise (a right hand's quarter) carries the eastern dancer south.
+  final eastGoesSouth = (hand == Hand.right) != threeQuarters;
+  final (east, west) = a.col > b.col ? (pair.a, pair.b) : (pair.b, pair.a);
+  final (north, south) = eastGoesSouth ? (west, east) : (east, west);
+  // Holding right hands, the northern dancer faces east (their right hand is
+  // to the south); holding left, west.
+  final northFacing = hand == Hand.right
+      ? Facing.acrossEast
+      : Facing.acrossWest;
+  return {
+    north: formation
+        .stateOf(north)
+        .copyWith(position: Position(band.topRow, centre), facing: northFacing),
+    south: formation
+        .stateOf(south)
+        .copyWith(
+          position: Position(band.bottomRow, centre),
+          facing: northFacing.reversed,
+        ),
+  };
+}

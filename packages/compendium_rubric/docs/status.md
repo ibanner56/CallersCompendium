@@ -249,6 +249,28 @@
 > positional placement from the short waves rather than on the next
 > neighbours.
 >
+> **`shift` and the across-the-set quarter allemande (2026-11-25)**:
+> `shift` (taxonomy v40) is built, with fuzzy travel as Hudson asked on
+> 2026-11-24: a dancer whose place is taken, or who would step off an end,
+> stays where they are, two shifting into one cell both stay, dancers
+> waiting out do not shift, and in a `meanwhile` the shift is danced after
+> the other parts, from where they leave the set (all the agent's calls;
+> stepping one column inside a taken cell was tried first and gained
+> nothing). Built alone it gained no dance, because nearly every shift sits
+> beside an allemande ¾ across the set, which was deferred. So an
+> allemande ¼ or ¾ across the set now turns into the centre column as a
+> centre long wave (`fundamentals.md` §8.5.6; the agent's call). Against
+> `rubric` at `4b0ee2e6`: 4,556 of 5,691 to 4,573 of 5,792 compiled in
+> scope (80.1% to 79.0%), the core set 580 to 581 (Snake in the Hey, 294),
+> no previously compiling dance lost. The rate falls because of the 48
+> dances that stopped at `shift`, 9 compile and 39 now run on to a figure
+> that refuses (most often a partner swing whose partners are not side by
+> side) or land elsewhere, and so join the denominator; 7 of those are in the core set, Mary Cay's Reel (10579)
+> among them, which still refuses at its partner swing because "N2 women
+> allemande left 3/4" is imported as each hands four's own women. Of the 17
+> gained, 8 come from the across quarter alone, and in 5 of the 9 shift
+> dances gained the shift moves nobody.
+>
 > **A dance can go on from the short waves an allemande leaves (2026-11-24)**:
 > when the figure straight after an allemande refuses, or the whole dance
 > lands somewhere other than its expected end, the compiler dances on again
@@ -561,11 +583,12 @@
 > balance straight after a `form_a_long_wave`, even across a phrase boundary,
 > stays custom.
 
-The compiler implements 52 canonical figures. Twenty-seven have no deliberately
-deferred parameter values, 25 have an implemented core with explicit
+The compiler implements 53 canonical figures. Twenty-seven have no deliberately
+deferred parameter values, 26 have an implemented core with explicit
 deferrals, and one of the figures this table has tracked since September
 remains entirely deferred (taxonomy v36 to v40 added five more, of which
-`circular_hey` and `cast` are now built; see `implementation.md` §15). The
+`circular_hey` and `cast` are now built, and v40 also added `shift`, built
+2026-11-25; see `implementation.md` §15). The
 `meanwhile` and `modifier` structural containers are built too, but they are
 not normal taxonomy moves and are therefore counted separately. A top-level
 `sequence` container is danced as the figures it holds (`implementation.md`
@@ -587,11 +610,11 @@ the implementation may have a defect.
 | Status | Count | Figures |
 | --- | ---: | --- |
 | **Full parameter surface** | 27 | `arch_and_dive`, `balance`, `balance_the_ring`, `box_circulate`, `box_the_gnat`, `butterfly_whirl`, `california_twirl`, `circle`, `contra_corners`, `courtesy_turn`, `facing_star`, `form_a_long_wave`, `form_long_waves`, `give_and_take`*, `pass_the_ocean`, `petronella`, `revolving_door`, `roll_away`, `rory_o_more`, `slide_along_set`, `square_through`, `stand_still`, `star`, `star_through`, `turn_alone`, `turn_as_couples`, `zig_zag` |
-| **Implemented with explicit deferrals** | 25 | `allemande`, `cast`, `chain`, `circular_hey`, `cross_trails`, `do_si_do`, `down_the_hall`, `figure_8`, `form_short_waves`, `gate`, `hey`, `long_lines`, `mad_robin`, `orbit`, `pass_through`, `poussette`, `promenade`, `pull_by`, `right_left_through`, `shoulder_round`, `slice`, `star_promenade`, `swing`, `two_hand_turn`, `up_the_hall` |
+| **Implemented with explicit deferrals** | 26 | `allemande`, `cast`, `chain`, `circular_hey`, `cross_trails`, `do_si_do`, `down_the_hall`, `figure_8`, `form_short_waves`, `gate`, `hey`, `long_lines`, `mad_robin`, `orbit`, `pass_through`, `poussette`, `promenade`, `pull_by`, `right_left_through`, `shift`, `shoulder_round`, `slice`, `star_promenade`, `swing`, `two_hand_turn`, `up_the_hall` |
 | **Entirely deferred canonical figures** | 1 | `dolphin_hey` |
 | **Structural containers** | 3 | `meanwhile` (simultaneous figures by different dancers), `modifier` (a main figure changed by ordered modifier figures) and a nested `sequence`; none is an ordinary taxonomy move. Built 2026-11-23 |
 
-The external vocabulary (`supportedMoves`) reports 63 supported names: the 52
+The external vocabulary (`supportedMoves`) reports 64 supported names: the 53
 canonical implementations, the three containers, and eight aliases that resolve
 onto the canonical figures:
 
@@ -673,9 +696,14 @@ from this table because the compiler never ran against them. **Pass rate** is
 
 ### Rotation and wave landings
 
-- `allemande`, `do_si_do`, and `shoulder_round` defer across-the-set
-  quarter-turn landings, except that an `allemande` turning the centre pair
-  of a centre long wave out into a short wave is built (fundamentals §8.5.7).
+- `do_si_do` and `shoulder_round` defer across-the-set quarter-turn landings.
+  An `allemande` across the set turns into the centre column (fundamentals
+  §8.5.6), and defers only when two pairs claim the same centre cells, the
+  cells are taken, or a pair turning from its hold lands there; turning the
+  centre pair of a centre long wave out into a short wave is built too
+  (§8.5.7).
+- `shift` defers a `left` or `right` step by a dancer facing up, down or
+  Flexible.
 - `two_hand_turn`, `mad_robin`, `orbit`, and `star_promenade` defer quarter and
   three-quarter amounts entirely.
 

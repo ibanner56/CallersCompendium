@@ -222,13 +222,19 @@ void main() {
   });
 
   group('what the centre turn does not cover', () {
-    test('the wrong hand is still an across-the-set quarter', () {
-      final error = applyErr(
+    test('the wrong hand leaves the wave and turns from across the set', () {
+      // Not holding right hands, the Larks settle back to their lines and
+      // turn the across-the-set quarter (§8.5.6), which lands them in the
+      // centre column again, now holding right hands.
+      final after = applyOk(
         const Allemande(who: WhoSet.role1s, turn: 0.75),
         larksInTheCentre(),
       );
-      expect(error.kind, ErrorKind.unsupportedParam);
-      expect(error.detail, contains('across-the-set quarter'));
+      expect(after.toRolesNotation(), ['R1-A . L1-A . .', '. . L2-B . R2-B']);
+      expect(facingAt(after, 0, 2), Facing.acrossEast);
+      expect(facingAt(after, 1, 2), Facing.acrossWest);
+      final pair = (a: at(after, 0, 2), b: at(after, 1, 2));
+      expect(waveHoldOf(after, pair)?.hand, Hand.right);
     });
 
     test('a shoulder round holds no hands, so it is still refused', () {

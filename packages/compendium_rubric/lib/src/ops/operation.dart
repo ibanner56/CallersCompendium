@@ -37,6 +37,7 @@ part 'figures/promenade.dart';
 part 'figures/revolving_door.dart';
 part 'figures/right_left_through.dart';
 part 'figures/rings.dart';
+part 'figures/shift.dart';
 part 'figures/slice.dart';
 part 'figures/slide_along_set.dart';
 part 'figures/stand_still.dart';
