@@ -318,15 +318,19 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Event rules (#2340, Experimental, off by default): with Settings ▸
   Experimental ▸ Event rules on, the Build tab's button row (after Add note or
   break and Insert break) gains **Rules** ("Rules (2)" with two applied). It
-  opens a picker sheet titled "Rules for this program": above eight rules a
-  **Search rules** field (#2341; the add-to-program sheet's threshold, no
-  autofocus) that keeps the rules whose nickname or sentence holds every
-  typed word, folded as the Collection's search folds; a pinned **New rule…**
-  row (it opens the rule editor and applies the saved rule; when the search
-  matches nothing it reads **New rule "*typed*"…** and starts the rule with
-  that nickname), then a checkbox per rule in **Rule order** (My order or
-  Most used), titled by its nickname with the sentence under it, or by its
-  sentence alone; ticks apply at once (at
+  opens a picker sheet titled "Rules for this program": a pinned **New
+  rule…** row first (it opens the rule editor and applies the saved rule;
+  when the search matches nothing it reads **New rule "*typed*"…** and
+  starts the rule with that nickname); above eight rules a **Search rules**
+  field under it (#2341; the add-to-program sheet's threshold, no autofocus)
+  that keeps the rules whose nickname or sentence holds every typed word,
+  folded as the Collection's search folds; then a checkbox per rule in
+  **Rule order** (My order or Most used), titled by its nickname with the
+  sentence under it, or by its sentence alone. With the keyboard up the
+  sheet lays out as the add-to-program sheet does (§4.5 of
+  `docs/design/add-to-program-sheet.md`): it drops its
+  title and holds New rule… to two lines, so the pinned row, the field and
+  the list stay in view. Ticks apply at once (at
   most 64 live rules; a deleted rule's id makes room first, and once full the
   sheet says so above the list). Each program change re-checks the applied
   rules (one query per rule restricted to the program's dance ids), as does a

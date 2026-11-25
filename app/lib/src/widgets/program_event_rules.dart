@@ -495,6 +495,9 @@ Future<void> showProgramRulesPicker(
 }) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
+  // With the keyboard up the sheet may take all the height above it, which
+  // would reach under the status bar or a notch without this (#2341).
+  useSafeArea: true,
   showDragHandle: true,
   sheetAnimationStyle: AppMotion.styleFor(context),
   builder: (_) => _RulesPicker(applied: applied, onChange: onChange),
@@ -586,13 +589,22 @@ class _RulesPickerState extends State<_RulesPicker> {
       for (final stored in await repos.savedSearches.list())
         if (stored.search case final search?) search.id: search.name,
     };
-    final order = EventRuleOrder.fromStored(
-      await repos.settings.get(kEventRuleOrderKey),
-    );
-    // Most used is counted when the picker opens, never stored (#2341).
-    final usage = order == EventRuleOrder.mostUsed
-        ? await repos.eventRules.usageCounts()
-        : const <String, int>{};
+    // The order is only how the list is sorted: if it can't be read, the
+    // rules are listed in My order rather than not at all.
+    var order = EventRuleOrder.manual;
+    var usage = const <String, int>{};
+    try {
+      order = EventRuleOrder.fromStored(
+        await repos.settings.get(kEventRuleOrderKey),
+      );
+      // Most used is counted when the picker opens, never stored (#2341).
+      if (order == EventRuleOrder.mostUsed) {
+        usage = await repos.eventRules.usageCounts();
+      }
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'program_rules_picker._read');
+      order = EventRuleOrder.manual;
+    }
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     setState(() {
@@ -668,126 +680,161 @@ class _RulesPickerState extends State<_RulesPicker> {
         query.isNotEmpty && shown != null && shown.isEmpty && rules!.isNotEmpty;
     final showSearch =
         rules != null && rules.length > kEventRulePickerSearchThreshold;
-    return SafeArea(
-      child: Padding(
-        // The search field takes the keyboard: keep the sheet above it.
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
+    // Laid out as the add-to-program sheet is (add-to-program-sheet.md §4.5):
+    // the sheet takes the height above the keyboard, and with the keyboard up
+    // it drops its title and holds New rule… to two lines, so the pinned line,
+    // the search field and the list all stay in view at any text size.
+    final media = MediaQuery.of(context);
+    final keyboard = media.viewInsets.bottom;
+    final keyboardUp = keyboard > 0;
+    final searchField = TextField(
+      key: const ValueKey('program-rules-search'),
+      controller: _search,
+      // No autofocus: on a phone the keyboard would cover the list
+      // (add-to-program-sheet.md §4.1).
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.search),
+        hintText: l10n.programsRulesPickerSearchHint,
+        border: const OutlineInputBorder(),
+        isDense: true,
+        suffixIcon: _query.isEmpty
+            ? null
+            : IconButton(
+                key: const ValueKey('program-rules-search-clear'),
+                icon: const Icon(Icons.clear),
+                tooltip: l10n.programsRulesPickerSearchClear,
+                onPressed: () {
+                  _search.clear();
+                  setState(() => _query = '');
+                },
+              ),
+      ),
+      onChanged: (value) => setState(() => _query = value),
+    );
+    final newLabel = offerTyped
+        ? l10n.programsRulesPickerNewNamed(query)
+        : l10n.eventRulesNewRule;
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboard),
+      child: SafeArea(
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+            maxHeight: keyboardUp ? double.infinity : media.size.height * 0.8,
           ),
-          // The title, the search, New rule… and, once the program is full,
-          // why a rule cannot be ticked stay in view above the list as it
-          // scrolls.
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                child: Text(
-                  l10n.programsRulesPickerTitle,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              if (showSearch)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.md,
-                    AppSpacing.xs,
-                    AppSpacing.md,
-                    0,
+          child: LayoutBuilder(
+            builder: (context, constraints) => Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // The title, New rule… and, once the program is full, why a
+                // rule cannot be ticked: pinned above the search and the list,
+                // capped so a large text size cannot push them out of the
+                // sheet (the cap is a backstop once the title is dropped).
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: constraints.maxHeight * 0.45,
                   ),
-                  child: TextField(
-                    key: const ValueKey('program-rules-search'),
-                    controller: _search,
-                    // No autofocus: on a phone the keyboard would cover the
-                    // list (add-to-program-sheet.md §4.1).
-                    textInputAction: TextInputAction.search,
-                    decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.search),
-                      hintText: l10n.programsRulesPickerSearchHint,
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                      suffixIcon: _query.isEmpty
-                          ? null
-                          : IconButton(
-                              key: const ValueKey('program-rules-search-clear'),
-                              icon: const Icon(Icons.clear),
-                              tooltip: l10n.programsRulesPickerSearchClear,
-                              onPressed: () {
-                                _search.clear();
-                                setState(() => _query = '');
-                              },
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (!keyboardUp)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
                             ),
-                    ),
-                    onChanged: (value) => setState(() => _query = value),
-                  ),
-                ),
-              ListTile(
-                key: const ValueKey('program-rules-new'),
-                leading: const Icon(Icons.add),
-                title: Text(
-                  offerTyped
-                      ? l10n.programsRulesPickerNewNamed(query)
-                      : l10n.eventRulesNewRule,
-                ),
-                onTap: () => _newRule(nickname: offerTyped ? query : null),
-              ),
-              if (rules != null && _full)
-                Padding(
-                  key: const ValueKey('program-rules-full'),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.xs,
-                  ),
-                  child: Text(
-                    l10n.programsRulesPickerFull(maxProgramEventRules),
-                  ),
-                ),
-              const Divider(height: 1),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    if (rules == null)
-                      const Padding(
-                        padding: EdgeInsets.all(AppSpacing.md),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (rules.isEmpty)
-                      ListTile(title: Text(l10n.programsRulesPickerEmpty))
-                    else if (shown!.isEmpty)
-                      ListTile(
-                        key: const ValueKey('program-rules-no-matches'),
-                        title: Text(l10n.programsRulesPickerNoMatches(query)),
-                      )
-                    else
-                      for (final rule in shown)
-                        CheckboxListTile(
-                          key: ValueKey('program-rule-${rule.id}'),
-                          value: _applied.contains(rule.id),
-                          // The nickname (#2341) is the title, with the
-                          // sentence beneath it; a rule without one shows
-                          // its sentence alone.
-                          title: Text(
-                            eventRuleTitle(
-                              l10n,
-                              rule,
-                              _names[rule.savedSearchId],
+                            child: Text(
+                              l10n.programsRulesPickerTitle,
+                              style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ),
-                          subtitle: rule.nickname == null
-                              ? null
-                              : Text(sentence(rule)),
-                          onChanged: (on) => _toggle(rule.id, on: on == true),
+                        ListTile(
+                          key: const ValueKey('program-rules-new'),
+                          leading: const Icon(Icons.add),
+                          title: Semantics(
+                            label: keyboardUp ? newLabel : null,
+                            excludeSemantics: keyboardUp,
+                            child: Text(
+                              newLabel,
+                              maxLines: keyboardUp ? 2 : null,
+                              overflow: keyboardUp
+                                  ? TextOverflow.ellipsis
+                                  : null,
+                            ),
+                          ),
+                          onTap: () =>
+                              _newRule(nickname: offerTyped ? query : null),
                         ),
-                  ],
+                        if (rules != null && _full)
+                          Padding(
+                            key: const ValueKey('program-rules-full'),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.xs,
+                            ),
+                            child: Text(
+                              l10n.programsRulesPickerFull(
+                                maxProgramEventRules,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ],
+                if (showSearch)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      AppSpacing.xxs,
+                      AppSpacing.md,
+                      AppSpacing.xs,
+                    ),
+                    child: searchField,
+                  ),
+                const Divider(height: 1),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      if (rules == null)
+                        const Padding(
+                          padding: EdgeInsets.all(AppSpacing.md),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (rules.isEmpty)
+                        ListTile(title: Text(l10n.programsRulesPickerEmpty))
+                      else if (shown!.isEmpty)
+                        ListTile(
+                          key: const ValueKey('program-rules-no-matches'),
+                          title: Text(l10n.programsRulesPickerNoMatches(query)),
+                        )
+                      else
+                        for (final rule in shown)
+                          CheckboxListTile(
+                            key: ValueKey('program-rule-${rule.id}'),
+                            value: _applied.contains(rule.id),
+                            // The nickname (#2341) is the title, with the
+                            // sentence beneath it; a rule without one shows
+                            // its sentence alone.
+                            title: Text(
+                              eventRuleTitle(
+                                l10n,
+                                rule,
+                                _names[rule.savedSearchId],
+                              ),
+                            ),
+                            subtitle: rule.nickname == null
+                                ? null
+                                : Text(sentence(rule)),
+                            onChanged: (on) => _toggle(rule.id, on: on == true),
+                          ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

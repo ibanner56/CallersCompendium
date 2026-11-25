@@ -485,7 +485,8 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   Type to see only the rules whose nickname or sentence holds every word you
   typed, in either; capitals and accents don't matter, so *petronella* finds
   a rule whose sentence names your *Petronella* search, and *ecole* finds
-  *École*. **New rule…** stays at the top while you search. When no rule
+  *École*. **New rule…** stays at the top, above the search field, while
+  you search. When no rule
   matches, it becomes **New rule "*what you typed*"…**, which opens the rule
   editor with what you typed as the new rule's nickname.
 - **Whenever the program changes**, each of its rules is checked, and again

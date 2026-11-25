@@ -14269,7 +14269,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get eventRulesManageTitle => 'ルールを管理';
 
   @override
-  String get eventRulesManageSubtitle => 'ルールを表示、追加、編集、削除します。';
+  String get eventRulesManageSubtitle => 'ルールを表示、追加、編集、並べ替え、削除します。';
 
   @override
   String get eventRulesEmpty => 'ルールはまだありません。ルールは保存した検索を使って、対象のダンスを指定します。';

@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart' show EventRuleOrder;
+import 'package:drift/drift.dart' show TableUpdate, TableUpdateQuery;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -199,22 +200,37 @@ class _EventRuleOrderTile extends StatefulWidget {
 
 class _EventRuleOrderTileState extends State<_EventRuleOrderTile> {
   EventRuleOrder _order = EventRuleOrder.manual;
-  bool _read = false;
+
+  /// Re-reads the order after any write to `settings`, so a value that
+  /// arrives by Device Sync or a restore shows while the section is open.
+  StreamSubscription<Set<TableUpdate>>? _watch;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_read) return;
-    _read = true;
+    if (_watch != null) return;
+    final db = RepositoriesScope.of(context).db;
+    _watch = db
+        .tableUpdates(TableUpdateQuery.onAllTables([db.settings]))
+        .listen((_) => unawaited(_load()));
     unawaited(_load());
   }
 
+  @override
+  void dispose() {
+    unawaited(_watch?.cancel());
+    super.dispose();
+  }
+
   Future<void> _load() async {
+    if (!mounted) return;
     try {
       final stored = await RepositoriesScope.of(
         context,
       ).settings.get(kEventRuleOrderKey);
-      if (mounted) setState(() => _order = EventRuleOrder.fromStored(stored));
+      if (!mounted) return;
+      final order = EventRuleOrder.fromStored(stored);
+      if (order != _order) setState(() => _order = order);
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'event_rule_order._load');
     }

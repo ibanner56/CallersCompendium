@@ -2198,18 +2198,21 @@ void main() {
         "DEFAULT '[]'",
       );
       // An event_rules table as #2340 first made it, before the nickname
-      // (#2341) joined v42, holding a rule.
+      // (#2341) joined v42, holding a rule. That build named its column
+      // `name`; nothing reads it now, and its value is not carried over.
       raw.execute(
         'CREATE TABLE event_rules (id TEXT NOT NULL, '
-        'saved_search_id TEXT NOT NULL, quantifier TEXT NOT NULL, '
+        'saved_search_id TEXT NOT NULL, name TEXT NULL, '
+        'quantifier TEXT NOT NULL, '
         'count INTEGER NOT NULL DEFAULT 0, scope TEXT NOT NULL, '
         'position INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NULL, '
         'deleted_at INTEGER NULL, existence_at INTEGER NULL, '
         'PRIMARY KEY (id))',
       );
       raw.execute(
-        "INSERT INTO event_rules (id, saved_search_id, quantifier, count, "
-        "scope) VALUES ('r1', 's1', 'atMost', 1, 'wholeProgram')",
+        "INSERT INTO event_rules (id, saved_search_id, name, quantifier, "
+        "count, scope) VALUES ('r1', 's1', 'Old name', 'atMost', 1, "
+        "'wholeProgram')",
       );
 
       final db = CompendiumDatabase(

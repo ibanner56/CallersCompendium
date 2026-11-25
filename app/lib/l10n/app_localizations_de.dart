@@ -14975,7 +14975,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get eventRulesManageSubtitle =>
-      'Deine Regeln ansehen, hinzufügen, bearbeiten und löschen.';
+      'Deine Regeln ansehen, hinzufügen, bearbeiten, neu anordnen und löschen.';
 
   @override
   String get eventRulesEmpty =>

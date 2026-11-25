@@ -14850,7 +14850,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get eventRulesManageSubtitle =>
-      'Se, tilføj, rediger og slet dine regler.';
+      'Se, tilføj, rediger, omarranger og slet dine regler.';
 
   @override
   String get eventRulesEmpty =>

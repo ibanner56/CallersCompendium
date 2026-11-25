@@ -179,7 +179,14 @@ class EventRuleRepository {
       for (var i = 0; i < order.length; i++) {
         final rule = rules.firstWhere((r) => r.id == order[i]);
         if (rule.position == i) continue;
-        await save(rule.copyWith(position: i), at: now);
+        // Only the place changes, so a rule this build cannot check (a newer
+        // build's, which save() refuses) moves too and is otherwise kept as
+        // it came (#2341).
+        await (_db.update(
+          _db.eventRules,
+        )..where((t) => t.id.equals(rule.id) & t.deletedAt.isNull())).write(
+          EventRulesCompanion(position: Value(i), updatedAt: Value(now)),
+        );
       }
     });
   }

@@ -20007,9 +20007,9 @@
   "@eventRulesManageTitle": {
     "description": "Row that opens the event rules manager, in Settings > Experimental > Event rules and in Settings > Program while event rules are on (#2340)."
   },
-  "eventRulesManageSubtitle": "View, add, edit and delete your rules.",
+  "eventRulesManageSubtitle": "View, add, edit, reorder and delete your rules.",
   "@eventRulesManageSubtitle": {
-    "description": "Subtitle of the Manage rules row (#2340)."
+    "description": "Subtitle of the Manage rules row (#2340, #2341)."
   },
   "eventRulesEmpty": "No rules yet. A rule uses one of your saved searches to say which dances it means.",
   "@eventRulesEmpty": {

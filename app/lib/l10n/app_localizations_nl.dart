@@ -14933,7 +14933,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get eventRulesManageSubtitle =>
-      'Je regels bekijken, toevoegen, bewerken en verwijderen.';
+      'Je regels bekijken, toevoegen, bewerken, herschikken en verwijderen.';
 
   @override
   String get eventRulesEmpty =>

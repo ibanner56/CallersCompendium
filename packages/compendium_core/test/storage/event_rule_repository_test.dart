@@ -110,6 +110,41 @@ void main() {
       expect(read, newer, reason: 'kept as stored, to publish it back');
       expect(read!.isReadable, isFalse);
     });
+
+    // #2341: Manage rules reorders every rule, a newer build's included,
+    // and keeps such a rule as it came.
+    test(
+      'reorders past a rule a newer build wrote, writing only its place',
+      () async {
+        final a = await addRule('s1');
+        const newer = EventRule(
+          id: 'n',
+          savedSearchId: 's',
+          quantifierName: 'exactly',
+          count: 1,
+          scopeName: 'dancesNtoM',
+          position: 1,
+        );
+        await repos.eventRules.writeFromSync(newer);
+        final b = await addRule('s2');
+        expect(
+          [for (final r in await repos.eventRules.listAll()) r.id],
+          [a.id, 'n', b.id],
+        );
+
+        await repos.eventRules.reorder([a.id, b.id, 'n'], at: t0);
+        expect(
+          [for (final r in await repos.eventRules.listAll()) r.id],
+          [a.id, b.id, 'n'],
+        );
+        final moved = (await repos.eventRules.get('n'))!;
+        expect(moved, newer.copyWith(position: 2));
+        final row = await (db.select(
+          db.eventRules,
+        )..where((t) => t.id.equals('n'))).getSingle();
+        expect(row.updatedAt!.toUtc(), t0, reason: 'the new place syncs');
+      },
+    );
   });
 
   group('a saved search a rule uses', () {

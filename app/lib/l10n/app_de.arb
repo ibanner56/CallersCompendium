@@ -14206,9 +14206,9 @@
   "@eventRulesManageTitle": {
     "x-sourceSha256": "9e4a85c7c70164ccbaf362fdd644cb01d83fbdc59303828a507f12c83da1f8ef"
   },
-  "eventRulesManageSubtitle": "Deine Regeln ansehen, hinzufügen, bearbeiten und löschen.",
+  "eventRulesManageSubtitle": "Deine Regeln ansehen, hinzufügen, bearbeiten, neu anordnen und löschen.",
   "@eventRulesManageSubtitle": {
-    "x-sourceSha256": "f26accf09aedc4741c6179c30ace30a34e0d0900f740393b68a85396f3d3be76"
+    "x-sourceSha256": "e3201fa38d2cc62d010cbcd6d873777c0e5034d2c8c0a7c95b31fe0ab26ebe57"
   },
   "eventRulesEmpty": "Noch keine Regeln. Eine Regel verwendet eine deiner gespeicherten Suchen, um zu sagen, welche Tänze sie meint.",
   "@eventRulesEmpty": {

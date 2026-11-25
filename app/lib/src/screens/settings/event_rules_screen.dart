@@ -143,7 +143,8 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
   /// Moves the rule at [from] in [rules] to [to]: on screen at once, then
   /// stored ([EventRuleRepository.reorder]), which the list's watch shows.
   /// With [announce], a screen reader hears where it landed (Move up / Move
-  /// down keep their focus while the row moves).
+  /// down keep their focus while the row moves). If the write fails, the list
+  /// goes back to [rules], the order still stored.
   Future<void> _move(
     List<EventRule> rules,
     int from,
@@ -161,6 +162,7 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
       await repos.eventRules.reorder([for (final r in order) r.id]);
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'event_rules_screen._move');
+      if (mounted) setState(() => _rules = rules);
       return;
     }
     if (announce && mounted) {
@@ -305,11 +307,18 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
         : widget.rule!.nickname ?? '',
   );
 
-  /// [text] cut to the field's [maxEventRuleNicknameLength].
-  static String _clipNickname(String text) =>
-      text.length <= maxEventRuleNicknameLength
-      ? text
-      : text.substring(0, maxEventRuleNicknameLength);
+  /// [text] cut to the field's [maxEventRuleNicknameLength] code units, by
+  /// whole characters, so an emoji is never split.
+  static String _clipNickname(String text) {
+    if (text.length <= maxEventRuleNicknameLength) return text;
+    final kept = StringBuffer();
+    for (final character in text.characters) {
+      if (kept.length + character.length > maxEventRuleNicknameLength) break;
+      kept.write(character);
+    }
+    return kept.toString();
+  }
+
   late String? _searchId = widget.rule?.savedSearchId;
   late EventRuleQuantifier _quantifier =
       widget.rule?.quantifier ?? EventRuleQuantifier.atMost;

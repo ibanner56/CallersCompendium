@@ -538,5 +538,25 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets('Rule order shows a value that arrives while it is open, as '
+        'by Device Sync or a restore', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        const Scaffold(body: SingleChildScrollView(child: EventRulesSection())),
+        enabled: true,
+      );
+      await pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('experimental-event-rule-order-field')),
+      );
+      expect(find.text('My order'), findsOneWidget);
+
+      await repos.settings.set(kEventRuleOrderKey, 'mostUsed');
+      await pumpUntilFound(tester, find.text('Most used'));
+      expect(find.text('My order'), findsNothing);
+    });
   });
 }

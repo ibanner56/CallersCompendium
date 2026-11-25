@@ -297,4 +297,97 @@ void main() {
       d.id,
     ], reason: 'c (2) and b (1) first; a and d (0 live) by title');
   });
+
+  // Laid out as the add-to-program sheet is (add-to-program-sheet.md §4.5):
+  // with the keyboard up the sheet drops its title, so the pinned line, the
+  // search field and a rule stay in view on a phone at any text size.
+  for (final (name, scale) in [('', 1.0), (' at 200% text', 2.0)]) {
+    testWidgets('at 360×640 with the keyboard up and a notch$name, New '
+        'rule…, the search field and a rule are visible between the status '
+        'bar and the keyboard', (tester) async {
+      final seeded = await _seed();
+      final rules = [
+        for (var i = 1; i <= 12; i++)
+          await seeded.rule(seeded.becket, count: i, nickname: 'Rule $i'),
+      ];
+      const keyboard = 300.0;
+      const notch = 47.0;
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      tester.view.viewInsets = const FakeViewPadding(bottom: keyboard);
+      tester.view.padding = const FakeViewPadding(top: notch);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetViewInsets();
+        tester.view.resetPadding();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(scale)),
+            child: RepositoriesScope(repositories: seeded.repos, child: child!),
+          ),
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  key: const ValueKey('open'),
+                  onPressed: () => showProgramRulesPicker(
+                    context,
+                    applied: const [],
+                    onChange: (_) async => null,
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('open')));
+      await tester.pumpAndSettle();
+      await pumpUntilFound(tester, _row(rules.first));
+
+      const visibleBottom = 640 - keyboard;
+      expect(tester.takeException(), isNull, reason: 'no overflow');
+      expect(
+        tester.getRect(find.byType(BottomSheet)).top,
+        greaterThanOrEqualTo(notch),
+      );
+      for (final finder in [_newRule, _search]) {
+        final rect = tester.getRect(finder);
+        expect(rect.top, greaterThanOrEqualTo(notch), reason: '$finder');
+        expect(
+          rect.bottom,
+          lessThanOrEqualTo(visibleBottom),
+          reason: '$finder',
+        );
+      }
+      expect(
+        tester.getRect(_newRule).top,
+        lessThan(tester.getRect(_search).top),
+        reason:
+            'New rule… is pinned above the search, as on the '
+            'add-to-program sheet',
+      );
+      expect(find.text('Rules for this program'), findsNothing);
+      final row = tester.getRect(_row(rules.first));
+      expect(row.top, greaterThanOrEqualTo(notch));
+      expect(row.top + 48, lessThanOrEqualTo(visibleBottom));
+    });
+  }
+
+  testWidgets('with the keyboard down the picker shows its title', (
+    tester,
+  ) async {
+    final seeded = await _seed();
+    await seeded.rule(seeded.becket);
+    await _openPicker(tester, seeded.repos);
+    expect(find.text('Rules for this program'), findsOneWidget);
+  });
 }

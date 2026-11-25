@@ -21551,10 +21551,10 @@ abstract class AppLocalizations {
   /// **'Manage rules'**
   String get eventRulesManageTitle;
 
-  /// Subtitle of the Manage rules row (#2340).
+  /// Subtitle of the Manage rules row (#2340, #2341).
   ///
   /// In en, this message translates to:
-  /// **'View, add, edit and delete your rules.'**
+  /// **'View, add, edit, reorder and delete your rules.'**
   String get eventRulesManageSubtitle;
 
   /// Shown in the event rules manager when there are no rules (#2340).
