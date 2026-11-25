@@ -64,13 +64,20 @@ const _markedLast = ['b', 'c', 'pa', 'pd'];
 
 const _sentence = 'At most 1 dance matching "Petronella" in the whole program';
 
-/// Called opener · current (with an alternate) · the petronella · later.
-List<ProgramSlot> _slots({String altDance = 'alt'}) => [
+/// Called opener · current (with its alternates [alts]) · the petronella ·
+/// later.
+List<ProgramSlot> _slots({List<String> alts = const ['alt']}) => [
   ProgramSlot(id: 's0', position: 0, danceId: 'd0', performedAt: _now),
   ProgramSlot(id: 's1', position: 1, danceId: 'd1'),
-  ProgramSlot(id: 's1-alt', position: 2, danceId: altDance, isAlt: true),
-  ProgramSlot(id: 's2', position: 3, danceId: 'pet'),
-  ProgramSlot(id: 's3', position: 4, danceId: 'd3'),
+  for (final (i, alt) in alts.indexed)
+    ProgramSlot(
+      id: i == 0 ? 's1-alt' : 's1-alt$i',
+      position: 2 + i,
+      danceId: alt,
+      isAlt: true,
+    ),
+  ProgramSlot(id: 's2', position: 2 + alts.length, danceId: 'pet'),
+  ProgramSlot(id: 's3', position: 3 + alts.length, danceId: 'd3'),
 ];
 
 /// Holds each rule's [matchingAmong] until the test releases it, when
@@ -116,7 +123,7 @@ Future<_Harness> _pump(
   bool checkSwap = true,
   bool applied = true,
   bool suggestions = false,
-  String altDance = 'alt',
+  List<String> alts = const ['alt'],
   String currentSlotId = 's1',
   List<Dance> extra = const [],
   Completer<void>? hold,
@@ -129,9 +136,9 @@ Future<_Harness> _pump(
   final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
   for (final d in [
     for (final d in _programDances)
-      if (d.id != 'alt' || altDance == 'alt') d,
+      if (d.id != 'alt' || alts.contains('alt')) d,
     ..._candidates,
-    if (altDance == 'palt') _dance('palt', 'Petronella Alt'),
+    if (alts.contains('palt')) _dance('palt', 'Petronella Alt'),
     ...extra,
   ]) {
     await repos.dances.create(d);
@@ -182,7 +189,7 @@ Future<_Harness> _pump(
           program: Program(
             id: 'p1',
             title: 'Spring Dance',
-            slots: _slots(altDance: altDance),
+            slots: _slots(alts: alts),
             eventRuleIds: applied ? [rule.id] : const [],
             createdAt: _now,
             updatedAt: _now,
@@ -418,7 +425,7 @@ void main() {
   group('Your alternates (#2347: checked as the other results are)', () {
     testWidgets('a petronella alternate is marked and stays under Your '
         'alternates', (tester) async {
-      await _pump(tester, altDance: 'palt');
+      await _pump(tester, alts: ['palt']);
       await _openSwap(tester, 'adjust-swap-current');
       expect(_results(tester, pinned: ['palt']), _markedLast);
       expect(_marker('palt'), findsOneWidget);
@@ -428,17 +435,28 @@ void main() {
         'swap makes planned, and lists the slot\'s primary unmarked', (
       tester,
     ) async {
-      await _pump(tester, altDance: 'palt', currentSlotId: 's1-alt');
+      await _pump(tester, alts: ['palt'], currentSlotId: 's1-alt');
       await _openSwap(tester, 'adjust-swap-current');
       // The slot's other choice is its primary, Current Reel.
       expect(_results(tester, pinned: ['d1']), _markedLast);
       expect(_marker('d1'), findsNothing);
     });
 
+    testWidgets('a marked alternate is listed after the unmarked ones, in '
+        'any order, Suggested included', (tester) async {
+      await _pump(tester, alts: ['palt', 'alt'], suggestions: true);
+      await _openSwap(tester, 'adjust-swap-current');
+      final shown = _shown(tester);
+      expect(shown.take(2), ['alt', 'palt'], reason: 'Your alternates');
+      expect(_marker('palt'), findsOneWidget);
+      expect(_marker('alt'), findsNothing);
+      expect(shown.skip(2).toSet(), _plainOrder.toSet());
+    });
+
     testWidgets('with the setting off, an alternate is not marked', (
       tester,
     ) async {
-      await _pump(tester, altDance: 'palt', checkSwap: false);
+      await _pump(tester, alts: ['palt'], checkSwap: false);
       await _openSwap(tester, 'adjust-swap-current');
       expect(_results(tester, pinned: ['palt']), _plainOrder);
       expect(_anyMarker, findsNothing);
