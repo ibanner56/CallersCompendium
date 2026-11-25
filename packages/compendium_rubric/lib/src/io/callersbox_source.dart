@@ -745,7 +745,12 @@ bool _heyStopsAtNextNeighbours(core.Figure figure) {
 /// would drop, so such a circle is left as it is (agent's call). For the same
 /// reason an annotation that names a place in the set ("center", "inside",
 /// "ring"), a rotation ("cw", "ccw", "counter…") or a count ("twice", "2x",
-/// "all the way") leaves it alone too.
+/// "all the way") leaves it alone too. That keeps the count only for the
+/// circle the import wrote before v40; the import's own promenade
+/// ([_promenadeAroundTheSet]) left alone is not placed as the progression
+/// but is still danced to its stated destination, one place to the next
+/// neighbours, so its count is dropped (agent's call, 2026-11-25, from
+/// Hudson's ruling that the destination says how far it travels).
 ///
 /// Only a top-level figure is read this way, and only the first: the bridge
 /// rewrites that one figure, the one it takes as the progression, and leaves
@@ -766,7 +771,8 @@ bool _promenadesAroundTheSet(core.Figure figure) {
 /// The import's own shape for the same line since the taxonomy-v40 sync: a
 /// single-file promenade along the set to the next neighbours, noted "around
 /// the major set", after any annotation the line kept. The same annotations
-/// that leave the circle alone leave this one alone too (agent's call).
+/// that leave the circle alone leave this one unplaced too (agent's call);
+/// see [_promenadesAroundTheSet] for what then happens to it.
 bool _promenadeAroundTheSet(core.Figure figure) {
   final params = figure.params;
   if (params['singleFile'] != true ||

@@ -1254,11 +1254,12 @@ To be defined later with worked examples.
     promenade. The phrase is read in any letter case, alone or with one bracketed annotation;
     an annotation naming a place in the set, a rotation or a count ("women ccw in center, men cw
     on outside", "twice"), a note that goes on past the phrase, or a circle counting its places
-    is left as the import read it, since this reading would drop the rest; the import's own
-    promenade is taken only with at most one annotation before "around the major set" that names
-    none of those. Only the first such top-level figure is taken, and only in a dance with no
-    figure flagged. Any other is left as the import read it and danced to its own destination
-    *(agent's calls)*.
+    is left as the import read it, so the circle keeps the rest; the import's own promenade is
+    taken only with at most one annotation before "around the major set" that names none of
+    those. Only the first such top-level figure is taken, and only in a dance with no figure
+    flagged. Any other import promenade is not placed as the progression but is still danced to
+    its own destination, so a counted one ("to N2 (twice)") travels one place and its count is
+    dropped *(agent's calls)*.
 - **still deferred:** single-file promenades other than along the set, one along it to anyone but
   the next neighbours or to no one stated, whole-set and around-a-dancer promenades (above),
   other stated destinations, and every other `where`. The prior verifier's conflation of
