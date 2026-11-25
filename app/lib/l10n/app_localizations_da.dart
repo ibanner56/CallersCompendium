@@ -15402,4 +15402,109 @@ class AppLocalizationsDa extends AppLocalizations {
   String programsFillSearchUnreadable(String label) {
     return 'Den gemte søgning for \"$label\" kan ikke åbnes: den er gemt af en nyere version af appen, eller den er beskadiget. Alle danse vises.';
   }
+
+  @override
+  String get settingsExperimentalSeriesHeader => 'Weekender og serier';
+
+  @override
+  String get settingsExperimentalSeriesTitle => 'Tjek flere programmer samlet';
+
+  @override
+  String get settingsExperimentalSeriesSubtitle =>
+      'Vælg Vælg programmer under Flere handlinger på programlisten, vælg to eller flere, og se én matrix på tværs af dem og de danse, de gentager. Intet nyt gemmes.';
+
+  @override
+  String get programsSelectPrograms => 'Vælg programmer';
+
+  @override
+  String programsSelectProgramLabel(String title) {
+    return 'Vælg $title';
+  }
+
+  @override
+  String get programsCombinedView => 'Samlet visning';
+
+  @override
+  String get programsCombinedViewTooltip =>
+      'Se én matrix og de gentagne danse på tværs af de valgte programmer';
+
+  @override
+  String get programsCombinedViewNeedsTwo => 'Vælg mindst to programmer';
+
+  @override
+  String get programsCombinedRepeatsTab => 'Gentagelser';
+
+  @override
+  String get programsCombinedLoadError =>
+      'Kunne ikke indlæse programmerne. Intet blev ændret. Prøv igen.';
+
+  @override
+  String get programsCombinedGoneTitle => 'Programmerne findes ikke længere';
+
+  @override
+  String get programsCombinedGoneBody =>
+      'De programmer, du valgte, er blevet slettet. Gå tilbage til programlisten for at vælge andre.';
+
+  @override
+  String programsCombinedBlockLabel(String title, String date) {
+    return '$title · $date';
+  }
+
+  @override
+  String programsCombinedRowInProgram(String title, String program) {
+    return '$title, i $program';
+  }
+
+  @override
+  String get programsCombinedPdfTitle => 'Samlet matrix';
+
+  @override
+  String get programsCombinedRepeatsEmptyTitle => 'Ingen gentagne danse';
+
+  @override
+  String get programsCombinedRepeatsEmptyBody =>
+      'Ingen dans optræder i mere end ét af disse programmer.';
+
+  @override
+  String programsCombinedRepeatsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse optræder i mere end ét program',
+      one: '1 dans optræder i mere end ét program',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsCombinedRepeatProgramCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'I $count programmer',
+      one: 'I 1 program',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsCombinedRepeatAlternateChip => 'Kun alternativ i nogle';
+
+  @override
+  String programsCombinedRepeatUse(String program, String position) {
+    return '$program: $position';
+  }
+
+  @override
+  String programsCombinedPositionDance(int number) {
+    return 'dans $number';
+  }
+
+  @override
+  String programsCombinedPositionAlternateFor(int number) {
+    return 'alternativ til dans $number';
+  }
+
+  @override
+  String get programsCombinedPositionAlternate => 'alternativ';
 }

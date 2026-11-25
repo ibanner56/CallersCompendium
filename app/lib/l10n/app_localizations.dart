@@ -22210,6 +22210,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The saved search for \"{label}\" can\'t be opened: it was saved by a newer version of the app, or it is damaged. Every dance is shown.'**
   String programsFillSearchUnreadable(String label);
+
+  /// Header of the Weekends and series section in Settings > Experimental (#2349). A weekend, festival or season is several programs the same dancers hear.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekends and series'**
+  String get settingsExperimentalSeriesHeader;
+
+  /// Title of the switch that turns on Weekends and series in Settings > Experimental (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'Check several programs together'**
+  String get settingsExperimentalSeriesTitle;
+
+  /// Subtitle of the Weekends and series switch in Settings > Experimental (#2349). 'Select programs' and 'More actions' name the menu item and the menu.
+  ///
+  /// In en, this message translates to:
+  /// **'In the Programs list, choose Select programs from More actions, select two or more, and see one matrix across them and the dances they repeat. Nothing new is saved.'**
+  String get settingsExperimentalSeriesSubtitle;
+
+  /// Item in the Programs list's More actions menu that starts selecting programs for the combined view (#2349). Shown only while Settings > Experimental > Weekends and series is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Select programs'**
+  String get programsSelectPrograms;
+
+  /// Accessible label of a program row's checkbox while selecting programs (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'Select {title}'**
+  String programsSelectProgramLabel(String title);
+
+  /// The selection bar's action that opens one view of the selected programs, and that view's title (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'Combined view'**
+  String get programsCombinedView;
+
+  /// Tooltip of the Combined view action while two or more programs are selected (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'See one matrix and the repeated dances across the selected programs'**
+  String get programsCombinedViewTooltip;
+
+  /// Tooltip of the Combined view action while fewer than two programs are selected, when it is disabled (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least two programs'**
+  String get programsCombinedViewNeedsTwo;
+
+  /// Tab of the combined view listing the dances that appear in more than one of the selected programs (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats'**
+  String get programsCombinedRepeatsTab;
+
+  /// Shown in the combined view when the programs could not be read (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load these programs. Nothing was changed. Try again.'**
+  String get programsCombinedLoadError;
+
+  /// Title shown in the combined view when every selected program has been deleted since it opened (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'These programs are gone'**
+  String get programsCombinedGoneTitle;
+
+  /// Body shown in the combined view when every selected program has been deleted (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'The programs you selected have been deleted. Go back to the Programs list to choose others.'**
+  String get programsCombinedGoneBody;
+
+  /// Heading of one program's block of rows in the combined matrix, and how the Repeats tab names a program: its title and event date (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'{title} · {date}'**
+  String programsCombinedBlockLabel(String title, String date);
+
+  /// Screen-reader name of a dance row in the combined matrix: the dance and the program it is in (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'{title}, in {program}'**
+  String programsCombinedRowInProgram(String title, String program);
+
+  /// Title printed at the top of the combined matrix PDF (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'Combined matrix'**
+  String get programsCombinedPdfTitle;
+
+  /// Title of the Repeats tab when no dance appears in more than one selected program (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'No repeated dances'**
+  String get programsCombinedRepeatsEmptyTitle;
+
+  /// Body of the Repeats tab when it lists nothing (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'No dance appears in more than one of these programs.'**
+  String get programsCombinedRepeatsEmptyBody;
+
+  /// Count line above the Repeats tab's list (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance appears in more than one program} other{{count} dances appear in more than one program}}'**
+  String programsCombinedRepeatsCount(int count);
+
+  /// How many of the selected programs a repeated dance is in, on the Repeats tab (#2349). Always two or more in practice.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{In 1 program} other{In {count} programs}}'**
+  String programsCombinedRepeatProgramCount(int count);
+
+  /// Chip on a repeated dance that, in at least one program, is only an alternate, not a planned dance (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'Only an alternate in some'**
+  String get programsCombinedRepeatAlternateChip;
+
+  /// One place a repeated dance appears, on the Repeats tab: the program (title and date) and the dance's position in it (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'{program}: {position}'**
+  String programsCombinedRepeatUse(String program, String position);
+
+  /// A repeated dance's position in a program on the Repeats tab: its number in the set list (#2349). Lower case: it follows a colon.
+  ///
+  /// In en, this message translates to:
+  /// **'dance {number}'**
+  String programsCombinedPositionDance(int number);
+
+  /// A repeated dance's position on the Repeats tab when it is an alternate: the number of the dance it stands in for (#2349). Lower case: it follows a colon.
+  ///
+  /// In en, this message translates to:
+  /// **'alternate for dance {number}'**
+  String programsCombinedPositionAlternateFor(int number);
+
+  /// A repeated dance's position on the Repeats tab when it is an alternate with no numbered dance before it (#2349). Lower case: it follows a colon.
+  ///
+  /// In en, this message translates to:
+  /// **'alternate'**
+  String get programsCombinedPositionAlternate;
 }
 
 class _AppLocalizationsDelegate

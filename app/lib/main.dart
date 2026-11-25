@@ -86,6 +86,7 @@ import 'src/data/calling_card_settings_scope.dart';
 import 'src/data/show_glossary_scope.dart';
 import 'src/data/show_repertoire_scope.dart';
 import 'src/data/event_rules_scope.dart';
+import 'src/data/weekends_and_series_scope.dart';
 import 'src/data/suggestions_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
 import 'src/data/canonical_discouraged_terms_scope.dart';
@@ -730,6 +731,12 @@ class _CompendiumAppState extends State<CompendiumApp>
   );
   final _eventRulesEnabledNotifier = PreferenceNotifier<bool>(
     key: kEventRulesEnabledKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _weekendsAndSeriesNotifier = PreferenceNotifier<bool>(
+    key: kWeekendsAndSeriesEnabledKey,
     defaultValue: false,
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
@@ -1441,6 +1448,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _showRepertoireNotifier,
     _suggestionsEnabledNotifier,
     _eventRulesEnabledNotifier,
+    _weekendsAndSeriesNotifier,
     _suggestionsInPerformSwapNotifier,
     _suggestionSettingsNotifier,
     _callingCardSettingsNotifier,
@@ -2494,6 +2502,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _showRepertoireNotifier.dispose();
     _suggestionsEnabledNotifier.dispose();
     _eventRulesEnabledNotifier.dispose();
+    _weekendsAndSeriesNotifier.dispose();
     _suggestionsInPerformSwapNotifier.dispose();
     _suggestionSettingsNotifier.dispose();
     _callingCardSettingsNotifier.dispose();
@@ -3178,6 +3187,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     ),
     (child) => EventRulesEnabledScope(
       notifier: _eventRulesEnabledNotifier,
+      child: child,
+    ),
+    (child) => WeekendsAndSeriesScope(
+      notifier: _weekendsAndSeriesNotifier,
       child: child,
     ),
     (child) => SuggestionsInPerformSwapScope(

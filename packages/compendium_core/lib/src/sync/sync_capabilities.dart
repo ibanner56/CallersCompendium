@@ -69,6 +69,12 @@ abstract final class SyncCapabilities {
   /// rules (#2342, a non-empty `eventRuleIds` in its value) waits for this as
   /// well as [programTemplatesV1] ([SyncCapabilityPolicy.gatedSettingValueFields]).
   static const String eventRulesV1 = 'eventRules.v1';
+
+  /// Weekends and series (#2349): the Experimental toggle
+  /// (`weekends_and_series_enabled`). An older build has no combined view, so
+  /// it would keep the key without using it; it waits so a peer never holds
+  /// a setting it cannot show or edit. Nothing else of the feature is stored.
+  static const String weekendsAndSeriesV1 = 'weekendsAndSeries.v1';
 }
 
 /// What this build understands and what it holds back until every attached
@@ -164,6 +170,9 @@ final class SyncCapabilityPolicy {
   /// advertises it. The sync server must
   /// already accept the `eventRule` record kind: deploy it before the first
   /// build that advertises this (sync-spec §6.15).
+  ///
+  /// [SyncCapabilities.weekendsAndSeriesV1] (#2349) gates the Weekends and
+  /// series toggle, and this build advertises it.
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
     advertised: {
       SyncCapabilities.glossaryV1,
@@ -173,6 +182,7 @@ final class SyncCapabilityPolicy {
       SyncCapabilities.suggestionsV1,
       SyncCapabilities.performSwapV1,
       SyncCapabilities.eventRulesV1,
+      SyncCapabilities.weekendsAndSeriesV1,
     },
     gatedRecordKinds: {
       SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
@@ -191,6 +201,7 @@ final class SyncCapabilityPolicy {
       'perform_swap_defaults': SyncCapabilities.performSwapV1,
       'event_rules_enabled': SyncCapabilities.eventRulesV1,
       'event_rule_order': SyncCapabilities.eventRulesV1,
+      'weekends_and_series_enabled': SyncCapabilities.weekendsAndSeriesV1,
     },
     gatedSettingKeyPrefixes: {
       'program_template:': SyncCapabilities.programTemplatesV1,

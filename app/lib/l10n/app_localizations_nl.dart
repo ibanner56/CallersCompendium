@@ -15493,4 +15493,111 @@ class AppLocalizationsNl extends AppLocalizations {
   String programsFillSearchUnreadable(String label) {
     return 'De opgeslagen zoekopdracht voor \"$label\" kan niet worden geopend: die is opgeslagen door een nieuwere versie van de app, of is beschadigd. Alle dansen worden getoond.';
   }
+
+  @override
+  String get settingsExperimentalSeriesHeader => 'Weekenden en reeksen';
+
+  @override
+  String get settingsExperimentalSeriesTitle =>
+      'Meerdere programma\'s samen controleren';
+
+  @override
+  String get settingsExperimentalSeriesSubtitle =>
+      'Kies in de programmalijst Programma\'s selecteren onder Meer acties, selecteer er twee of meer, en zie één matrix over allemaal en de dansen die terugkomen. Er wordt niets nieuws opgeslagen.';
+
+  @override
+  String get programsSelectPrograms => 'Programma\'s selecteren';
+
+  @override
+  String programsSelectProgramLabel(String title) {
+    return '$title selecteren';
+  }
+
+  @override
+  String get programsCombinedView => 'Gecombineerde weergave';
+
+  @override
+  String get programsCombinedViewTooltip =>
+      'Eén matrix en de herhaalde dansen van de geselecteerde programma\'s bekijken';
+
+  @override
+  String get programsCombinedViewNeedsTwo =>
+      'Selecteer minstens twee programma\'s';
+
+  @override
+  String get programsCombinedRepeatsTab => 'Herhalingen';
+
+  @override
+  String get programsCombinedLoadError =>
+      'De programma\'s konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get programsCombinedGoneTitle => 'Deze programma\'s bestaan niet meer';
+
+  @override
+  String get programsCombinedGoneBody =>
+      'De programma\'s die je selecteerde zijn verwijderd. Ga terug naar de programmalijst om andere te kiezen.';
+
+  @override
+  String programsCombinedBlockLabel(String title, String date) {
+    return '$title · $date';
+  }
+
+  @override
+  String programsCombinedRowInProgram(String title, String program) {
+    return '$title, in $program';
+  }
+
+  @override
+  String get programsCombinedPdfTitle => 'Gecombineerde matrix';
+
+  @override
+  String get programsCombinedRepeatsEmptyTitle => 'Geen herhaalde dansen';
+
+  @override
+  String get programsCombinedRepeatsEmptyBody =>
+      'Geen enkele dans komt in meer dan één van deze programma\'s voor.';
+
+  @override
+  String programsCombinedRepeatsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen komen in meer dan één programma voor',
+      one: '1 dans komt in meer dan één programma voor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsCombinedRepeatProgramCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'In $count programma\'s',
+      one: 'In 1 programma',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsCombinedRepeatAlternateChip => 'Soms alleen alternatief';
+
+  @override
+  String programsCombinedRepeatUse(String program, String position) {
+    return '$program: $position';
+  }
+
+  @override
+  String programsCombinedPositionDance(int number) {
+    return 'dans $number';
+  }
+
+  @override
+  String programsCombinedPositionAlternateFor(int number) {
+    return 'alternatief voor dans $number';
+  }
+
+  @override
+  String get programsCombinedPositionAlternate => 'alternatief';
 }

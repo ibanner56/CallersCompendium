@@ -7903,13 +7903,15 @@ void main() {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
         // Program templates (#2337), saved searches (#2325), suggestions
-        // (#2343), the Swap a dance defaults (#2346) and event rules (#2340)
-        // are covered by their own rollout tests.
+        // (#2343), the Swap a dance defaults (#2346), event rules (#2340)
+        // and Weekends and series (#2349) are covered by their own rollout
+        // tests.
         SyncCapabilities.programTemplatesV1,
         SyncCapabilities.savedSearchesV1,
         SyncCapabilities.suggestionsV1,
         SyncCapabilities.performSwapV1,
         SyncCapabilities.eventRulesV1,
+        SyncCapabilities.weekendsAndSeriesV1,
       });
       expect(SyncCapabilityPolicy.build.gatedRecordKinds, {
         SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
@@ -7928,6 +7930,7 @@ void main() {
         'perform_swap_defaults': SyncCapabilities.performSwapV1,
         'event_rules_enabled': SyncCapabilities.eventRulesV1,
         'event_rule_order': SyncCapabilities.eventRulesV1,
+        'weekends_and_series_enabled': SyncCapabilities.weekendsAndSeriesV1,
       });
       expect(SyncCapabilityPolicy.build.gatedGlossaryEntryKinds, {
         'term': SyncCapabilities.glossaryV2,
@@ -8542,6 +8545,88 @@ void main() {
       expect(awaiting(result), isEmpty);
     });
 
+    test('rollout: the Weekends and series toggle (#2349) waits beside peers '
+        'with no record and peers on the previous build, and publishes once '
+        'every device advertises weekendsAndSeries.v1', () async {
+      const build = SyncCapabilityPolicy.build;
+      final toggle = [
+        SyncMergeCandidate.fromBlob(
+          _setting('weekends_and_series_enabled', 'true'),
+        ),
+      ];
+      for (final candidate in toggle) {
+        expect(
+          build.capabilityFor(candidate.blob.kind, candidate.blob.id),
+          SyncCapabilities.weekendsAndSeriesV1,
+          reason: '${candidate.blob.id} is gated by the shipped policy',
+        );
+      }
+      final toggleKeys = {for (final c in toggle) c.blob.id};
+      final everyDevice = ['p1', 'p2'];
+      // What the build before this one advertised.
+      final previous = {...build.advertised}
+        ..remove(SyncCapabilities.weekendsAndSeriesV1);
+
+      Future<(SyncPassResult, _FakeTransport)> pass(
+        Map<String, Set<String>> recorded,
+      ) async {
+        final records = [
+          for (final MapEntry(key: peer, value: advertised) in recorded.entries)
+            capabilityOf(peer, advertised),
+        ];
+        final local = {
+          for (final c in [...toggle, plain, ...records]) c.address: c,
+        };
+        final store = _FakeStore(local: local);
+        final transport = transportFor(
+          everyDevice,
+          missing: {
+            for (final c in [...toggle, plain]) c.wireHash,
+          },
+        );
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: build,
+        ).syncNow();
+        expect(result.status, SyncPassStatus.completed);
+        expect(
+          uploaded(transport),
+          contains(plain.wireHash),
+          reason: 'an ungated record uploads, so the checks below can fail',
+        );
+        return (result, transport);
+      }
+
+      for (final recorded in [
+        const <String, Set<String>>{},
+        {for (final peer in everyDevice) peer: previous},
+      ]) {
+        final (result, transport) = await pass(recorded);
+        expect(publishedSettings(transport), contains('theme_mode'));
+        expect(publishedSettings(transport).intersection(toggleKeys), isEmpty);
+        for (final c in toggle) {
+          expect(uploaded(transport), isNot(contains(c.wireHash)));
+        }
+        expect(awaiting(result).map((r) => r.peerId).toSet(), {'p1', 'p2'});
+        for (final report in awaiting(result)) {
+          expect(
+            report.message,
+            contains(SyncCapabilities.weekendsAndSeriesV1),
+          );
+        }
+      }
+
+      final (result, transport) = await pass({
+        for (final peer in everyDevice) peer: build.advertised,
+      });
+      expect(publishedSettings(transport), containsAll(toggleKeys));
+      for (final c in toggle) {
+        expect(uploaded(transport), contains(c.wireHash));
+      }
+      expect(awaiting(result), isEmpty);
+    });
+
     test('rollout: event rules and their toggle (#2340) wait beside peers '
         'with no record and peers on the previous build, and publish once '
         'every device advertises eventRules.v1', () async {
@@ -8838,6 +8923,7 @@ void main() {
           SyncCapabilities.programTemplatesV1,
           SyncCapabilities.savedSearchesV1,
           SyncCapabilities.suggestionsV1,
+          SyncCapabilities.weekendsAndSeriesV1,
         ],
       }, reason: 'this build advertises the capabilities');
 

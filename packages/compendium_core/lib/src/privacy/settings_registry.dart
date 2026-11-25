@@ -146,6 +146,9 @@ final Map<String, DataClassification> settingsClassifications = {
   // order, My order or Most used (#2341).
   'event_rules_enabled': _preference,
   'event_rule_order': _preference,
+  // Experimental Weekends and series (#2349): the toggle. The programs a
+  // caller selects and the combined view are never stored.
+  'weekends_and_series_enabled': _preference,
   'suggestions_in_perform_swap': _preference,
   'suggestion_settings': const DataClassification(
     term: DpvTerm.nonPersonal,

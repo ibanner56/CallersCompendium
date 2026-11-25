@@ -513,7 +513,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**143 settings keys**: 93 shareable, 15 device-local, 33 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
+**144 settings keys**: 94 shareable, 15 device-local, 33 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -659,6 +659,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `venue_entity_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `verbose_figure_rendering` | `dpv:NonPersonalData` | app user | shareable |  |
 | `walkthrough_snippets` | `dpv:NonPersonalData` | app user | shareable |  |
+| `weekends_and_series_enabled` | `dpv:NonPersonalData` | app user | shareable |  |
 | `window_frame` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 
 ### Settings key prefixes

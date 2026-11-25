@@ -30,6 +30,7 @@ import 'calling_card_settings_scope.dart'
     show CallingCardSettings, kCallingCardSettingsKey;
 import 'show_glossary_scope.dart' show kShowGlossaryKey;
 import 'event_rules_scope.dart' show kEventRuleOrderKey, kEventRulesEnabledKey;
+import 'weekends_and_series_scope.dart' show kWeekendsAndSeriesEnabledKey;
 import 'suggestions_scope.dart'
     show
         kSuggestionSettingsKey,
@@ -161,6 +162,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kSuggestionsEnabledKey,
     kSuggestionsInPerformSwapKey,
     kEventRulesEnabledKey,
+    kWeekendsAndSeriesEnabledKey,
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
     kShowPerformedTogglesKey,
