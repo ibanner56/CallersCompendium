@@ -267,13 +267,51 @@ features are on, Suggested shows and the program applies a rule.
   handled as #2343 handles them. One already in the program is in that group
   with every other form, and is checked with it. *Rejected:* checking English
   dances like any other (a rule is a saved search, so nothing technical
-  stops it), which would move an English dance out of #2343's group.
+  stops it), which would move an English dance out of #2343's group. This
+  holds in the program builder; Perform's swap sheet marks English dances
+  too (#2347, below).
 - **One position for every host.** The check takes any `SuggestionPosition`.
   The builder passes the one Suggested ranks for. Perform's swap sheet
-  (#2347, not yet wired) can pass the slot being swapped, built as that issue
-  asks, through `CollectionPicker.eventRules`, with
-  `PickerEventRules.inEveryOrder` to mark its plain order too. The pinned
-  **Your alternates** rows are not checked by the picker.
+  passes its own (#2347, below).
+
+## Event rules in Perform's swap sheet (#2347)
+
+With Event rules on, its **Check Perform's Swap this dance** on (the
+default) and rules applied to the program, Perform's swap sheet checks every
+dance it lists, in any order, through `CollectionPicker.eventRules` with
+`PickerEventRules.inEveryOrder`. A dance that would break a rule in the
+swapped slot is marked with the rule's sentence and listed after every
+unmarked one. Nothing is hidden, and with either switch off or no rules
+applied the sheet is unchanged.
+
+- **Where the candidate goes.** `swapCandidatePosition` builds the program as
+  `Program.swapSlotDanceKeepingAlternate` stores it: the candidate in the
+  swapped slot and the swapped-out dance kept as an alternate right after it,
+  so it does not count as planned; an alternate being swapped is promoted to
+  lead its group, as the swap does. `SuggestionPosition.replaced` is the
+  dance planned there now, so `CandidateRuleCheck` compares with the program
+  as it stands. Every scope applies, neighbouring dances included, against
+  the dances on either side of the slot. The ranking (#2348) still ranks for
+  `SuggestionPosition.replacing`; the picker hands the check that position
+  and the sheet checks at its own instead, both fixed while the sheet is
+  open. *Rejected:* checking at `SuggestionPosition.replacing`, which leaves
+  the swapped-out dance out of the program entirely; it gives the same
+  answers today, because a rule counts planned dances only, but would drift
+  from what the swap stores if alternates ever counted.
+- **Your alternates** (an implementation call, not a maintainer ruling):
+  the pinned rows are checked with the results and marked the same way, and
+  a marked alternate is listed after the unmarked ones, still under **Your
+  alternates**. *Rejected:* leaving them unchecked, when an alternate is the
+  likeliest dance to be swapped in; and moving a marked alternate below the
+  results, which would break the sheet's two headings.
+- **English dances** are marked too, under **Suggested** as in the plain
+  order (`markRuleBreakingSuggestions`'s `includeEnglish`): the issue asks
+  for every swap result that would break a rule to be marked. An
+  implementation call; *rejected:* keeping #2345's builder behaviour, which
+  would leave an English replacement for an English dance unmarked.
+- **Shown in two steps**, as in the builder: the results show at once,
+  unmarked, and the marks and the new order follow once the check is done.
+  The rules' search context is read once per sheet.
 
 ## Stored settings
 

@@ -449,6 +449,15 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   alternates first and unranked, the results below with the builder's reason
   line and **Why?**. Same dances either way; the plain order shows, tappable,
   until the ranking arrives. With either off, as #2346.
+- Swap checked against event rules (#2347, Experimental): with Event rules and
+  its **Check Perform's Swap this dance** both on (the second on by default)
+  and rules applied, each listed dance, Your alternates included, that would
+  break a rule in the swapped slot carries the builder's marker (rule icon
+  plus "Would break: *rule sentence*", screen-reader label "Would break the
+  event rule: …") and is listed after the unmarked ones, in any order and
+  within Your alternates. The results show at once, unmarked and tappable;
+  the marks follow. Nothing is hidden; rows keep their 44 pt targets. With
+  either off, or no rules applied, as #2346.
 
 ### 6. Settings
 - **Dialect manager**: named dialects, preset picker, role/move term editor
