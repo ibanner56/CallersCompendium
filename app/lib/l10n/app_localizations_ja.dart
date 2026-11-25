@@ -13017,6 +13017,26 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String suggestionWouldBreak(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のルールに反します：$rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionWouldBreakSemantic(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のイベントルールに反します：$rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get figureParamSearchDancersHint => 'ダンサーを検索';
 
   @override

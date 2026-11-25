@@ -13018,6 +13018,14 @@
   "@suggestionWhyLowers": {
     "x-sourceSha256": "4d30ec73dfb3cce121d9a0280961912b0763722e858621a128ea683c19df4a98"
   },
+  "suggestionWouldBreak": "{count, plural, =1{Enfreindrait : {rules}} other{Enfreindrait {count} règles : {rules}}}",
+  "@suggestionWouldBreak": {
+    "x-sourceSha256": "ba62c57b9608c6433d38ee478de902b732903ed135ddac282ce3e683624f19a1"
+  },
+  "suggestionWouldBreakSemantic": "{count, plural, =1{Enfreindrait la règle de soirée : {rules}} other{Enfreindrait {count} règles de soirée : {rules}}}",
+  "@suggestionWouldBreakSemantic": {
+    "x-sourceSha256": "41b1cbca46a0417e9dda3aa53fb5af03152a3bea932554d475d36d7d6c9a2041"
+  },
   "figureParamSearchDancersHint": "Rechercher des danseurs",
   "@figureParamSearchDancersHint": {
     "x-sourceSha256": "1cdb21a9c736e3bc9e88c5bcc9a28a50c318e243475c3cc00b9e60e284d1c917"

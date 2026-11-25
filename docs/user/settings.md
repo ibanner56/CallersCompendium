@@ -1280,6 +1280,11 @@ read, the screen shows the defaults with a note, and can't be changed until you
 update, so nothing this version doesn't understand is overwritten. Suggestions
 use the defaults meanwhile.
 
+With [Event rules](#event-rules) on too, Suggested also marks the dances that
+would break one of the program's rules where the dance will go and lists them
+last in the program builder's picker (see [With your event rules](./programs.md#let-the-app-suggest-the-next-dance)).
+There is no separate setting for this.
+
 ### Event rules
 
 **Check programs against your rules** is **off by default**, and the section
@@ -1324,7 +1329,9 @@ lists your rules:
   program counts, and one in **Recently deleted** doesn't.
 
 While it is on, [Settings ▸ Program ▸ Programs](#programs) has a **Manage
-rules** link to the same list. Turning it off hides the builder's **Rules**
+rules** link to the same list. With [Suggestions](#suggestions) on too, the
+builder's picker, in its **Suggested** order, marks the dances that would break a rule the
+program uses and lists them last. Turning it off hides the builder's **Rules**
 button, its warnings and its markers, and nothing is checked; your rules and
 the rules each program uses are kept for when you turn it on again.
 

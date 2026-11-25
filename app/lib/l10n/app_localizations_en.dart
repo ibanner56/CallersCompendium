@@ -13497,6 +13497,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String suggestionWouldBreak(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Would break $count rules: $rules',
+      one: 'Would break: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionWouldBreakSemantic(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Would break $count event rules: $rules',
+      one: 'Would break the event rule: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get figureParamSearchDancersHint => 'Search dancers';
 
   @override

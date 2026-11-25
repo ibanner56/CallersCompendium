@@ -59,6 +59,14 @@ class ProgramEventRulesController extends ChangeNotifier {
   EventRuleCheck _check = EventRuleCheck.empty;
   EventRuleCheck get check => _check;
 
+  /// Changes whenever what a check reads besides the program's slots and
+  /// rule ids may have changed: a rule, the data a search matches on, or
+  /// the search context. A picker marking suggestions ([checkCandidates])
+  /// checks them again when it changes. Each change also re-checks the
+  /// program, which notifies.
+  Object get readsRevision =>
+      Object.hash(_rulesGeneration, _dataGeneration, _contextKey);
+
   /// The ids of the rules this device holds deleted (tombstones), once read.
   Set<String>? _deletedRuleIds;
 
@@ -310,10 +318,7 @@ class ProgramEventRulesController extends ChangeNotifier {
           repos: repos,
           ruleIds: inputs.ruleIds,
           slots: inputs.slots,
-          readContext: () => _context ??= () {
-            contextReads++;
-            return inputs.readContext();
-          }(),
+          readContext: () => _sharedContext(inputs),
           dialect: inputs.dialect,
           enrichment: inputs.enrichment,
           evaluate: evaluate,
@@ -334,6 +339,45 @@ class ProgramEventRulesController extends ChangeNotifier {
         }
       }
     }());
+  }
+
+  /// The search context, read at most once until something it reads changes.
+  Future<SavedSearchContext> _sharedContext(_Inputs inputs) => _context ??= () {
+    contextReads++;
+    return inputs.readContext();
+  }();
+
+  /// Which of the rules [ruleIds] each of [candidateIds] would break in the
+  /// place [position] describes (#2345), for the builder's picker under
+  /// **Suggested**: [checkCandidateEventRules], sharing this controller's
+  /// search context, dialect and enrichment. The host passes the rule ids it
+  /// shows, which a picker built in the same frame may read before [update]
+  /// has. Empty while the feature is off or [ruleIds] is.
+  Future<CandidateRuleMarks> checkCandidates(
+    SuggestionPosition position,
+    List<String> candidateIds, {
+    required List<String> ruleIds,
+  }) async {
+    final inputs = _inputs;
+    if (inputs == null || ruleIds.isEmpty) {
+      return CandidateRuleMarks.empty;
+    }
+    try {
+      return await checkCandidateEventRules(
+        repos: repos,
+        ruleIds: ruleIds,
+        position: position,
+        candidateIds: candidateIds,
+        readContext: () => _sharedContext(inputs),
+        dialect: inputs.dialect,
+        enrichment: inputs.enrichment,
+      );
+    } catch (_) {
+      // diagnostics: silent — rethrown; the picker that asked logs it. A
+      // context that failed to read is read again next time, not kept.
+      _context = null;
+      rethrow;
+    }
   }
 
   void _notifyLater() => scheduleMicrotask(() {

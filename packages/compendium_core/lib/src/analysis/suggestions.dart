@@ -19,6 +19,7 @@ import 'package:meta/meta.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
 import '../model/enums.dart';
+import '../model/event_rule.dart';
 import '../model/figure.dart' show Figure, customMove;
 import '../model/figure_source.dart';
 import '../model/formation.dart';
@@ -170,6 +171,7 @@ class RankedSuggestion {
     required this.score,
     required this.ranked,
     required this.reasons,
+    this.wouldBreak = const [],
   });
 
   final String danceId;
@@ -182,6 +184,22 @@ class RankedSuggestion {
   /// Every reason, the ones that moved it first, largest effect first; notes
   /// last. Never empty.
   final List<SuggestionReason> reasons;
+
+  /// The program's applied event rules this dance would break where it is
+  /// suggested for, in the order the program applies them (#2345). Empty
+  /// from [rankSuggestions]; [markRuleBreakingSuggestions] fills it, and
+  /// lists every dance with any after every dance with none. Not a factor:
+  /// it never changes [score].
+  final List<EventRule> wouldBreak;
+
+  /// This suggestion, marked as breaking [rules] ([wouldBreak]).
+  RankedSuggestion withWouldBreak(List<EventRule> rules) => RankedSuggestion(
+    danceId: danceId,
+    score: score,
+    ranked: ranked,
+    reasons: reasons,
+    wouldBreak: List.unmodifiable(rules),
+  );
 
   /// The reasons a row shows: the top one or two that moved it, or its first
   /// note when nothing did.
@@ -264,6 +282,7 @@ class SuggestionPosition {
     required this.slotsBefore,
     this.slotsAfter = const [],
     this.isAlternate = false,
+    this.replaced,
   });
 
   /// After every slot: adding at the end of the program.
@@ -306,6 +325,7 @@ class SuggestionPosition {
       slotsBefore: List.unmodifiable(slots.sublist(0, index)),
       slotsAfter: List.unmodifiable(slots.sublist(index + 1)),
       isAlternate: slots[index].isAlt,
+      replaced: slots[index],
     );
   }
 
@@ -318,16 +338,25 @@ class SuggestionPosition {
   /// See [SuggestionRequest.candidateIsAlternate].
   final bool isAlternate;
 
+  /// The slot the chosen dance replaces ([SuggestionPosition.replacing]), in
+  /// neither [slotsBefore] nor [slotsAfter]; null for an add. The ranking
+  /// never reads it; checking a candidate against the program's event rules
+  /// (#2345) does, to tell a rule the program meets now from one it already
+  /// breaks.
+  final ProgramSlot? replaced;
+
   @override
   bool operator ==(Object other) =>
       other is SuggestionPosition &&
       other.isAlternate == isAlternate &&
+      other.replaced == replaced &&
       _sameSlots(other.slotsBefore, slotsBefore) &&
       _sameSlots(other.slotsAfter, slotsAfter);
 
   @override
   int get hashCode => Object.hash(
     isAlternate,
+    replaced,
     Object.hashAll(slotsBefore),
     Object.hashAll(slotsAfter),
   );
