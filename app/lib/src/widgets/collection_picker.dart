@@ -2239,7 +2239,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         final plainMarks = _plainRuleMarks;
         final wouldBreak = ruleMarks == null
             ? const <String>[]
-            : suggestionRuleSentences(
+            : suggestionRuleTitles(
                 l10n,
                 pinned
                     ? ruleMarks.brokenBy(entry.dance.id)

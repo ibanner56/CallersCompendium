@@ -128,6 +128,7 @@ Future<_Harness> _pump(
   String currentSlotId = 's1',
   List<Dance> extra = const [],
   Completer<void>? hold,
+  String? nickname,
 }) async {
   tester.view.physicalSize = const Size(1400, 3000);
   tester.view.devicePixelRatio = 1;
@@ -156,6 +157,7 @@ Future<_Harness> _pump(
     quantifier: EventRuleQuantifier.atMost,
     count: 1,
     scope: EventRuleScope.wholeProgram,
+    nickname: nickname,
   );
   final data = await CollectionData.load(repos);
   final on = ValueNotifier<bool>(rulesOn);
@@ -329,6 +331,34 @@ void main() {
         );
       });
     }
+
+    testWidgets('a rule with a nickname is named by it, as stored, in the '
+        'marker and its screen-reader label (#2530)', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await _pump(tester, nickname: 'Family petronella');
+      await _openSwap(tester, 'adjust-swap-current');
+      expect(
+        find.descendant(
+          of: _marker('pa'),
+          matching: find.text('Would break: Family petronella'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: _marker('pa'),
+          matching: find.textContaining(_sentence),
+        ),
+        findsNothing,
+      );
+      expect(
+        tester.getSemantics(_marker('pa')),
+        matchesSemantics(
+          label: 'Would break the event rule: Family petronella',
+        ),
+      );
+      semantics.dispose();
+    });
 
     testWidgets('swapping the petronella itself, no petronella is marked: '
         'the dance swapped out stays only as an alternate', (tester) async {

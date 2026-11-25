@@ -344,8 +344,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   buttons, the curve shape and venue window as dropdowns, and Reset to
   defaults; no numbers. With Event rules on too and rules applied (#2345), a
   dance that would break one at that place carries a marker above its reason
-  line, rule icon plus "Would break: *rule sentence*" (screen-reader label
-  "Would break the event rule: …"), and is listed after every unmarked dance;
+  line, rule icon plus "Would break: *rule title*" (the rule's nickname, else
+  its sentence, #2530; screen-reader label "Would break the event rule: …"),
+  and is listed after every unmarked dance;
   **Why?** lists the rule first. The ranking shows unmarked first and the
   marks follow when the check finishes. See [suggestions.md](suggestions.md).
 - Event rules (#2340, Experimental, off by default): with Settings ▸
@@ -494,7 +495,7 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   its **Check Perform's Swap this dance** both on (the second on by default)
   and rules applied, each listed dance, Your alternates included, that would
   break a rule in the swapped slot carries the builder's marker (rule icon
-  plus "Would break: *rule sentence*", screen-reader label "Would break the
+  plus "Would break: *rule title*", screen-reader label "Would break the
   event rule: …") and is listed after the unmarked ones, in any order and
   within Your alternates. The results show at once, unmarked and tappable;
   the marks follow. Nothing is hidden; rows keep their 44 pt targets. With

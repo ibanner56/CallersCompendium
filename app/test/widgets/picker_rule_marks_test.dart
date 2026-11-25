@@ -82,6 +82,10 @@ final _context = PickerProgramContext(
 /// petronellas are p1 and p2. Records each call; [hold] makes the next call
 /// wait for the test.
 class _Rules {
+  _Rules({this.nickname});
+
+  /// The rule's nickname (#2341), or null for a rule known by its sentence.
+  final String? nickname;
   final calls = <(SuggestionPosition, List<String>)>[];
   Completer<void>? hold;
   bool fail = false;
@@ -91,18 +95,28 @@ class _Rules {
     List<String> ids,
   ) async {
     calls.add((position, ids));
+    final rule = nickname == null
+        ? _atMostOne
+        : EventRule.of(
+            id: _atMostOne.id,
+            savedSearchId: _atMostOne.savedSearchId,
+            quantifier: EventRuleQuantifier.atMost,
+            count: 1,
+            scope: EventRuleScope.wholeProgram,
+            nickname: nickname,
+          );
     final wait = hold;
     if (wait != null) await wait.future;
     if (fail) throw StateError('check failed');
     return CandidateRuleMarks(
       check: CandidateRuleCheck(
         position: position,
-        rules: [_atMostOne],
+        rules: [rule],
         matchingDanceIds: {
-          _atMostOne.id: {'p1', 'p2'},
+          rule.id: {'p1', 'p2'},
         },
       ),
-      searchNames: {_atMostOne.id: 'Petronella'},
+      searchNames: {rule.id: 'Petronella'},
     );
   }
 }
@@ -298,6 +312,48 @@ void main() {
       find.descendant(
         of: dialog,
         matching: find.text('Would break: $_sentence'),
+      ),
+      findsOneWidget,
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('a rule with a nickname is named by it, as the rule picker and '
+      'Manage rules title it, not by its sentence (#2530)', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await _pump(tester, rules: _Rules(nickname: 'Family petronella'));
+    await _chooseSuggested(tester);
+
+    for (final id in ['p1', 'p2']) {
+      final marker = _marker(id);
+      expect(
+        find.descendant(
+          of: marker,
+          matching: find.text('Would break: Family petronella'),
+        ),
+        findsOneWidget,
+        reason: id,
+      );
+      expect(
+        find.descendant(of: marker, matching: find.textContaining(_sentence)),
+        findsNothing,
+        reason: id,
+      );
+      expect(
+        tester.getSemantics(marker),
+        matchesSemantics(
+          label: 'Would break the event rule: Family petronella',
+        ),
+      );
+    }
+
+    // Why? names it the same way.
+    await tester.tap(find.byKey(const ValueKey('picker-why-p2')));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('suggestion-why-dialog')),
+        matching: find.text('Would break: Family petronella'),
       ),
       findsOneWidget,
     );
