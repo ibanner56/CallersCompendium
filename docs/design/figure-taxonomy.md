@@ -2673,7 +2673,12 @@ instead, which the gate cannot see.
     the line), a `fraction` (8 across, 10 three quarters round the set, 16
     over and back) and a power turn; a separate whom it goes `around` (one
     or two); a circle or star a `size` from two to eight dancers, three
-    included. `squareCallPrograms`
+    included. A forward and back has contra's `goBack` (off: a forward
+    only, 4 beats), and a promenade a `direction`, contra's spin tokens,
+    defaulting to `counterclockwise`, which the display leaves unsaid; a
+    wrong-way promenade is `clockwise`, not a `variant`
+    (both added to v1 before it shipped, on Hudson's answers of 24
+    November 2026). `squareCallPrograms`
     labels the calls
     CALLERLAB also lists. Migration: no stored figure changes. A dance that
     already held `sq_` IDs was indexed while they were unknown, so a one-time

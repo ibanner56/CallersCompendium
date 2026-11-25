@@ -12,6 +12,7 @@ import 'package:flutter/services.dart'
 import 'package:path/path.dart' as p;
 
 import 'l10n/app_localizations.dart';
+import 'src/data/photo_capture.dart' show deleteLeftoverCapturedPhotos;
 import 'src/data/user_figures_scope.dart';
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/aggressive_beats_update_scope.dart';
@@ -2107,6 +2108,12 @@ class _CompendiumAppState extends State<CompendiumApp>
     // installer on purpose, so they would otherwise pile up). Local, silent,
     // and age-guarded, so it needs no consent and cannot touch a live download.
     unawaited(_updateController.sweepStaleDownloads());
+    // A camera photo is deleted the moment it is read (#2336); on Android,
+    // also delete one the system left when it closed the app mid-photo.
+    // Local and silent, like the sweep above.
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      unawaited(deleteLeftoverCapturedPhotos());
+    }
     // Scheduled only here, at the success tail, so a failed attempt that Retry
     // re-runs never queues a probe and each successful bootstrap probes once.
     WidgetsBinding.instance.addPostFrameCallback((_) {
