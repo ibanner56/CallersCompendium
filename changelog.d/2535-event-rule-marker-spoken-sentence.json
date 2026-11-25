@@ -1,0 +1,9 @@
+{
+  "id": "2535-event-rule-marker-spoken-sentence",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Event rules (Experimental): when a dance would break, or breaks, a rule that has a nickname, a screen reader now reads the rule's sentence after its nickname, so you hear what the rule requires. The marker's visible text still shows the nickname alone."
+    ]
+  }
+}

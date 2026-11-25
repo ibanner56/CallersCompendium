@@ -355,7 +355,8 @@ also checks each dance it lists against them, unless you have turned off
 by default). A dance that would break a rule if it took the place of the
 dance you are swapping shows a marker with the rule's nickname if it has
 one, else its sentence, such as
-*Would break: At most 1 dance matching "Petronella" in the whole program*,
+*Would break: At most 1 dance matching "Petronella" in the whole program*
+(a screen reader reads a nicknamed rule's sentence too),
 and is listed after the dances that wouldn't, in any order, **Suggested**
 included. The check counts the program as the swap leaves it: the dance you
 swap out stays only as an alternate, which a rule does not count as planned,

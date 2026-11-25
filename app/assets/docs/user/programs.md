@@ -468,7 +468,8 @@ place you are adding before or after, or in the slot you are replacing. A
 dance that would break a rule there is marked with an icon and **Would
 break:** and the rule (its nickname if it has one, else its sentence), such
 as *Would break: At most 1 dance matching "Petronella" in the whole
-program*, above its reason, and a screen reader reads which rules. Select the question mark to see the rule at the top of
+program*, above its reason. A screen reader reads which rules, and for a
+rule with a nickname reads its sentence too. Select the question mark to see the rule at the top of
 its reasons.
 
 - Marked dances are listed after every other dance, the ones already in the
@@ -548,7 +549,8 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   met**. Open it to read each rule's sentence, how many dances match (or, for
   neighboring dances, which pairs break it), and the dances involved. Those
   dances are marked **Breaks a rule** with an icon, and a screen reader reads
-  which rules.
+  which rules: a rule's nickname and its sentence, or its sentence if it has
+  no nickname.
 - **The dances a rule counts** are the program's dances, not its alternates.
   An alternate is checked as if you called it instead of its primary, and is
   marked **Breaks a rule if called** only when that swap would break a rule;
