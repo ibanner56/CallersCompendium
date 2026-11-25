@@ -172,6 +172,38 @@ void main() {
       expect(figures.last.params['balance'], isTrue);
     });
 
+    test(
+      'a role balance with more on its line is refused, as before',
+      () async {
+        // The fold would drop the extra words or annotation, so the role is not
+        // taken from the line and the balance stays custom.
+        for (final balance in [
+          '(4) Men balance long wave in center and slide left',
+          '(4) Men balance long wave in center (P2L,P3R)',
+        ]) {
+          final figures = await _figuresFor(['(0) Form long wave', balance]);
+          expect(figures, hasLength(2), reason: balance);
+          expect(figures.first.move, 'form_a_long_wave', reason: balance);
+          expect(
+            figures.first.params.containsKey('who'),
+            isFalse,
+            reason: balance,
+          );
+          expect(figures.last.isCustom, isTrue, reason: balance);
+        }
+      },
+    );
+
+    test('a robins\' balance names the robins', () async {
+      final figures = await _figuresFor([
+        '(0) Form long wave',
+        '(4) Women balance long wave in center',
+      ]);
+      expect(figures.single.move, 'form_a_long_wave');
+      expect(figures.single.params['who'], 'role2s');
+      expect(figures.single.params['balance'], isTrue);
+    });
+
     test('after held long waves, stays custom', () async {
       // Holds name the side-of-set long waves (#2331); the centre wave has no
       // place for them, so folding would drop what the line stated.

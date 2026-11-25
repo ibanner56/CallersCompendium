@@ -1814,9 +1814,13 @@ class CallersBoxAdapter implements SourceAdapter {
     if (!inCenter) return wave;
     // A role on the balance (`Men balance long wave in center`) is the role
     // that forms the centre wave and balances it (maintainer ruling
-    // 2026-11-24: the bare `form long wave` before it is the same wave).
-    final who = _balanceWaveWho(balance);
-    final role = who == 'role1s' || who == 'role2s' ? who : null;
+    // 2026-11-24: the bare `form long wave` before it is the same wave). Only
+    // a line with nothing else on it names the role here: one with more words
+    // or an annotation would lose them in the fold, so it is refused as before.
+    final roleMatch = balance.isCustom
+        ? _roleCentreWaveBalanceRe.firstMatch(_customText(balance))
+        : null;
+    final role = roleMatch?.group(1)?.toLowerCase();
     return Figure(
       move: 'form_a_long_wave',
       params: {'who': ?role, 'beats': ?wave.params['beats']},
@@ -1827,6 +1831,13 @@ class CallersBoxAdapter implements SourceAdapter {
       wordingOverride: wave.wordingOverride,
     );
   }
+
+  /// `<role> balance [the] long wave[s] in [the] center` and nothing else;
+  /// group 1 is the role.
+  static final RegExp _roleCentreWaveBalanceRe = RegExp(
+    r'^(role1s|role2s)\s+balance\s+(?:the\s+)?long\s+waves?\s+in\s+(?:the\s+)?center[.]?$',
+    caseSensitive: false,
+  );
 
   /// A bare long wave followed by `Balance long wave for all …` (#2331
   /// follow-up, maintainer ruling 2026-11-23): both lines stay text. `for all`
@@ -2045,9 +2056,12 @@ class CallersBoxAdapter implements SourceAdapter {
   /// the role differs from the wave's, or the wave was already balanced),
   /// after a wave-forming line the importer could not structure, and after a
   /// `form long wave` that stayed the side-of-set long waves ([_isTcbLongWave]:
-  /// one that states holds, which the centre wave has no place for). A bare
-  /// `form long wave` never reaches here: the in-centre follower has already
-  /// made it the role's centre wave, balanced ([_inCenterFollower]).
+  /// one that states holds, which the centre wave has no place for). After a
+  /// bare `form long wave` in the same phrase, or one with no beats ending the
+  /// previous phrase, the in-centre follower has already made the pair the
+  /// role's centre wave, balanced ([_inCenterFollower]); a bare wave that
+  /// carries its own beats and ends the previous phrase is not folded across
+  /// the boundary, so its balance reaches here and stays custom.
   static List<Figure> _promoteRoleCentreWaveBalances(List<Figure> figures) {
     final out = <Figure>[];
     for (final f in figures) {

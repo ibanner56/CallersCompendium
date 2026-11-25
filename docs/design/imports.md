@@ -2924,9 +2924,10 @@ stays custom straight after a `form_a_long_wave` (Fold 4 refused it there: the
 role differs from the wave's, or the wave was already balanced), after a
 wave-forming line the importer could not structure, and after a `form long
 wave` that states holds (`form_long_waves`), which the centre wave has no place
-for. A bare `form long wave` never reaches this pass: the role's balance has
-already made it that role's centre wave, balanced (maintainer ruling
-2026-11-24). Nothing checks that a wave is standing: a balance
+for. After a bare `form long wave` the role's balance has already made the pair
+that role's centre wave, balanced (maintainer ruling 2026-11-24), except when
+the wave carries its own beats and ends the previous phrase: that pair is not
+folded across the boundary, so the balance stays custom. Nothing checks that a wave is standing: a balance
 moves nobody, so the reading asserts no formation *(2026-11-24, Hudson: "try it and see"; the reading is
 the agent's call)*.
 
