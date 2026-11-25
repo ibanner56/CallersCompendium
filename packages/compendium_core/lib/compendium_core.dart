@@ -11,6 +11,7 @@ export 'src/analysis/matrix_column_config.dart';
 export 'src/analysis/perform_swap_defaults.dart';
 export 'src/analysis/program_matrix.dart';
 export 'src/analysis/repertoire_stats.dart';
+export 'src/analysis/suggestion_rules.dart';
 export 'src/analysis/suggestion_settings.dart';
 export 'src/analysis/suggestions.dart';
 export 'src/analysis/suggestion_worker.dart';

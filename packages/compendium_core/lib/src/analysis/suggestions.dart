@@ -19,6 +19,7 @@ import 'package:meta/meta.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
 import '../model/enums.dart';
+import '../model/event_rule.dart';
 import '../model/figure.dart' show Figure, customMove;
 import '../model/figure_source.dart';
 import '../model/formation.dart';
@@ -170,6 +171,7 @@ class RankedSuggestion {
     required this.score,
     required this.ranked,
     required this.reasons,
+    this.wouldBreak = const [],
   });
 
   final String danceId;
@@ -182,6 +184,22 @@ class RankedSuggestion {
   /// Every reason, the ones that moved it first, largest effect first; notes
   /// last. Never empty.
   final List<SuggestionReason> reasons;
+
+  /// The program's applied event rules this dance would break where it is
+  /// suggested for, in the order the program applies them (#2345). Empty
+  /// from [rankSuggestions]; [markRuleBreakingSuggestions] fills it, and
+  /// lists every dance with any after every dance with none. Not a factor:
+  /// it never changes [score].
+  final List<EventRule> wouldBreak;
+
+  /// This suggestion, marked as breaking [rules] ([wouldBreak]).
+  RankedSuggestion withWouldBreak(List<EventRule> rules) => RankedSuggestion(
+    danceId: danceId,
+    score: score,
+    ranked: ranked,
+    reasons: reasons,
+    wouldBreak: List.unmodifiable(rules),
+  );
 
   /// The reasons a row shows: the top one or two that moved it, or its first
   /// note when nothing did.
