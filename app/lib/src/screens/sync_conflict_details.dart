@@ -310,7 +310,7 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'quantifier': l10n.eventRuleQuantifierLabel,
         'count': l10n.eventRuleCountLabel,
         'scope': l10n.eventRuleScopeLabel,
-        'name': l10n.eventRuleNameLabel,
+        'nickname': l10n.eventRuleNicknameLabel,
       },
       SyncRecordKind.venue => {
         'name': l10n.syncConflictFieldName,

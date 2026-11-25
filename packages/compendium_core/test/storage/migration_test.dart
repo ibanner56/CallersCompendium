@@ -2149,7 +2149,7 @@ void main() {
         'quantifier',
         'count',
         'scope',
-        'name',
+        'nickname',
         'position',
         'updated_at',
         'deleted_at',
@@ -2197,6 +2197,20 @@ void main() {
         "ALTER TABLE programs ADD COLUMN event_rule_ids TEXT NOT NULL "
         "DEFAULT '[]'",
       );
+      // An event_rules table as #2340 first made it, before the nickname
+      // (#2341) joined v42, holding a rule.
+      raw.execute(
+        'CREATE TABLE event_rules (id TEXT NOT NULL, '
+        'saved_search_id TEXT NOT NULL, quantifier TEXT NOT NULL, '
+        'count INTEGER NOT NULL DEFAULT 0, scope TEXT NOT NULL, '
+        'position INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NULL, '
+        'deleted_at INTEGER NULL, existence_at INTEGER NULL, '
+        'PRIMARY KEY (id))',
+      );
+      raw.execute(
+        "INSERT INTO event_rules (id, saved_search_id, quantifier, count, "
+        "scope) VALUES ('r1', 's1', 'atMost', 1, 'wholeProgram')",
+      );
 
       final db = CompendiumDatabase(
         NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
@@ -2208,6 +2222,14 @@ void main() {
       await db.customSelect('SELECT 1').get();
       expect(await columnsOf(db, 'programs'), contains('event_rule_ids'));
       expect(await columnsOf(db, 'event_rules'), contains('saved_search_id'));
+      expect(
+        await columnsOf(db, 'event_rules'),
+        contains('nickname'),
+        reason: 'the upgrade adds the nickname (#2341) to a table without it',
+      );
+      final rule = await EventRuleRepository(db).get('r1');
+      expect(rule, isNotNull, reason: 'the rule is kept and reads');
+      expect(rule!.nickname, isNull);
     });
   });
 

@@ -151,11 +151,11 @@ class _EventRuleTile extends StatelessWidget {
     return ListTile(
       key: ValueKey('event-rule-${rule.id}'),
       leading: Icon(attention == null ? Icons.rule : Icons.warning_amber),
-      title: Text(rule.name ?? sentence),
+      title: Text(rule.nickname ?? sentence),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (rule.name != null) Text(sentence),
+          if (rule.nickname != null) Text(sentence),
           if (attention != null) ...[
             Text(
               l10n.savedSearchNeedsAttention,
@@ -207,8 +207,8 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
   late final TextEditingController _count = TextEditingController(
     text: '${(widget.rule?.count ?? 0) > 0 ? widget.rule!.count : 1}',
   );
-  late final TextEditingController _name = TextEditingController(
-    text: widget.rule?.name ?? '',
+  late final TextEditingController _nickname = TextEditingController(
+    text: widget.rule?.nickname ?? '',
   );
   late String? _searchId = widget.rule?.savedSearchId;
   late EventRuleQuantifier _quantifier =
@@ -244,7 +244,7 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
   @override
   void dispose() {
     _count.dispose();
-    _name.dispose();
+    _nickname.dispose();
     super.dispose();
   }
 
@@ -278,7 +278,7 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
     quantifier: _quantifier,
     count: _countValue!,
     scope: _scope,
-    name: _name.text.trim().isEmpty ? null : _name.text.trim(),
+    nickname: _nickname.text.trim().isEmpty ? null : _nickname.text.trim(),
     position: position,
   );
 
@@ -296,7 +296,9 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
           quantifier: _quantifier,
           count: _countValue!,
           scope: _scope,
-          name: _name.text.trim().isEmpty ? null : _name.text.trim(),
+          nickname: _nickname.text.trim().isEmpty
+              ? null
+              : _nickname.text.trim(),
         );
       } else {
         await repos.eventRules.save(_draft(existing.id, existing.position));
@@ -445,11 +447,11 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextField(
-                  key: const ValueKey('event-rule-name'),
-                  controller: _name,
-                  maxLength: maxEventRuleNameLength,
+                  key: const ValueKey('event-rule-nickname'),
+                  controller: _nickname,
+                  maxLength: maxEventRuleNicknameLength,
                   decoration: InputDecoration(
-                    labelText: l10n.eventRuleNameLabel,
+                    labelText: l10n.eventRuleNicknameLabel,
                   ),
                 ),
               ],

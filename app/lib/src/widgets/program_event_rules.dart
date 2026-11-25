@@ -415,7 +415,7 @@ class EventRulesStrip extends StatelessWidget {
               key: ValueKey('program-rule-broken-${status.rule.id}'),
               title: eventRuleTitle(l10n, status.rule, status.searchName),
               lines: [
-                if (status.rule.name != null)
+                if (status.rule.nickname != null)
                   eventRuleSentence(l10n, status.rule, status.searchName),
                 if (status.breach!.brokenAsPlanned) ...[
                   if (status.rule.scope == EventRuleScope.neighbouring)
@@ -665,7 +665,7 @@ class _RulesPickerState extends State<_RulesPicker> {
                             _names[rule.savedSearchId],
                           ),
                         ),
-                        subtitle: rule.name == null
+                        subtitle: rule.nickname == null
                             ? null
                             : Text(
                                 eventRuleSentence(

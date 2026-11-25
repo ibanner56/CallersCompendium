@@ -14857,7 +14857,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eventRuleScopeNeighbouring => 'Any two neighboring dances';
 
   @override
-  String get eventRuleNameLabel => 'Name (optional)';
+  String get eventRuleNicknameLabel => 'Nickname (optional)';
 
   @override
   String eventRuleSentenceAtMostWhole(int count, String search) {

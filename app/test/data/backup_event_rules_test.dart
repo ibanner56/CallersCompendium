@@ -25,7 +25,7 @@ void main() {
       quantifier: EventRuleQuantifier.atMost,
       count: 1,
       scope: EventRuleScope.neighbouring,
-      name: 'No two Beckets',
+      nickname: 'No two Beckets',
     );
     await repos.programs.create(
       Program(

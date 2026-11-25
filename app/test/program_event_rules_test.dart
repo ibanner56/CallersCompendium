@@ -83,7 +83,7 @@ Future<_Seeded> _seed({
     savedSearchId: becket.id,
     quantifier: EventRuleQuantifier.none,
     scope: EventRuleScope.beforeFirstBreak,
-    name: 'Easy start',
+    nickname: 'Easy start',
   );
   await repos.programs.create(
     Program(
@@ -604,7 +604,7 @@ void main() {
       quantifier: EventRuleQuantifier.atLeast,
       count: 1,
       scope: EventRuleScope.wholeProgram,
-      name: 'Some Becket',
+      nickname: 'Some Becket',
     );
     await _pump(tester, repos, enabled: true);
     expect(find.text('Rules'), findsOneWidget);
@@ -695,7 +695,7 @@ void main() {
       quantifier: EventRuleQuantifier.atLeast,
       count: n,
       scope: EventRuleScope.wholeProgram,
-      name: 'Extra $n',
+      nickname: 'Extra $n',
     );
     final last = await another(1);
     final past = await another(2);

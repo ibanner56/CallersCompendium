@@ -14915,7 +14915,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get eventRuleScopeNeighbouring => 'To vilkårlige nabodanse';
 
   @override
-  String get eventRuleNameLabel => 'Navn (valgfrit)';
+  String get eventRuleNicknameLabel => 'Navn (valgfrit)';
 
   @override
   String eventRuleSentenceAtMostWhole(int count, String search) {

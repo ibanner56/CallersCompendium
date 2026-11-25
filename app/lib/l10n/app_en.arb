@@ -20093,9 +20093,9 @@
   "@eventRuleScopeNeighbouring": {
     "description": "Event rule scope: each pair of dances next to each other, counted pair by pair; a break separates two dances, a note does not (#2340)."
   },
-  "eventRuleNameLabel": "Name (optional)",
-  "@eventRuleNameLabel": {
-    "description": "Label of the rule editor's optional name field (#2340)."
+  "eventRuleNicknameLabel": "Nickname (optional)",
+  "@eventRuleNicknameLabel": {
+    "description": "Label of the rule editor's optional nickname field (#2341): a short name the caller gives a rule, shown as its title above the rule's sentence in the rule picker and Manage rules, and matched by the picker's search."
   },
   "eventRuleSentenceAtMostWhole": "{count, plural, =1{At most 1 dance matching \"{search}\" in the whole program} other{At most {count} dances matching \"{search}\" in the whole program}}",
   "@eventRuleSentenceAtMostWhole": {

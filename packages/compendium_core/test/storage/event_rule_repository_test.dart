@@ -23,18 +23,18 @@ void main() {
     today: DateTime.utc(2026, 1, 1),
   ).value!;
 
-  Future<EventRule> addRule(String savedSearchId, {String? name}) =>
+  Future<EventRule> addRule(String savedSearchId, {String? nickname}) =>
       repos.eventRules.create(
         savedSearchId: savedSearchId,
         quantifier: EventRuleQuantifier.atMost,
         count: 1,
         scope: EventRuleScope.wholeProgram,
-        name: name,
+        nickname: nickname,
       );
 
   group('the repository', () {
     test('adds, edits, lists in order, deletes and restores', () async {
-      final a = await addRule('s1', name: 'One petronella');
+      final a = await addRule('s1', nickname: 'One petronella');
       final b = await repos.eventRules.create(
         savedSearchId: 's2',
         quantifier: EventRuleQuantifier.none,
@@ -54,7 +54,7 @@ void main() {
       final edited = await repos.eventRules.get(a.id);
       expect(edited!.count, 2);
       expect(edited.scope, EventRuleScope.neighbouring);
-      expect(edited.name, 'One petronella');
+      expect(edited.nickname, 'One petronella');
 
       await repos.eventRules.reorder([b.id, a.id]);
       expect(
@@ -119,7 +119,7 @@ void main() {
         name: 'Petronella',
         spec: specFor('petronella'),
       );
-      final named = await addRule(search.id, name: 'One petronella');
+      final named = await addRule(search.id, nickname: 'One petronella');
       final unnamed = await addRule(search.id);
       await addRule('another-search');
 

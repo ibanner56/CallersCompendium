@@ -316,13 +316,13 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
   },
   SyncRecordKind.figureNote => const {'notes'},
   // An event rule (#2340), as the rules manager shows it: its sentence and
-  // name. Its place in the list is not shown as a field.
+  // nickname (#2341). Its place in the list is not shown as a field.
   SyncRecordKind.eventRule => const {
     'savedSearchId',
     'quantifier',
     'count',
     'scope',
-    'name',
+    'nickname',
   },
   SyncRecordKind.publishedSource ||
   SyncRecordKind.customFieldDef ||

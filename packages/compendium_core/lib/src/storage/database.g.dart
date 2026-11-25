@@ -17529,10 +17529,12 @@ class $EventRulesTable extends EventRules
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  static const VerificationMeta _nicknameMeta = const VerificationMeta(
+    'nickname',
+  );
   @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
+  late final GeneratedColumn<String> nickname = GeneratedColumn<String>(
+    'nickname',
     aliasedName,
     true,
     type: DriftSqlType.string,
@@ -17590,7 +17592,7 @@ class $EventRulesTable extends EventRules
     quantifier,
     count,
     scope,
-    name,
+    nickname,
     position,
     updatedAt,
     deletedAt,
@@ -17646,10 +17648,10 @@ class $EventRulesTable extends EventRules
     } else if (isInserting) {
       context.missing(_scopeMeta);
     }
-    if (data.containsKey('name')) {
+    if (data.containsKey('nickname')) {
       context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+        _nicknameMeta,
+        nickname.isAcceptableOrUnknown(data['nickname']!, _nicknameMeta),
       );
     }
     if (data.containsKey('position')) {
@@ -17708,9 +17710,9 @@ class $EventRulesTable extends EventRules
         DriftSqlType.string,
         data['${effectivePrefix}scope'],
       )!,
-      name: attachedDatabase.typeMapping.read(
+      nickname: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}name'],
+        data['${effectivePrefix}nickname'],
       ),
       position: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -17744,8 +17746,13 @@ class EventRuleRow extends DataClass implements Insertable<EventRuleRow> {
   final int count;
   final String scope;
 
-  /// A name the caller typed for the rule, or NULL to show its sentence.
-  final String? name;
+  /// The rule's nickname (#2341), or NULL to show its sentence only. Joined
+  /// v42 while it was unreleased, after the table; added by
+  /// `_ensureV42EventRules` to a file stamped 42 without it.
+  final String? nickname;
+
+  /// Where the rule sits in the caller's list (**Manage rules**, and the
+  /// picker's **My order**).
   final int position;
   final DateTime? updatedAt;
   final DateTime? deletedAt;
@@ -17756,7 +17763,7 @@ class EventRuleRow extends DataClass implements Insertable<EventRuleRow> {
     required this.quantifier,
     required this.count,
     required this.scope,
-    this.name,
+    this.nickname,
     required this.position,
     this.updatedAt,
     this.deletedAt,
@@ -17770,8 +17777,8 @@ class EventRuleRow extends DataClass implements Insertable<EventRuleRow> {
     map['quantifier'] = Variable<String>(quantifier);
     map['count'] = Variable<int>(count);
     map['scope'] = Variable<String>(scope);
-    if (!nullToAbsent || name != null) {
-      map['name'] = Variable<String>(name);
+    if (!nullToAbsent || nickname != null) {
+      map['nickname'] = Variable<String>(nickname);
     }
     map['position'] = Variable<int>(position);
     if (!nullToAbsent || updatedAt != null) {
@@ -17793,7 +17800,9 @@ class EventRuleRow extends DataClass implements Insertable<EventRuleRow> {
       quantifier: Value(quantifier),
       count: Value(count),
       scope: Value(scope),
-      name: name == null && nullToAbsent ? const Value.absent() : Value(name),
+      nickname: nickname == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nickname),
       position: Value(position),
       updatedAt: updatedAt == null && nullToAbsent
           ? const Value.absent()
@@ -17818,7 +17827,7 @@ class EventRuleRow extends DataClass implements Insertable<EventRuleRow> {
       quantifier: serializer.fromJson<String>(json['quantifier']),
       count: serializer.fromJson<int>(json['count']),
       scope: serializer.fromJson<String>(json['scope']),
-      name: serializer.fromJson<String?>(json['name']),
+      nickname: serializer.fromJson<String?>(json['nickname']),
       position: serializer.fromJson<int>(json['position']),
       updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -17834,7 +17843,7 @@ class EventRuleRow extends DataClass implements Insertable<EventRuleRow> {
       'quantifier': serializer.toJson<String>(quantifier),
       'count': serializer.toJson<int>(count),
       'scope': serializer.toJson<String>(scope),
-      'name': serializer.toJson<String?>(name),
+      'nickname': serializer.toJson<String?>(nickname),
       'position': serializer.toJson<int>(position),
       'updatedAt': serializer.toJson<DateTime?>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -17848,7 +17857,7 @@ class EventRuleRow extends DataClass implements Insertable<EventRuleRow> {
     String? quantifier,
     int? count,
     String? scope,
-    Value<String?> name = const Value.absent(),
+    Value<String?> nickname = const Value.absent(),
     int? position,
     Value<DateTime?> updatedAt = const Value.absent(),
     Value<DateTime?> deletedAt = const Value.absent(),
@@ -17859,7 +17868,7 @@ class EventRuleRow extends DataClass implements Insertable<EventRuleRow> {
     quantifier: quantifier ?? this.quantifier,
     count: count ?? this.count,
     scope: scope ?? this.scope,
-    name: name.present ? name.value : this.name,
+    nickname: nickname.present ? nickname.value : this.nickname,
     position: position ?? this.position,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -17876,7 +17885,7 @@ class EventRuleRow extends DataClass implements Insertable<EventRuleRow> {
           : this.quantifier,
       count: data.count.present ? data.count.value : this.count,
       scope: data.scope.present ? data.scope.value : this.scope,
-      name: data.name.present ? data.name.value : this.name,
+      nickname: data.nickname.present ? data.nickname.value : this.nickname,
       position: data.position.present ? data.position.value : this.position,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
@@ -17894,7 +17903,7 @@ class EventRuleRow extends DataClass implements Insertable<EventRuleRow> {
           ..write('quantifier: $quantifier, ')
           ..write('count: $count, ')
           ..write('scope: $scope, ')
-          ..write('name: $name, ')
+          ..write('nickname: $nickname, ')
           ..write('position: $position, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -17910,7 +17919,7 @@ class EventRuleRow extends DataClass implements Insertable<EventRuleRow> {
     quantifier,
     count,
     scope,
-    name,
+    nickname,
     position,
     updatedAt,
     deletedAt,
@@ -17925,7 +17934,7 @@ class EventRuleRow extends DataClass implements Insertable<EventRuleRow> {
           other.quantifier == this.quantifier &&
           other.count == this.count &&
           other.scope == this.scope &&
-          other.name == this.name &&
+          other.nickname == this.nickname &&
           other.position == this.position &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
@@ -17938,7 +17947,7 @@ class EventRulesCompanion extends UpdateCompanion<EventRuleRow> {
   final Value<String> quantifier;
   final Value<int> count;
   final Value<String> scope;
-  final Value<String?> name;
+  final Value<String?> nickname;
   final Value<int> position;
   final Value<DateTime?> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -17950,7 +17959,7 @@ class EventRulesCompanion extends UpdateCompanion<EventRuleRow> {
     this.quantifier = const Value.absent(),
     this.count = const Value.absent(),
     this.scope = const Value.absent(),
-    this.name = const Value.absent(),
+    this.nickname = const Value.absent(),
     this.position = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -17963,7 +17972,7 @@ class EventRulesCompanion extends UpdateCompanion<EventRuleRow> {
     required String quantifier,
     this.count = const Value.absent(),
     required String scope,
-    this.name = const Value.absent(),
+    this.nickname = const Value.absent(),
     this.position = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -17979,7 +17988,7 @@ class EventRulesCompanion extends UpdateCompanion<EventRuleRow> {
     Expression<String>? quantifier,
     Expression<int>? count,
     Expression<String>? scope,
-    Expression<String>? name,
+    Expression<String>? nickname,
     Expression<int>? position,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -17992,7 +18001,7 @@ class EventRulesCompanion extends UpdateCompanion<EventRuleRow> {
       if (quantifier != null) 'quantifier': quantifier,
       if (count != null) 'count': count,
       if (scope != null) 'scope': scope,
-      if (name != null) 'name': name,
+      if (nickname != null) 'nickname': nickname,
       if (position != null) 'position': position,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -18007,7 +18016,7 @@ class EventRulesCompanion extends UpdateCompanion<EventRuleRow> {
     Value<String>? quantifier,
     Value<int>? count,
     Value<String>? scope,
-    Value<String?>? name,
+    Value<String?>? nickname,
     Value<int>? position,
     Value<DateTime?>? updatedAt,
     Value<DateTime?>? deletedAt,
@@ -18020,7 +18029,7 @@ class EventRulesCompanion extends UpdateCompanion<EventRuleRow> {
       quantifier: quantifier ?? this.quantifier,
       count: count ?? this.count,
       scope: scope ?? this.scope,
-      name: name ?? this.name,
+      nickname: nickname ?? this.nickname,
       position: position ?? this.position,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -18047,8 +18056,8 @@ class EventRulesCompanion extends UpdateCompanion<EventRuleRow> {
     if (scope.present) {
       map['scope'] = Variable<String>(scope.value);
     }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
+    if (nickname.present) {
+      map['nickname'] = Variable<String>(nickname.value);
     }
     if (position.present) {
       map['position'] = Variable<int>(position.value);
@@ -18076,7 +18085,7 @@ class EventRulesCompanion extends UpdateCompanion<EventRuleRow> {
           ..write('quantifier: $quantifier, ')
           ..write('count: $count, ')
           ..write('scope: $scope, ')
-          ..write('name: $name, ')
+          ..write('nickname: $nickname, ')
           ..write('position: $position, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -31123,7 +31132,7 @@ typedef $$EventRulesTableCreateCompanionBuilder =
       required String quantifier,
       Value<int> count,
       required String scope,
-      Value<String?> name,
+      Value<String?> nickname,
       Value<int> position,
       Value<DateTime?> updatedAt,
       Value<DateTime?> deletedAt,
@@ -31137,7 +31146,7 @@ typedef $$EventRulesTableUpdateCompanionBuilder =
       Value<String> quantifier,
       Value<int> count,
       Value<String> scope,
-      Value<String?> name,
+      Value<String?> nickname,
       Value<int> position,
       Value<DateTime?> updatedAt,
       Value<DateTime?> deletedAt,
@@ -31179,8 +31188,8 @@ class $$EventRulesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
+  ColumnFilters<String> get nickname => $composableBuilder(
+    column: $table.nickname,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -31239,8 +31248,8 @@ class $$EventRulesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
+  ColumnOrderings<String> get nickname => $composableBuilder(
+    column: $table.nickname,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -31293,8 +31302,8 @@ class $$EventRulesTableAnnotationComposer
   GeneratedColumn<String> get scope =>
       $composableBuilder(column: $table.scope, builder: (column) => column);
 
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
+  GeneratedColumn<String> get nickname =>
+      $composableBuilder(column: $table.nickname, builder: (column) => column);
 
   GeneratedColumn<int> get position =>
       $composableBuilder(column: $table.position, builder: (column) => column);
@@ -31351,7 +31360,7 @@ class $$EventRulesTableTableManager
                 Value<String> quantifier = const Value.absent(),
                 Value<int> count = const Value.absent(),
                 Value<String> scope = const Value.absent(),
-                Value<String?> name = const Value.absent(),
+                Value<String?> nickname = const Value.absent(),
                 Value<int> position = const Value.absent(),
                 Value<DateTime?> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -31363,7 +31372,7 @@ class $$EventRulesTableTableManager
                 quantifier: quantifier,
                 count: count,
                 scope: scope,
-                name: name,
+                nickname: nickname,
                 position: position,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -31377,7 +31386,7 @@ class $$EventRulesTableTableManager
                 required String quantifier,
                 Value<int> count = const Value.absent(),
                 required String scope,
-                Value<String?> name = const Value.absent(),
+                Value<String?> nickname = const Value.absent(),
                 Value<int> position = const Value.absent(),
                 Value<DateTime?> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -31389,7 +31398,7 @@ class $$EventRulesTableTableManager
                 quantifier: quantifier,
                 count: count,
                 scope: scope,
-                name: name,
+                nickname: nickname,
                 position: position,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,

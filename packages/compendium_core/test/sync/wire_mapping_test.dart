@@ -1258,7 +1258,7 @@ class _Fixture {
     quantifierName: _str('event_rules.quantifier'),
     count: _int('event_rules.count'),
     scopeName: _str('event_rules.scope'),
-    name: _str('event_rules.name'),
+    nickname: _str('event_rules.nickname'),
     position: _int('event_rules.position'),
   );
 

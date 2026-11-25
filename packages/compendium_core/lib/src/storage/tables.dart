@@ -1034,8 +1034,13 @@ class EventRules extends Table {
   IntColumn get count => integer().withDefault(const Constant(0))();
   TextColumn get scope => text()();
 
-  /// A name the caller typed for the rule, or NULL to show its sentence.
-  TextColumn get name => text().nullable()();
+  /// The rule's nickname (#2341), or NULL to show its sentence only. Joined
+  /// v42 while it was unreleased, after the table; added by
+  /// `_ensureV42EventRules` to a file stamped 42 without it.
+  TextColumn get nickname => text().nullable()();
+
+  /// Where the rule sits in the caller's list (**Manage rules**, and the
+  /// picker's **My order**).
   IntColumn get position => integer().withDefault(const Constant(0))();
   DateTimeColumn get updatedAt => dateTime().nullable()();
   DateTimeColumn get deletedAt => dateTime().nullable()();

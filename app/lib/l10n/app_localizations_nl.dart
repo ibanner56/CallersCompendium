@@ -14998,7 +14998,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get eventRuleScopeNeighbouring => 'Elke twee aangrenzende dansen';
 
   @override
-  String get eventRuleNameLabel => 'Naam (optioneel)';
+  String get eventRuleNicknameLabel => 'Naam (optioneel)';
 
   @override
   String eventRuleSentenceAtMostWhole(int count, String search) {

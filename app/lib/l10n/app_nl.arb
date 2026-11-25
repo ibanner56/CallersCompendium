@@ -14286,8 +14286,8 @@
   "@eventRuleScopeNeighbouring": {
     "x-sourceSha256": "d50cc2ccf014bb652fda876f4c9d7101674ed08bdfe9132f9705b722e91584d6"
   },
-  "eventRuleNameLabel": "Naam (optioneel)",
-  "@eventRuleNameLabel": {
+  "eventRuleNicknameLabel": "Naam (optioneel)",
+  "@eventRuleNicknameLabel": {
     "x-sourceSha256": "e09b37bcc4f301f48329f9e0c5ee747acf821d692e9aac10abea5970ba70b1b4"
   },
   "eventRuleSentenceAtMostWhole": "{count, plural, =1{Hoogstens 1 dans die past bij \"{search}\" in het hele programma} other{Hoogstens {count} dansen die passen bij \"{search}\" in het hele programma}}",

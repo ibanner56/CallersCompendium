@@ -21671,11 +21671,11 @@ abstract class AppLocalizations {
   /// **'Any two neighboring dances'**
   String get eventRuleScopeNeighbouring;
 
-  /// Label of the rule editor's optional name field (#2340).
+  /// Label of the rule editor's optional nickname field (#2341): a short name the caller gives a rule, shown as its title above the rule's sentence in the rule picker and Manage rules, and matched by the picker's search.
   ///
   /// In en, this message translates to:
-  /// **'Name (optional)'**
-  String get eventRuleNameLabel;
+  /// **'Nickname (optional)'**
+  String get eventRuleNicknameLabel;
 
   /// An event rule as a sentence (#2340). {search} is the name of a saved search.
   ///

@@ -118,7 +118,7 @@ void main() {
       find.byKey(const ValueKey('event-rule-scope-wholeProgram')),
     );
     await tester.enterText(
-      find.byKey(const ValueKey('event-rule-name')),
+      find.byKey(const ValueKey('event-rule-nickname')),
       'Two Beckets',
     );
     await tester.pumpAndSettle();
@@ -131,7 +131,7 @@ void main() {
     );
     final edited = (await repos.eventRules.get(rule.id))!;
     expect(
-      (edited.quantifier, edited.count, edited.scope, edited.name),
+      (edited.quantifier, edited.count, edited.scope, edited.nickname),
       (
         EventRuleQuantifier.atLeast,
         2,
@@ -166,7 +166,7 @@ void main() {
       quantifier: EventRuleQuantifier.atMost,
       count: 1,
       scope: EventRuleScope.neighbouring,
-      name: 'No two Beckets',
+      nickname: 'No two Beckets',
     );
     final unnamed = await repos.eventRules.create(
       savedSearchId: search.id,
@@ -223,7 +223,7 @@ void main() {
       savedSearchId: search.id,
       quantifier: EventRuleQuantifier.none,
       scope: EventRuleScope.wholeProgram,
-      name: 'No Beckets',
+      nickname: 'No Beckets',
     );
     final on = await _pump(
       tester,
@@ -360,7 +360,7 @@ void main() {
     await tester.tap(find.text(sentence));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.byKey(const ValueKey('event-rule-name')),
+      find.byKey(const ValueKey('event-rule-nickname')),
       'Beckets apart',
     );
     await tester.pumpAndSettle();
@@ -368,7 +368,7 @@ void main() {
     await tester.tap(save);
     await tester.pumpAndSettle();
     final stored = (await repos.eventRules.get(rule.id))!;
-    expect(stored.name, 'Beckets apart');
+    expect(stored.nickname, 'Beckets apart');
     expect(
       (stored.quantifier, stored.count, stored.scope),
       (EventRuleQuantifier.atMost, 3, EventRuleScope.neighbouring),

@@ -14332,7 +14332,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get eventRuleScopeNeighbouring => '隣接する任意の2曲';
 
   @override
-  String get eventRuleNameLabel => '名前（任意）';
+  String get eventRuleNicknameLabel => '名前（任意）';
 
   @override
   String eventRuleSentenceAtMostWhole(int count, String search) {

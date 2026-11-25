@@ -15,12 +15,12 @@ const String eventRuleUseKind = 'eventRule';
 const int maxEventRules = 500;
 
 /// Thrown when a rule cannot be stored: an empty id or saved-search id, a
-/// count or name over its bound, or a quantifier or scope this build does not
+/// count or nickname over its bound, or a quantifier or scope this build does not
 /// know (the editor writes only known ones).
 class EventRuleInvalid implements Exception {
   const EventRuleInvalid(this.field);
 
-  /// `id`, `savedSearchId`, `quantifier`, `scope`, `count`, `name` or
+  /// `id`, `savedSearchId`, `quantifier`, `scope`, `count`, `nickname` or
   /// `limit`.
   final String field;
 
@@ -87,7 +87,7 @@ class EventRuleRepository {
       for (final row in rows)
         SavedSearchUse(
           kind: eventRuleUseKind,
-          label: row.name ?? '',
+          label: row.nickname ?? '',
           id: row.id,
         ),
     ];
@@ -101,7 +101,7 @@ class EventRuleRepository {
     required EventRuleQuantifier quantifier,
     int count = 0,
     required EventRuleScope scope,
-    String? name,
+    String? nickname,
     DateTime? at,
   }) => _db.transaction(() async {
     final live = await _live().get();
@@ -116,7 +116,7 @@ class EventRuleRepository {
       quantifier: quantifier,
       count: count,
       scope: scope,
-      name: name,
+      nickname: nickname,
       position: last + 1,
     );
     await save(rule, at: at);
@@ -234,29 +234,31 @@ class EventRuleRepository {
     quantifierName: row.quantifier,
     count: row.count,
     scopeName: row.scope,
-    name: row.name,
+    nickname: row.nickname,
     position: row.position,
   );
 
   EventRulesCompanion _companion(EventRule rule, DateTime now) {
-    final name = _name(rule.name);
+    final nickname = _nickname(rule.nickname);
     return EventRulesCompanion.insert(
       id: rule.id,
       savedSearchId: normalizeShareableText(rule.savedSearchId),
       quantifier: normalizeShareableText(rule.quantifierName),
       count: Value(rule.count),
       scope: normalizeShareableText(rule.scopeName),
-      name: Value(name == null ? null : normalizeShareableText(name)),
+      nickname: Value(
+        nickname == null ? null : normalizeShareableText(nickname),
+      ),
       position: Value(rule.position),
       updatedAt: Value(now),
     );
   }
 
-  /// A typed name with invisible characters and edge spaces removed, or null
+  /// A nickname with invisible characters and edge spaces removed, or null
   /// when nothing is left.
-  static String? _name(String? name) {
-    if (name == null) return null;
-    final text = sanitizeShareableText(name).trim();
+  static String? _nickname(String? nickname) {
+    if (nickname == null) return null;
+    final text = sanitizeShareableText(nickname).trim();
     return text.isEmpty ? null : text;
   }
 
@@ -275,8 +277,8 @@ class EventRuleRepository {
     if (rule.count < 0 || rule.count > maxEventRuleCount) {
       throw const EventRuleInvalid('count');
     }
-    if ((rule.name?.length ?? 0) > maxEventRuleNameLength) {
-      throw const EventRuleInvalid('name');
+    if ((rule.nickname?.length ?? 0) > maxEventRuleNicknameLength) {
+      throw const EventRuleInvalid('nickname');
     }
   }
 
