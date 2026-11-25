@@ -59,9 +59,8 @@ class CandidateRuleCheck {
     required this.position,
     required List<EventRule> rules,
     required Map<String, Set<String>> matchingDanceIds,
-    CandidateRuleEvaluator evaluate = evaluateEventRules,
-  }) : _evaluate = evaluate,
-       _rules = List.unmodifiable([
+    this.evaluate = evaluateEventRules,
+  }) : _rules = List.unmodifiable([
          for (final rule in rules)
            if (rule.isReadable && matchingDanceIds.containsKey(rule.id)) rule,
        ]),
@@ -85,7 +84,8 @@ class CandidateRuleCheck {
   /// The place checked: where the candidate would go.
   final SuggestionPosition position;
 
-  final CandidateRuleEvaluator _evaluate;
+  /// The evaluator: [evaluateEventRules], or a test's counting wrapper.
+  final CandidateRuleEvaluator evaluate;
 
   /// The rules that can be checked, in the order given.
   final List<EventRule> _rules;
@@ -134,7 +134,7 @@ class CandidateRuleCheck {
             ? {..._programMatching[_rules[r].id]!, _candidateDanceId}
             : _programMatching[_rules[r].id]!,
     };
-    final breaches = _evaluate(
+    final breaches = evaluate(
       slots: _slots,
       rules: _rules,
       matchingDanceIds: matching,

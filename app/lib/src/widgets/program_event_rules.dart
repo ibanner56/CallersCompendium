@@ -346,7 +346,8 @@ class ProgramEventRulesController extends ChangeNotifier {
         enrichment: inputs.enrichment,
       );
     } catch (_) {
-      // A context that failed to read is read again next time, not kept.
+      // diagnostics: silent — rethrown; the picker that asked logs it. A
+      // context that failed to read is read again next time, not kept.
       _context = null;
       rethrow;
     }
