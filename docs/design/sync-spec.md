@@ -5081,7 +5081,11 @@ features may ship or be backported in any order.
 `{"capabilities": [<sorted names>]}`. It is an ordinary `shareable` setting,
 classified by prefix, and it is never itself gated. A device writes only its
 own, before the snapshot of each pass, and only when the stored one is missing
-or lists something else, so an unchanged record is never re-stamped. A build
+or lists something else, so an unchanged record is never re-stamped. A
+rewrite is stamped strictly after the stored record's `updatedAt` (the later of
+the clock and that stamp plus one second, the stored precision), because a peer
+that holds the old record and finds the new one at an equal `updatedAt` takes
+neither (§6.3) and would keep the capability closed (#2528). A build
 that advertises nothing writes none. The prefix is excluded from backups: only
 its own device may write the record, and a restore would delete the others' or
 re-stamp them over their owners'. A build since v0.7.0 that does not know the

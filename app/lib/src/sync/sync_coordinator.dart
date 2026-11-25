@@ -497,16 +497,15 @@ final class CompendiumSyncCoordinatorStore
     CompendiumRepositories repositories, {
     this.syncId,
     bool memoizeSnapshots = false,
-    DateTime Function() now = _syncNowUtc,
-  }) : _now = now,
-       storage = CompendiumSyncStorage(
+    this.now = _syncNowUtc,
+  }) : storage = CompendiumSyncStorage(
          repositories,
          memoizeSnapshots: memoizeSnapshots,
        );
 
   final CompendiumSyncStorage storage;
   final String? syncId;
-  final DateTime Function() _now;
+  final DateTime Function() now;
 
   @override
   Future<SyncCoordinatorSnapshot> snapshot() async {
@@ -589,16 +588,16 @@ final class CompendiumSyncCoordinatorStore
       db.settings,
     )..where((t) => t.key.equals(key))).getSingleOrNull();
     final current = row?.updatedAt;
-    final now = _now();
+    final clock = now();
     // Stored at whole-second precision, so a tick is one second: a smaller
     // step would round back down to the stamp it must exceed.
     final superseding = current == null
-        ? now
+        ? clock
         : current.toUtc().add(storedTimestampTick);
     await settings.set(
       key,
       syncCapabilityRecordValue(capabilities),
-      at: superseding.isAfter(now) ? superseding : now,
+      at: superseding.isAfter(clock) ? superseding : clock,
     );
   }
 
