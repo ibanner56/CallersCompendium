@@ -1,0 +1,9 @@
+{
+  "id": "template-rules-row-sentence",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Event rules (Experimental): a program template's Rules row now shows a nicknamed rule's sentence beneath its nickname, as the rule picker and Manage rules do, so you can see what each rule requires."
+    ]
+  }
+}

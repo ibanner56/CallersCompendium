@@ -759,8 +759,9 @@ Select **Program defaults** to open this group.
   deleted; the message names the rule, so you can edit or remove it first.
 - **Rules** (optional, *Experimental*) — while [Event rules](#event-rules) is
   on, a template has a **Rules** row under its name, listing the template's
-  rules. Select it to open the same rule picker a program has, with **New
-  rule…** at the top: tick the rules a program made from this template should
+  rules: each by its nickname with its sentence beneath, or by its sentence
+  if it has no nickname. Select it to open the same rule picker a program
+  has, with **New rule…** at the top: tick the rules a program made from this template should
   start with, and untick one to take it off. They are added to each new
   program made from the template (see [Rules that come with a
   template](./programs.md#check-your-program-against-your-rules)); changing
@@ -1342,7 +1343,8 @@ A rule has:
   dances next to each other.
 - **Nickname (optional)** — a short name of your own, such as *family* or
   *one petronella*, shown in place of the sentence with the sentence under
-  it, here and in a program's rule picker, where you can
+  it, here, in a template's [Rules](#program-defaults) row and in a program's
+  rule picker, where you can
   [search for it](./programs.md#check-your-program-against-your-rules). Clear
   it to show the sentence alone again.
 

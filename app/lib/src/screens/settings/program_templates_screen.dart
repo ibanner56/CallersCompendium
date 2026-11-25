@@ -731,6 +731,19 @@ class _ProgramTemplateEditorScreenState
         : l10n.programTemplateRuleRemoved(title);
   }
 
+  /// The sentence the Rules row shows under rule [id]'s nickname, or null
+  /// when the rule has none (its line is its sentence already) or is not on
+  /// this device.
+  String? _ruleSentence(AppLocalizations l10n, String id) {
+    final rule = _rulesById?[id];
+    if (rule == null || rule.nickname == null) return null;
+    return eventRuleSentence(
+      l10n,
+      rule,
+      _savedSearchNames?[rule.savedSearchId],
+    );
+  }
+
   Widget _rulesRow(AppLocalizations l10n) {
     final theme = Theme.of(context);
     final known = _rulesById != null;
@@ -744,14 +757,26 @@ class _ProgramTemplateEditorScreenState
           if (_eventRuleIds.isEmpty)
             Text(l10n.programTemplateRulesNone)
           else if (known)
-            for (final id in _eventRuleIds)
+            for (final id in _eventRuleIds) ...[
               Text(
                 _ruleLine(l10n, id),
                 key: ValueKey('program-template-rule-$id'),
                 style: _liveRuleIds.contains(id)
                     ? null
                     : TextStyle(color: theme.colorScheme.onSurfaceVariant),
-              )
+              ),
+              // A nicknamed rule's sentence beneath its nickname, as the rule
+              // picker and Manage rules show it, so the row says what the
+              // rule requires and not only what the caller called it.
+              if (_ruleSentence(l10n, id) case final sentence?)
+                Text(
+                  sentence,
+                  key: ValueKey('program-template-rule-$id-sentence'),
+                  // The subtitle's own size, as the rule picker shows it, so
+                  // it never reads as the help line below.
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                ),
+            ]
           else
             // The rules are not read yet, or could not be: say how many the
             // template lists rather than nothing.
