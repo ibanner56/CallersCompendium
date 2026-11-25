@@ -285,12 +285,17 @@ void main() {
       reason: 'held back from a peer without event rules',
     );
 
-    // The peer updates to a build with event rules. Its capability record
-    // is rewritten then, stamped with the real clock at the store's
-    // one-second precision: let a second pass first, so the new record is
-    // newer than the one the peer wrote moments ago rather than tied with it
-    // (a tie can keep the old record, and the gate shut, on the other device).
-    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    // The peer updates to a build with event rules, and its capability record
+    // is rewritten. That write (SyncCoordinator.ensureCapabilityRecord) is
+    // stamped with the real clock, not an injectable one, and stored at
+    // one-second precision; a rewrite in the same second as the old record
+    // ties with it, and a tie can keep the old record, and the gate shut, on
+    // the other device. So wait, on a condition with a deadline rather than a
+    // fixed delay, until the clock's second is past the stored stamp's.
+    await waitUntilClockPassesStamp(
+      olderRepos,
+      syncCapabilityRecordKey('device-older'),
+    );
     older.dispose();
     older = InMemorySyncDevice(
       server,
@@ -301,4 +306,28 @@ void main() {
     final family = (await templatesOf(older)).byId('family');
     expect(family?.eventRuleIds, ['r1']);
   });
+}
+
+/// Waits until the wall clock's whole second is later than the stored stamp of
+/// the settings row [key], so a write made now cannot tie with it at the
+/// store's one-second precision. Fails after a deadline instead of hanging.
+Future<void> waitUntilClockPassesStamp(
+  CompendiumRepositories repositories,
+  String key,
+) async {
+  final db = repositories.db;
+  final row = await (db.select(
+    db.settings,
+  )..where((t) => t.key.equals(key))).getSingle();
+  final stamp = row.updatedAt;
+  expect(stamp, isNotNull, reason: '$key has no stored stamp');
+  final stampSecond = stamp!.toUtc().millisecondsSinceEpoch ~/ 1000;
+  const deadline = Duration(seconds: 5);
+  final watch = Stopwatch()..start();
+  while (DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000 <= stampSecond) {
+    if (watch.elapsed > deadline) {
+      fail("the clock did not pass $key's stamp $stamp within $deadline");
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+  }
 }
