@@ -15341,6 +15341,33 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get programTemplateRulesLabel => 'Regels';
+
+  @override
+  String get programTemplateRulesNone => 'Geen';
+
+  @override
+  String get programTemplateRulesHelp =>
+      'Toegevoegd aan elk nieuw programma dat met dit sjabloon wordt gemaakt.';
+
+  @override
+  String programTemplateRuleRemoved(String rule) {
+    return 'Verwijderd: $rule';
+  }
+
+  @override
+  String get programTemplateRuleRemovedUnknown =>
+      'Verwijderd: een regel die niet op dit apparaat staat';
+
+  @override
+  String get programTemplateRulesPickerTitle => 'Regels voor dit sjabloon';
+
+  @override
+  String programTemplateRulesPickerFull(int max) {
+    return 'Dit sjabloon gebruikt $max regels, het maximum. Vink er een uit om een andere toe te voegen.';
+  }
+
+  @override
   String programsRulesPickerNotHere(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

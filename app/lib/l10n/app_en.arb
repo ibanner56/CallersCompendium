@@ -20525,6 +20525,46 @@
       }
     }
   },
+  "programTemplateRulesLabel": "Rules",
+  "@programTemplateRulesLabel": {
+    "description": "Title of the Rules row in the program template editor (#2342): the event rules a program made from this template starts with."
+  },
+  "programTemplateRulesNone": "None",
+  "@programTemplateRulesNone": {
+    "description": "Shown under the template editor's Rules row when the template carries no event rules (#2342)."
+  },
+  "programTemplateRulesHelp": "Added to each new program made from this template.",
+  "@programTemplateRulesHelp": {
+    "description": "Last line under the template editor's Rules row (#2342): the template's rules are added to a program when it is made from the template; existing programs are not changed."
+  },
+  "programTemplateRuleRemoved": "Removed: {rule}",
+  "@programTemplateRuleRemoved": {
+    "description": "A rule on a program template that has been deleted (#2342). It is not added to new programs; an Undo of its delete brings it back. {rule} is the rule's nickname or sentence.",
+    "placeholders": {
+      "rule": {
+        "type": "String",
+        "example": "Easy start"
+      }
+    }
+  },
+  "programTemplateRuleRemovedUnknown": "Removed: a rule that isn't on this device",
+  "@programTemplateRuleRemovedUnknown": {
+    "description": "A rule on a program template that this device does not hold, deleted for good or not synced yet (#2342). It is not added to new programs."
+  },
+  "programTemplateRulesPickerTitle": "Rules for this template",
+  "@programTemplateRulesPickerTitle": {
+    "description": "Title of the rule picker opened from a program template's Rules row (#2342)."
+  },
+  "programTemplateRulesPickerFull": "This template uses {max} rules, the most it can. Untick one to add another.",
+  "@programTemplateRulesPickerFull": {
+    "description": "Shown in a program template's rule picker when it already lists as many rules as a program can apply (#2342).",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "64"
+      }
+    }
+  },
   "programsRulesPickerNotHere": "{count, plural, =1{1 rule not on this device} other{{count} rules not on this device}}",
   "@programsRulesPickerNotHere": {
     "description": "Line in a program's Rules picker (#2340) when the program applies rules this device does not have: added on another device and not synced here yet, or gone for good. 'Remove' (commonRemove) is beside it.",

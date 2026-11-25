@@ -330,7 +330,9 @@ bool _isValidProgramTemplateDefault(Object? v) =>
 final Map<String, bool Function(String key, Object? value)>
 _backupSettingPrefixValidators = {
   // One program template per key (#2337): the strict template decoder, which
-  // also rejects an id that cannot name a template.
+  // also rejects an id that cannot name a template, a slot rule (#2338)
+  // outside a version 2 or 3 value, and event-rule ids (#2342) outside a
+  // version 3 value or not exactly as the encoder writes them.
   kProgramTemplateKeyPrefix: (key, value) =>
       tryDecodeProgramTemplate(
         key.substring(kProgramTemplateKeyPrefix.length),

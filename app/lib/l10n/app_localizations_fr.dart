@@ -15419,6 +15419,33 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get programTemplateRulesLabel => 'Règles';
+
+  @override
+  String get programTemplateRulesNone => 'Aucune';
+
+  @override
+  String get programTemplateRulesHelp =>
+      'Ajoutées à chaque nouveau programme créé à partir de ce modèle.';
+
+  @override
+  String programTemplateRuleRemoved(String rule) {
+    return 'Supprimée : $rule';
+  }
+
+  @override
+  String get programTemplateRuleRemovedUnknown =>
+      'Supprimée : une règle absente de cet appareil';
+
+  @override
+  String get programTemplateRulesPickerTitle => 'Règles de ce modèle';
+
+  @override
+  String programTemplateRulesPickerFull(int max) {
+    return 'Ce modèle utilise $max règles, le maximum possible. Décochez-en une pour en ajouter une autre.';
+  }
+
+  @override
   String programsRulesPickerNotHere(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

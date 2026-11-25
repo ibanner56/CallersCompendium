@@ -1102,6 +1102,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       }
       if (!mounted) return;
       List<ProgramSlot> newProgramSlots = const [];
+      List<String> newProgramRuleIds = const [];
       if (program != null) {
         _applyProgramToEditor(program);
         // Resolve the linked venue (if any) up front so the simple-mode
@@ -1114,7 +1115,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         // Only seeds a still-blank field, never overrides; a settings read
         // failure falls back silently to a blank field.
         await _prefillNewProgramDefaults();
-        newProgramSlots = await _loadTemplateSlots(data);
+        (newProgramSlots, newProgramRuleIds) = await _loadTemplateStart(data);
       }
       // Guard again: the venue lookup / defaults prefill above are async, so the
       // widget may have been disposed while they were in-flight.
@@ -1131,8 +1132,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _venueIdBaseline = program?.venueId;
         _status = program?.status ?? ProgramStatus.draft;
         _hideAlternates = program?.hideAlternates ?? false;
-        // A new program applies no rule (#2340): only the caller adds them.
-        _eventRuleIds = program?.eventRuleIds ?? const [];
+        // A new program applies only the rules the caller adds (#2340):
+        // choosing a template that carries rules adds them (#2342).
+        _eventRuleIds = program?.eventRuleIds ?? newProgramRuleIds;
         _dialectName = program?.dialectName;
         _slots = program?.slots.toList() ?? newProgramSlots;
         _insertion = null;
@@ -1253,30 +1255,41 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
-  /// Loads the slots of the program template this new program starts from
-  /// ([ProgramEditorScreen.templateChoice], #2337).
+  /// Loads the slots and event rules of the program template this new
+  /// program starts from ([ProgramEditorScreen.templateChoice], #2337,
+  /// #2342).
   ///
   /// Stale dance references can remain in a template after a dance was
   /// purged. They are omitted while valid entries retain their order and
-  /// fresh database identity is generated for every slot. A settings read
-  /// failure starts the program blank.
-  Future<List<ProgramSlot>> _loadTemplateSlots(CollectionData data) async {
-    if (!mounted) return const [];
-    final ProgramTemplates templates;
+  /// fresh database identity is generated for every slot. The rules are the
+  /// template's live ones, while Event rules is on
+  /// ([newProgramEventRuleIds]). A settings read failure starts the program
+  /// blank.
+  Future<(List<ProgramSlot>, List<String>)> _loadTemplateStart(
+    CollectionData data,
+  ) async {
+    if (!mounted) return (const <ProgramSlot>[], const <String>[]);
+    final ProgramTemplate? template;
+    final List<String> ruleIds;
     try {
-      templates = await loadProgramTemplates(_repos.settings);
+      final templates = await loadProgramTemplates(_repos.settings);
+      template = programTemplateFor(templates, widget.templateChoice);
+      ruleIds = await newProgramEventRuleIds(_repos, template);
     } catch (error, stackTrace) {
       logCaughtError(
         error,
         stackTrace,
         source: 'program_editor_screen.program_template',
       );
-      return const [];
+      return (const <ProgramSlot>[], const <String>[]);
     }
     final availableDances = _latestData?.dancesById ?? data.dancesById;
-    return programSlotsFromTemplate(
-      programTemplateEntriesFor(templates, widget.templateChoice),
-      danceExists: availableDances.containsKey,
+    return (
+      programSlotsFromTemplate(
+        template?.entries ?? const [],
+        danceExists: availableDances.containsKey,
+      ),
+      ruleIds,
     );
   }
 
@@ -1860,8 +1873,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _dialectName = draft.hasDialectName
             ? draft.dialectName
             : _existing?.dialectName;
-        // A new program's rules come back with it; a stored program keeps
-        // the rules stored for it.
+        // A new program's rules come back with it, not those the template
+        // this editor opened with added (#2342); a stored program keeps the
+        // rules stored for it.
         if (_existing == null) _eventRuleIds = draft.eventRuleIds;
         _slots = _renumber(draft.slots);
         _insertion = null;

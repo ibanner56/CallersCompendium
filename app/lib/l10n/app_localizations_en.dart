@@ -15195,6 +15195,33 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get programTemplateRulesLabel => 'Rules';
+
+  @override
+  String get programTemplateRulesNone => 'None';
+
+  @override
+  String get programTemplateRulesHelp =>
+      'Added to each new program made from this template.';
+
+  @override
+  String programTemplateRuleRemoved(String rule) {
+    return 'Removed: $rule';
+  }
+
+  @override
+  String get programTemplateRuleRemovedUnknown =>
+      'Removed: a rule that isn\'t on this device';
+
+  @override
+  String get programTemplateRulesPickerTitle => 'Rules for this template';
+
+  @override
+  String programTemplateRulesPickerFull(int max) {
+    return 'This template uses $max rules, the most it can. Untick one to add another.';
+  }
+
+  @override
   String programsRulesPickerNotHere(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

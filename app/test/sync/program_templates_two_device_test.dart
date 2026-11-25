@@ -233,4 +233,101 @@ void main() {
       expect(templates.templates, isEmpty, reason: device.deviceId);
     }
   });
+
+  test('a template that carries event rules reaches a peer only once it '
+      'advertises eventRules.v1, while one without rules reaches it at once '
+      '(#2342)', () async {
+    const build = SyncCapabilityPolicy.build;
+    // A build with templates and without event rules: it gates as this one
+    // does, but does not advertise eventRules.v1.
+    final withoutEventRules = SyncCapabilityPolicy(
+      advertised: {...build.advertised}..remove(SyncCapabilities.eventRulesV1),
+      gatedRecordKinds: build.gatedRecordKinds,
+      gatedSettingKeys: build.gatedSettingKeys,
+      gatedSettingKeyPrefixes: build.gatedSettingKeyPrefixes,
+      gatedGlossaryEntryKinds: build.gatedGlossaryEntryKinds,
+    );
+    final olderRepos = openTestRepositories();
+    var older = InMemorySyncDevice(
+      server,
+      deviceId: 'device-older',
+      repositories: olderRepos,
+      capabilityPolicy: withoutEventRules,
+    );
+    addTearDown(() => older.dispose());
+    Future<void> settleWith(InMemorySyncDevice peer) async {
+      for (var round = 0; round < 4; round++) {
+        await a.sync();
+        await peer.sync();
+      }
+    }
+
+    // Both attached first, so each is in the other's device list.
+    await settleWith(older);
+
+    // Written as the editor writes it: a v3 value.
+    await saveProgramTemplate(
+      a.repositories.settings,
+      const ProgramTemplate(id: 'family', name: 'Family', eventRuleIds: ['r1']),
+    );
+    await saveProgramTemplate(
+      a.repositories.settings,
+      const ProgramTemplate(id: 'contra', name: 'Contra'),
+    );
+    await settleWith(older);
+    expect(
+      await olderRepos.settings.get(programTemplateKey('contra')),
+      isNotNull,
+    );
+    expect(
+      await olderRepos.settings.get(programTemplateKey('family')),
+      isNull,
+      reason: 'held back from a peer without event rules',
+    );
+
+    // The peer updates to a build with event rules, and its capability record
+    // is rewritten. That write (SyncCoordinator.ensureCapabilityRecord) is
+    // stamped with the real clock, not an injectable one, and stored at
+    // one-second precision; a rewrite in the same second as the old record
+    // ties with it, and a tie can keep the old record, and the gate shut, on
+    // the other device. So wait, on a condition with a deadline rather than a
+    // fixed delay, until the clock's second is past the stored stamp's.
+    await waitUntilClockPassesStamp(
+      olderRepos,
+      syncCapabilityRecordKey('device-older'),
+    );
+    older.dispose();
+    older = InMemorySyncDevice(
+      server,
+      deviceId: 'device-older',
+      repositories: olderRepos,
+    );
+    await settleWith(older);
+    final family = (await templatesOf(older)).byId('family');
+    expect(family?.eventRuleIds, ['r1']);
+  });
+}
+
+/// Waits until the wall clock's whole second is later than the stored stamp of
+/// the settings row [key], so a write made now cannot tie with it at the
+/// store's one-second precision. Fails after a deadline instead of hanging.
+Future<void> waitUntilClockPassesStamp(
+  CompendiumRepositories repositories,
+  String key,
+) async {
+  final db = repositories.db;
+  final row = await (db.select(
+    db.settings,
+  )..where((t) => t.key.equals(key))).getSingle();
+  final stamp = row.updatedAt;
+  expect(stamp, isNotNull, reason: '$key has no stored stamp');
+  final stampSecond = stamp!.toUtc().millisecondsSinceEpoch ~/ 1000;
+  const deadline = Duration(seconds: 5);
+  final watch = Stopwatch()..start();
+  while (DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000 <= stampSecond) {
+    if (watch.elapsed > deadline) {
+      fail("the clock did not pass $key's stamp $stamp within $deadline");
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+  }
 }
