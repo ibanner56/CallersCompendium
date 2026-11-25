@@ -1,0 +1,28 @@
+{
+  "id": "2338-slot-rules",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A program template can hold a slot rule: Add slot rule gives a slot a label, such as \"Easy family opener\", and one of your saved searches instead of one dance. A program made from the template starts with a placeholder there, showing the label and marked Placeholder.",
+      "Edit on a slot rule changes its label or its saved search. A rule can't be labelled Break, which marks a break.",
+      "Fill on a placeholder opens the dance picker with the rule's saved search already applied, and the dance you choose fills the slot. A placeholder saved unfilled stays one, on all your synced devices, and offers Fill with the same search later.",
+      "If a placeholder's saved search was deleted, can't be opened (saved by a newer version, or damaged), or uses a tag, level or venue that was deleted, Fill shows every dance with a notice saying which and naming what is gone; it never uses part of the search.",
+      "A saved search that a template's slot rule uses can't be deleted; the message names the rule and its template."
+    ],
+    "changed": [
+      "A placeholder goes into a shared program, the programs CSV, the set list and the PDF as a plain note with its label; the saved search stays with you. Backups keep it, and a backup that holds one needs this version or later to restore."
+    ],
+    "data_migrations": [
+      "Opening your library adds the place a placeholder keeps its saved search. Existing program slots are unchanged."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add ProgramSlot.placeholderSearchId (program_slots.placeholder_search_id, schema v42) with isPlaceholder; the constructor drops it on a slot with a dance or when blank. It syncs as slots.placeholderSearchId, travels in backups, and is classified non-personal, app user, shareable in the field registry.",
+      "SavedSearchUse gains an optional detail, so a refusal can name where a use lives."
+    ],
+    "changed": [
+      "The v41 to v42 step, and the check every open of a v42 file makes, add the nullable program_slots.placeholder_search_id column when it is missing; existing slots get NULL."
+    ]
+  }
+}

@@ -72,6 +72,17 @@ const int backupSchemaVersionArchivedPrograms = 3;
 /// this was added, and every build that reads v3 reads this key too.
 const int backupSchemaVersionCalendarEventKeys = 3;
 
+/// The envelope version a backup is written under when a program slot in it
+/// is an unfilled placeholder that remembers its saved search
+/// (`placeholderSearchId`, schema v42, #2338).
+///
+/// No build up to 0.10.0 reads the key, so one would restore such a backup
+/// and drop it, and **Fill** would be gone from every remembered placeholder.
+/// The same number as [backupSchemaVersionArchivedPrograms] on purpose, for
+/// the same reason as [backupSchemaVersionCalendarEventKeys]: v3 had not
+/// shipped when this was added, and every build that reads v3 reads this key.
+const int backupSchemaVersionPlaceholderSlots = 3;
+
 /// The envelope version [doc] must be written under so that no build that
 /// would silently drop part of it restores it: the highest version any of its
 /// conditional data needs, otherwise [backupSchemaVersionBase].
@@ -93,6 +104,11 @@ int requiredBackupVersion(BackupDocument doc) {
         p.calendarFlag != null,
   )) {
     return backupSchemaVersionCalendarEventKeys;
+  }
+  if (doc.core.programs.any(
+    (p) => p.slots.any((s) => s.placeholderSearchId != null),
+  )) {
+    return backupSchemaVersionPlaceholderSlots;
   }
   if (doc.hasGlossary) return backupSchemaVersionGlossary;
   // `Program` keeps the two pay keys set together, so one stands for both.

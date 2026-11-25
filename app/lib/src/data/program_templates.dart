@@ -16,7 +16,9 @@ import 'display_defaults.dart';
 ///
 /// A template's slots use the same entry codec as the legacy Starting program
 /// ([encodeProgramTemplateSlots]); its value is versioned so a later change can
-/// add a field.
+/// add a field. Version 2 (#2338) adds one entry kind, the slot rule
+/// ([ProgramTemplateEntry.rule]); a template without one is still written as
+/// version 1, byte for byte as before.
 const String kProgramTemplateKeyPrefix = 'program_template:';
 
 /// The templates' order, as a JSON list of template ids.
@@ -37,7 +39,17 @@ const String kProgramTemplateBlankDefault = 'blank';
 /// key with the same value instead of two copies of it.
 const String kMigratedStartingProgramTemplateId = 'starting_program';
 
+/// The value version of a template with only dances, notes and breaks.
 const int _programTemplateVersion = 1;
+
+/// The value version of a template with at least one slot rule (#2338).
+///
+/// Every build that advertises the `programTemplates.v1` sync capability reads
+/// it: slot rules joined that capability before any release carried it, so a
+/// peer that can be sent a template can read one with rules, and no build
+/// that would skip it as unreadable (and so drop it from a backup restore)
+/// is ever sent one.
+const int _programTemplateVersionWithRules = 2;
 
 /// The longest template name kept; a longer one is cut on encode and rejected
 /// on decode.
@@ -88,21 +100,29 @@ String encodeProgramTemplate(ProgramTemplate template) {
     if (last >= 0xD800 && last <= 0xDBFF) end--;
   }
   final name = trimmed.substring(0, end);
+  final slots = encodeProgramTemplateSlots(template.entries);
+  final hasRule = slots.any((slot) => slot.containsKey('savedSearchId'));
   return jsonEncode({
-    'version': _programTemplateVersion,
+    'version': hasRule
+        ? _programTemplateVersionWithRules
+        : _programTemplateVersion,
     'name': name,
-    'slots': encodeProgramTemplateSlots(template.entries),
+    'slots': slots,
   });
 }
 
 /// Decodes the value stored for template [id], or `null` when the id or the
 /// value is invalid. Strict, so it doubles as the backup validator: unknown
-/// fields, an unknown version or any bad slot reject the whole value.
+/// fields, an unknown version or any bad slot reject the whole value. A slot
+/// rule is accepted only in a version 2 value.
 ProgramTemplate? tryDecodeProgramTemplate(String id, Object? stored) {
   if (!isValidProgramTemplateId(id) || stored is! String) return null;
   try {
     final decoded = jsonDecode(stored);
-    if (decoded is! Map || decoded['version'] != _programTemplateVersion) {
+    if (decoded is! Map) return null;
+    final version = decoded['version'];
+    if (version != _programTemplateVersion &&
+        version != _programTemplateVersionWithRules) {
       return null;
     }
     if (!decoded.keys.every(
@@ -114,7 +134,10 @@ ProgramTemplate? tryDecodeProgramTemplate(String id, Object? stored) {
     if (name is! String || name.length > kMaxProgramTemplateNameLength) {
       return null;
     }
-    final entries = tryDecodeProgramTemplateSlots(decoded['slots']);
+    final entries = tryDecodeProgramTemplateSlots(
+      decoded['slots'],
+      allowRules: version == _programTemplateVersionWithRules,
+    );
     if (entries == null) return null;
     return ProgramTemplate(id: id, name: name, entries: entries);
   } catch (_) {
@@ -427,6 +450,8 @@ List<ProgramTemplateEntry> programTemplateEntriesFor(
 /// Fresh program slots for template [entries]: a new id and position for each,
 /// skipping a dance no longer in the collection ([danceExists]) while the
 /// others keep their order.
+///
+/// A slot rule becomes an unfilled placeholder ([programSlotForTemplateEntry]).
 List<ProgramSlot> programSlotsFromTemplate(
   List<ProgramTemplateEntry> entries, {
   required bool Function(String danceId) danceExists,
@@ -435,14 +460,72 @@ List<ProgramSlot> programSlotsFromTemplate(
   for (final entry in entries) {
     final danceId = entry.danceId;
     if (danceId != null && !danceExists(danceId)) continue;
-    slots.add(
-      ProgramSlot(
-        id: uuidV4(),
-        position: slots.length,
-        danceId: danceId,
-        text: entry.text,
-      ),
-    );
+    slots.add(programSlotForTemplateEntry(entry, position: slots.length));
   }
   return slots;
+}
+
+/// A fresh program slot (new id) at [position] for template [entry].
+///
+/// A slot rule (#2338) becomes a note slot whose text is the rule's label and
+/// which remembers the rule's saved search
+/// ([ProgramSlot.placeholderSearchId]), so **Fill** works on it from the
+/// builder, later and on another device, until a dance is chosen. Its saved
+/// search is not read here: one that is gone or names something deleted
+/// still gives that plain note with its label, and **Fill** is where the
+/// missing criterion is named. Every other entry is copied as it is.
+ProgramSlot programSlotForTemplateEntry(
+  ProgramTemplateEntry entry, {
+  required int position,
+}) => ProgramSlot(
+  id: uuidV4(),
+  position: position,
+  danceId: entry.danceId,
+  text: entry.text,
+  placeholderSearchId: entry.savedSearchId,
+);
+
+/// The [SavedSearchUse.kind] of a template's slot rule (#2338).
+const String kProgramTemplateSlotRuleUse = 'programTemplateSlotRule';
+
+/// The owner name [registerProgramTemplateSavedSearchUses] registers under.
+const String kProgramTemplateSavedSearchUsageOwner = 'programTemplates';
+
+/// Every slot rule in every program template that uses the saved search
+/// [savedSearchId], as a [SavedSearchUse]: its label is the rule's label and
+/// its detail the template's stored name (empty for an unnamed one, which the
+/// message names as the template list does).
+Future<List<SavedSearchUse>> programTemplateSlotRuleUses(
+  SettingsRepository settings,
+  String savedSearchId,
+) async {
+  final templates = await loadProgramTemplates(settings);
+  return [
+    for (final template in templates.templates)
+      for (final entry in template.entries)
+        if (entry.savedSearchId == savedSearchId)
+          SavedSearchUse(
+            kind: kProgramTemplateSlotRuleUse,
+            label: entry.text ?? '',
+            detail:
+                template.id == kMigratedStartingProgramTemplateId &&
+                    template.name.trim().isEmpty
+                ? null
+                : template.name,
+          ),
+  ];
+}
+
+/// Registers the templates' slot rules as users of saved searches, so deleting
+/// a saved search that a slot rule names is refused and the message lists the
+/// rule (#2325, "Deleting a saved search that something uses is refused").
+///
+/// An unfilled placeholder in a program does not count: it is a reminder, not
+/// a rule, and **Fill** says so when its saved search is gone.
+void registerProgramTemplateSavedSearchUses(CompendiumRepositories repos) {
+  final settings = repos.settings;
+  repos.savedSearches.usage.register(
+    kProgramTemplateSavedSearchUsageOwner,
+    (id) => programTemplateSlotRuleUses(settings, id),
+  );
 }

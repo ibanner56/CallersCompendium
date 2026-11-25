@@ -11,6 +11,7 @@ import 'dart:convert';
 
 import 'package:compendium_app/src/export/dance_share_bundle.dart';
 import 'package:compendium_app/src/export/program_share_bundle.dart';
+import 'package:compendium_app/src/export/share_sanitization.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -154,4 +155,53 @@ void main() {
       expect(decodeArchive(json).archive.dances.single.rating, 4);
     },
   );
+
+  test('a placeholder is shared as a plain note with its label: the saved '
+      'search it names is not in the file, so the reference stays home '
+      '(#2338)', () {
+    final json = buildProgramShareBundle(
+      _program().copyWith(
+        slots: [
+          ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+          ProgramSlot(
+            id: 's1',
+            position: 1,
+            text: 'Easy family opener',
+            placeholderSearchId: 'search-ref-1',
+          ),
+        ],
+      ),
+      blankedDanceSlotText: 'Deleted dance',
+      danceFor: (_) => _dance(),
+      choreographerFor: (_) => null,
+      venueFor: (_) => null,
+      tagFor: (_) => null,
+      publishedSourceFor: (_) => null,
+      customFieldFor: (_) => null,
+      now: _now,
+    );
+    expect(json, isNot(contains('search-ref-1')));
+    expect(json, isNot(contains('placeholderSearchId')));
+    final slot = decodeArchive(json).archive.programs.single.slots[1];
+    expect(slot.text, 'Easy family opener');
+    expect(slot.placeholderSearchId, isNull);
+  });
+
+  test('the programs CSV withholds the reference too, and keeps the label '
+      '(#2338)', () {
+    final program = sanitizeProgramForCsv(
+      _program().copyWith(
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            text: 'Easy family opener',
+            placeholderSearchId: 'search-ref-1',
+          ),
+        ],
+      ),
+    );
+    expect(program.slots.single.placeholderSearchId, isNull);
+    expect(program.slots.single.text, 'Easy family opener');
+  });
 }

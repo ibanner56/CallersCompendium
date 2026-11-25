@@ -1198,6 +1198,15 @@ class ProgramSlots extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  late final GeneratedColumn<String> placeholderSearchId =
+      GeneratedColumn<String>(
+        'placeholder_search_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        $customConstraints: 'NULL',
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1211,6 +1220,7 @@ class ProgramSlots extends Table with TableInfo {
     walkthroughMinutes,
     danceMinutes,
     performedAt,
+    placeholderSearchId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;

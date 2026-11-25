@@ -219,7 +219,8 @@ class ProgramEditorDraft {
 /// ```
 /// Nullable metadata (`eventDate`/`venue`/`venueId`/`band`/`caller`/
 /// `dancerLevel`) and nullable per-slot fields (`danceId`/`text`/`guestCaller`/
-/// `walkthroughMinutes`/`danceMinutes`/`performedAt`) are omitted when unset.
+/// `walkthroughMinutes`/`danceMinutes`/`performedAt`/`placeholderSearchId`)
+/// are omitted when unset.
 String encodeProgramDraft(ProgramEditorDraft draft) {
   return jsonEncode({
     'v': _kProgramDraftVersion,
@@ -265,6 +266,8 @@ Map<String, Object?> _slotToJson(ProgramSlot s) => {
   if (s.danceMinutes != null) 'danceMinutes': s.danceMinutes,
   if (s.performedAt != null)
     'performedAt': s.performedAt!.toUtc().toIso8601String(),
+  if (s.placeholderSearchId != null)
+    'placeholderSearchId': s.placeholderSearchId,
 };
 
 // ---------------------------------------------------------------------------
@@ -464,6 +467,7 @@ ProgramSlot _parseSlot(Object? e) {
       walkthroughMinutes: walkthrough as int?,
       danceMinutes: dance as int?,
       performedAt: _dateOrNull(m['performedAt'], 'slot.performedAt'),
+      placeholderSearchId: _strOrNull(m, 'placeholderSearchId'),
     );
   } on ArgumentError catch (err) {
     // diagnostics: silent — converts ArgumentError to FormatException and rethrows;
