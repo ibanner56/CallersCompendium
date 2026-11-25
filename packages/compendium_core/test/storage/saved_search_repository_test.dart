@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
@@ -179,6 +181,52 @@ void main() {
       repo.usage.unregister('slot rules');
       await repo.delete(used.id);
       expect(await names(), isEmpty);
+    });
+
+    test('a rule cannot start using it between the use check and the '
+        'removal (#2529)', () async {
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      final s = await repos.savedSearches.create(
+        name: 'Raced',
+        spec: specFor('a'),
+      );
+      // A writer that adds a rule only while the search is live, started in
+      // the window after the event rules' lookup has answered "no uses". No
+      // real writer checks this yet (see `delete`'s doc comment): the check
+      // is what gives the race an outcome to observe. It runs outside the
+      // delete's zone, as another writer would.
+      Future<void>? racer;
+      repos.savedSearches.usage.register('racer', (id) async {
+        racer ??= Zone.root.run(
+          () => db.transaction(() async {
+            if (await repos.savedSearches.get(id) == null) return;
+            await repos.eventRules.create(
+              savedSearchId: id,
+              quantifier: EventRuleQuantifier.none,
+              scope: EventRuleScope.wholeProgram,
+            );
+          }),
+        );
+        return const [];
+      });
+
+      var deleted = true;
+      try {
+        await repos.savedSearches.delete(s.id);
+      } on SavedSearchInUse {
+        deleted = false;
+      }
+      await racer;
+
+      expect(racer, isNotNull, reason: 'the racer ran');
+      final users = await repos.eventRules.usesOfSavedSearch(s.id);
+      expect(
+        deleted && users.isNotEmpty,
+        isFalse,
+        reason:
+            'deleted: $deleted, live rules using it: ${users.length}; the '
+            'delete and the rule must not both succeed',
+      );
     });
   });
 
