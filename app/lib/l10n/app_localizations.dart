@@ -21866,7 +21866,7 @@ abstract class AppLocalizations {
   /// Shown in the message when a saved search cannot be deleted because event rules use it, while the Experimental switch “Check programs against your rules” (settingsExperimentalEventRulesTitle, under the Event rules heading) is off (#2340). 'Manage rules' is the button below it, which opens the rules manager even while the switch is off.
   ///
   /// In en, this message translates to:
-  /// **'Event rules is off, but Manage rules can change your rules now. To check programs against them, turn on “Check programs against your rules” under Settings ▸ Experimental ▸ Event rules.'**
+  /// **'Event rules is off, but Manage rules can change your rules now. To check programs against them, turn on \"Check programs against your rules\" under Settings ▸ Experimental ▸ Event rules.'**
   String get savedSearchInUseRulesOff;
 
   /// Shown in a program's Rules picker when it already applies as many rules as a program can (#2340).
