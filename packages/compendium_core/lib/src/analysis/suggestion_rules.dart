@@ -28,24 +28,35 @@ typedef CandidateRuleEvaluator =
 /// the place [position] describes (#2345).
 ///
 /// A dance **would break** a rule when, with the dance in that place, the
-/// program breaks the rule and the dance is one of the slots that break it,
-/// as [evaluateEventRules] names them: the slot the builder's slot markers
-/// (#2340) would mark once the dance is added. So:
+/// program breaks the rule and either
+///
+/// - the dance is one of the slots that break it, as [evaluateEventRules]
+///   names them: the slot the builder's slot markers (#2340) would mark once
+///   the dance is there; or
+/// - the program as it stands now ([SuggestionPosition.slotsBefore], the
+///   [SuggestionPosition.replaced] slot if any, then
+///   [SuggestionPosition.slotsAfter]) meets the rule as planned, and with
+///   the dance in that place it does not.
+///
+/// So:
 ///
 /// - **At most** and **None** mark a dance the rule's search matches, when
 ///   the program with it holds too many in the rule's scope.
 /// - **Neighbouring dances** mark a dance only when the pair it makes with a
 ///   neighbour breaks the rule; the neighbours are the matrix's, on both
 ///   sides of the place.
-/// - **At least** over the whole program or a half never marks a dance:
-///   adding one never lowers the count, and no one dance is at fault.
+/// - **At least** over the whole program or a half never marks a dance being
+///   added (adding one never lowers the count). It marks a dance replacing
+///   one when the program meets the rule now and would not with that dance
+///   in the slot: a replacement takes a dance away.
 /// - A dance taking an alternate's place ([SuggestionPosition.isAlternate])
 ///   is checked as if called instead of its primary, as the builder checks
 ///   an alternate, and is marked when that would break a rule.
 ///
 /// **No search per candidate.** The input is the evaluator's own: for each
 /// rule id, the dance ids its saved search matches ([matchingDanceIds]),
-/// worked out once per rule over the program's dances and the candidates.
+/// worked out once per rule over the program's dances (the
+/// [SuggestionPosition.replaced] one included) and the candidates.
 /// What a dance would break depends only on which of those sets hold it, so
 /// [brokenBy] evaluates the program once for each distinct combination it
 /// meets (at most one per candidate, and at most 2^n for n rules) and answers
@@ -76,6 +87,14 @@ class CandidateRuleCheck {
        ]),
        _matching = matchingDanceIds;
 
+  /// The program as it stands now: the place's slots, with the slot being
+  /// replaced back in its place.
+  List<ProgramSlot> get _currentSlots => [
+    ...position.slotsBefore,
+    ?position.replaced,
+    ...position.slotsAfter,
+  ];
+
   /// The id the candidate's slot has while it is checked. A real slot id is
   /// a UUID, so it never clashes.
   static const String candidateSlotId = '\u0000candidate-rule-slot';
@@ -96,7 +115,7 @@ class CandidateRuleCheck {
 
   /// Each rule's matches among the program's own dances, made once.
   late final Map<String, Set<String>> _programMatching = () {
-    final programIds = {for (final slot in _slots) ?slot.danceId};
+    final programIds = {for (final slot in _currentSlots) ?slot.danceId};
     return {
       for (final rule in _rules)
         rule.id: {
@@ -109,6 +128,17 @@ class CandidateRuleCheck {
   /// The answer for each combination of rules a dance matches, keyed by
   /// which of [_rules] match it.
   final _bySignature = <String, List<EventRule>>{};
+
+  /// The ids of the rules the program as it stands now breaks as planned,
+  /// worked out once.
+  late final Set<String> _brokenNow = {
+    for (final breach in evaluate(
+      slots: _currentSlots,
+      rules: _rules,
+      matchingDanceIds: _programMatching,
+    ))
+      if (breach.brokenAsPlanned) breach.rule.id,
+  };
 
   /// Whether any rule can be checked here. When false, [brokenBy] is always
   /// empty.
@@ -142,7 +172,8 @@ class CandidateRuleCheck {
     final broken = {
       for (final breach in breaches)
         if (breach.slotIds.contains(candidateSlotId) ||
-            breach.alternateSlotIds.contains(candidateSlotId))
+            breach.alternateSlotIds.contains(candidateSlotId) ||
+            (breach.brokenAsPlanned && !_brokenNow.contains(breach.rule.id)))
           breach.rule.id,
     };
     if (broken.isEmpty) return const [];
@@ -171,6 +202,12 @@ List<T> orderMarkedLast<T>(Iterable<T> items, bool Function(T item) isMarked) {
 /// the program, and so are the marked ones. Every dance comes back once:
 /// nothing is hidden.
 ///
+/// An English dance the ranking lists unranked
+/// ([SuggestionReasonKind.englishNotCovered]) is left as [rankSuggestions]
+/// lists it, never marked: the issue's decision is that English candidates
+/// are handled as #2343 handles them. An English dance already in the
+/// program is in that group with every other form, and is checked with it.
+///
 /// [wouldBreak] is usually a [CandidateRuleCheck]'s [CandidateRuleCheck.brokenBy].
 SuggestionRanking markRuleBreakingSuggestions(
   SuggestionRanking ranking,
@@ -178,11 +215,16 @@ SuggestionRanking markRuleBreakingSuggestions(
 ) {
   final marked = [
     for (final suggestion in ranking.order)
-      switch (wouldBreak(suggestion.danceId)) {
-        final rules when rules.isEmpty && suggestion.wouldBreak.isEmpty =>
-          suggestion,
-        final rules => suggestion.withWouldBreak(rules),
-      },
+      if (suggestion.reasons.any(
+        (r) => r.kind == SuggestionReasonKind.englishNotCovered,
+      ))
+        suggestion
+      else
+        switch (wouldBreak(suggestion.danceId)) {
+          final rules when rules.isEmpty && suggestion.wouldBreak.isEmpty =>
+            suggestion,
+          final rules => suggestion.withWouldBreak(rules),
+        },
   ];
   return SuggestionRanking(
     orderMarkedLast(marked, (s) => s.wouldBreak.isNotEmpty),

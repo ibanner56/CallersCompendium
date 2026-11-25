@@ -73,7 +73,11 @@ void main() {
     CandidateRuleEvaluator evaluate = evaluateEventRules,
   }) {
     final ids = {
-      for (final s in [...position.slotsBefore, ...position.slotsAfter])
+      for (final s in [
+        ...position.slotsBefore,
+        ?position.replaced,
+        ...position.slotsAfter,
+      ])
         ?s.danceId,
       ...candidates,
     };
@@ -163,6 +167,28 @@ void main() {
       final check = checkAt(position, [atMostOne], ['P1']);
       expect(check.brokenBy('P1'), [atMostOne]);
     });
+  });
+
+  test('an English dance is left as the ranking lists it, unmarked; one '
+      'already in the program is checked with the others there', () {
+    final program = [dance('P1'), dance('PE1', form: DanceForm.ecd)];
+    final position = SuggestionPosition.atEnd([slot('P1'), slot('PE1')]);
+    final candidates = [
+      dance('PE2', form: DanceForm.ecd),
+      dance('B'),
+      dance('PE1', form: DanceForm.ecd),
+    ];
+    final ranking = rank(position, program, candidates);
+    expect(order(ranking), ['B', 'PE2', 'PE1']);
+    final check = checkAt(position, [atMostOne], order(ranking));
+    // The English petronella would break the rule, as the check says ...
+    expect(check.brokenBy('PE2'), [atMostOne]);
+    final marked = markRuleBreakingSuggestions(ranking, check.brokenBy);
+    // ... but keeps its place among the English dances, unmarked (#2343's
+    // handling). The one already in the program is marked and listed last.
+    expect(order(marked), ['B', 'PE2', 'PE1']);
+    expect(marked.order[1].wouldBreak, isEmpty);
+    expect(marked.order[2].wouldBreak, [atMostOne]);
   });
 
   test('the result set is identical with and without rules applied', () {
@@ -270,7 +296,8 @@ void main() {
     });
   });
 
-  test('at least N over the whole program never marks a dance', () {
+  test('at least N over the whole program never marks a dance being '
+      'added', () {
     final atLeastTwo = rule(
       'at-least-2',
       EventRuleQuantifier.atLeast,
@@ -284,6 +311,44 @@ void main() {
     );
     expect(check.brokenBy('P2'), isEmpty);
     expect(check.brokenBy('B'), isEmpty);
+  });
+
+  group('at least N, replacing a dance', () {
+    final atLeastOne = rule(
+      'at-least-1',
+      EventRuleQuantifier.atLeast,
+      EventRuleScope.wholeProgram,
+      1,
+    );
+
+    test('marks a dance that would take away the only match', () {
+      // Replacing the only petronella: anything else breaks the rule.
+      final check = checkAt(
+        SuggestionPosition.replacing([slot('P1'), slot('A')], 0),
+        [atLeastOne],
+        ['B', 'P2'],
+      );
+      expect(check.brokenBy('B'), [atLeastOne]);
+      expect(check.brokenBy('P2'), isEmpty);
+    });
+
+    test('marks nothing when another match stays', () {
+      final check = checkAt(
+        SuggestionPosition.replacing([slot('P1'), slot('A'), slot('P3')], 0),
+        [atLeastOne],
+        ['B'],
+      );
+      expect(check.brokenBy('B'), isEmpty);
+    });
+
+    test('marks nothing when the program already breaks it', () {
+      final check = checkAt(
+        SuggestionPosition.replacing([slot('A'), slot('C')], 0),
+        [atLeastOne],
+        ['B'],
+      );
+      expect(check.brokenBy('B'), isEmpty);
+    });
   });
 
   test('a half scope counts the candidate in the half it lands in', () {
@@ -376,8 +441,8 @@ void main() {
     expect(marked, hasLength(250));
     expect(check.brokenBy(candidates.first), [atMostOne, notNeighbours]);
     // Both sets hold a petronella, neither holds the others: two
-    // combinations.
-    expect(evaluations, 2);
+    // combinations, and at most once more for the program as it stands.
+    expect(evaluations, lessThanOrEqualTo(3));
   });
 
   test('orderMarkedLast keeps each group in order and drops nothing', () {

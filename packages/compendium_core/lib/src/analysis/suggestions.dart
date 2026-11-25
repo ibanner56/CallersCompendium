@@ -282,6 +282,7 @@ class SuggestionPosition {
     required this.slotsBefore,
     this.slotsAfter = const [],
     this.isAlternate = false,
+    this.replaced,
   });
 
   /// After every slot: adding at the end of the program.
@@ -324,6 +325,7 @@ class SuggestionPosition {
       slotsBefore: List.unmodifiable(slots.sublist(0, index)),
       slotsAfter: List.unmodifiable(slots.sublist(index + 1)),
       isAlternate: slots[index].isAlt,
+      replaced: slots[index],
     );
   }
 
@@ -336,16 +338,25 @@ class SuggestionPosition {
   /// See [SuggestionRequest.candidateIsAlternate].
   final bool isAlternate;
 
+  /// The slot the chosen dance replaces ([SuggestionPosition.replacing]), in
+  /// neither [slotsBefore] nor [slotsAfter]; null for an add. The ranking
+  /// never reads it; checking a candidate against the program's event rules
+  /// (#2345) does, to tell a rule the program meets now from one it already
+  /// breaks.
+  final ProgramSlot? replaced;
+
   @override
   bool operator ==(Object other) =>
       other is SuggestionPosition &&
       other.isAlternate == isAlternate &&
+      other.replaced == replaced &&
       _sameSlots(other.slotsBefore, slotsBefore) &&
       _sameSlots(other.slotsAfter, slotsAfter);
 
   @override
   int get hashCode => Object.hash(
     isAlternate,
+    replaced,
     Object.hashAll(slotsBefore),
     Object.hashAll(slotsAfter),
   );

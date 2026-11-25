@@ -191,8 +191,14 @@ Future<CandidateRuleMarks> checkCandidateEventRules({
     readContext: readContext,
   );
   if (resolved.checkable.isEmpty) return CandidateRuleMarks.empty;
+  // The dance being replaced too: the check compares with the program as
+  // it stands ([CandidateRuleCheck]).
   final ids = {
-    for (final slot in [...position.slotsBefore, ...position.slotsAfter])
+    for (final slot in [
+      ...position.slotsBefore,
+      ?position.replaced,
+      ...position.slotsAfter,
+    ])
       ?slot.danceId,
     ...candidateIds,
   };
