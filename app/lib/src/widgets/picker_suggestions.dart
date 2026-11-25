@@ -84,21 +84,28 @@ typedef CandidateRuleChecker =
 /// The program's applied event rules, for a [CollectionPicker] to mark the
 /// dances under **Suggested** that would break one (#2345).
 ///
-/// The picker checks the dances it ranks, for the same position
-/// ([PickerProgramContext.position]): the end of the program or an add
-/// before or after a slot in the builder, or the slot being replaced
-/// ([SuggestionPosition.replacing]), as in **Replace…** and Perform's swap
-/// sheet. It does so only while Settings ▸ Experimental ▸ Event rules is on
-/// and **Suggested** shows, and lists a marked dance after every unmarked
-/// one ([markRuleBreakingSuggestions]).
+/// The picker checks its local results for its position
+/// ([PickerProgramContext.position]): in the builder, the end of the program,
+/// an add before or after a slot, or the slot **Replace…** fills
+/// ([SuggestionPosition.replacing]). A host may give any position the
+/// rules should be checked at, such as a swapped slot with its old dance
+/// kept as an alternate. The picker checks only while Settings ▸
+/// Experimental ▸ Event rules is on and **Suggested** shows (or, with
+/// [inEveryOrder], in any sort), and lists a marked dance after every
+/// unmarked one ([markRuleBreakingSuggestions], [orderMarkedLast]).
 ///
-/// Two are equal when their [revision]s are: a host builds one on every
-/// build, with a new closure, and the picker checks again only when the
-/// revision changes. So a host passes a new [revision] whenever the rules it
-/// applies, or what they read, may have changed.
+/// Two are equal when their [revision]s and [inEveryOrder] are: a host
+/// builds one on every build, with a new closure, and the picker checks
+/// again only when the revision changes (or the results or the position
+/// do). So a host passes a new [revision] whenever the rules it applies, or
+/// what they read, may have changed.
 @immutable
 class PickerEventRules {
-  const PickerEventRules({required this.check, required this.revision});
+  const PickerEventRules({
+    required this.check,
+    required this.revision,
+    this.inEveryOrder = false,
+  });
 
   final CandidateRuleChecker check;
 
@@ -106,12 +113,20 @@ class PickerEventRules {
   /// at the same place.
   final Object? revision;
 
-  @override
-  bool operator ==(Object other) =>
-      other is PickerEventRules && other.revision == revision;
+  /// Whether the plain sorts are marked too, not only **Suggested**. The
+  /// program builder leaves it off (#2345: another sort lists the dances as
+  /// before); a host whose results should be marked in their own order
+  /// turns it on.
+  final bool inEveryOrder;
 
   @override
-  int get hashCode => revision.hashCode;
+  bool operator ==(Object other) =>
+      other is PickerEventRules &&
+      other.revision == revision &&
+      other.inEveryOrder == inEveryOrder;
+
+  @override
+  int get hashCode => Object.hash(revision, inEveryOrder);
 }
 
 /// The sentence (or name) of each rule [rules] lists, as the builder's Rules

@@ -77,8 +77,9 @@ import 'search_panel_bar.dart';
 /// [eventRules], **Suggested** also marks each dance that would break one of
 /// the program's applied rules at that position and lists it after every
 /// dance that would not (#2345). The ranking shows unmarked first; the marks
-/// and the new order follow once the check finishes. Nothing is hidden, and
-/// any other sort is left as it is.
+/// and the new order follow once the check finishes. Nothing is hidden. Any
+/// other sort is left as it is, unless the host asks for marks in every
+/// order ([PickerEventRules.inEveryOrder]).
 ///
 /// Unlike [DanceListScreen] this is a plain embeddable widget (no [Scaffold]/
 /// app bar): it renders inline as the builder's right pane on wide layouts, or
@@ -232,8 +233,10 @@ class CollectionPicker extends StatefulWidget {
   /// Settings ▸ Experimental ▸ Event rules is on ([EventRulesEnabledScope])
   /// and **Suggested** shows, each ranked dance that would break one of them
   /// at [programContext]'s position is marked, naming the rules, and listed
-  /// after every unmarked dance ([markRuleBreakingSuggestions]). Otherwise,
-  /// and in every other sort, the picker never calls it.
+  /// after every unmarked dance ([markRuleBreakingSuggestions]). With
+  /// [PickerEventRules.inEveryOrder], the plain sorts mark and order the
+  /// results the same way ([orderMarkedLast]). Otherwise the picker never
+  /// calls it. Online results and [pinned] dances are never checked.
   final PickerEventRules? eventRules;
 
   /// Where "today" comes from, for a calling-history window, Suggested and
@@ -465,12 +468,22 @@ class _CollectionPickerState extends State<CollectionPicker> {
   CandidateRuleMarks? _ruleMarks;
   List<DanceListEntry>? _ruleMarksFor;
   SuggestionPosition? _ruleMarksAt;
+  Object? _ruleMarksRevision;
+  // The check in flight, if any, and what it checks.
   bool _rulesPending = false;
+  List<DanceListEntry>? _rulesPendingFor;
+  SuggestionPosition? _rulesPendingAt;
+  Object? _rulesPendingRevision;
   int _ruleSeq = 0;
   SuggestionRanking? _markedRanking;
   Map<String, RankedSuggestion> _markedById = const {};
   SuggestionRanking? _markedFrom;
   CandidateRuleMarks? _markedWith;
+  // [_results] in a plain sort, marked dances last, for
+  // [PickerEventRules.inEveryOrder].
+  List<DanceListEntry>? _plainMarked;
+  List<DanceListEntry>? _plainMarkedFrom;
+  CandidateRuleMarks? _plainMarkedWith;
   SuggestionSettingsRead _suggestionSettings = (
     settings: SuggestionSettings.defaults,
     isNewer: false,
@@ -570,16 +583,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
     _hiddenFacets = newHiddenFacets;
     final suggestionInputsChanged = _readSuggestionInputs();
     final rulesEnabled = EventRulesEnabledScope.of(context);
-    final rulesToggled = _started && rulesEnabled != _eventRulesEnabled;
+    // Turned off: drop the marks. Turned on, what shows is checked below.
+    if (_eventRulesEnabled && !rulesEnabled) _dropRuleMarks();
     _eventRulesEnabled = rulesEnabled;
-    if (rulesToggled && !suggestionInputsChanged && _suggested) {
-      // Turned on: check what shows. Turned off: drop the marks.
-      if (rulesEnabled) {
-        _recheckRules();
-      } else {
-        _dropRuleMarks();
-      }
-    }
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
@@ -596,6 +602,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     } else if (suggestionInputsChanged && _suggested) {
       unawaited(_rank());
     }
+    _ensureRuleMarks();
   }
 
   /// Reads what Suggested depends on from the tree; true when any of it
@@ -649,7 +656,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
     _rankPending = false;
     _rankFailed = false;
     _rankSeq++;
-    _dropRuleMarks();
+    // Rule marks are kept: they are for the results and the position, not
+    // the order, and show only while [_checksRules].
   }
 
   /// Unmarks the results, dropping any check in flight.
@@ -657,19 +665,47 @@ class _CollectionPickerState extends State<CollectionPicker> {
     _ruleMarks = null;
     _ruleMarksFor = null;
     _ruleMarksAt = null;
+    _ruleMarksRevision = null;
     _rulesPending = false;
+    _rulesPendingFor = null;
+    _rulesPendingAt = null;
+    _rulesPendingRevision = null;
     _ruleSeq++;
   }
 
-  /// Whether Suggested checks the results against the program's event rules.
-  bool get _checksRules =>
-      _suggested && _eventRulesEnabled && widget.eventRules != null;
+  /// Whether the results are checked against the program's event rules now
+  /// (#2345): Event rules on, the host's rules, a position, local results,
+  /// and Suggested showing (or [PickerEventRules.inEveryOrder]).
+  bool get _checksRules {
+    final rules = widget.eventRules;
+    return rules != null &&
+        _eventRulesEnabled &&
+        !_onlineEnabled &&
+        widget.programContext?.position != null &&
+        (_suggested || rules.inEveryOrder);
+  }
 
-  /// Checks the results showing for the position showing, unless a ranking
-  /// is about to (it checks them itself).
-  void _recheckRules() {
-    final position = widget.programContext?.position;
-    if (position == null) return;
+  /// Checks the results showing, for the position showing, unless the marks
+  /// held, or the check in flight, are already for them and the host's
+  /// current [PickerEventRules.revision]. Waits for a search in flight: it
+  /// checks its own results when it lands.
+  void _ensureRuleMarks() {
+    if (!_started || _searching || !_checksRules) return;
+    final position = widget.programContext!.position!;
+    final revision = widget.eventRules!.revision;
+    bool covers(
+      List<DanceListEntry>? results,
+      SuggestionPosition? at,
+      Object? rev,
+    ) => identical(results, _results) && at == position && rev == revision;
+    if (_ruleMarks != null &&
+        covers(_ruleMarksFor, _ruleMarksAt, _ruleMarksRevision)) {
+      return;
+    }
+    if (_rulesPending &&
+        covers(_rulesPendingFor, _rulesPendingAt, _rulesPendingRevision)) {
+      return;
+    }
     unawaited(_checkRules(_results, position));
   }
 
@@ -757,7 +793,6 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineSeq++;
       _runOnlineSearch();
     }
-    final rulesChanged = oldWidget.eventRules != widget.eventRules;
     if (_suggested && !_suggestedAvailable) {
       // No longer offered (the host turned it off): back to the plain order.
       setState(_leaveSuggested);
@@ -773,16 +808,11 @@ class _CollectionPickerState extends State<CollectionPicker> {
         // A data change re-runs the search above, which re-ranks.
         unawaited(_rank());
       }
-    } else if (rulesChanged &&
-        _suggested &&
-        !dataChanged &&
-        !searchInputsChanged &&
-        !panelApplied &&
-        !onlineDisabled) {
-      // The rules, or what they read, changed: check again, keeping the
-      // ranking. With no rules any more this drops the marks.
-      _recheckRules();
     }
+    // A new position, new rules, or what they read changed (a new
+    // [PickerEventRules.revision]): check again, keeping the marks showing
+    // until the new ones land. A search started above checks when it lands.
+    _ensureRuleMarks();
   }
 
   @override
@@ -911,7 +941,11 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ];
         _searching = false;
       });
-      if (_suggested) unawaited(_rank());
+      if (_suggested) {
+        unawaited(_rank());
+      } else {
+        _ensureRuleMarks();
+      }
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'collection_picker._runSearch');
       if (!mounted || seq != _searchSeq) return;
@@ -1001,7 +1035,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     setState(() => _rankPending = true);
     // Alongside the ranking, not after it: the ranking shows as soon as it
     // is ready, unmarked, and the marks follow when the check is done.
-    unawaited(_checkRules(results, position));
+    _ensureRuleMarks();
     try {
       final venueKey = programContext.venueKey;
       var calledHere = const <String, DateTime?>{};
@@ -1085,20 +1119,21 @@ class _CollectionPickerState extends State<CollectionPicker> {
   }
 
   /// Checks [results] against the program's event rules for [position]
-  /// (#2345), or drops the marks when Suggested does not check rules. A
-  /// newer call, a new search or position, or leaving Suggested drops it.
-  /// A check that fails leaves the results unmarked.
+  /// (#2345). A newer call supersedes it; marks for other results or another
+  /// position are kept but never shown ([_currentRuleMarks]). A check that
+  /// fails leaves the results unmarked.
   Future<void> _checkRules(
     List<DanceListEntry> results,
     SuggestionPosition position,
   ) async {
-    final rules = widget.eventRules;
+    final rules = widget.eventRules!;
     final seq = ++_ruleSeq;
-    if (!_checksRules || rules == null) {
-      if (_ruleMarks != null || _rulesPending) setState(_dropRuleMarks);
-      return;
-    }
-    setState(() => _rulesPending = true);
+    setState(() {
+      _rulesPending = true;
+      _rulesPendingFor = results;
+      _rulesPendingAt = position;
+      _rulesPendingRevision = rules.revision;
+    });
     try {
       final marks = await rules.check(position, [
         for (final entry in results) entry.dance.id,
@@ -1108,6 +1143,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         _ruleMarks = marks;
         _ruleMarksFor = results;
         _ruleMarksAt = position;
+        _ruleMarksRevision = rules.revision;
         _rulesPending = false;
       });
     } catch (error, stackTrace) {
@@ -1117,10 +1153,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
         source: 'collection_picker._checkRules',
       );
       if (!mounted || seq != _ruleSeq) return;
+      // Kept as failed for these results, so they are not checked again
+      // until something changes; nothing is marked meanwhile.
       setState(() {
-        _ruleMarks = null;
-        _ruleMarksFor = null;
-        _ruleMarksAt = null;
+        _ruleMarks = CandidateRuleMarks.empty;
+        _ruleMarksFor = results;
+        _ruleMarksAt = position;
+        _ruleMarksRevision = rules.revision;
         _rulesPending = false;
       });
     }
@@ -1162,11 +1201,31 @@ class _CollectionPickerState extends State<CollectionPicker> {
     return _markedRanking;
   }
 
+  /// The marks for the plain order: [_currentRuleMarks] in a plain sort,
+  /// which only [PickerEventRules.inEveryOrder] checks. Null under
+  /// Suggested, whose plain order shows unmarked until its ranking does.
+  CandidateRuleMarks? get _plainRuleMarks =>
+      _suggested ? null : _currentRuleMarks;
+
   /// The results as shown: ranked when Suggested has a ranking for exactly
-  /// these results at this position, else in the plain order.
+  /// these results at this position, else in the plain order, with any
+  /// dance that would break a rule last when [_plainRuleMarks] has a check.
   List<DanceListEntry> get _shownResults {
     final ranking = _shownRanking;
-    if (ranking == null) return _results;
+    if (ranking == null) {
+      final marks = _plainRuleMarks;
+      if (marks == null) return _results;
+      if (!identical(_plainMarkedFrom, _results) ||
+          !identical(_plainMarkedWith, marks)) {
+        _plainMarked = orderMarkedLast(
+          _results,
+          (entry) => marks.brokenBy(entry.dance.id).isNotEmpty,
+        );
+        _plainMarkedFrom = _results;
+        _plainMarkedWith = marks;
+      }
+      return _plainMarked!;
+    }
     final byId = {for (final entry in _results) entry.dance.id: entry};
     return [for (final ranked in ranking.order) ?byId[ranked.danceId]];
   }
@@ -1991,8 +2050,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
                 if (searching ||
                     _onlineImporting ||
                     (!_onlineEnabled &&
-                        _suggested &&
-                        (_rankPending || _rulesPending))) ...[
+                        ((_suggested && _rankPending) ||
+                            (_checksRules && _rulesPending)))) ...[
                   const SizedBox(width: 8),
                   const SizedBox(
                     width: 12,
@@ -2135,10 +2194,17 @@ class _CollectionPickerState extends State<CollectionPicker> {
       itemBuilder: (context, index) {
         final entry = shown[index];
         final ranked = _shownRankFor(entry.dance.id);
-        final ruleMarks = _ruleMarks;
-        final wouldBreak = ranked == null || ruleMarks == null
+        final ruleMarks = _currentRuleMarks;
+        final plainMarks = _plainRuleMarks;
+        final wouldBreak = ruleMarks == null
             ? const <String>[]
-            : suggestionRuleSentences(l10n, ranked.wouldBreak, ruleMarks);
+            : suggestionRuleSentences(
+                l10n,
+                ranked?.wouldBreak ??
+                    plainMarks?.brokenBy(entry.dance.id) ??
+                    const [],
+                ruleMarks,
+              );
         final confirming = _confirmTimers.containsKey(entry.dance.id);
         final inProgramCount = widget.addedDanceCounts[entry.dance.id] ?? 0;
         // Tapping a row adds the dance — a keyboard/AT-accessible add

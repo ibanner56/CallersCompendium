@@ -58,12 +58,13 @@ class ProgramEventRulesController extends ChangeNotifier {
   EventRuleCheck _check = EventRuleCheck.empty;
   EventRuleCheck get check => _check;
 
-  /// Bumped each time [check] is replaced: a check of the program ran, or
-  /// the feature was turned off. A picker marking suggestions
-  /// ([checkCandidates]) checks them again when it changes, since the rules
-  /// or what they read may have.
-  int get checkGeneration => _checkGeneration;
-  int _checkGeneration = 0;
+  /// Changes whenever what a check reads besides the program's slots and
+  /// rule ids may have changed: a rule, the data a search matches on, or
+  /// the search context. A picker marking suggestions ([checkCandidates])
+  /// checks them again when it changes. Each change also re-checks the
+  /// program, which notifies.
+  Object get readsRevision =>
+      Object.hash(_rulesGeneration, _dataGeneration, _contextKey);
 
   /// The ids of the rules this device holds deleted (tombstones), once read.
   Set<String>? _deletedRuleIds;
@@ -130,7 +131,6 @@ class ProgramEventRulesController extends ChangeNotifier {
       _savedSearchRows = null;
       if (!identical(_check, EventRuleCheck.empty)) {
         _check = EventRuleCheck.empty;
-        _checkGeneration++;
         _notifyLater();
       }
       return;
@@ -277,7 +277,6 @@ class ProgramEventRulesController extends ChangeNotifier {
     if (inputs.ruleIds.isEmpty) {
       if (!identical(_check, EventRuleCheck.empty)) {
         _check = EventRuleCheck.empty;
-        _checkGeneration++;
         _notifyLater();
       }
       return;
@@ -299,7 +298,6 @@ class ProgramEventRulesController extends ChangeNotifier {
         );
         if (_disposed || seq != _seq) return;
         _check = result;
-        _checkGeneration++;
         notifyListeners();
       } catch (error, stackTrace) {
         // A rule that cannot be checked never blocks the builder. A context
@@ -322,23 +320,25 @@ class ProgramEventRulesController extends ChangeNotifier {
     return inputs.readContext();
   }();
 
-  /// Which of the program's applied rules each of [candidateIds] would break
-  /// in the place [position] describes (#2345), for the builder's picker
-  /// under **Suggested**: [checkCandidateEventRules] with this program's
-  /// rules, sharing this controller's search context. Empty while the
-  /// feature is off or the program applies no rule.
+  /// Which of the rules [ruleIds] each of [candidateIds] would break in the
+  /// place [position] describes (#2345), for the builder's picker under
+  /// **Suggested**: [checkCandidateEventRules], sharing this controller's
+  /// search context, dialect and enrichment. The host passes the rule ids it
+  /// shows, which a picker built in the same frame may read before [update]
+  /// has. Empty while the feature is off or [ruleIds] is.
   Future<CandidateRuleMarks> checkCandidates(
     SuggestionPosition position,
-    List<String> candidateIds,
-  ) async {
+    List<String> candidateIds, {
+    required List<String> ruleIds,
+  }) async {
     final inputs = _inputs;
-    if (inputs == null || inputs.ruleIds.isEmpty) {
+    if (inputs == null || ruleIds.isEmpty) {
       return CandidateRuleMarks.empty;
     }
     try {
       return await checkCandidateEventRules(
         repos: repos,
-        ruleIds: inputs.ruleIds,
+        ruleIds: ruleIds,
         position: position,
         candidateIds: candidateIds,
         readContext: () => _sharedContext(inputs),

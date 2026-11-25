@@ -4726,15 +4726,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// dances under **Suggested** that would break one where the dance will go
   /// (#2345), or null when the program applies none. The pickers check only
   /// while Event rules is on ([CollectionPicker.eventRules]), through the
-  /// rule checker, which shares its search context; they check again each
-  /// time it checks the program, since the rules or what they read may have
-  /// changed.
+  /// rule checker, which shares its search context; they check again when
+  /// the rule ids change, or what the rules read
+  /// ([ProgramEventRulesController.readsRevision]).
   PickerEventRules? _pickerEventRules() {
     final controller = _eventRules;
-    if (controller == null || _eventRuleIds.isEmpty) return null;
+    final ruleIds = _eventRuleIds;
+    if (controller == null || ruleIds.isEmpty) return null;
     return PickerEventRules(
-      check: controller.checkCandidates,
-      revision: controller.checkGeneration,
+      check: (position, candidateIds) =>
+          controller.checkCandidates(position, candidateIds, ruleIds: ruleIds),
+      revision: Object.hash(Object.hashAll(ruleIds), controller.readsRevision),
     );
   }
 
@@ -4841,9 +4843,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                         ],
                       ),
                       Expanded(
-                        child: ValueListenableBuilder<Map<String, int>>(
-                          valueListenable: _pickerCounts,
-                          builder: (context, counts, _) => CollectionPicker(
+                        // The rule checker too: a modal route does not
+                        // rebuild with the builder, and its rules or what
+                        // they read can change while it is open (#2345).
+                        child: ListenableBuilder(
+                          listenable: Listenable.merge([
+                            _pickerCounts,
+                            ?_eventRules,
+                          ]),
+                          builder: (context, _) => CollectionPicker(
                             key: const ValueKey('sheet-picker'),
                             data: data,
                             dialect: _dialect,
@@ -4851,7 +4859,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                                 _dialectForSuggestedColumn,
                             enrichment: _enrichment,
                             scrollController: scrollController,
-                            addedDanceCounts: counts,
+                            addedDanceCounts: _pickerCounts.value,
                             // The sheet is modal: [insertion] is the pending
                             // one, or null for adds at the end.
                             programContext: _pickerProgramContext(
@@ -5027,9 +5035,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                         ],
                       ),
                       Expanded(
-                        child: ValueListenableBuilder<Map<String, int>>(
-                          valueListenable: _pickerCounts,
-                          builder: (context, counts, _) => CollectionPicker(
+                        // The rule checker too, as in the add sheet.
+                        child: ListenableBuilder(
+                          listenable: Listenable.merge([
+                            _pickerCounts,
+                            ?_eventRules,
+                          ]),
+                          builder: (context, _) => CollectionPicker(
                             key: const ValueKey('replace-picker'),
                             data: data,
                             dialect: _dialect,
@@ -5037,7 +5049,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                                 _dialectForSuggestedColumn,
                             enrichment: _enrichment,
                             scrollController: scrollController,
-                            addedDanceCounts: counts,
+                            addedDanceCounts: _pickerCounts.value,
                             programContext: programContext,
                             eventRules: _pickerEventRules(),
                             excludedDanceIds: {?slot.danceId},
