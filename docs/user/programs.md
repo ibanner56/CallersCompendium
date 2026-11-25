@@ -473,10 +473,17 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   rules as they are saved at that moment, so a rule added on another device
   meanwhile stays. A program can use up to 64 rules; once it does, the list
   says so and another can't be ticked. To make room, only the rules you
-  deleted are let go.
+  deleted are let go. If the program uses rules that aren't on this device,
+  the list says how many, such as **1 rule not on this device**: added on
+  another device and still on the way, or gone for good. **Remove** beside it
+  takes them off this program. If a tick can't be saved, the box clears again
+  and the builder says so.
   **New rule…** at the top opens the rule editor and, once you save the rule,
   adds it to this program. A new program, a copy of a program, and a program
-  you import start with no rules: a rule is never added for you.
+  you import start with no rules: a rule is never added for you. The rules you
+  pick for a new program before its first save are kept with its unsaved
+  draft, so they come back if the builder closes unexpectedly. A backup keeps
+  the rules each program uses, but not a rule you deleted.
 - **Whenever the program changes**, each of its rules is checked, and again
   when something a rule reads changes while the program is open: a rule, its
   saved search, a dance, or a tag, author or other thing a search names. A broken

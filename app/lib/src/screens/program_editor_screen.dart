@@ -1401,6 +1401,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       timesBaseline: _existing == null ? null : _timesBaseline,
       venueIdBaseline: _venueIdBaseline,
       hasVenueIdBaseline: _existing != null,
+      // A stored program's rules are written to it as they are picked; only
+      // a new one's live here until its first save (#2340).
+      eventRuleIds: _existing == null ? _eventRuleIds : const [],
       slots: List.unmodifiable(_renumber(_slots)),
     );
   }
@@ -1856,6 +1859,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _dialectName = draft.hasDialectName
             ? draft.dialectName
             : _existing?.dialectName;
+        // A new program's rules come back with it; a stored program keeps
+        // the rules stored for it.
+        if (_existing == null) _eventRuleIds = draft.eventRuleIds;
         _slots = _renumber(draft.slots);
         _insertion = null;
         _dirty = true;

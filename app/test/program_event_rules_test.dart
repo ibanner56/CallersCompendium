@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/event_rules_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/editor/program_editor_draft_codec.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/settings/event_rules_screen.dart';
 import 'package:compendium_app/src/widgets/program_event_rules.dart';
@@ -925,6 +926,60 @@ void main() {
       back.id,
       ...live,
     ]);
+  });
+
+  testWidgets("a new program's rules come back with its unsaved draft", (
+    tester,
+  ) async {
+    final seeded = await _seed(applied: const []);
+    final repos = seeded.repos;
+    // Left behind by a builder that closed before the first save.
+    await repos.settings.set(
+      programEditorDraftKey('${kNewProgramDraftIdPrefix}left'),
+      encodeProgramDraft(
+        ProgramEditorDraft(
+          title: 'Left behind',
+          notes: '',
+          status: ProgramStatus.draft,
+          hideAlternates: false,
+          eventRuleIds: [seeded.oneBecket.id],
+          slots: const [],
+        ),
+      ),
+    );
+    tester.view.physicalSize = const Size(900, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final on = ValueNotifier(true);
+    addTearDown(on.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: EventRulesEnabledScope(notifier: on, child: child!),
+        ),
+        home: ProgramEditorScreen(
+          onSaved: (_) {},
+          eventRuleEvaluator: _Spy().call,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-draft-restore')));
+    await tester.pumpAndSettle();
+    expect(find.text('Rules (1)'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+    final saved = (await repos.programs.listAll()).where(
+      (p) => p.title == 'Left behind',
+    );
+    expect(saved.single.eventRuleIds, [seeded.oneBecket.id]);
   });
 
   testWidgets('the Rules button counts a rule not on this device yet, but '

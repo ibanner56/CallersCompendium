@@ -58,6 +58,37 @@ void main() {
     expect(decoded.slots[1].placeholderSearchId, isNull);
   });
 
+  test("a new program's applied rules round-trip, and an old draft without "
+      'the key reads as none (#2340)', () {
+    ProgramEditorDraft draft(List<String> ids) => ProgramEditorDraft(
+      title: 'New night',
+      notes: '',
+      status: ProgramStatus.draft,
+      hideAlternates: false,
+      eventRuleIds: ids,
+      slots: const [],
+    );
+    expect(
+      decodeProgramDraft(encodeProgramDraft(draft(['r1', 'r2']))).eventRuleIds,
+      ['r1', 'r2'],
+    );
+    final none = encodeProgramDraft(draft(const []));
+    expect(none.contains('eventRuleIds'), isFalse);
+    expect(decodeProgramDraft(none).eventRuleIds, isEmpty);
+    expect(
+      () => decodeProgramDraft({
+        'v': 1,
+        'title': '',
+        'notes': '',
+        'status': 'draft',
+        'hideAlternates': false,
+        'eventRuleIds': 'r1',
+        'slots': <Object?>[],
+      }),
+      throwsFormatException,
+    );
+  });
+
   test('legacy plannedMinutes draft value becomes danceMinutes', () {
     final decoded = decodeProgramDraft({
       'v': 1,
