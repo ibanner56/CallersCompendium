@@ -8,7 +8,7 @@
   },
   "core": {
     "added": [
-      "The ECD line grammar (`parseEcdFigureLine`) reads `trade`, `pass X by <side>`, a leading `all`/`everyone` or a couple's `partner` before the dancers, `set right and left`, `go forward and back`, `go below` and P/N shorthand, reads a change of places' shoulder as its `hand` (the side passed), and keeps a turn single's `forward` and a cast's follower as the figure's note."
+      "The ECD line grammar (`parseEcdFigureLine`) reads `trade`, `pass X by <side>`, a leading `all`/`everyone` or a couple's `partner` before the dancers, `set right and left`, `go forward and back`, `go below` after a cross, and P/N shorthand, reads a change of places' shoulder as its `hand` (the side passed), and keeps a turn single's `forward` and a cast's follower as the figure's note."
     ]
   }
 }

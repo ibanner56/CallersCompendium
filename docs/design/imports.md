@@ -2601,7 +2601,7 @@ ECD dance.
   a couple's `partner` (`Ones Partner Set`) is the couple itself, so `who` is
   `["ones"]` (a couple naming `Neighbor` stays custom). `set right and left` /
   `set L & R` is the side set to first. `go forward and back` is `forward and
-  back`. `go below` is a cast down one place, so `1s cross and go below` is a
+  back`. `go below` after a cross is a cast down one place, so `1s cross and go below` is a
   cross, then that cast. A detail the movement has no parameter for is the
   figure's note: `forward` on a turn single, and who follows a cast (`cast partner follow`,
   `followed by partner`). `trade by right`, and `trade by right shoulder`, store `hand = right`:
@@ -2611,7 +2611,9 @@ ECD dance.
   `pass P by L` is `pass_through`, not `cross` (which ADR-006 §7.5 calls
   roughly the union of pass through and pass by): `cross` would state a
   crossing the words do not. (2) `go below` is a cast rather than a `lead
-  down`, which travels down the middle. (3) A couple's partner is absorbed
+  down`, which travels down the middle, and is read only after a cross: after
+  a lead down or a cast it would add a cast the words do not dance, so such a
+  line stays as text. (3) A couple's partner is absorbed
   rather than stored as `set`'s `whom`, which ADR-006 §7.1 keeps for setting to
   someone other than each other. The fuller `Ones cross and go outside below
   the twos who move up` says what the twos do too and stays custom, as do lines
