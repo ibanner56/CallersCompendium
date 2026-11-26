@@ -21,10 +21,7 @@ import '../storage/repositories/repositories.dart';
 /// choreographers). The import review offers it per re-import row, off by
 /// default (maintainer decision, 2026-10-30: "Ask per import"). An incoming
 /// empty credit keeps the existing one: a source that sent no credit must not
-/// erase the dance's. (A [Dance] title is never blank.) It also fills an
-/// empty composed date from [incoming], since a source may have read that
-/// date off the title it sends (`splitCcNameTail`); a date the dance already
-/// has stays.
+/// erase the dance's. (A [Dance] title is never blank.)
 ///
 /// An incoming transcription that is unreadable, or decoded to no figures,
 /// keeps the existing one whole, an unreadable one included: a source that
@@ -62,11 +59,6 @@ Dance withReimportedChoreography(
     title: alsoTitleAndCredit ? incoming.title : null,
     authorIds: alsoTitleAndCredit && incoming.authorIds.isNotEmpty
         ? incoming.authorIds
-        : null,
-    // A date the incoming title gave up (a Caller's Companion Name padded
-    // with its year) comes with the title, into an empty composed date only.
-    composedOn: alsoTitleAndCredit && existing.composedOn == null
-        ? incoming.composedOn
         : null,
     // `null` keeps the existing `figuresSource`, whatever it holds.
     figures: incomingFigures,

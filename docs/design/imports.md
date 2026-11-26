@@ -235,9 +235,7 @@ takes the incoming title and the resolved author credit
 from the record's author names is taken: unlike a create or a link, a draft
 with no names does not fall back to its own `authorIds`, which are the
 sender's ids and may name no choreographer here. An incoming record with no
-resolved credit keeps the dance's. An empty composed date is filled from the
-incoming dance with the title, since a source may read a date off the title
-(see *A date padded onto the Name*). Ratings, tags, notes, links and status never
+resolved credit keeps the dance's. Ratings, tags, notes, links and status never
 change. The choice rides on the verdict because the `.USR` and archive
 importers rebuild each `ImportRecordPlan` before the pipeline commits it,
 copying the verdict through. The implementer's calls, not the maintainer's:
@@ -674,11 +672,12 @@ declines the collapse.
   meter, or no key, takes the missing one from what the tail says after its
   date. Both parts are sanitized before the date is looked for, so a
   zero-width character cannot hide the gap, a no-break space counts as a
-  space, and a tab in the tail is kept as spaces. A re-import with **Also
-  update title and credit** fills an empty `composedOn` from the incoming
-  dance along with the title (implementer's call, as for an empty meter or
-  key; a set date stays); its notes do not change, so a tail kept as a note
-  on a fresh import is not added on re-import.
+  space, and a tab is read as two spaces once a date is found (in the title
+  too, so `Foo\tBar  1702` is titled `Foo  Bar`; with no date a tab is dropped,
+  as before). A re-import with **Also update title and credit** takes the
+  title without its date, but changes neither `composedOn` nor the notes
+  (*Title and credit, per row*), so a dance imported with the date in its
+  title loses the date on such a re-import; the user guide says so.
 - **Program slots link to dances the commit did not write (INTAKE-1).** A slot
   resolves its CC dance id through the records the commit wrote *plus*
   `existingDanceIdByExternalId`: the review passes each re-import row's target

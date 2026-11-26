@@ -36,7 +36,8 @@ final RegExp _leadingDate = RegExp(
 /// tab in it is dropped). Both parts are sanitized ([sanitizeImportedText])
 /// and trimmed. The date is looked for after sanitizing, so an invisible
 /// character cannot hide the gap before it, and with each tab read as two
-/// spaces, so a tab in the tail is kept as spaces rather than dropped.
+/// spaces, so a tab in either part is kept as spaces rather than dropped
+/// (`Foo\tBar  1702` is titled `Foo  Bar`).
 ({String title, String? tail}) splitCcNameTail(String name) {
   final spaced = _clean(name.replaceAll('\t', '  '));
   final match = _tailStart.firstMatch(spaced);
