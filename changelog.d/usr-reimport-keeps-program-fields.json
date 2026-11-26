@@ -9,7 +9,7 @@
   },
   "core": {
     "fixed": [
-      "CallersCompanionUsrImporter.commit rebuilds a re-imported program from the stored one and takes from the file only what a .USR file says, so dialectName, pay, eventRuleIds and the calendar fields (calendarEventKey, calendarEventFingerprint, calendarWrittenAt, calendarFlag) are kept, and so is a field Program gains later.",
+      "CallersCompanionUsrImporter.commit rebuilds a re-imported program from the stored one and takes from the file only what a .USR file says (and the Draft status, as before), so dialectName, pay, eventRuleIds and the calendar fields (calendarEventKey, calendarEventFingerprint, calendarWrittenAt, calendarFlag) are kept, and so is a field Program gains later.",
       "splitCcNameTail finds the gap before a Name's date in time linear in the Name's length; one pattern with two whitespace quantifiers sharing a run backtracked cubically over a long run of spaces no year follows."
     ]
   }

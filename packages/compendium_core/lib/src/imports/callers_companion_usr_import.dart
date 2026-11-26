@@ -1630,8 +1630,11 @@ class CallersCompanionUsrImporter {
 
   /// The matched program [prior] with what a `.USR` file says about it taken
   /// from [src], the program freshly built from the file: title, event date,
-  /// typed venue, band, caller, dancer level, notes, status, whether
-  /// alternates are hidden, slots, provenance and updatedAt.
+  /// typed venue, band, caller, dancer level, notes, whether alternates are
+  /// hidden, slots, provenance and updatedAt. The status is taken from [src]
+  /// too, so it goes back to Draft (a `.USR` set has none): the slots are
+  /// rebuilt without their performed stamps, and a Performed program with no
+  /// performed slot would not add up.
   ///
   /// Everything else is kept from [prior], because a `.USR` file cannot
   /// express it and a re-import must not erase what the caller added here:
@@ -1640,7 +1643,8 @@ class CallersCompanionUsrImporter {
   /// change tracking. The rebuild starts from [prior] rather than from [src]
   /// so that a field added to [Program] later is kept too, unless it is named
   /// here; the re-import tests compare every `programs` column. [prior]'s
-  /// tombstone is cleared: [commit] has restored a deleted match by now.
+  /// tombstone is cleared: [commit] restores a deleted match before it writes
+  /// the result.
   ///
   /// [priorVenueId] is the venue link to keep — the caller passes `null` only
   /// for a link no venue row backs when this import resolved a venue to

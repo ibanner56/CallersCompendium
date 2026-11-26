@@ -1084,13 +1084,15 @@ void main() {
       expect(reloaded.arrivalMinute, 1110);
     });
 
-    // A `.USR` file writes only the columns in `fromFile`; a re-import must
-    // keep every other column of the matched program as the caller left it.
+    // A re-import rewrites only the columns in `rewritten`: what a `.USR` file
+    // says, and the status, which goes back to Draft because a set has none.
+    // It must keep every other column of the matched program as the caller
+    // left it.
     // The census is the table's own column list, so a column added to
     // `programs` fails this test until it is sorted into one of the two sets.
     test('re-import keeps every column a .USR file does not write, and '
         'rewrites the ones it does', () async {
-      const fromFile = {
+      const rewritten = {
         'title',
         'event_date',
         'venue',
@@ -1124,16 +1126,18 @@ void main() {
       };
       expect(
         {for (final c in db.programs.$columns) c.$name},
-        {...fromFile, ...kept},
-        reason: 'sort a new programs column into fromFile or kept',
+        {...rewritten, ...kept},
+        reason: 'sort a new programs column into rewritten or kept',
       );
 
-      Future<Map<String, Object?>> row(String id) async => (await db
-          .customSelect(
-            'SELECT * FROM programs WHERE id = ?',
-            variables: [Variable.withString(id)],
-          )
-          .getSingle()).data;
+      Future<Map<String, Object?>> row(String id) async =>
+          (await db
+                  .customSelect(
+                    'SELECT * FROM programs WHERE id = ?',
+                    variables: [Variable.withString(id)],
+                  )
+                  .getSingle())
+              .data;
 
       final first = await importer.import(
         _ccUsrBytes(),
@@ -1187,7 +1191,7 @@ void main() {
       expect(before['event_rule_ids'], isNot('[]'));
       // Every column the file writes was edited, so the second loop below
       // cannot pass by finding the caller's value still in place.
-      for (final column in fromFile) {
+      for (final column in rewritten) {
         expect(before[column], isNot(fromFirstImport[column]), reason: column);
       }
 
@@ -1203,7 +1207,7 @@ void main() {
       for (final column in kept) {
         expect(after[column], before[column], reason: column);
       }
-      for (final column in fromFile.difference({'updated_at'})) {
+      for (final column in rewritten.difference({'updated_at'})) {
         expect(after[column], fromFirstImport[column], reason: column);
       }
       expect(
