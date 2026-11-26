@@ -2603,18 +2603,15 @@ ECD dance.
   `set L & R` is the side set to first. `go forward and back` is `forward and
   back`. `go below` is a cast down one place, so `1s cross and go below` is a
   cross, then that cast. A detail the movement has no parameter for is the
-  figure's note: a shoulder on `change_places` (`trade by right shoulder`),
-  `forward` on a turn single, and who follows a cast (`cast partner follow`,
-  `followed by partner`). Implementer's calls, not the maintainer's: (1) `trade
-  by right` stores `hand = right`, consistent with the existing `change by the
-  L`; the same library writes "role1s change by R shoulder; (Neutral First
-  corners trade by right)", which suggests this caller means a shoulder, but
-  reading `by the <side>` after `change` as a shoulder would change a tested
-  reading, and leaving it custom would leave the commonest miss unread. (2)
+  figure's note: `forward` on a turn single, and who follows a cast (`cast partner follow`,
+  `followed by partner`). `trade by right`, and `trade by right shoulder`, store `hand = right`:
+  change places' `hand` names the side the dancers pass by, not a hand they
+  give (the maintainer, 26 November 2026). Implementer's calls, not the
+  maintainer's: (1)
   `pass P by L` is `pass_through`, not `cross` (which ADR-006 §7.5 calls
   roughly the union of pass through and pass by): `cross` would state a
-  crossing the words do not. (3) `go below` is a cast rather than a `lead
-  down`, which travels down the middle. (4) A couple's partner is absorbed
+  crossing the words do not. (2) `go below` is a cast rather than a `lead
+  down`, which travels down the middle. (3) A couple's partner is absorbed
   rather than stored as `set`'s `whom`, which ADR-006 §7.1 keeps for setting to
   someone other than each other. The fuller `Ones cross and go outside below
   the twos who move up` says what the twos do too and stays custom, as do lines

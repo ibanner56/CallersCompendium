@@ -102,13 +102,13 @@ In an English country dance, the line is read as English figures (`1st
 corners set and turn single`, `Partner R shoulder round`, `circle left half
 way`), never as contra moves; anything it can't read exactly is kept as you
 typed it. It reads callers' shorthand too: `P` and `N` are partner and
-neighbor, `trade` is change places (`First corners trade by right`), `Pass P by
+neighbor, `trade` is change places (`First corners trade by right`, or `trade by right
+shoulder`: either way the dancers pass by the right), `Pass P by
 L` passes partner by the left shoulder, `All Partner Set` and `Ones Partner
 Set` are partners and the ones setting, `Partner Set R & L` sets right first,
 and `1s cross and go below` is a cross and a cast down one place. A detail a
-figure has no option for is kept as its note: `trade by right shoulder` is a
-change of places with the note "by right shoulder", `turn single right
-forward` a turn single with the note "forward", and `Second corners cast
+figure has no option for is kept as its note: `turn single right
+forward` is a turn single with the note "forward", and `Second corners cast
 partner follow` a cast with the note "partner follow". A circle or star "half way" counts places from the dance's
 formation, two in a duple minor and three in a triple minor. A line that
 starts with a bar range (`1-4 partners set and turn single`, `(5-8) circle
