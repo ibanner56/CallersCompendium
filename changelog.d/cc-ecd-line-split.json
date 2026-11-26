@@ -1,0 +1,14 @@
+{
+  "id": "cc-ecd-line-split",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "A Caller's Companion English dance whose lines name two figures, each with its own count, such as \"(4) First corners trade by right  (4) Second corners trade by right\" or \"(1-2) First Corner Set (3-4) First corners right-hand turn half way\", now comes across as one figure for each count instead of one line of text, so more of its figures can be searched and edited and its phrases can be named."
+    ]
+  },
+  "core": {
+    "added": [
+      "`splitCcEcdCountedLine` splits a Caller's Companion English body line before each bracketed count or bar range that starts a figure; `mapCallersCompanionDance` reads each piece as a line of its own."
+    ]
+  }
+}

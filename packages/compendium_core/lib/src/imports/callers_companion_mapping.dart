@@ -643,14 +643,16 @@ CcDanceMapping mapCallersCompanionDance(
       }
       final prefix = splitCcBeatPrefix(line);
       if (ecd) {
-        final read = _ecdLineFigures(
-          prefix.text,
-          prefix.beats,
-          prefix.parts,
-          line: line,
-          ringDancers: ring,
-          meter: meter,
-        );
+        // `(4) First corners trade by right  (4) Second corners trade by
+        // right`: each count starts a figure of its own, and each piece is
+        // read as a line of its own.
+        final read = [
+          for (final piece in splitCcEcdCountedLine(
+            line,
+            beatsPerBar: barBeats.beatsPerBar,
+          ))
+            ..._ecdPieceFigures(piece, ringDancers: ring, meter: meter),
+        ];
         lineCache?.remember(
           line,
           read,
@@ -1076,6 +1078,58 @@ bool callersCompanionDifficultyLabelMatches(
     }.contains(value),
     _ => false,
   };
+}
+
+/// [line] split before each count in brackets (`(4)`) or bar range in
+/// brackets (`(5-8)`) that comes after its start and is followed by words:
+/// `(4) First Corner Set  (4) Turn single right` is two pieces, each read as
+/// a line of its own with its own count. A count that ends a piece
+/// (`… into (6) (3-4) Ladies …`) stays with the words before it. A line with
+/// no such count is one piece, itself. A prefix that counts the whole line,
+/// the total of the counts after it (`(16) 1-4 partners set (5-8) turn
+/// single` at two beats a bar, [beatsPerBar]), is dropped rather than read
+/// as the first piece's count, when the first piece starts with a bar range
+/// of its own.
+///
+/// The English path only: a contra line keeps its single-line reading
+/// (comma splitting, [splitCallersCompanionCommaLine]).
+List<String> splitCcEcdCountedLine(String line, {int beatsPerBar = 2}) {
+  var source = line;
+  final prefix = splitCcBeatPrefix(line);
+  // Only when the first piece has a count of its own, a bar range: in
+  // `(4) X  (4) Y` the prefix is X's.
+  if (prefix.beats > 0 &&
+      splitEcdBarRange(prefix.text) != null &&
+      _ccMidLineCount.hasMatch(prefix.text) &&
+      ecdStatedBeats(prefix.text, beatsPerBar) == prefix.beats) {
+    source = prefix.text;
+  }
+  final pieces = source
+      .split(_ccMidLineCount)
+      .map((piece) => piece.trim())
+      .where((piece) => piece.isNotEmpty)
+      .toList();
+  return pieces.isEmpty ? [line] : pieces;
+}
+
+/// A gap before a bracketed count (`(4)`) or bar range (`(5-8)`) followed by
+/// a word, not at the start of the line.
+final RegExp _ccMidLineCount = RegExp(
+  r'(?<=\S)\s+(?=\(\s*\d{1,3}(?:\s*[-–—]\s*\d{1,3})?\s*\)\s*[A-Za-z])',
+);
+
+/// The figures of one [piece] of an English line ([splitCcEcdCountedLine]),
+/// read as a whole line is: its `(8)` prefix, then [_ecdLineFigures].
+List<Figure> _ecdPieceFigures(String piece, {int? ringDancers, String? meter}) {
+  final prefix = splitCcBeatPrefix(piece);
+  return _ecdLineFigures(
+    prefix.text,
+    prefix.beats,
+    prefix.parts,
+    line: piece,
+    ringDancers: ringDancers,
+    meter: meter,
+  );
 }
 
 /// The figures of one body line of an English dance, read by the ECD grammar

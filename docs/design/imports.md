@@ -2684,7 +2684,28 @@ ECD dance.
   last range's end and kept as text, since it names several figures
   (`EcdBarRange.several`); when all of them would come to more than 64
   beats, the first range's count is kept (`EcdBarRange.firstBars`). A later
-  range that doesn't follow on is part of the words. The line is not split.
+  range that doesn't follow on is part of the words. The grammar does not
+  split the line, so free-text entry and Re-check keep it as text; the
+  Caller's Companion importer splits it first (below).
+- **Caller's Companion English lines are split at their counts.** A caller
+  may write two figures on one line, each with its count:
+  `(4) First corners trade by right  (4) Second corners trade by right`,
+  `(1-2) First Corner Set (3-4) First corners right-hand turn half way`.
+  `splitCcEcdCountedLine` splits the line before each bracketed count or bar
+  range that follows its start and is followed by a word, and each piece is
+  read as a line of its own (`(8)` prefix, bars, grammar), so a piece kept as
+  text keeps its own count and the others still read. A count that ends a
+  piece (`… into (6) (3-4) Ladies …`) stays with it. A leading prefix that
+  totals the counts after it when the first piece starts with a bar range
+  (`(16) 1-4 partners set (5-8) turn single`) counts the line, not the first
+  piece, and is dropped; in `(4) X (4) Y` the prefix is X's. Unbracketed
+  counts mid-line (`1-4 X 5-6 Y`, `[6]`) do not split: they are harder to
+  tell from words, and a real library uses them on 17 of 1,437 lines against
+  195 bracketed. The maintainer approved splitting imported English lines
+  at their counts (26 November 2026); where and how is the implementer's
+  call. Rejected: splitting in the grammar itself, which would change
+  free-text entry and Re-check as well, beyond what was approved. The
+  contra path keeps its comma splitting.
 - **Caller's Companion English dances** also take the ECD shape their contra
   shape names (`ecdFormationFromContra`: duple proper → duple minor, duple
   improper → duple minor, improper; triplet and quadruplet → three- and

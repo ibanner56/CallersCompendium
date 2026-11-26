@@ -686,9 +686,15 @@ beats a bar holds: two in 2/2, 2/4, 6/8 or 6/4, three in 3/2, 3/4, 9/8 or
 When the Music field gives no meter the app counts two beats a bar and says so
 in the review. The bars are the count: a line that also gives a count in beats,
 such as `1-4 (6) circle left` or `(6) 1-4 circle left`, comes across as
-written, with the bars' count. So does a line with several bar ranges, such
-as `(5-8) circle left (9-12) circle right`, counted across all of them (or
-by its first range, if all of them would come to more than 64 beats).
+written, with the bars' count. A line that names several figures, each with
+its own count in brackets, such as `(4) First corners trade by right  (4)
+Second corners trade by right` or `(5-8) circle left (9-12) circle right`,
+comes across as one figure for each count, each read on its own, so a piece
+the app cannot read is kept as text without holding back the others. An
+opening count that is the total of the counts after it, as in `(16) 1-4
+partners set (5-8) turn single`, counts the line rather than its first
+figure. A count in brackets that ends a piece of the line, rather than
+starting one, stays with it.
 A number after a word like Track, CD or Disc ("Track 3/4 of CD") isn't taken
 for a meter unless a word like Meter names it, and "A 3/2 hornpipe" gives the
 meter 3/2 but no key ("A 3/2 hornpipe in G" gives the key G).
