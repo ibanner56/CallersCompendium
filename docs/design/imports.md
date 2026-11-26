@@ -304,6 +304,12 @@ the person no way to correct a wrong answer to the English question.)
 When the incoming figures are taken, an empty meter or key is filled from
 the incoming dance, because English figures are counted in bars of the meter;
 a set one stays (implementer's call, keeping INTAKE-7's "never overwritten").
+The standard phrase structure (`''`) is replaced by the incoming one the same
+way, so a dance in 3/2 re-imported as English counts its phrases in 3-beat bars
+(`4*8*3`) as a fresh import does, rather than labelling its figures against
+16-beat phrases; a structure the dance already has stays (implementer's call
+in the pre-release audit, finding C-01; the alternative, leaving the structure
+for the person to set on each dance, kept the broken labels).
 A re-import from a contra-only source (The Caller's Box, ContraDB) onto an
 English dance makes it contra by the same rule.
 

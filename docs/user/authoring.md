@@ -709,7 +709,12 @@ for whole bars instead. The app still works in beats underneath. A bar holds
 the beats of the dance's **Meter**: 2/2, 2/4, 6/8 and 6/4 have two, 3/2, 3/4,
 9/8 and 9/4 three, 4/4, 12/8 and 12/4 four, so in 3/2 two bars are 6 beats. With no meter the
 phrase structure says, so `4*8*3` (four 8-bar phrases of three beats) makes 2
-bars 6 beats too. A tune whose phrases have different numbers of beats to the
+bars 6 beats too. Typing a **Meter** that states other beats to the bar than
+before sets them in the phrase structure as well, keeping its phrases and their
+bars, so the phrases stay whole bars long: the standard four 8-bar phrases
+become `4*8*3` in 3/2, as an import of the dance writes them, and the standard
+structure again in 2/2. A structure whose parts have different beats to the
+bar is never rewritten from the Meter (see **Phrases** below). A tune whose phrases have different numbers of beats to the
 bar (`A:2*4*3 + B:1*8*2`, an A in 3/4 and a B in 6/8) counts each bar by the
 phrase it starts in, whatever the Meter says, and from where its figure
 starts: the two bars at the end of an A and the first two of a B are 3 + 3 + 2

@@ -1,0 +1,16 @@
+{
+  "id": "audit-s3-english-phrase-structure",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Typing a Meter such as 3/2 or 4/4 on an English dance whose phrases are not named now sets the phrase structure's beats to the bar too, as it already did for named phrases, so a 32-bar dance in 3/2 fits its four 8-bar phrases and its figures get the right A and B labels instead of a warning that they don't fit. A structure whose parts have different beats to the bar is still never rewritten.",
+      "Re-importing a dance as English (for example a Caller's Companion dance first brought in as contra) now also takes the file's phrase structure when the dance had the standard one, so a dance in 3/2 or with uneven phrases gets its A and B labels in the right places. A phrase structure you set stays.",
+      "Turning a square's Free form switch back to what its kind gives is now saved: before, a dance that had Free form turned on (or off for patter) kept that choice on Save."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "withReimportedChoreography takes the incoming phraseStructure with the incoming figures when the existing dance has the standard structure (''), as it already fills an empty meter and key."
+    ]
+  }
+}
