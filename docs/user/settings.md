@@ -759,8 +759,7 @@ Select **Program defaults** to open this group.
   rules: each by its nickname with its sentence beneath, or by its sentence
   if it has no nickname. A rule whose saved search was deleted or can't be
   read, or that a newer version of the app made, is marked **Needs
-  attention**, as in Manage rules: a program checks it only once that is
-  fixed. Select it to open the same rule picker a program has, with **New
+  attention**, as in Manage rules, and a program doesn't check it. Select it to open the same rule picker a program has, with **New
   rule…** at the top: tick the rules a program made from this template
   should start with, and untick one to take it off. They are added to each new
   program made from the template (see [Rules that come with a
