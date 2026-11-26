@@ -3,7 +3,8 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "If the saved search you chose for an event rule (Experimental) or a template's slot rule is deleted before you save, the editor now says so and doesn't save that rule, instead of saving a rule that names a search that no longer exists. The rule editor then asks you to choose another search, and the template puts its slots back as they were saved."
+      "If the saved search you chose for an event rule (Experimental) or a template's slot rule is deleted before you save, the editor now says so and doesn't save that rule, instead of saving a rule that names a search that no longer exists. The rule editor then asks you to choose another search, and the template undoes just that rule: a new one is removed and an edited one goes back to how it was.",
+      "Duplicate no longer copies a program template while one of its slot rules uses a saved search that has been deleted: it says which rule to edit or remove first, instead of making a copy whose rule names a search that no longer exists."
     ]
   },
   "core": {
