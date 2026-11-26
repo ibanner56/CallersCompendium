@@ -288,6 +288,27 @@ void main() {
       expect(records.single.label, 'The Baby Rose');
     });
 
+    test('a date padded onto the Name is left out of the label', () async {
+      final bytes = buildFmp12Fixture([
+        FmpFixtureTable(
+          index: 1,
+          name: 'Dance',
+          columnNames: ['zk_Dance_ID', 'Name'],
+          rows: [
+            MapEntry(1, {1: '1', 2: 'Fandango, The              1774'}),
+          ],
+        ),
+      ]);
+      final adapter = CallersCompanionUsrAdapter();
+      final records = await adapter.discover(
+        ImportRequest(options: {'bytes': bytes}),
+      );
+      expect(records.single.label, 'The Fandango');
+      final draft = adapter.parse(await adapter.fetch(records.single));
+      expect(draft.dance.title, 'The Fandango');
+      expect(draft.dance.composedOn, PartialDate(1774));
+    });
+
     test('a reader that throws the reader errors still yields the friendly '
         'ImportErrors', () async {
       Future<void> discoverWith(Object error) => CallersCompanionUsrAdapter(

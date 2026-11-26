@@ -653,6 +653,31 @@ declines the collapse.
   detail, before the Proper / Improper words are tried), its
   "Type:" note for these types, and `mixer: false`. `SetItem.AlternateDance`
   marks an alternate "ALT" in a real file, which is read as true.
+- **A date padded onto the Name.** Some libraries pad a date, and sometimes
+  the tune's key and meter, onto the end of each `Name` ("Jack's Maggot
+  1702", "Gypsy Round, The      1979    Am 3/4"). `splitCcNameTail`
+  (`callers_companion_title_tail.dart`) takes off everything from the first
+  run of two or more spaces, or a tab, that is followed by a four-digit year
+  (optionally after `Circa`, `ca.` or `c.`). One space is not enough, since a
+  title may end in a number of its own ("Trip to the Manors 2000"). The title
+  is read without the tail, so a trailing article is fronted as usual, and the
+  discovery labels of both adapters use the same reading (`ccDanceTitleOf`).
+  A tail that is exactly one year is the composed date when `DateComposed` is
+  blank. Every other tail (`1703/2009`, `2024?`, `Circa 1800`, `1750ish`, a
+  year and a key and meter), and a year that differs from `DateComposed`, is
+  kept in the calling notes as `From the title: …`, so nothing the name said
+  is lost. Implementer's call: the second year of `1703/2009` is not read as
+  an interpretation date, because a library may mean a reconstruction, a
+  revision or a publication by it. An English dance whose Music states no
+  meter, or no key, takes the missing one from what the tail says after its
+  date. Both parts are sanitized before the date is looked for, so a
+  zero-width character cannot hide the gap, a no-break space counts as a
+  space, and a tab is read as two spaces once a date is found (in the title
+  too, so `Foo\tBar  1702` is titled `Foo  Bar`; with no date a tab is dropped,
+  as before). A re-import with **Also update title and credit** takes the
+  title without its date, but changes neither `composedOn` nor the notes
+  (*Title and credit, per row*), so a dance imported with the date in its
+  title loses the date on such a re-import; the user guide says so.
 - **Program slots link to dances the commit did not write (INTAKE-1).** A slot
   resolves its CC dance id through the records the commit wrote *plus*
   `existingDanceIdByExternalId`: the review passes each re-import row's target
