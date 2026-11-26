@@ -1084,11 +1084,12 @@ void main() {
       expect(reloaded.arrivalMinute, 1110);
     });
 
-    // A `.USR` file writes only the columns below; a re-import must keep every
-    // other column of the matched program as the caller left it. The census is
-    // the table's own column list, so a column added to `programs` fails this
-    // test until it is sorted into one of the two sets.
-    test('re-import keeps every column a .USR file does not write', () async {
+    // A `.USR` file writes only the columns in `fromFile`; a re-import must
+    // keep every other column of the matched program as the caller left it.
+    // The census is the table's own column list, so a column added to
+    // `programs` fails this test until it is sorted into one of the two sets.
+    test('re-import keeps every column a .USR file does not write, and '
+        'rewrites the ones it does', () async {
       const fromFile = {
         'title',
         'event_date',
@@ -1142,10 +1143,25 @@ void main() {
         newSlotId: sequentialIds(),
       );
       final programId = first.programs.single.id;
+      final fromFirstImport = await row(programId);
       await venues.upsert(Venue(id: 'venue-kept', name: 'The Grange'));
       final imported = (await programs.getById(programId))!;
       await programs.update(
         imported.copyWith(
+          // The caller's edits to what the file says, which it rewrites.
+          title: 'Renamed here',
+          eventDate: DateTime.utc(2027, 1, 2),
+          venue: 'Typed here',
+          band: 'Band here',
+          caller: 'Caller here',
+          dancerLevel: 'Level here',
+          notes: 'Notes here',
+          status: imported.status == ProgramStatus.performed
+              ? ProgramStatus.draft
+              : ProgramStatus.performed,
+          hideAlternates: !imported.hideAlternates,
+          updatedAt: DateTime.utc(2026, 7, 21),
+          // What the file cannot say, which it keeps.
           venueId: 'venue-kept',
           archivedAt: DateTime.utc(2026, 7, 20),
           dialectName: 'Larks & Robins',
@@ -1169,6 +1185,11 @@ void main() {
         expect(before[column], isNotNull, reason: column);
       }
       expect(before['event_rule_ids'], isNot('[]'));
+      // Every column the file writes was edited, so the second loop below
+      // cannot pass by finding the caller's value still in place.
+      for (final column in fromFile) {
+        expect(before[column], isNot(fromFirstImport[column]), reason: column);
+      }
 
       final second = await importer.import(
         _ccUsrBytes(),
@@ -1182,6 +1203,14 @@ void main() {
       for (final column in kept) {
         expect(after[column], before[column], reason: column);
       }
+      for (final column in fromFile.difference({'updated_at'})) {
+        expect(after[column], fromFirstImport[column], reason: column);
+      }
+      expect(
+        after['updated_at'],
+        isNot(before['updated_at']),
+        reason: 'the rewrite is stamped',
+      );
     });
 
     group('a prior venue link that no row backs', () {

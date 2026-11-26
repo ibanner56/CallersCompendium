@@ -588,14 +588,11 @@ class CallersCompanionUsrImporter {
           // Re-import: overwrite the matched program in place.
           final target = _rebuildProgramWithId(
             candidate,
-            id: existingId,
-            createdAt: prior.createdAt,
+            prior: prior,
             // Kept unless the link is dead AND a venue resolved above.
             priorVenueId: (priorLinkLive || venueId == null)
                 ? priorVenueId
                 : null,
-            priorArchivedAt: prior.archivedAt,
-            priorTimes: prior,
           );
           if (priorCapturedFor.add(existingId)) {
             priorStates.add(prior);
@@ -1631,58 +1628,59 @@ class CallersCompanionUsrImporter {
     result._undone = true;
   }
 
-  /// Rebuilds [src] under an existing program [id] and [createdAt] (preserving
-  /// the matched program's identity/creation stamp on a re-import) while keeping
-  /// every other field — title, slots, event metadata, provenance, updatedAt —
-  /// from the freshly built program.
+  /// The matched program [prior] with what a `.USR` file says about it taken
+  /// from [src], the program freshly built from the file: title, event date,
+  /// typed venue, band, caller, dancer level, notes, status, whether
+  /// alternates are hidden, slots, provenance and updatedAt.
   ///
-  /// [priorVenueId] carries the matched program's existing `venueId` forward
-  /// **when set** (the caller passes `null` only for a link no venue row backs
-  /// when this import resolved a venue to replace it) — a `.USR` archive has no concept of this app-local venue
+  /// Everything else is kept from [prior], because a `.USR` file cannot
+  /// express it and a re-import must not erase what the caller added here:
+  /// the id and createdAt, the archived state, the four times (#2350), the
+  /// Perform dialect, pay, the event rules and the calendar link and its
+  /// change tracking. The rebuild starts from [prior] rather than from [src]
+  /// so that a field added to [Program] later is kept too, unless it is named
+  /// here; the re-import tests compare every `programs` column. [prior]'s
+  /// tombstone is cleared: [commit] has restored a deleted match by now.
+  ///
+  /// [priorVenueId] is the venue link to keep — the caller passes `null` only
+  /// for a link no venue row backs when this import resolved a venue to
+  /// replace it. A `.USR` archive has no concept of this app-local venue
   /// entity link of its own, so overwriting an established link with null (or
   /// with a fresh guess) would silently drop/flip-flop app-local state the
   /// source cannot reconstruct or express (issue #687 bullet 6). When there is
-  /// no prior link (`priorVenueId` is `null` — a first-time import, or a
-  /// re-import of a program nobody has linked yet), [src.venueId] passes
-  /// through instead, so a venue-entity-mode resolution computed for *this*
-  /// commit (see [commit]'s venue resolution block) isn't discarded.
-  ///
-  /// [priorArchivedAt] carries the matched program's archived state forward for
-  /// the same reason: a `.USR` file cannot express it, so a re-import must not
-  /// bring an archived program back into the Programs list.
-  ///
-  /// [priorTimes] carries the matched program's start, end, lesson and
-  /// arrival times forward, for the same reason: a `.USR` file has no times
-  /// (#2350), so a re-import must not erase the ones the caller added here.
+  /// no link to keep, [src.venueId] passes through instead, so a
+  /// venue-entity-mode resolution computed for *this* commit (see [commit]'s
+  /// venue resolution block) isn't discarded.
   Program _rebuildProgramWithId(
     Program src, {
-    required String id,
-    required DateTime createdAt,
+    required Program prior,
     required String? priorVenueId,
-    required DateTime? priorArchivedAt,
-    required Program priorTimes,
-  }) => Program(
-    id: id,
-    title: src.title,
-    eventDate: src.eventDate,
-    venue: src.venue,
-    venueId: priorVenueId ?? src.venueId,
-    band: src.band,
-    caller: src.caller,
-    dancerLevel: src.dancerLevel,
-    notes: src.notes,
-    status: src.status,
-    hideAlternates: src.hideAlternates,
-    slots: src.slots,
-    createdAt: createdAt,
-    updatedAt: src.updatedAt,
-    archivedAt: priorArchivedAt,
-    startMinute: priorTimes.startMinute,
-    endMinute: priorTimes.endMinute,
-    lessonMinute: priorTimes.lessonMinute,
-    arrivalMinute: priorTimes.arrivalMinute,
-    provenance: src.provenance,
-  );
+  }) {
+    final venueId = priorVenueId ?? src.venueId;
+    return prior.copyWith(
+      title: src.title,
+      eventDate: src.eventDate,
+      clearEventDate: src.eventDate == null,
+      venue: src.venue,
+      clearVenue: src.venue == null,
+      venueId: venueId,
+      clearVenueId: venueId == null,
+      band: src.band,
+      clearBand: src.band == null,
+      caller: src.caller,
+      clearCaller: src.caller == null,
+      dancerLevel: src.dancerLevel,
+      clearDancerLevel: src.dancerLevel == null,
+      notes: src.notes,
+      status: src.status,
+      hideAlternates: src.hideAlternates,
+      slots: src.slots,
+      updatedAt: src.updatedAt,
+      clearDeletedAt: true,
+      provenance: src.provenance,
+      clearProvenance: src.provenance == null,
+    );
+  }
 
   /// Builds the CC-dance-id → new-Compendium-dance-id map from the committed
   /// [session] alone. Each [CommittedRecord] carries its own
