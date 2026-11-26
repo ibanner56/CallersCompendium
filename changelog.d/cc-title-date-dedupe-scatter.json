@@ -1,0 +1,15 @@
+{
+  "id": "cc-title-date-dedupe-scatter",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "When the app looks for a dance you already have, a title with a Caller's Companion date padded onto it, such as \"Jack's Maggot   1702\", counts as the same title without the date, so pasting a dance you imported before the date was taken off the title finds it.",
+      "A dance typed Scatter Mixer in a Caller's Companion .USR file of English dances comes across with a formation described as \"Scatter mixer\", marked as a mixer, rather than a contra-only shape."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`dedupeTitleKeys` and the dedupe index also key a title without a date `splitCcNameTail` finds; `mapCallersCompanionDance` reads an English `scatterMixer` shape as `FormationShape.other` with the detail \"Scatter mixer\"."
+    ]
+  }
+}
