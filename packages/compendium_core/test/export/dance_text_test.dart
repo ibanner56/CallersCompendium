@@ -134,6 +134,40 @@ void main() {
       expect(text, contains('A2  partner dosido once (8 beats)'));
     });
 
+    test('compactFigures drops beats and heads each phrase with its label', () {
+      final text = danceToPlainText(
+        dance(
+          figures: [
+            Figure(move: 'swing', params: {'who': 'partners', 'beats': 16}),
+            Figure(move: 'do_si_do', params: {'who': 'partners', 'beats': 8}),
+            Figure(
+              move: 'swing',
+              params: {'who': 'neighbors', 'beats': 8},
+              progression: true,
+              note: 'long swing',
+            ),
+            Figure(move: 'do_si_do', params: {'who': 'neighbors', 'beats': 8}),
+          ],
+        ),
+        dialect: Dialect.canonical,
+        authorNames: const [],
+        formationLabel: 'Duple improper',
+        statusLabel: 'Active',
+        compactFigures: true,
+      );
+      final lines = text.split('\n');
+      expect(lines.sublist(lines.indexOf('Figures:') + 1), [
+        'A1',
+        'partner swing',
+        'A2',
+        'partner dosido once',
+        'neighbor swing ¶',
+        '    long swing',
+        'B1',
+        'neighbor dosido once',
+      ]);
+    });
+
     // #594: a `meanwhile` container (#590) exports as one figure line with
     // both concurrent sides joined by "while" and the container's single
     // shared beat count — never two lines, never double-counted.

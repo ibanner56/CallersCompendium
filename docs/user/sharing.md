@@ -196,6 +196,10 @@ list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
   structured figures still gets its card when it has calling notes, a
   walkthrough, a hook or a published source and you've selected that field; a dance with nothing to show
   beneath its title gets no card.
+  In the shared or copied text, the cards list figures without beat counts,
+  and each phrase label (such as *A2*) sits on a line of its own above the
+  figures in that phrase. A single dance's own **Share dance (text)** or
+  **Copy dance** card still shows every figure's phrase label and beats.
 
 A program's [times](./programs.md#times) appear in the set list too: the
 dance's start and end beside the date, such as "7:30 PM–10:30 PM", with

@@ -50,6 +50,13 @@ import 'export_labels.dart';
 /// per citation, built by the app from its localized strings); they appear
 /// only when [DanceShareField.sources] is in [fields].
 ///
+/// [compactFigures] selects the set-list figure layout: no beat counts, and
+/// each phrase label on a line of its own above the figures that start in
+/// that phrase. Nothing relies on aligned spacing, so the layout survives a
+/// proportional font. The single-dance card
+/// and the dances CSV keep the default layout, which labels and times every
+/// figure. See [danceCardFigureLines].
+///
 /// [fields] selects which non-figures fields appear (issue #1434); figures
 /// are controlled separately (unaffected by this parameter). Defaults to
 /// [DanceShareField.allExceptTunes]: every block this renderer emitted
@@ -73,6 +80,15 @@ import 'export_labels.dart';
 /// Figures:
 /// A1  <rendered figure> (16 beats) ¶
 ///     <optional per-figure note>
+/// ...
+///
+/// With [compactFigures]:
+/// Figures:
+/// A1
+/// <rendered figure> ¶
+/// <figure starting in the same phrase>
+///     <optional per-figure note>
+/// A2
 /// ...
 ///
 /// Calling notes:
@@ -102,6 +118,7 @@ String danceToPlainText(
   bool canonicalizeDiscouragedTerms = false,
   Set<DanceShareField> fields = DanceShareField.allExceptTunes,
   List<String> sourceLines = const [],
+  bool compactFigures = false,
 }) {
   final fig = renderer ?? FigureRenderer(shippedTaxonomies.anyForm);
   final content = DanceCardContent.build(
@@ -140,6 +157,7 @@ String danceToPlainText(
         renderer: fig,
         labels: labels,
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        compact: compactFigures,
       ),
     );
   }
@@ -178,6 +196,11 @@ String danceToPlainText(
 /// Figures heading, and the dances CSV export (#2332) writes them in its Figures
 /// cell, so the two cannot drift.
 ///
+/// With [compact] (the set-list layout, [danceToPlainText]'s
+/// `compactFigures`) the beat counts are left off, and each phrase label gets
+/// a line of its own, written once above the figures that start in that
+/// phrase.
+///
 /// [content] must be built from [dance] with the same [renderer] and
 /// [canonicalizeDiscouragedTerms]. Empty when the dance has no readable
 /// figures.
@@ -187,6 +210,7 @@ List<String> danceCardFigureLines(
   required FigureRenderer renderer,
   DanceExportLabels labels = const DanceExportLabels(),
   bool canonicalizeDiscouragedTerms = false,
+  bool compact = false,
 }) {
   if (content.figures.isEmpty) return const [];
   final cardDialect = content.dialect;
@@ -201,6 +225,7 @@ List<String> danceCardFigureLines(
     dance.phraseStructure,
     meter: dance.meter,
   );
+  String? previousLabel;
   for (final sf in sectioned) {
     final text = canonicalizeDiscouragedTerms
         ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
@@ -208,11 +233,21 @@ List<String> danceCardFigureLines(
             cardDialect,
           )
         : renderer.renderSummary(sf.figure, cardDialect);
-    final beatsLabel = labels.count(sf.figure.beats, timing, sf.startBeat);
     final marker = sf.figure.progression ? ' ¶' : '';
     // A free-form dance's figures have no phrase label to lead with.
-    final lead = sf.label.isEmpty ? '' : '${sf.label}  ';
-    lines.add('$lead$text ($beatsLabel)$marker');
+    if (compact) {
+      // The compact layout heads each phrase with its label on a line of its
+      // own; no column alignment, which a proportional font would not keep.
+      if (sf.label.isNotEmpty && sf.label != previousLabel) {
+        lines.add(sf.label);
+      }
+      previousLabel = sf.label;
+      lines.add('$text$marker');
+    } else {
+      final lead = sf.label.isEmpty ? '' : '${sf.label}  ';
+      final beatsLabel = labels.count(sf.figure.beats, timing, sf.startBeat);
+      lines.add('$lead$text ($beatsLabel)$marker');
+    }
     final note = sf.figure.note?.trim();
     if (note != null && note.isNotEmpty) {
       final renderedNote = canonicalizeDiscouragedTerms

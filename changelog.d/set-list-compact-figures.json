@@ -1,0 +1,14 @@
+{
+  "id": "set-list-compact-figures",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "When you share or copy a set list with its figures, each dance's figures no longer show beat counts, and each phrase label, such as A2, sits on a line of its own above the figures in that phrase. A single dance's shared or copied card still shows every figure's phrase label and beats."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add a `compactFigures` option to `danceToPlainText` (and `compact` to `danceCardFigureLines`): leaves off beat counts and puts each phrase label on a line of its own above the figures that start in that phrase."
+    ]
+  }
+}
