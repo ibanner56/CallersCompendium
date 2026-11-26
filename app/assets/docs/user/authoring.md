@@ -104,11 +104,18 @@ way`), never as contra moves; anything it can't read exactly is kept as you
 typed it. It reads callers' shorthand too: `P` and `N` are partner and
 neighbor, `trade` is change places (`First corners trade by right`, or `trade by right
 shoulder`: either way the dancers pass by the right), `Pass P by
-L` passes partner by the left shoulder, `All Partner Set` and `Ones Partner
+L` passes partner by the left shoulder, `Ones pass P by R` is the ones
+changing places by the right, `All Partner Set` and `Ones Partner
 Set` are partners and the ones setting, `Partner Set R & L` sets right first,
-and `1s cross and go below` is a cross and a cast down one place. A detail a
-figure has no option for is kept as its note: `turn single right
-forward` is a turn single with the note "forward", and `Second corners cast
+and `1s cross and go below` is a change of places by the right (or by the side
+an aside such as `(take left hands)` names) and a cast down one place. In
+`cross and go outside below the twos who move up`, the words after "go" are
+kept as its note. In rights and lefts or a circular hey, passes
+in brackets such as `(PR, NL, PR, NL)` (partner right, neighbor left) name who
+it starts with and its first side, and `lefts and rights` starts by the left.
+A detail a figure has no option for is kept as its note: `turn single right
+forward` is a turn single with the note "forward", `turn single right face P`
+one with the note "end facing partners", and `Second corners cast
 partner follow` a cast with the note "partner follow". A circle or star "half way" counts places from the dance's
 formation, two in a duple minor and three in a triple minor. A line that
 starts with a bar range (`1-4 partners set and turn single`, `(5-8) circle

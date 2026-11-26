@@ -2601,10 +2601,29 @@ ECD dance.
   a couple's `partner` (`Ones Partner Set`) is the couple itself, so `who` is
   `["ones"]` (a couple naming `Neighbor` stays custom). `set right and left` /
   `set L & R` is the side set to first. `go forward and back` is `forward and
-  back`. `go below` after a cross is a cast down one place, so `1s cross and go below` is a
-  cross, then that cast. A detail the movement has no parameter for is the
-  figure's note: `forward` on a turn single, and who follows a cast (`cast partner follow`,
-  `followed by partner`). `trade by right`, and `trade by right shoulder`, store `hand = right`:
+  back`. `go below` after a cross is a cast down one place, and the cross
+  before it is a change of places by the right, or by the side the cross
+  states (`cross by left`): `1s cross and go below` is that trade, then that
+  cast (the maintainer, 26 November 2026); when the line's asides name one
+  side (`(take left hands)`), that is the side, and asides naming both, or
+  one the cross contradicts, keep the cross (implementer's call). `go outside
+  below` and `go below the twos who move up` (`the Twos 2 moving up`) are
+  read as `go below`, with the words after `go` kept verbatim as the note. A couple passing its own partner by a side (`Ones pass P by R`) is a
+  change of places by that side (the maintainer, same day); with no couple,
+  `pass P by R` is still a pass through. A detail the movement has no
+  parameter for is the figure's note: `forward` on a turn single, the
+  dancers a turn single ends facing (`face P`: "end facing partners", the
+  maintainer, same day; turn single has no end facing), and who follows a
+  cast (`cast partner follow`, `followed by partner`). In rights and lefts
+  and a circular hey, a note that is only a list of passes (`(PR, NL, PR,
+  NL)`, partner right then neighbor left; commas or semicolons) sets `whom`
+  and the first `hand` (rights and lefts) or `shoulder` (circular hey) and is
+  dropped, when there are two or more passes, they alternate dancers and
+  sides, and they number the stated changes. The passes may be one part of
+  a note with other asides, which stay; any other note stays whole
+  (implementer's call).
+  `lefts and rights` is rights and lefts by the left. `cross by <side>` sets
+  a cross's side. `trade by right`, and `trade by right shoulder`, store `hand = right`:
   change places' `hand` names the side the dancers pass by, not a hand they
   give (the maintainer, 26 November 2026). Implementer's calls, not the
   maintainer's: (1)
@@ -2615,9 +2634,10 @@ ECD dance.
   a lead down or a cast it would add a cast the words do not dance, so such a
   line stays as text. (3) A couple's partner is absorbed
   rather than stored as `set`'s `whom`, which ADR-006 §7.1 keeps for setting to
-  someone other than each other. The fuller `Ones cross and go outside below
-  the twos who move up` says what the twos do too and stays custom, as do lines
-  joining figures with a count (`X (4) Y`).
+  someone other than each other. `Ones cross and go outside below the twos
+  while the twos WAIT` says more of what the twos do and stays custom, as do
+  lines joining figures with a count (`X (4) Y`) when the grammar reads them
+  whole (the Caller's Companion importer splits them first).
 - **Cast** reads the shape ADR-006 §9.4 gives it: `up`, `down`, a bare
   `left`/`right` (the shoulder turned over) or `clockwise` (right) /
   `counterclockwise` (left) is its `direction`; no shoulder is assumed from

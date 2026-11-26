@@ -175,25 +175,117 @@ Figure? parseEcdFigureLine(
   }
 }
 
+/// `go outside below` and `go below the twos who move up`: read as `go
+/// below`, with the words after `go` kept verbatim as an aside (the cast's
+/// note), so nothing the line says is lost.
+final RegExp _goBelowWords = RegExp(
+  r'\bgo\s+(?:(outside)\s+)?below\b'
+  r'((?:\s+(?:the\s+)?(?:twos|2s|threes|3s)(?:\s+\d)?\s+'
+  r'(?:who\s+)?(?:move|moves|moving)\s+up)\b)?',
+  caseSensitive: false,
+);
+
+/// [scrubbed] with [_goBelowWords] read as `go below (<words>)`.
+/// Only outside brackets: an aside already in brackets (`(go outside
+/// below)`) is left as it is, so no bracket is nested in another.
+String _withGoBelowAside(String scrubbed) {
+  String rewrite(String text) => text.replaceAllMapped(_goBelowWords, (m) {
+    if (m[1] == null && m[2] == null) return m[0]!;
+    return 'go below (${m[0]!.substring(2).trim()})';
+  });
+  final out = StringBuffer();
+  var last = 0;
+  for (final group in _bracketGroup.allMatches(scrubbed)) {
+    out
+      ..write(rewrite(scrubbed.substring(last, group.start)))
+      ..write(group[0]);
+    last = group.end;
+  }
+  out.write(rewrite(scrubbed.substring(last)));
+  return out.toString();
+}
+
+/// A note that is only a list of passes, `PR, NL, PR` (partner right,
+/// neighbor left), optionally after `pass`.
+final RegExp _passList = RegExp(
+  r'^\s*(?:pass\s+)?([pn][rl](?:\s*[,;]\s*[pn][rl])+)\s*$',
+  caseSensitive: false,
+);
+
+final RegExp _passSeparator = RegExp('[,;]');
+
+/// A side word in an aside: `left` or `right`.
+final RegExp _sideWord = RegExp(r'\b(?:left|right)\b', caseSensitive: false);
+
+/// [figure] with a rights and lefts' or a circular hey's aside of passes
+/// (`(PR, NL, PR, NL)` or `(PR; NL)`: partner by the right, neighbor by the
+/// left) read as who it starts with and its first side, and [asides] without
+/// it, when exactly one aside is such a list, of two or more passes that
+/// alternate dancers and sides as the figure does and number its changes.
+/// Otherwise both are returned as they are, and the asides become the note.
+({Figure figure, List<String> asides}) _withPassList(
+  Figure figure,
+  List<String> asides,
+) {
+  final unread = (figure: figure, asides: asides);
+  final side = switch (figure.move) {
+    'ecd_rights_and_lefts' => 'hand',
+    'ecd_circular_hey' => 'shoulder',
+    _ => null,
+  };
+  if (side == null) return unread;
+  final at = asides.indexWhere(_passList.hasMatch);
+  if (at < 0 || asides.where(_passList.hasMatch).length != 1) return unread;
+  final match = _passList.firstMatch(asides[at])!;
+  final passes = [
+    for (final pass in match.group(1)!.split(_passSeparator))
+      pass.trim().toLowerCase(),
+  ];
+  for (var i = 1; i < passes.length; i++) {
+    if (passes[i][0] == passes[i - 1][0] || passes[i][1] == passes[i - 1][1]) {
+      return unread;
+    }
+  }
+  final changes = figure.params['changes'];
+  if (changes is int && changes != passes.length) return unread;
+  final whom = passes.first[0] == 'p' ? 'partners' : 'neighbors';
+  final first = passes.first[1] == 'r' ? 'right' : 'left';
+  final statedWhom = figure.params['whom'];
+  final statedSide = figure.params[side];
+  if (statedWhom != null && statedWhom != whom) return unread;
+  if (statedSide != null && statedSide != first) return unread;
+  return (
+    figure: figure.copyWith(
+      params: {...figure.params, 'whom': whom, side: first},
+    ),
+    asides: [...asides]..removeAt(at),
+  );
+}
+
 /// The ECD figure [scrubbed] reads as in full, or null when it does not.
 /// [scrubbed] has been through [scrubFigureText] already. See
 /// [parseEcdFigureLine] for [beats] and [ringDancers]. Never throws.
 Figure? recognizeEcdLine(String scrubbed, {int beats = 0, int? ringDancers}) {
   try {
     if (scrubbed.length > maxEcdLineLength) return null;
-    final lexed = _lex(scrubbed);
+    final lexed = _lex(_withGoBelowAside(scrubbed));
     if (lexed == null || lexed.tokens.isEmpty) return null;
     final figure = _Reader(
       lexed.tokens,
       ringDancers: ringDancers,
+      asideSides: {
+        for (final aside in lexed.notes)
+          for (final m in _sideWord.allMatches(aside)) m[0]!.toLowerCase(),
+      },
     ).readLine(beats < 0 ? 0 : beats);
     if (figure == null) return null;
-    if (lexed.notes.isEmpty) return figure;
-    var note = figure.note;
-    for (final aside in lexed.notes) {
+    final read = _withPassList(figure, lexed.notes);
+    if (read.asides.isEmpty) return read.figure;
+    var note = read.figure.note;
+    for (final aside in read.asides) {
       note = combineFigureNotes(note, aside);
     }
-    return figure.copyWith(note: note);
+    return read.figure.copyWith(note: note);
   } catch (_) {
     return null;
   }
@@ -659,6 +751,8 @@ final List<_VerbPhrase> _verbPhrases = [
   _v('circular hey', 'circular_hey'),
   _v('square hey', 'circular_hey'),
   _v('rights and lefts', 'rights_and_lefts'),
+  // `lefts and rights`: rights and lefts by the left first.
+  _v('lefts and rights', 'rights_and_lefts', {'hand': 'left'}),
   _v('right and left', 'rights_and_lefts'),
   _v('r and l', 'rights_and_lefts'),
   _v('chain', 'chain'),
@@ -961,6 +1055,10 @@ final Map<String, _MoveRule> _rules = {
     // `turn single right forward`: turning while moving forward. The movement
     // has no place for where it travels, so the word is its note.
     final where = _where(b, const ['forward']);
+    // `turn single right face P`: turn single holds no end facing, so the
+    // dancers faced at its end are its note (the maintainer, 26 November
+    // 2026).
+    final faced = b.take<String>('faceWhom');
     final params = _params({
       'who': _whoOf(b, objectIsWho: false),
       'shoulder': cloverleaf ? 'cloverleaf' : shoulder,
@@ -968,7 +1066,11 @@ final Map<String, _MoveRule> _rules = {
       'where': where,
     });
     if (params == null) return null;
-    return {...params..remove('where'), _noteSlot: ?where};
+    final notes = [?where as String?, if (faced != null) 'end facing $faced'];
+    return {
+      ...params..remove('where'),
+      if (notes.isNotEmpty) _noteSlot: notes.join('; '),
+    };
   }),
   'turn_alone': _MoveRule(
     'ecd_turn_alone',
@@ -1203,16 +1305,22 @@ final Map<String, _MoveRule> _rules = {
       'destination': _dest(b),
     }),
   ),
-  'cross': _MoveRule(
-    'ecd_cross',
-    (b, c) => _params({
+  'cross': _MoveRule('ecd_cross', (b, c) {
+    // `cross by right`: the side after `by` is the side crossed by, as for a
+    // change of places; a hand given (`cross giving right hands`) is not read.
+    final viaBy = b.take<bool>('handBy') == true;
+    final hand = b.take<String>('hand');
+    if (hand != null && !viaBy) return null;
+    final shoulder = _shoulder(b, sideIsShoulder: false);
+    if (hand != null && shoulder != null && hand != shoulder) return null;
+    return _params({
       'who': _whoOf(b),
-      'shoulder': _shoulder(b, sideIsShoulder: false),
+      'shoulder': shoulder ?? hand,
       'where': _where(b, const ['diagonally', 'along', 'across', 'up', 'down']),
       'endFacing': b.take<String>('endFacing'),
       'destination': _dest(b),
-    }),
-  ),
+    });
+  }),
   'right_left_through': _MoveRule(
     'ecd_right_left_through',
     (b, c) => _params({
@@ -1282,10 +1390,39 @@ final Map<String, _MoveRule> _rules = {
     if (hand != null && !viaBy) return null;
     final shoulder = _shoulder(b);
     if (hand != null && shoulder != null) return null;
+    final side = hand ?? shoulder;
+    final subject = b.take<List<String>>('who');
+    final object = b.take<List<String>>('object');
+    // `Ones pass P by R`: a couple passing its own partner by a side trades
+    // places by it (the maintainer, 26 November 2026).
+    if (subject != null && object != null) {
+      if (side == null ||
+          subject.length != 1 ||
+          !_coupleTokens.contains(subject.single) ||
+          object.length != 1 ||
+          object.single != 'partners') {
+        return null;
+      }
+      final traded = _params({
+        'who': subject,
+        'hand': side,
+        'where': _where(b, const [
+          'along',
+          'across',
+          'diagonally',
+          'up',
+          'down',
+        ]),
+        'destination': _dest(b),
+      });
+      return traded == null
+          ? null
+          : {...traded, _moveSlot: 'ecd_change_places'};
+    }
     return _params({
-      'who': _whoOf(b),
+      'who': subject ?? object,
       'where': _where(b, const ['along', 'across', 'diagonally', 'up', 'down']),
-      'shoulder': hand ?? shoulder,
+      'shoulder': side,
       'destination': _dest(b),
     });
   }),
@@ -1496,6 +1633,10 @@ Map<String, Object?>? _turnParams(
 /// The key a builder uses to hand a note back with its params.
 const String _noteSlot = '\u0000note';
 
+/// A rule's result slot naming a movement other than its own (a couple's
+/// `pass P by R` is a change of places), as [_noteSlot] names its note.
+const String _moveSlot = '\u0000move';
+
 // ---------------------------------------------------------------------------
 // Reading.
 
@@ -1508,10 +1649,15 @@ class _Step {
 }
 
 class _Reader {
-  _Reader(this.tokens, {required int? ringDancers})
+  _Reader(this.tokens, {required int? ringDancers, this.asideSides = const {}})
     : context = _Context(ringDancers: ringDancers);
 
   final List<String> tokens;
+
+  /// The sides (`left`, `right`) the line's asides name (`(take left
+  /// hands)`), which the line's note keeps: a cross before `go below` trades
+  /// by the one they name.
+  final Set<String> asideSides;
   final _Context context;
   int pos = 0;
 
@@ -1567,6 +1713,33 @@ class _Reader {
         if (_goesBelow(start, pos) &&
             (current.isEmpty || current.last.move != 'ecd_cross')) {
           return null;
+        }
+        // `cross and go below` is a trade by the right, or the side the cross
+        // states, then the cast (the maintainer, 26 November 2026). A cross
+        // stating more than its dancers and side keeps reading as a cross.
+        if (_goesBelow(start, pos)) {
+          final cross = current.last;
+          final other = cross.params.keys.toSet()
+            ..removeAll({'who', 'shoulder'});
+          // A side the line's asides name (`(take left hands)`, `(passing
+          // left)`) is its side; asides naming both, or one the cross
+          // contradicts, keep the cross.
+          final named = asideSides;
+          final stated = cross.params['shoulder'] as String?;
+          final side = stated ?? (named.length == 1 ? named.single : 'right');
+          if (other.isEmpty &&
+              named.length < 2 &&
+              (stated == null || named.isEmpty || named.single == stated)) {
+            current[current.length - 1] = _Step(
+              'ecd_change_places',
+              {
+                if (cross.params['who'] != null) 'who': cross.params['who'],
+                'hand': side,
+              },
+              note: cross.note,
+              statedWho: cross.statedWho,
+            );
+          }
         }
         // `, bending the line` makes the step before it a modifier.
         current.add(step);
@@ -1728,7 +1901,11 @@ class _Reader {
       return null;
     }
     final note = raw[_noteSlot] as String?;
-    final params = {...raw}..remove(_noteSlot);
+    final moved = raw[_moveSlot];
+    if (moved is String) move = moved;
+    final params = {...raw}
+      ..remove(_noteSlot)
+      ..remove(_moveSlot);
     if (bend) {
       return _Step(modifierMove, {
         'figures': [
@@ -1902,6 +2079,7 @@ class _Reader {
 
   /// A word or phrase that may come after the movement.
   bool takePostModifier(_Bag bag) =>
+      takeFacing(bag) ||
       takeDestination(bag) ||
       takePlaceCount(bag) ||
       takeAmount(bag) ||
@@ -2157,7 +2335,19 @@ class _Reader {
       return false;
     }
     final facing = _facingWords[at(pos) ?? ''];
-    if (facing == null || !bag.put('endFacing', facing)) return _undo(start);
+    if (facing == null) {
+      // `face P`: the dancers faced, which only a turn single reads (as its
+      // note).
+      final dancer = dancerAt(pos);
+      if (dancer == null ||
+          (dancer.$1 != 'partners' && dancer.$1 != 'neighbors') ||
+          !bag.put('faceWhom', dancer.$1)) {
+        return _undo(start);
+      }
+      pos += dancer.$2;
+      return true;
+    }
+    if (!bag.put('endFacing', facing)) return _undo(start);
     pos++;
     return true;
   }
