@@ -413,7 +413,9 @@ class ProgramExportMenu extends StatelessWidget {
 
   /// The set-list text with full dance cards appended — one [danceToPlainText]
   /// card per dance (primary then alternates, deduped), each preceded by a
-  /// separator line and (for alternates) the "Alternate" label.
+  /// separator line and (for alternates) the "Alternate" label. The cards use
+  /// the compact figure layout (`compactFigures`): no beat counts, and each
+  /// phrase label on its own line above that phrase's figures.
   ///
   /// Uses [ActiveDialectScope] for dialect-aware rendering, each dance in its
   /// own form's dialect, falling back to [DialectsByForm.defaults] when no
@@ -458,6 +460,7 @@ class ProgramExportMenu extends StatelessWidget {
           labels: danceLabels,
           fields: shareFields,
           sourceLines: cardLabels.sourceLines,
+          compactFigures: true,
         ),
       );
     }
