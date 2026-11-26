@@ -8,7 +8,7 @@
   },
   "core": {
     "changed": [
-      "`mapCallersCompanionDance(englishDances: true)` reads a Square-typed dance as `DanceForm.ecd` with `FormationShape.square` (or `circle` for a big circle), keeping the source's formation words as the detail and its SubType's repeat order. An English dance's contra `circleMixer` shape becomes `FormationShape.circle`; only a Circle Mixer Type sets `mixer`."
+      "`mapCallersCompanionDance(englishDances: true)` reads a Square-typed dance as `DanceForm.ecd` with `FormationShape.square` (or `circle` for a big circle), keeping the source's formation words, start and direction as the detail and its SubType's repeat order. An English dance's contra `circleMixer` shape becomes `FormationShape.circle`; only a Circle Mixer Type, or a text-export formation that says \"mixer\", sets `mixer`."
     ]
   }
 }
