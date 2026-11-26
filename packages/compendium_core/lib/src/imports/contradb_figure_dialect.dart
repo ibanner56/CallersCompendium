@@ -1,7 +1,7 @@
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/dance_vocabulary.dart'
-    show displayDirectionPhrases, displayFacingPhrases, seriesDancerWords;
+    show displayDirectionPhrases, displayFacingPhrases, seriesDancerPhrases;
 import '../taxonomy/param_opposites.dart';
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
@@ -3095,17 +3095,12 @@ final List<MapEntry<String, String>> _subjectPhrases =
 
 /// The figure display's names for the neighbour, partner and shadow series,
 /// singular and plural (`prev neighbor`, `third partners`, `second shadow`;
-/// #2121), so free-text entry reads back a figure only this reader knows.
+/// #2121) and the neighbors' roles, plural only (`next role1s`), as
+/// [seriesDancerPhrases] lists them, so free-text entry reads back a figure
+/// only this reader knows.
 /// Two words each, so they sit ahead of the bare entries.
-Iterable<MapEntry<String, String>> _seriesSubjectEntries() sync* {
-  for (final MapEntry(key: noun, value: byOrdinal)
-      in seriesDancerWords.entries) {
-    for (final MapEntry(key: ordinal, value: token) in byOrdinal.entries) {
-      yield MapEntry('$ordinal $noun', token);
-      yield MapEntry('$ordinal ${noun}s', token);
-    }
-  }
-}
+Iterable<MapEntry<String, String>> _seriesSubjectEntries() =>
+    seriesDancerPhrases();
 
 /// Consumes a leading dancer-set subject, or returns null if none is present.
 String? _subject(_Scan s) {

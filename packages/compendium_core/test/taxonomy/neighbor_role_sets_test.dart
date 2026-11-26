@@ -125,6 +125,41 @@ void main() {
     }
   });
 
+  group('what the reader does with a singular role word', () {
+    // The display writes a role in the plural ("next larks"), never "next
+    // lark", so only the plural names the neighbors' role1s or role2s. The
+    // maintainer ruled that a roll away typed with the singular still reads as
+    // `role1s` rolling away with `nextNeighbors`, as it did before the tokens.
+    List<Figure> read(String line, [Dialect? dialect]) =>
+        parseFreeTextFigureEntry(line, dialect: dialect ?? Dialect.larksRobins);
+
+    test('"next lark roll away neighbor" is role1s with nextNeighbors', () {
+      final figure = read('next lark roll away neighbor').single;
+      expect(figure.move, 'roll_away');
+      expect(figure.params['who'], 'role1s');
+      expect(figure.params['whom'], 'nextNeighbors');
+    });
+
+    test('the singular names no neighbors\' role, so the line stays text', () {
+      for (final line in ['next lark swing', 'prev robin swing']) {
+        expect(read(line).single.isCustom, isTrue, reason: line);
+      }
+    });
+
+    test('the plural, which the display writes, still reads as the role', () {
+      expect(read('next larks swing').single.params['who'], 'nextRole1s');
+      final rollAway = read('next larks roll away neighbor').single;
+      expect(rollAway.move, 'roll_away');
+      expect(rollAway.params['who'], 'nextRole1s');
+      expect(rollAway.params['whom'], 'neighbors');
+      // Alone, the role is who rolls: it is not a relationship.
+      final alone = read('next larks roll away').single;
+      expect(alone.move, 'roll_away');
+      expect(alone.params['who'], 'nextRole1s');
+      expect(alone.params.containsKey('whom'), isFalse);
+    });
+  });
+
   test('a dialect may still reword one, as it can a neighbors entry', () {
     final dialect = Dialect(
       name: 'Reworded',
