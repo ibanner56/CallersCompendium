@@ -1064,9 +1064,12 @@ rather than adding a second one.
   same additive rules the figure codec already follows.
 - **Caller's Companion** is the only current source that marks dances as
   square. From phase 3, its square dances are parsed with the square parser.
-  Its `.USR` question about English dances already leaves squares out
-  (#2284), and the importer takes the square form from `Type`, so no question
-  or tag prompt for squares is needed.
+  Its `.USR` question about English dances left squares out (#2284) until 26
+  November 2026, when the maintainer decided that a file answered as English
+  reads a square as an English dance in a square set (see
+  [imports.md](../design/imports.md), *Is the file English?*). Otherwise the
+  importer takes the square form from `Type`, so no question or tag prompt
+  for squares is needed.
 - **The Caller's Box** may have some square dances: the maintainer believes it
   does (Q7), and its notation supports that. Its glossary defines square
   corners `C1`–`C3`, and a corpus count over a local mirror found 55 declined

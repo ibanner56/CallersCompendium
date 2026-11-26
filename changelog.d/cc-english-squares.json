@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "When you tell the app a Caller's Companion file holds English country dances, a dance typed Square, or with a Square formation, now comes across as an English dance in a square set, such as Newcastle, instead of a square dance. A circle mixer in such a file comes across as a circle marked as a mixer."
+      "When you tell the app a Caller's Companion file holds English country dances, a dance typed Square, or with a Square formation, now comes across as an English dance in a square set, such as Newcastle, instead of a square dance; it keeps what Caller's Companion said of its formation and its repeat order, and one in a big circle stays a circle. A dance typed Circle Mixer comes across as a circle marked as a mixer."
     ]
   },
   "core": {
     "changed": [
-      "`mapCallersCompanionDance(englishDances: true)` reads a Square-typed dance as `DanceForm.ecd` with `FormationShape.square`, and a circle mixer as `FormationShape.circle` with `mixer: true`."
+      "`mapCallersCompanionDance(englishDances: true)` reads a Square-typed dance as `DanceForm.ecd` with `FormationShape.square` (or `circle` for a big circle), keeping the source's formation words as the detail and its SubType's repeat order. An English dance's contra `circleMixer` shape becomes `FormationShape.circle`; only a Circle Mixer Type sets `mixer`."
     ]
   }
 }

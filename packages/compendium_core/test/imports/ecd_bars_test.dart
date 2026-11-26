@@ -721,7 +721,7 @@ void main() {
           mapCallersCompanionDance(r, englishDances: true).dance;
 
       test('takes the square shape from its Type, whatever its formation, '
-          'keeping the caller\'s own description', () {
+          'keeping what its formation said', () {
         final newcastle = mapped(
           CcDanceRecord(
             name: 'Newcastle',
@@ -736,7 +736,7 @@ void main() {
           newcastle.formation,
           const Formation(
             FormationShape.square,
-            detail: 'Four couples, first couple facing down',
+            detail: 'Quadruplet; Four couples, first couple facing down',
           ),
         );
       });
@@ -763,6 +763,64 @@ void main() {
         );
         expect(dance.form, DanceForm.ecd);
         expect(dance.formation, const Formation(FormationShape.square));
+      });
+
+      test('keeps a formation family it does not know as the detail, '
+          'as its warning says', () {
+        final mapping = mapCallersCompanionDance(
+          CcDanceRecord(
+            name: 'Hex',
+            type: 'Square',
+            formationFamily: 'Hexagon',
+            fromUsrColumns: true,
+          ),
+          englishDances: true,
+        );
+        expect(
+          mapping.dance.formation,
+          const Formation(FormationShape.square, detail: 'Hexagon'),
+        );
+      });
+
+      test('a square in a big circle keeps the circle', () {
+        final dance = mapped(
+          CcDanceRecord(
+            name: 'Big Set',
+            type: 'Square',
+            formationFamily: 'Circle',
+            fromUsrColumns: true,
+          ),
+        );
+        expect(dance.form, DanceForm.ecd);
+        expect(dance.formation.shape, FormationShape.circle);
+      });
+
+      test('keeps the repeat order its SubType names', () {
+        final dance = mapped(
+          CcDanceRecord(
+            name: 'Keeper',
+            type: 'Square',
+            subType: 'Keeper, H S H S',
+            formationFamily: 'Square',
+            fromUsrColumns: true,
+          ),
+        );
+        expect(dance.repeatOrder, SquareRepeatOrder.headsSidesHeadsSides);
+      });
+
+      test('reads a text formation naming a square set, with no warning', () {
+        final mapping = mapCallersCompanionDance(
+          CcDanceRecord(name: 'Set', type: 'Contra', formation: 'Square set'),
+          englishDances: true,
+        );
+        expect(
+          mapping.dance.formation,
+          const Formation(FormationShape.square, detail: 'Square set'),
+        );
+        expect(
+          mapping.issues.map((i) => i.code),
+          isNot(contains('cc_unmapped_formation')),
+        );
       });
 
       test('a square\'s mixer SubType still marks a mixer', () {
@@ -794,12 +852,33 @@ void main() {
       expect(usr.formation.shape, FormationShape.circle);
       expect(usr.mixer, isTrue);
 
-      final text = mapCallersCompanionDance(
-        CcDanceRecord(name: 'Wood Duck', type: 'Contra', formation: 'Circle'),
-        englishDances: true,
-      ).dance;
-      expect(text.formation.shape, FormationShape.circle);
-      expect(text.mixer, isTrue);
+      // A circle by its formation alone is a circle, not a mixer: the text
+      // export reads any "circle" as a circle mixer, and Sellenger's Round
+      // does not mix.
+      for (final (r, english) in [
+        (
+          CcDanceRecord(
+            name: 'Sellenger’s Round',
+            type: 'Contra',
+            formation: 'Circle',
+          ),
+          true,
+        ),
+        (
+          CcDanceRecord(
+            name: 'Sellenger’s Round',
+            type: 'English',
+            formationFamily: 'Circle',
+            fromUsrColumns: true,
+          ),
+          false,
+        ),
+      ]) {
+        final dance = mapCallersCompanionDance(r, englishDances: english).dance;
+        expect(dance.form, DanceForm.ecd);
+        expect(dance.formation.shape, FormationShape.circle);
+        expect(dance.mixer, isFalse);
+      }
     });
 
     test('an unknown Type read as English raises no "imported as a contra" '

@@ -464,26 +464,24 @@ CcDanceMapping mapCallersCompanionDance(
 
   // Formation → FormationShape, preserving unmapped text as detail. An
   // English dance takes the ECD shape its contra shape names (ADR-006 W6).
-  final (formation, ecdCircleMixer) = form == DanceForm.ecd
+  final formation = form == DanceForm.ecd
       ? _mapEcdFormation(
           record,
           usr,
           issues,
           squareType: mappedForm == DanceForm.square,
         )
-      : (
-          usr
-              ? _mapFormationColumns(record, issues)
-              : _mapFormation(record.formation, issues),
-          false,
-        );
+      : usr
+      ? _mapFormationColumns(record, issues)
+      : _mapFormation(record.formation, issues);
   // A CC mixer is a Type ("Circle Mixer", "Scatter Mixer") or a square's
-  // SubType ("Mixer, H H S S"). An English circle mixer is a circle with the
-  // mixer flag, since ECD has no circle-mixer shape.
-  final mixer = (usr && _isCcMixer(record)) || ecdCircleMixer;
+  // SubType ("Mixer, H H S S"). An English circle mixer keeps the flag on
+  // its circle, since ECD has no circle-mixer shape.
+  final mixer = usr && _isCcMixer(record);
   // A square's SubType also names its repeat order ("Keeper, H S H S"), the
-  // way American Country Dances On-Line files its squares (ADR-007 §8.1).
-  final repeatOrder = form == DanceForm.square
+  // way American Country Dances On-Line files its squares (ADR-007 §8.1),
+  // and a square read as English keeps it.
+  final repeatOrder = mappedForm == DanceForm.square
       ? ccSquareRepeatOrder(record.subType)
       : SquareRepeatOrder.unstated;
 
@@ -1422,43 +1420,61 @@ Formation _mapFormationColumns(CcDanceRecord r, List<ImportIssue> issues) {
 /// states no start as improper, but an ECD dance's improper flag defaults to
 /// proper (ADR-006 §9.2 point 2), so an unstated start is left proper. A text
 /// export's "Duple Minor", which names no contra shape, is ECD's duple minor.
-(Formation, bool) _mapEcdFormation(
+Formation _mapEcdFormation(
   CcDanceRecord record,
   bool usr,
   List<ImportIssue> issues, {
   required bool squareType,
 }) {
-  final (formation, circleMixer) = _mapEcdShape(record, usr, issues);
-  // A square, by its Type or its formation, is danced in a square set: ECD's
-  // square shape, keeping only the caller's own description as its detail
-  // (the "Square" a contra shape would have carried is the shape now).
+  final issuesBefore = issues.length;
+  final formation = _mapEcdShape(record, usr, issues);
+  final family = usr ? (_sanitizeLine(record.formationFamily) ?? '') : '';
+  final text = usr ? '' : (_sanitizeLine(record.formation) ?? '');
   final squareFamily = usr
-      ? (record.formationFamily?.trim().toLowerCase() ?? '') == 'square'
-      : (_sanitizeLine(record.formation) ?? '').toLowerCase() == 'square';
-  if (squareType || squareFamily) {
-    final own = usr
-        ? _sanitizeLine(record.formationOther)
-        : _sanitizeLine(record.formation);
-    final detail = own == null || own.toLowerCase() == 'square' ? null : own;
-    return (Formation(FormationShape.square, detail: detail), false);
+      ? family.toLowerCase() == 'square'
+      : _ccSquareWord.hasMatch(text);
+  if (!squareType && !squareFamily) return formation;
+  // A square in a big circle keeps the circle, which squares use for it
+  // (ADR-007 §8.1).
+  if (formation.shape == FormationShape.circle) return formation;
+  // Otherwise it is danced in a square set: ECD's square shape. What the
+  // source said of its formation, past the word "Square" the shape now
+  // carries, stays as the detail, so a formation the importer did not know
+  // is kept, as its warning says, and one it now places raises none.
+  if (squareFamily) {
+    final added = issues.sublist(issuesBefore)
+      ..removeWhere((issue) => issue.code == 'cc_unmapped_formation');
+    issues
+      ..removeRange(issuesBefore, issues.length)
+      ..addAll(added);
   }
-  // ECD has no circle-mixer shape: a circle mixer is a circle that mixes.
-  if (circleMixer) {
-    return (formation.copyWith(shape: FormationShape.circle), true);
-  }
-  return (formation, false);
+  final parts = <String>[
+    if (family.isNotEmpty && family.toLowerCase() != 'square') family,
+    if (text.isNotEmpty && text.toLowerCase() != 'square') text,
+    if (usr) ?_sanitizeLine(record.formationOther),
+  ];
+  return Formation(
+    FormationShape.square,
+    detail: parts.isEmpty ? null : parts.join('; '),
+  );
 }
 
-/// The ECD shape [record]'s contra shape names ([ecdFormationFromContra]),
-/// and whether that contra shape was a circle mixer.
-(Formation, bool) _mapEcdShape(
+/// A formation text that names a square ("Square", "Square set").
+final RegExp _ccSquareWord = RegExp(r'\bsquare\b', caseSensitive: false);
+
+/// The ECD shape [record]'s contra shape names ([ecdFormationFromContra]).
+/// A contra circle mixer is an ECD circle, since ECD has no circle-mixer
+/// shape; whether the dance mixes is its Type's to say ([_isCcMixer]), not
+/// the formation's, since the text export reads any "circle" as a circle
+/// mixer.
+Formation _mapEcdShape(
   CcDanceRecord record,
   bool usr,
   List<ImportIssue> issues,
 ) {
   final text = (_sanitizeLine(record.formation) ?? '').toLowerCase();
   if (!usr && text == 'duple minor') {
-    return (const Formation(FormationShape.dupleMinor), false);
+    return const Formation(FormationShape.dupleMinor);
   }
   final source = usr
       ? _mapFormationColumns(record, issues)
@@ -1470,11 +1486,13 @@ Formation _mapFormationColumns(CcDanceRecord r, List<ImportIssue> issues) {
             )
       : text.contains('improper');
   final mapped = ecdFormationFromContra(source);
-  final circleMixer = source.shape == FormationShape.circleMixer;
-  if (source.shape == FormationShape.dupleImproper && !statesImproper) {
-    return (mapped.copyWith(improper: false), circleMixer);
+  if (source.shape == FormationShape.circleMixer) {
+    return mapped.copyWith(shape: FormationShape.circle);
   }
-  return (mapped, circleMixer);
+  if (source.shape == FormationShape.dupleImproper && !statesImproper) {
+    return mapped.copyWith(improper: false);
+  }
+  return mapped;
 }
 
 Formation _mapFormation(String? raw, List<ImportIssue> issues) {

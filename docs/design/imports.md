@@ -2710,12 +2710,19 @@ ECD dance.
   an English dance in a square set (`FormationShape.square`), as does a dance
   of another Type whose formation is Square: an English library's squares are
   English dances such as Newcastle (the maintainer, 26 November 2026; until
-  then a square stayed a square dance). The set keeps only the caller's own
-  formation description as its detail, and a square's "Mixer" SubType still
-  marks a mixer. A circle mixer, which ECD has no shape for, is a `circle`
-  with `mixer: true` (implementer's call; rejected: keeping the contra-only
-  `circleMixer` shape on an English dance, though it is not one of
-  `ecdFormationShapes`). Closing the question
+  then a square stayed a square dance). What the source said of the
+  formation past the word "Square" stays as the detail (Newcastle's
+  "Quadruplet; Four couples…", an unknown family such as "Hexagon", or a text
+  "Square set"), so an unknown family is kept as its `cc_unmapped_formation`
+  warning says, and a Square formation raises no such warning. A square in a
+  big circle (`Circle` family) keeps the `circle` shape, which squares use for
+  it (ADR-007 §8.1). A square keeps its SubType's repeat order and its
+  "Mixer" SubType's mixer flag. A contra `circleMixer`, which ECD has no shape
+  for, is an ECD `circle` (implementer's call; rejected: keeping the
+  contra-only shape, which is not one of `ecdFormationShapes`), and the dance
+  is a mixer only when its Type says so (`Circle Mixer`): the text export
+  reads any "circle" as a circle mixer, and a formation alone must not make
+  Sellenger's Round a mixer. Closing the question
   plans nothing. The answer is held per file bytes in an `Expando`, so
   trying a file again after a failed plan does not ask again, and the
   screen can still release a planned file.
