@@ -2634,16 +2634,18 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       `meetTarget`, which lists its own pairs. Neither ContraDB nor The
       Caller's Box writes them, so no importer produces them; the figure
       readers do read the display's own words (`next larks`, `prev robins`)
-      back, through `role1` and `role2` in `seriesDancerWords`, so a displayed
-      figure reads back to its token (`figure_round_trip_test.dart` caught
-      that gap). That changes how a few lines read that were custom text before:
-      `next lark swing` is now a swing by `nextRole1s`. One line that already
-      read as something else changes meaning, `next lark roll away neighbor`:
-      it was a roll away by `role1s` with `nextNeighbors`, and is now one by
-      `nextRole1s` with `neighbors`, because the new tokens are not in
-      `rollAwayRelationships`, so they read as who rolls and not as whom the
-      roll away is with (the author's call, found by a differential run of the
-      free-text reader over old and new code). Like v38's corners they have no pair inverse and no
+      back, through `role1s` and `role2s` in `seriesDancerWords`, so a
+      displayed figure reads back to its token (`figure_round_trip_test.dart`
+      caught that gap). **Plural only**: the display writes a role in the
+      plural, so `next lark` (singular) names no set and reads as it did
+      before the tokens, and that includes the maintainer's ruling
+      (2026-11-26) that `next lark roll away neighbor` is a roll away by
+      `role1s` with `nextNeighbors`. The plural `next larks roll away
+      neighbor` is the display of `who: nextRole1s, whom: neighbors`, so it
+      reads that way; the tokens are not in `rollAwayRelationships`, which
+      only affects a lone dancer set (`next larks roll away` is a roll away
+      by `nextRole1s`). `next larks swing` is a swing by `nextRole1s`, where
+      it was custom text. Like v38's corners they have no pair inverse and no
       opposite, so `invertPairDancerSet` and a compound's opposite slot
       decline them.
     - Purely additive for stored data: no figure's meaning or canonical text

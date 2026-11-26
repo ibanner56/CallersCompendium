@@ -78,9 +78,11 @@ const Map<String, String> dancerWords = {
 
 /// The neighbour, partner and shadow series as the figure display names them
 /// (#2121): an ordinal, then the relationship (`prev neighbor`, `third
-/// partner`, `second shadow`), and since v40 a role (`next role1`). Keyed by
-/// the relationship's singular, then by the ordinal. Read with
-/// [seriesDancer], which also takes the plural and the British spelling.
+/// partner`, `second shadow`), and since v40 a role (`next role1s`). Keyed by
+/// the relationship's singular, then by the ordinal; a role is keyed by its
+/// plural (`role1s`), which is the only form that names a set. Read with
+/// [seriesDancer], which also takes the plural of the others and the British
+/// spelling.
 ///
 /// These are two-word names: neither word alone names the set, and `next`,
 /// `third` and `second` are ordinary words elsewhere in a call. `previous` is
@@ -106,15 +108,19 @@ const Map<String, Map<String, String>> seriesDancerWords = {
   },
   'shadow': {'second': 'secondShadows'},
   // v40: the role1s and role2s among the previous and next neighbors. The
-  // role words are canonical by the time a figure is read (`next lark` arrives
-  // as `next role1`), so these are the display's `prev larks` and `next
-  // robins`. There are no third or fourth: the display never writes them.
-  'role1': {
+  // role words are canonical by the time a figure is read (`next larks`
+  // arrives as `next role1s`). PLURAL ONLY: the display writes a role in the
+  // plural, never `next lark`, and the maintainer ruled that `next lark roll
+  // away neighbor` still reads as role1s with nextNeighbors, as it did before
+  // these tokens. A key ending in `s` is read as it stands; the others take
+  // the plural too ([seriesDancer], [seriesDancerPhrases]). There are no third
+  // or fourth: the display never writes them.
+  'role1s': {
     'prev': 'prevRole1s',
     'previous': 'prevRole1s',
     'next': 'nextRole1s',
   },
-  'role2': {
+  'role2s': {
     'prev': 'prevRole2s',
     'previous': 'prevRole2s',
     'next': 'nextRole2s',
@@ -122,13 +128,34 @@ const Map<String, Map<String, String>> seriesDancerWords = {
 };
 
 /// The dancer set [ordinal] then [relationship] names in [seriesDancerWords],
-/// or `null`. [relationship] may be singular or plural, and `neighbour` is
-/// read as `neighbor`; both words are lowercase.
+/// or `null`. [relationship] may be singular or plural, except a plural-only
+/// noun (`role1s`), which takes only the plural, and `neighbour` is read as
+/// `neighbor`; both words are lowercase.
 String? seriesDancer(String ordinal, String? relationship) {
   if (relationship == null) return null;
   var noun = relationship.replaceFirst('neighbour', 'neighbor');
+  // A plural-only noun (`role1s`) is read as it stands: its singular is not
+  // a key, so `next lark` names no set.
+  final exact = seriesDancerWords[noun]?[ordinal];
+  if (exact != null) return exact;
   if (noun.endsWith('s')) noun = noun.substring(0, noun.length - 1);
   return seriesDancerWords[noun]?[ordinal];
+}
+
+/// Every two-word phrase [seriesDancerWords] names, as (phrase, token): the
+/// singular and the plural of each noun, or only the noun as written for a
+/// plural-only one (`next role1s`). The ContraDB reader and the typed-name
+/// reader build their dancer phrases from this, so they cannot disagree with
+/// [seriesDancer] about which words name a set.
+Iterable<MapEntry<String, String>> seriesDancerPhrases() sync* {
+  for (final MapEntry(key: noun, value: byOrdinal)
+      in seriesDancerWords.entries) {
+    final pluralOnly = noun.endsWith('s');
+    for (final MapEntry(key: ordinal, value: token) in byOrdinal.entries) {
+      yield MapEntry('$ordinal $noun', token);
+      if (!pluralOnly) yield MapEntry('$ordinal ${noun}s', token);
+    }
+  }
 }
 
 /// How the figure display words a set direction (`ParamKind.direction`) that

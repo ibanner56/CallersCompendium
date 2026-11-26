@@ -8,7 +8,7 @@
   },
   "core": {
     "added": [
-      "ParamVocab.pairDancerSets gains prevRole1s, prevRole2s, nextRole1s and nextRole2s, each straight after prevNeighbors or nextNeighbors, joining the unreleased taxonomy v40. They read through squareRoleSelectorWords, so they take the dialect's role words, and seriesDancerWords reads them back from a figure's displayed text (\"next larks swing\"). They have no pair inverse or opposite."
+      "ParamVocab.pairDancerSets gains prevRole1s, prevRole2s, nextRole1s and nextRole2s, each straight after prevNeighbors or nextNeighbors, joining the unreleased taxonomy v40. They read through squareRoleSelectorWords, so they take the dialect's role words, and seriesDancerWords reads them back, plural only, from a figure's displayed text (\"next larks swing\"). They have no pair inverse or opposite."
     ],
     "fixed": [
       "A figure's plural subject (such as a hey's first pass) and a wording condition on a dancer param show a role selector in the dialect's role words (\"head larks\") instead of the canonical token."
