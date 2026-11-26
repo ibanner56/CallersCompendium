@@ -50,6 +50,22 @@ Future<ValueNotifier<bool>> _pump(
   return on;
 }
 
+/// Settings whose saved search reads fail while [failSearchReads] is set, as
+/// a damaged or locked store would.
+class _FailingSearchReadsSettings extends SettingsRepository {
+  _FailingSearchReadsSettings(super.db);
+
+  bool failSearchReads = false;
+
+  @override
+  Future<List<String>> keysWithPrefix(String prefix) {
+    if (failSearchReads && prefix == savedSearchKeyPrefix) {
+      throw StateError('saved searches unreadable');
+    }
+    return super.keysWithPrefix(prefix);
+  }
+}
+
 void main() {
   testWidgets('the switch is off by default and only in Experimental; on, it '
       'saves event_rules_enabled and shows Manage rules', (tester) async {
@@ -149,6 +165,75 @@ void main() {
     );
     expect(stored, isTrue);
     expect(active, isFalse, reason: 'Event rules is off by default');
+  });
+
+  testWidgets('a failed read of the saved search names still lists the rules, '
+      'flagging only a newer-version rule; the next read flags a gone search', (
+    tester,
+  ) async {
+    final db = openWidgetTestDatabase();
+    final settings = _FailingSearchReadsSettings(db);
+    final repos = CompendiumRepositories(
+      db,
+      contraTaxonomy,
+      settings: settings,
+    );
+    final becket = await repos.savedSearches.create(
+      name: 'Becket',
+      spec: _spec(),
+    );
+    await repos.eventRules.create(
+      savedSearchId: becket.id,
+      quantifier: EventRuleQuantifier.atMost,
+      count: 1,
+      scope: EventRuleScope.wholeProgram,
+    );
+    // Its saved search is not stored, as a sync can bring it.
+    await repos.eventRules.writeFromSync(
+      const EventRule(
+        id: 'rule-gone',
+        savedSearchId: 'search-gone',
+        quantifierName: 'atMost',
+        count: 1,
+        scopeName: 'wholeProgram',
+        nickname: 'Lost search',
+      ),
+    );
+    // A newer version of the app wrote it.
+    await repos.eventRules.writeFromSync(
+      EventRule(
+        id: 'rule-newer',
+        savedSearchId: becket.id,
+        quantifierName: 'mostly',
+        count: 1,
+        scopeName: 'wholeProgram',
+        nickname: 'From the future',
+      ),
+    );
+    settings.failSearchReads = true;
+    await _pump(tester, repos, const EventRulesScreen(), enabled: true);
+    await pumpUntilFound(tester, find.text('Lost search'));
+
+    Finder needsAttention(String id) => find.descendant(
+      of: find.byKey(ValueKey('event-rule-$id')),
+      matching: find.text('Needs attention'),
+    );
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('From the future'), findsOneWidget);
+    // Not read is not gone: no rule is flagged for its search.
+    expect(needsAttention('rule-gone'), findsNothing);
+    expect(needsAttention('rule-newer'), findsOneWidget);
+    expect(find.text('Needs attention'), findsOneWidget);
+
+    // The next change to the rules reads the names again.
+    settings.failSearchReads = false;
+    await repos.eventRules.create(
+      savedSearchId: becket.id,
+      quantifier: EventRuleQuantifier.none,
+      scope: EventRuleScope.beforeFirstBreak,
+    );
+    await pumpUntilFound(tester, needsAttention('rule-gone'));
+    expect(needsAttention('rule-newer'), findsOneWidget);
   });
 
   testWidgets('Manage rules adds, edits and deletes a rule, with Undo', (

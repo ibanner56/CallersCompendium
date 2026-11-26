@@ -38,19 +38,45 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
   List<EventRule>? _rules;
   Map<String, String> _searchNames = const {};
 
+  /// Whether [_searchNames] has been read at least once. Until it has, a
+  /// rule's missing name says nothing about its search, so no rule is shown
+  /// as needing attention for it.
+  bool _searchNamesKnown = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_subscription != null) return;
     final repos = RepositoriesScope.of(context);
-    _subscription = repos.eventRules.watchAll().listen((rules) async {
-      final names = await _savedSearchNames(repos);
-      if (!mounted) return;
-      setState(() {
-        _rules = rules;
-        _searchNames = names;
-      });
-    });
+    _subscription = repos.eventRules.watchAll().listen(
+      (rules) async {
+        // A failed read of the saved search names still lists the rules,
+        // with the names last read (or none), rather than never listing them.
+        Map<String, String>? names;
+        try {
+          names = await _savedSearchNames(repos);
+        } catch (error, stackTrace) {
+          logCaughtError(
+            error,
+            stackTrace,
+            source: 'event_rules_screen.search_names',
+          );
+        }
+        if (!mounted) return;
+        setState(() {
+          _rules = rules;
+          if (names != null) {
+            _searchNames = names;
+            _searchNamesKnown = true;
+          }
+        });
+      },
+      onError: (Object error, StackTrace stackTrace) => logCaughtError(
+        error,
+        stackTrace,
+        source: 'event_rules_screen.rules_watch',
+      ),
+    );
   }
 
   @override
@@ -125,6 +151,7 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
                     rule: rules[i],
                     index: i,
                     searchName: _searchNames[rules[i].savedSearchId],
+                    searchNamesKnown: _searchNamesKnown,
                     onTap: () => _edit(rules[i]),
                     onDelete: () => _delete(rules[i]),
                     onMoveUp: i == 0
@@ -181,6 +208,7 @@ class _EventRuleTile extends StatelessWidget {
     required this.rule,
     required this.index,
     required this.searchName,
+    required this.searchNamesKnown,
     required this.onTap,
     required this.onDelete,
     required this.onMoveUp,
@@ -190,6 +218,10 @@ class _EventRuleTile extends StatelessWidget {
   final EventRule rule;
   final int index;
   final String? searchName;
+
+  /// Whether the saved search names were read; while not, a rule is flagged
+  /// only for what it says itself (a newer version made it).
+  final bool searchNamesKnown;
   final VoidCallback onTap;
   final VoidCallback onDelete;
   final VoidCallback? onMoveUp;
@@ -200,7 +232,9 @@ class _EventRuleTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final sentence = eventRuleSentence(l10n, rule, searchName);
     final title = rule.nickname ?? sentence;
-    final attention = eventRuleListAttention(rule, searchName);
+    final attention = searchNamesKnown || !rule.isReadable
+        ? eventRuleListAttention(rule, searchName)
+        : null;
     return ListTile(
       leading: ReorderableDragStartListener(
         index: index,
