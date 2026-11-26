@@ -912,7 +912,6 @@ class DanceEditorController extends ChangeNotifier {
       phraseController.text = dance.phraseStructure.raw;
       formationDetailController.text = dance.formation.detail ?? '';
       meterController.text = dance.meter;
-      _statedBeatsPerBarSeen = statedBeatsPerBar;
       musicalKeyController.text = dance.musicalKey;
       alternateTitlesController.text = dance.alternateTitles.join('\n');
       barnesReferenceController.text = dance.barnesReference;
@@ -920,6 +919,7 @@ class DanceEditorController extends ChangeNotifier {
       newPartnerTextController.text = dance.newPartnerText;
       _improper = dance.formation.improper;
       _form = dance.form;
+      _statedBeatsPerBarSeen = _statedBeatsPerBarApplied;
       _followForm();
       _formationShape = dance.formation.shape;
       _progression = dance.progression;
@@ -1513,10 +1513,7 @@ class DanceEditorController extends ChangeNotifier {
     if (formationDetailController.text != s.formationDetail) {
       formationDetailController.text = s.formationDetail;
     }
-    if (meterController.text != s.meter) {
-      meterController.text = s.meter;
-      _statedBeatsPerBarSeen = statedBeatsPerBar;
-    }
+    if (meterController.text != s.meter) meterController.text = s.meter;
     if (musicalKeyController.text != s.musicalKey) {
       musicalKeyController.text = s.musicalKey;
     }
@@ -1535,6 +1532,7 @@ class DanceEditorController extends ChangeNotifier {
 
     // Enum fields.
     _form = s.form;
+    _statedBeatsPerBarSeen = _statedBeatsPerBarApplied;
     _formationShape = s.formationShape;
     _improper = s.improper;
     _progression = s.progression;
@@ -1967,12 +1965,19 @@ class DanceEditorController extends ChangeNotifier {
     _followForm();
     _fitSequenceTimingToForm(figureDrafts);
     _fitPhrasesToForm();
-    // A Meter typed while the dance was another form becomes the rule for its
-    // bars now, as if typed now: the phrases take its beats in this undo step.
-    if (from != value) {
-      if (_structureForMeter(statedBeatsPerBar) case final raw?) {
-        phraseController.text = raw;
+    // A Meter given while the dance was another form becomes the rule for
+    // its bars now, as if typed now: when it states other beats than it did
+    // when the dance was last English (or the dance never was), the phrases
+    // take them in this undo step. Away from English and back with the same
+    // Meter changes nothing (ADR-006 §9.2 point 8).
+    if (from != value && offersNamedPhrases) {
+      final perBar = statedBeatsPerBar;
+      if (perBar != _statedBeatsPerBarSeen) {
+        if (_structureForMeter(perBar) case final raw?) {
+          phraseController.text = raw;
+        }
       }
+      _statedBeatsPerBarSeen = perBar;
     }
     recomputeWarnings();
     pushUndoNow();
@@ -2907,10 +2912,18 @@ class DanceEditorController extends ChangeNotifier {
     scheduleAutosave();
   }
 
-  /// The beats in a bar the Meter stated when it was last loaded or edited, so
-  /// that [onMeterChanged] can tell a Meter that now states other beats from
-  /// one that only has more words in it.
+  /// The beats in a bar the Meter stated when it last counted the dance's bars
+  /// (loaded, restored or edited while the dance was English), so that
+  /// [onMeterChanged] and [setForm] can tell a Meter that now states other
+  /// beats from one that only has more words in it. Null while a dance of
+  /// another form has never been English here: its Meter has not counted its
+  /// bars, so making it English applies it.
   int? _statedBeatsPerBarSeen;
+
+  /// What [_statedBeatsPerBarSeen] starts as for the dance as loaded or
+  /// restored: the Meter's beats for an English dance, else none.
+  int? get _statedBeatsPerBarApplied =>
+      offersNamedPhrases ? statedBeatsPerBar : null;
 
   /// The Meter field changed. An English dance's phrases count their bars by
   /// it (Hudson, 19 November 2026: "the meter is the rule"; ADR-006), so a
@@ -2925,6 +2938,12 @@ class DanceEditorController extends ChangeNotifier {
   /// flattened, whatever the Meter says, and typing the Meter a character at
   /// a time cannot reach it.
   void onMeterChanged() {
+    // Another form's Meter counts no bars; [setForm] applies it if the dance
+    // is made English.
+    if (!offersNamedPhrases) {
+      onTextEdited();
+      return;
+    }
     final perBar = statedBeatsPerBar;
     final changed = perBar != _statedBeatsPerBarSeen;
     _statedBeatsPerBarSeen = perBar;
