@@ -2631,8 +2631,11 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       dialect.
     - **Scope.** Offered wherever `pairDancerSets` is the domain (most
       `who` and `whom` params, and hey's `pass2`), and not added to hey's
-      `meetTarget`, which lists its own pairs. Neither ContraDB nor The
-      Caller's Box writes them, so no importer produces them; the figure
+      `meetTarget`, which lists its own pairs. ContraDB does not write
+      them. The Caller's Box importer produces them from a neighbour number
+      before a role when only that role takes part (`N2 Men allemande left`
+      is `nextRole1s`), so an imported dance can hold one as well as a typed
+      figure; the figure
       readers do read the display's own words (`next larks`, `prev robins`)
       back, through `role1s` and `role2s` in `seriesDancerWords`, so a
       displayed figure reads back to its token (`figure_round_trip_test.dart`
@@ -2658,7 +2661,9 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       default when the figure is opened (the correcting branch of
       `figure_param_editors.dart`, read in the current code, not run on a v39
       build), so editing such a figure there loses it, as with v38's corners
-      and v24's partner series.
+      and v24's partner series. That reaches imported dances too: a Caller's
+      Box dance with an `N2 Men …` or `N0 Women …` line, imported on a v40
+      device, can hold one.
 
 ### ECD taxonomy versions
 

@@ -84,6 +84,18 @@ void main() {
       );
     });
 
+    test('"N2 men allemande left 1" is the next larks allemanding', () {
+      // Taxonomy v40 (user-ruled 2026-11-26): N2 before a role names the
+      // next neighbours' role, so the number is in `who`, not a note.
+      final turn = figuresOf(
+        draft.dance,
+      ).singleWhere((f) => f.move == 'allemande' && f.beats == 6);
+      expect(turn.params['who'], 'nextRole1s');
+      expect(turn.params['hand'], 'left');
+      expect(turn.params['travel'], 1.0);
+      expect(turn.note, isNull);
+    });
+
     test('beats are accurate: revolving door 6, swing 10, A1 total 16', () {
       final figs = figuresOf(draft.dance);
       // Parent beats (6), NOT the ContraDB 8 and NOT the child sum re-counted.

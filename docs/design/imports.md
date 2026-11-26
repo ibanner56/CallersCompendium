@@ -1843,7 +1843,10 @@ Which is which, derived from the code rather than from memory:
   amount, or a counter-rotation annotation). The front end also has a veto
   (`_tcbDeclineToCustom`): a single-file circle amount that is not a
   fraction, and a per-role amount (`(M 1 & 1/2, W 2)`). `_tcbNumberedRolePair`
-  (`N2 Men allemande …`, read as `Men allemande … [with N2]`) is the
+  (`N2 Men allemande …`, read as `next role1s allemande …` since taxonomy
+  v40 when only that role takes part; `N2 Men roll away neighbor`, done with
+  a neighbour, as `role1s roll away` with `whom: nextNeighbors`; otherwise as
+  `Men allemande … [with N3]`) is the
   falls-through kind too: it re-reads its rewritten line through the other
   entries as `_tcbCast` does, and passes on a `custom` result one of them
   returned, but it never makes one itself. `_asCouplesDoSiDo` (`As couples,

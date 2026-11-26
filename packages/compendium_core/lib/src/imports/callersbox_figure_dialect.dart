@@ -1,5 +1,6 @@
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/dance_vocabulary.dart' show seriesDancerWords;
 import '../taxonomy/move_def.dart';
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
@@ -94,8 +95,10 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     // `Hey 1/8 (WR)` is one pass by, so it must claim the line before [_hey].
     _eighthHey,
     _hey,
-    // `N2 Men allemande left 3/4` is `Men allemande left 3/4 [with N2]`. It
-    // reads the rest of the line through every other entry here.
+    // `N2 Men allemande left 3/4` is `next role1s allemande left 3/4`;
+    // `N2 Men roll away neighbor` is `role1s` rolling away `nextNeighbors`;
+    // anything else is read as `Men … [with N2]`. It reads the rest of the
+    // line through every other entry here.
     _tcbNumberedRolePair,
     _passTheOceanToWave,
     // `As couples, neighbor do si do` and `Partner Jersey twirl` read the rest
@@ -763,9 +766,24 @@ final RegExp _bareFallBackWithWho = RegExp(
   caseSensitive: false,
 );
 
-bool _areComplementaryRoles(String first, String second) =>
-    (first == 'role1s' && second == 'role2s') ||
-    (first == 'role2s' && second == 'role1s');
+/// Whether [incoming] and [fallingBack] are the two roles. The incoming side
+/// may be a role among numbered neighbours (`prevRole2s`, from `N0 Women …`),
+/// which counts as its role; the falling-back side must be a plain role, so a
+/// numbered one is never folded away.
+bool _areComplementaryRoles(String incoming, String fallingBack) {
+  final a = _baseRole(incoming);
+  return (a == 'role1s' && fallingBack == 'role2s') ||
+      (a == 'role2s' && fallingBack == 'role1s');
+}
+
+/// The role [token] names (`nextRole1s` → `role1s`), or [token] itself.
+String _baseRole(String token) => switch (_numberedRoleRe.firstMatch(token)) {
+  final m? => 'role${m[1]}s',
+  null => token,
+};
+
+/// A role among numbered neighbours (`nextRole1s`); group 1 is the role.
+final RegExp _numberedRoleRe = RegExp(r'^(?:prev|next)Role([12])s$');
 
 /// Fans a top-level `||` (simultaneity) line out into a [Figure.meanwhile]
 /// container (#591, part of the #572 epic): one side per `||`-clause, each
@@ -1272,10 +1290,32 @@ FigureMatch? _tcbCast(String scrubbed) {
 
 /// The Caller's Box's `N2 Men allemande left 3/4`: the two men (the larks)
 /// allemande, and `N2` says which two, the ones from neighbouring hands fours.
-/// It is the same line as `Men allemande left 3/4 [with N2]`, which this front
-/// end already reads (`who: role1s`, note `with nextNeighbors`), so it is read
-/// as that line. **`who` stays the role pair**: the allemande is still between
-/// the two larks, never between next neighbours *(user-ruled 2026-11-24)*.
+///
+/// Which set the number lands in depends on who does the figure *(user-ruled
+/// 2026-11-26, replacing the 2026-11-24 ruling that kept `who: role1s` with
+/// the number as a note; the neighbour set is preferred where it can be
+/// used)*:
+///
+/// * Done **with a neighbour** — the rest of the line, read with the role as
+///   its subject, has a counterpart param (`whom`, `who2`) naming the current
+///   neighbours, as written or by default (`N2 Men roll away neighbor`, a
+///   bare `N2 Men cross trails`; an explicit `N`, `N1` or `neighbor 1` is
+///   left as written): the
+///   role stays `who` and that
+///   param becomes the numbered neighbours (`whom: nextNeighbors`). Any
+///   number `N0`–`N4` reads this way.
+/// * **Only the two role1s or role2s take part** (`N2 Men allemande left
+///   3/4`) — no dancer param besides `who` is set or given a default by its
+///   move or alias, even `unspecified`: `who` is that
+///   role among those neighbours (`nextRole1s`; `N0 Women …` is
+///   `prevRole2s`), with no note. The token comes from [seriesDancerWords],
+///   so only a number the vocabulary has a role token for (`N0`, `N2`) reads
+///   this way.
+/// * Anything else (`N1`, `N3`, `N4` alone; a figure another dancer takes
+///   part in, such as a bare `N2 Men roll away`, done with partners; or a
+///   remainder whose re-read does not put the token in `who`) is read as
+///   `Men allemande left 3/4 [with N3]`: `who: role1s`, with the number kept
+///   as the note (`with thirdNeighbors`).
 ///
 /// Only a role pair (`role1s`, `role2s`) follows the number, and the number is
 /// one the notation resolves (`N0`–`N4`). `N2 same-role neighbor …` is not
@@ -1290,10 +1330,11 @@ FigureMatch? _tcbCast(String scrubbed) {
 /// annotation itself. An amount choice is the exception: `N2 Women allemande
 /// right (1 or 2)` reaches this entry with the choice already written into the
 /// line by `_amountAlternativeAnnotation`, which adds the choice to the note
-/// this entry returns. And the result must
-/// still carry the number as its note, or the line stays custom rather than
-/// losing it. *(Which numbers, and declining annotated remainders: agent's
-/// call.)*
+/// this entry returns. On the fallback reading the result must still carry
+/// the number as its note, or the line stays custom rather than losing it.
+/// *(Which numbers, declining annotated remainders, how a figure done with a
+/// neighbour is recognised, and falling back rather than going custom when
+/// neither reading applies: agent's call.)*
 FigureMatch? _tcbNumberedRolePair(String scrubbed) {
   final m = _numberedRolePairRe.firstMatch(scrubbed);
   if (m == null || scrubbed.contains('[') || scrubbed.contains('(')) {
@@ -1302,7 +1343,30 @@ FigureMatch? _tcbNumberedRolePair(String scrubbed) {
   final number = m[1]!.toUpperCase();
   final numbered = resolveDancerSetPhrase(number);
   if (numbered == null) return null;
-  final text = '${m[2]} ${m[3]!.trim()} [with $number]';
+  final pair = m[2]!.toLowerCase();
+  final rest = m[3]!.trim();
+  // The figure is done with a neighbour (`N2 Men roll away neighbor`): the
+  // number names which neighbours, and the role stays the subject.
+  final withNeighbor = _tcbReadWithout('$pair $rest', _tcbNumberedRolePair);
+  // An explicit `N1` (or `N`, `neighbor 1`) already names its neighbours, so
+  // it is not rewritten.
+  if (withNeighbor != null &&
+      !withNeighbor.forceCustom &&
+      withNeighbor.params['who'] == pair &&
+      !_explicitN1Re.hasMatch(rest)) {
+    final numberedNeighbor = _withNumberedNeighbors(withNeighbor, numbered);
+    if (numberedNeighbor != null) return numberedNeighbor;
+  }
+  if (_numberedRoleToken(numbered, pair) case (final ordinal, final token)) {
+    final inner = _tcbReadWithout('$ordinal $pair $rest', _tcbNumberedRolePair);
+    if (inner != null &&
+        !inner.forceCustom &&
+        inner.params['who'] == token &&
+        !_namesAnotherDancer(inner)) {
+      return inner;
+    }
+  }
+  final text = '${m[2]} $rest [with $number]';
   final inner = _tcbReadWithout(text, _tcbNumberedRolePair);
   if (inner == null || inner.forceCustom) return inner;
   // The number must survive as the note, canonical (`with nextNeighbors`) or
@@ -1313,6 +1377,81 @@ FigureMatch? _tcbNumberedRolePair(String scrubbed) {
     return null;
   }
   return inner;
+}
+
+/// The params that name who a figure is done **with** (`roll away whom`,
+/// `cross trails who2`). Only these take a numbered neighbour set: a
+/// promenade's `destination` is a place, not a dancer the figure is done
+/// with. *(Agent's call: the list is the counterpart params, not every
+/// dancer param that accepts the set.)*
+const Set<String> _counterpartParams = {'whom', 'who2'};
+
+/// [match] with its one counterpart param ([_counterpartParams]) that holds
+/// the current `neighbors` set changed to [numbered] (`nextNeighbors`), or
+/// `null` when no such param holds it or that param does not take
+/// [numbered].
+FigureMatch? _withNumberedNeighbors(FigureMatch match, String numbered) {
+  final specs = contraTaxonomy.resolve(match.moveId)?.params ?? const {};
+  final keys = [
+    for (final key in _counterpartParams)
+      if (specs[key] != null && _effective(match, key) == 'neighbors') key,
+  ];
+  if (keys.length != 1 || !(specs[keys.single]!.validate(numbered))) {
+    return null;
+  }
+  return FigureMatch(
+    match.moveId,
+    params: {...match.params, keys.single: numbered},
+    note: match.note,
+    assumedSubject: match.assumedSubject,
+  );
+}
+
+/// [key]'s value on [match]: as the line set it, else as its alias pins or
+/// defaults it (`hand_cast` is a `gate`), else as its move defaults it.
+Object? _effective(FigureMatch match, String key) {
+  final alias = contraTaxonomy.aliases[match.moveId];
+  return match.params[key] ??
+      alias?.pinnedParams[key] ??
+      alias?.defaultParams[key] ??
+      contraTaxonomy.resolve(match.moveId)?.params[key]?.defaultValue;
+}
+
+/// Whether [match] has another dancer than its `who` take part: a dancer
+/// param besides `who` that the line set, or that its alias or move gives a
+/// value (a bare `roll away` is done with partners; even an `unspecified`
+/// default counts, since the move names that dancer). Then the figure is not
+/// only the two role1s or role2s, so the role token does not apply.
+bool _namesAnotherDancer(FigureMatch match) {
+  final specs = contraTaxonomy.resolve(match.moveId)?.params ?? const {};
+  for (final MapEntry(key: key, value: spec) in specs.entries) {
+    if (key == 'who') continue;
+    if (spec.kind != ParamKind.dancerSet && spec.kind != ParamKind.dancerPair) {
+      continue;
+    }
+    if (_effective(match, key) != null) return true;
+  }
+  return false;
+}
+
+/// The current neighbours named by code (`N`, `N1`) or as `neighbor 1` in the
+/// rest of the line: explicit, so not rewritten to the numbered set.
+final RegExp _explicitN1Re = RegExp(
+  r'\bn1?\b|\bneighbou?rs?\s*1\b',
+  caseSensitive: false,
+);
+
+/// The ordinal word and role token [seriesDancerWords] gives the role [pair]
+/// among the neighbours [numbered] names (`nextNeighbors`, `role1s` →
+/// `next`, `nextRole1s`), or `null` when it has none.
+(String, String)? _numberedRoleToken(String numbered, String pair) {
+  final byOrdinal = seriesDancerWords['neighbor'] ?? const {};
+  for (final MapEntry(key: ordinal, value: neighbors) in byOrdinal.entries) {
+    if (neighbors != numbered) continue;
+    final token = seriesDancerWords[pair]?[ordinal];
+    if (token != null) return (ordinal, token);
+  }
+  return null;
 }
 
 /// `N2 role1s …`: the number (group 1), the pair (group 2) and the rest of
