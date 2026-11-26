@@ -2703,9 +2703,11 @@ ECD dance.
   hands (5) then L hands (6)`) is part of its words. A piece with no words of
   its own (a section label, `A1 (1-4) …`) joins the piece after it. The
   cc_bars_meter_unstated warning looks at every piece's range. A leading prefix that
-  totals the counts after it when the first piece starts with a bar range
-  (`(16) 1-4 partners set (5-8) turn single`) counts the line, not the first
-  piece, and is dropped; in `(4) X (4) Y` the prefix is X's. Unbracketed
+  totals the counts after it, when the first piece starts with a bar range
+  and the line splits at a further bracketed range (`(16) 1-4 partners set
+  (5-8) turn single`), counts the line, not the first piece, and is dropped;
+  over a line that does not split (`(16) 1-4 circle left (8) circle right`)
+  it stays in the text, and in `(4) X (4) Y` the prefix is X's. Unbracketed
   counts mid-line (`1-4 X 5-6 Y`, `[6]`) do not split: they are harder to
   tell from words, and a real library uses them on 17 of 1,437 lines against
   195 bracketed. The maintainer approved splitting imported English lines

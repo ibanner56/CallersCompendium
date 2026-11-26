@@ -1092,7 +1092,9 @@ bool callersCompanionDifficultyLabelMatches(
 /// the total of the counts after it (`(16) 1-4 partners set (5-8) turn
 /// single` at two beats a bar, [beatsPerBar]), is dropped rather than read
 /// as the first piece's count, when the first piece starts with a bar range
-/// of its own.
+/// of its own and the line splits at a further bracketed range (`(5-8)`).
+/// Over a line that does not split (`(16) 1-4 circle left (8) circle
+/// right`) the prefix is kept in its text.
 ///
 /// The English path only: a contra line keeps its single-line reading
 /// (comma splitting, [splitCallersCompanionCommaLine]).
