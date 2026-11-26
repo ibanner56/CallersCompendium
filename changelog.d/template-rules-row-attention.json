@@ -1,0 +1,9 @@
+{
+  "id": "template-rules-row-attention",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Event rules (Experimental): a program template's Rules row now marks a rule Needs attention, as Manage rules does, when its saved search was deleted or can't be read, or a newer version of the app made it. The row no longer shows a rule's saved search as \"…\" while it is still loading."
+    ]
+  }
+}
