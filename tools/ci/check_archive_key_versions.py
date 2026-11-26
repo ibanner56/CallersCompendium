@@ -44,8 +44,9 @@ seen either; build the map as one literal.
 
 What this does not check: that the case actually tests for the key's data.
 That a constant is named is enforced; that its condition is the right one is a
-review concern, as is the value for a key the share archive writes unstamped
-by design (#1885).
+review concern, as is a key whose constant is the backup envelope's: core
+share mode would write it unstamped, so a share file relies on the app's share
+sanitizer leaving it out.
 
 Exit codes: 0 = clean, 1 = at least one unclassified, stale or unbacked entry,
 2 = bad input.

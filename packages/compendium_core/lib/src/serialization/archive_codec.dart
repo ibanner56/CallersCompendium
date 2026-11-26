@@ -90,10 +90,12 @@ Map<String, Object?> archiveToJson(
     for (final f in archive.customFields)
       if (!customFieldLeavesIn(f, mode)) f.id,
   };
-  // Share mode never writes `deletedTags`, so they must not raise the stamp.
+  // Share mode never writes `deletedTags`, and backup mode never writes
+  // `userFigures`, so neither raises the stamp in the mode that omits it.
   final requiredVersion = requiredSchemaVersion(
     archive,
     includeDeletedTags: mode == ArchiveSerializationMode.backup,
+    includeUserFigures: mode == ArchiveSerializationMode.share,
   );
   return {
     // Stamp at least the version the content requires so an older reader warns
@@ -161,8 +163,8 @@ Map<String, Object?> archiveToJson(
       ],
     // The user's own new figures the dances use (#1023): shared so the
     // receiver can add them. A backup carries the whole glossary in its own
-    // section, so this is share mode only. Omitted when empty, and never a
-    // version bump (see `archiveSchemaVersion`).
+    // section, so this is share mode only. Omitted when empty; when written,
+    // it stamps `archiveSchemaVersionUserFigures`.
     if (mode == ArchiveSerializationMode.share &&
         archive.userFigures.isNotEmpty)
       'userFigures': [

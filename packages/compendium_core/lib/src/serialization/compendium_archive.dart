@@ -63,18 +63,10 @@ const DeepCollectionEquality _deepEq = DeepCollectionEquality();
 ///   Also a program's times, `startMinute`, `endMinute`, `lessonMinute` and
 ///   `arrivalMinute` (#2350), which joined v8 while it was unreleased. See
 ///   [archiveSchemaVersionProgramTimes].
-///
-/// **Not versioned:** a shared archive's `userFigures` section, the
-/// definitions of the user's own new figures its dances use (#1023, see
-/// [CompendiumArchive.userFigures]), is written without a bump, by the
-/// maintainer's decision. Every build before the one that added the section
-/// refuses a newer archive opened from the share sheet or "Open with", so a
-/// bump would keep a bundle carrying figures out of those builds there (their
-/// Import screen still reads it, with a warning). Without one, an older reader
-/// ignores the unknown key and imports the dances, each use of a figure as the
-/// line it carries. That build also stopped the share intake refusing a newer
-/// archive, so a later build can bump for this section and have readers from
-/// then on warn, as the earlier bumps intended.
+///   Also a shared archive's `userFigures` section (#1023), written
+///   unversioned from #1804 and stamped from #1885, which joined v8 while it
+///   was unreleased: the stamp waited until no supported build refused a
+///   newer archive at the share sheet. See [archiveSchemaVersionUserFigures].
 const int archiveSchemaVersion = archiveSchemaVersionEcdDanceFields;
 
 /// The original, pre-venue archive envelope version.
@@ -187,6 +179,30 @@ const int archiveSchemaVersionProgramTimes = 8;
 /// not shipped when this joined it.
 const int archiveSchemaVersionEventRules = 8;
 
+/// The envelope version a shared archive's `userFigures` section is stamped
+/// under: the definitions of the user's own new figures its dances use
+/// (#1023, see [CompendiumArchive.userFigures]).
+///
+/// A reader that predates the section ignores the unknown key and imports the
+/// dances, each use of a figure as the stored line of plain text it carries,
+/// and drops the definitions without a word. The stamp makes it warn instead.
+/// Stamped only when the section is written: in share mode, and only when a
+/// figure is carried. A backup never writes the section (it carries the whole
+/// glossary in its own), so it is never stamped on its account.
+///
+/// From #1804 until #1885 the section was written unversioned, by the
+/// maintainer's decision: every build through 0.7.0 refuses a newer archive
+/// opened from the share sheet or "Open with", so a stamp would have kept a
+/// bundle carrying figures out of those builds there. #1804 also made the
+/// share intake let a newer archive through to the review, and every release
+/// from 0.8.0 has it, so the stamp waited for 0.7.0's end of life
+/// (2026-11-30) and is for releases cut after it.
+///
+/// The same number as [archiveSchemaVersionEcdDanceFields] on purpose: v8 had
+/// not shipped when this joined it, and no released build reads the section's
+/// stamp differently, so a separate number would protect no extra build.
+const int archiveSchemaVersionUserFigures = 8;
+
 /// Whether [dance] carries anything only a v8 reader understands
 /// ([archiveSchemaVersionEcdDanceFields]).
 bool _hasEcdDanceFields(Dance dance) =>
@@ -210,7 +226,7 @@ bool _hasEcdDanceFields(Dance dance) =>
 /// it carries a purge-caption marker, [archiveSchemaVersionDifficultyLevels]
 /// when it carries configured difficulty levels or a dance-level ID,
 /// [archiveSchemaVersionVenues] when it carries any venue data, otherwise
-/// [archiveSchemaVersionBase].
+/// [archiveSchemaVersionBase]; and higher versions for the later cases below.
 ///
 /// The encoder stamps the wire version at `max(archive.schemaVersion, this)` so
 /// venue-bearing archives always advertise v2 (old readers warn instead of
@@ -220,9 +236,16 @@ bool _hasEcdDanceFields(Dance dance) =>
 /// [includeDeletedTags] is `false` when the archive is being encoded for
 /// sharing, where `deletedTags` is never written, so it must not raise the
 /// stamp either.
+///
+/// [includeUserFigures] is `true` only when the archive is being encoded for
+/// sharing, the one mode that writes `userFigures`
+/// ([archiveSchemaVersionUserFigures]). It defaults to `false` so that a call
+/// without it returns what it did before the section was stamped: the section
+/// raises the stamp only where the encoder says it is written.
 int requiredSchemaVersion(
   CompendiumArchive archive, {
   bool includeDeletedTags = true,
+  bool includeUserFigures = false,
 }) {
   final hasDifficulty =
       archive.difficultyLevels.isNotEmpty ||
@@ -231,7 +254,8 @@ int requiredSchemaVersion(
     (p) => p.slots.any((s) => s.isPurgedDance != null),
   );
   // Checked highest-version first, so the first match wins: an ECD dance field
-  // requires v8, a tombstoned tag requires v7, an undecodable tune
+  // or a carried figure of the user's own requires v8, a tombstoned tag
+  // requires v7, an undecodable tune
   // list requires v6, and only if there is none does an undecodable
   // transcription pull the archive to v5. Keep new cases in descending version
   // order or a lower version will shadow a higher one.
@@ -243,6 +267,9 @@ int requiredSchemaVersion(
   }
   if (archive.programs.any((p) => p.eventRuleIds.isNotEmpty)) {
     return archiveSchemaVersionEventRules;
+  }
+  if (includeUserFigures && archive.userFigures.isNotEmpty) {
+    return archiveSchemaVersionUserFigures;
   }
   if (includeDeletedTags && archive.deletedTags.isNotEmpty) {
     return archiveSchemaVersionDeletedTags;
@@ -334,8 +361,8 @@ class CompendiumArchive {
   /// The user's own new figures (#1023) the dances use, as `customFigure`
   /// entries without notes: what a shared archive carries so the receiver can
   /// add them (plan C12). Written in share mode only; a backup carries the
-  /// whole glossary in its own section. Not versioned: see
-  /// [archiveSchemaVersion].
+  /// whole glossary in its own section. When written, it stamps
+  /// [archiveSchemaVersionUserFigures].
   final List<UserGlossaryEntry> userFigures;
 
   @override
