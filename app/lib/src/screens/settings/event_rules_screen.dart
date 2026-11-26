@@ -15,7 +15,8 @@ import '../../widgets/app_dropdown_field.dart';
 import '../../widgets/event_rule_text.dart';
 import '../../widgets/reorder_move_buttons.dart';
 
-/// The names of the readable saved searches, by id, read once for a screen.
+/// The names of the readable saved searches, by id, read again with each
+/// change to the rules.
 Future<Map<String, String>> _savedSearchNames(
   CompendiumRepositories repos,
 ) async => {
@@ -38,9 +39,10 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
   List<EventRule>? _rules;
   Map<String, String> _searchNames = const {};
 
-  /// Whether [_searchNames] has been read at least once. Until it has, a
-  /// rule's missing name says nothing about its search, so no rule is shown
-  /// as needing attention for it.
+  /// Whether [_searchNames] is the latest read's. After a failed read it is
+  /// the last good read's (or empty), which may miss a search a sync has
+  /// just brought or still hold one deleted since, so no rule is shown as
+  /// needing attention for its search until a read succeeds.
   bool _searchNamesKnown = false;
 
   @override
@@ -51,7 +53,8 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
     _subscription = repos.eventRules.watchAll().listen(
       (rules) async {
         // A failed read of the saved search names still lists the rules,
-        // with the names last read (or none), rather than never listing them.
+        // named with the names last read (or none), rather than never
+        // listing them; it flags no rule for its search.
         Map<String, String>? names;
         try {
           names = await _savedSearchNames(repos);
@@ -65,10 +68,8 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
         if (!mounted) return;
         setState(() {
           _rules = rules;
-          if (names != null) {
-            _searchNames = names;
-            _searchNamesKnown = true;
-          }
+          _searchNamesKnown = names != null;
+          if (names != null) _searchNames = names;
         });
       },
       onError: (Object error, StackTrace stackTrace) => logCaughtError(

@@ -168,7 +168,7 @@ void main() {
   });
 
   testWidgets('a failed read of the saved search names still lists the rules, '
-      'flagging only a newer-version rule; the next read flags a gone search', (
+      'flagging only a newer-version rule; a good read flags a gone search', (
     tester,
   ) async {
     final db = openWidgetTestDatabase();
@@ -233,6 +233,28 @@ void main() {
       scope: EventRuleScope.beforeFirstBreak,
     );
     await pumpUntilFound(tester, needsAttention('rule-gone'));
+    expect(needsAttention('rule-newer'), findsOneWidget);
+
+    // A later failed read: a rule a sync brings with a new saved search is
+    // not flagged from the names last read, which lack that search.
+    final late = await repos.savedSearches.create(
+      name: 'Late search',
+      spec: _spec(),
+    );
+    settings.failSearchReads = true;
+    await repos.eventRules.writeFromSync(
+      EventRule(
+        id: 'rule-late',
+        savedSearchId: late.id,
+        quantifierName: 'atMost',
+        count: 1,
+        scopeName: 'wholeProgram',
+        nickname: 'Late rule',
+      ),
+    );
+    await pumpUntilFound(tester, find.text('Late rule'));
+    expect(needsAttention('rule-late'), findsNothing);
+    expect(needsAttention('rule-gone'), findsNothing);
     expect(needsAttention('rule-newer'), findsOneWidget);
   });
 
