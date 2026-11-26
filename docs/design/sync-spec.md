@@ -729,14 +729,21 @@ Canonical JSON means:
 - no insignificant whitespace;
 - envelope fields always present, `null` where empty;
 - body fields: explicit `null` for an empty `shareable` field, omission **only**
-  for a field that is not `shareable`, with one exception: a dance's `meter`,
-  `musicalKey`, `formation.improper`, `interpreterIds`, `interpretedOn`,
-  `alternateTitles` and `barnesReference` (schema v42) are omitted when they
-  hold their default (`''`, `''`, `false`, `[]`, `null`, `[]`, `''`), as are
-  the square fields `squareKind` (`main`), `repeatOrder` and `newPartner`
-  (`unstated`), `repeatOrderText` and `newPartnerText` (`''`), `singing`
-  (`false`) and `freeForm` (`null`, following the kind), and a receiver reads
-  a missing one as that default (§6.7);
+  for a field that is not `shareable`, with these exceptions, each omitted
+  when it holds its default and read by a receiver as that default when
+  missing (§6.7):
+  - a dance's `meter`, `musicalKey`, `formation.improper`, `interpreterIds`,
+    `interpretedOn`, `alternateTitles` and `barnesReference` (schema v42),
+    whose defaults are `''`, `''`, `false`, `[]`, `null`, `[]` and `''`, and
+    the square fields `squareKind` (`main`), `repeatOrder` and `newPartner`
+    (`unstated`), `repeatOrderText` and `newPartnerText` (`''`), `singing`
+    (`false`) and `freeForm` (`null`, following the kind);
+  - a program's `dialectName`, `payMinorUnits` and `payCurrency` (omitted
+    this way since before v0.10.0-beta), and `archivedAt`, `startMinute`,
+    `endMinute`, `lessonMinute`, `arrivalMinute`, `calendarEventKey`,
+    `calendarEventFingerprint`, `calendarWrittenAt` and `calendarFlag`, all
+    `null`, and `eventRuleIds` (`[]`) (`omittedProgramDefaults`);
+  - an event rule's `nickname` (`null`; `omittedEventRuleDefaults`);
 - **timestamps emitted at exactly one-tick precision** (§2), UTC, with the
   sub-tick component always zero;
 - **all strings in Unicode NFC**, normalised on write as described below.
@@ -4028,6 +4035,17 @@ when present and drops it when absent, which gives the same result. Decided by
 Claude while implementing ADR-006 W3; the rejected alternative, always sending
 the keys as this section otherwise requires, changes every dance's body at once
 and leaves every dance with kept parts on an older device.
+
+The program and event rule keys §4.1 lists (`omittedProgramDefaults`,
+`omittedEventRuleDefaults`) follow the same rule, for the same reason, and are
+filled in the same way, so a program un-archived on one device is un-archived
+on the others. A v0.10.0-beta peer
+keeps the program keys it does not know and sends them back when it edits the
+program, so its edit does not clear them here; it does know `dialectName` and
+the pay keys, and still keeps a value another device cleared until it updates.
+Decided by Claude, not the maintainer, in a pre-release audit; the rejected
+alternative, sending an explicit `null`, changes every program's body and
+content hash at once.
 
 `interpreterIds` cites choreographers as `authorIds` does: identity
 reconciliation rewrites it, a dance naming a choreographer the receiver lacks
