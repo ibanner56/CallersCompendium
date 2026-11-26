@@ -696,7 +696,7 @@ void main() {
     });
 
     test('a file of English dances reads a Contra-typed dance as English, '
-        'a square as a square', () {
+        'and a square as English in a square set', () {
       final english = mapCallersCompanionDance(
         record(),
         englishDances: true,
@@ -706,9 +706,227 @@ void main() {
         record(type: 'Square'),
         englishDances: true,
       ).dance;
-      expect(square.form, DanceForm.square);
+      expect(square.form, DanceForm.ecd);
+      expect(square.formation, const Formation(FormationShape.square));
       // Without the answer, the Type rules.
       expect(mapCallersCompanionDance(record()).dance.form, DanceForm.contra);
+      expect(
+        mapCallersCompanionDance(record(type: 'Square')).dance.form,
+        DanceForm.square,
+      );
+    });
+
+    group('an English square set', () {
+      Dance mapped(CcDanceRecord r) =>
+          mapCallersCompanionDance(r, englishDances: true).dance;
+
+      test('takes the square shape from its Type, whatever its formation, '
+          'keeping what its formation said', () {
+        final newcastle = mapped(
+          CcDanceRecord(
+            name: 'Newcastle',
+            type: 'Square',
+            formationFamily: 'Quadruplet',
+            formationOther: 'Four couples, first couple facing down',
+            fromUsrColumns: true,
+          ),
+        );
+        expect(newcastle.form, DanceForm.ecd);
+        expect(
+          newcastle.formation,
+          const Formation(
+            FormationShape.square,
+            detail: 'Quadruplet; Four couples, first couple facing down',
+          ),
+        );
+      });
+
+      test('takes it from a Square formation under another Type', () {
+        final dance = mapped(
+          CcDanceRecord(
+            name: 'Square Set',
+            type: 'Contra',
+            formationFamily: 'Square',
+            fromUsrColumns: true,
+          ),
+        );
+        expect(dance.formation, const Formation(FormationShape.square));
+      });
+
+      test('reads the text export\'s Square formation the same way', () {
+        final dance = mapped(
+          CcDanceRecord(
+            name: 'Square Set',
+            type: 'Square',
+            formation: 'Square',
+          ),
+        );
+        expect(dance.form, DanceForm.ecd);
+        expect(dance.formation, const Formation(FormationShape.square));
+      });
+
+      test('keeps a formation family it does not know as the detail, '
+          'as its warning says', () {
+        final mapping = mapCallersCompanionDance(
+          CcDanceRecord(
+            name: 'Hex',
+            type: 'Square',
+            formationFamily: 'Hexagon',
+            fromUsrColumns: true,
+          ),
+          englishDances: true,
+        );
+        expect(
+          mapping.dance.formation,
+          const Formation(FormationShape.square, detail: 'Hexagon'),
+        );
+        // The family is not a square's, so its warning stays.
+        expect(
+          mapping.issues.map((i) => i.code),
+          contains('cc_unmapped_formation'),
+        );
+      });
+
+      test('reads a .USR square set named only in its own description', () {
+        final dance = mapped(
+          CcDanceRecord(
+            name: 'Set',
+            type: 'Contra',
+            formationOther: 'Squares',
+            fromUsrColumns: true,
+          ),
+        );
+        expect(
+          dance.formation,
+          const Formation(FormationShape.square, detail: 'Squares'),
+        );
+      });
+
+      test('keeps a square\'s start and direction in the detail', () {
+        final dance = mapped(
+          CcDanceRecord(
+            name: 'Set',
+            type: 'Square',
+            contraForm: 'Becket',
+            direction: 'CCW',
+            fromUsrColumns: true,
+          ),
+        );
+        expect(
+          dance.formation,
+          const Formation(FormationShape.square, detail: 'Becket; CCW'),
+        );
+      });
+
+      test('a square in a big circle keeps the circle', () {
+        final dance = mapped(
+          CcDanceRecord(
+            name: 'Big Set',
+            type: 'Square',
+            formationFamily: 'Circle',
+            fromUsrColumns: true,
+          ),
+        );
+        expect(dance.form, DanceForm.ecd);
+        expect(dance.formation.shape, FormationShape.circle);
+      });
+
+      test('keeps the repeat order its SubType names', () {
+        final dance = mapped(
+          CcDanceRecord(
+            name: 'Keeper',
+            type: 'Square',
+            subType: 'Keeper, H S H S',
+            formationFamily: 'Square',
+            fromUsrColumns: true,
+          ),
+        );
+        expect(dance.repeatOrder, SquareRepeatOrder.headsSidesHeadsSides);
+      });
+
+      test('reads a text formation naming a square set, with no warning', () {
+        final mapping = mapCallersCompanionDance(
+          CcDanceRecord(name: 'Set', type: 'Contra', formation: 'Square set'),
+          englishDances: true,
+        );
+        expect(
+          mapping.dance.formation,
+          const Formation(FormationShape.square, detail: 'Square set'),
+        );
+        expect(
+          mapping.issues.map((i) => i.code),
+          isNot(contains('cc_unmapped_formation')),
+        );
+      });
+
+      test('a square\'s mixer SubType still marks a mixer', () {
+        final dance = mapped(
+          CcDanceRecord(
+            name: 'Mixer Square',
+            type: 'Square',
+            subType: 'Mixer, H H S S',
+            formationFamily: 'Square',
+            fromUsrColumns: true,
+          ),
+        );
+        expect(dance.mixer, isTrue);
+        expect(dance.formation.shape, FormationShape.square);
+      });
+    });
+
+    test('an English circle mixer is a circle that mixes', () {
+      final usr = mapCallersCompanionDance(
+        CcDanceRecord(
+          name: 'Wood Duck',
+          type: 'Circle Mixer',
+          formationFamily: 'Duple Minor',
+          fromUsrColumns: true,
+        ),
+        englishDances: true,
+      ).dance;
+      expect(usr.form, DanceForm.ecd);
+      expect(usr.formation.shape, FormationShape.circle);
+      expect(usr.mixer, isTrue);
+
+      // A circle by its formation alone is a circle, not a mixer: the text
+      // export reads any "circle" as a circle mixer, and Sellenger's Round
+      // does not mix.
+      for (final (r, english) in [
+        (
+          CcDanceRecord(
+            name: 'Sellenger’s Round',
+            type: 'Contra',
+            formation: 'Circle',
+          ),
+          true,
+        ),
+        (
+          CcDanceRecord(
+            name: 'Sellenger’s Round',
+            type: 'English',
+            formationFamily: 'Circle',
+            fromUsrColumns: true,
+          ),
+          false,
+        ),
+      ]) {
+        final dance = mapCallersCompanionDance(r, englishDances: english).dance;
+        expect(dance.form, DanceForm.ecd);
+        expect(dance.formation.shape, FormationShape.circle);
+        expect(dance.mixer, isFalse);
+      }
+
+      // A text formation that says "mixer" is one: the text export has no
+      // Type to say it.
+      final named = mapCallersCompanionDance(
+        CcDanceRecord(
+          name: 'Mixer',
+          type: 'English',
+          formation: 'Circle mixer',
+        ),
+      ).dance;
+      expect(named.formation.shape, FormationShape.circle);
+      expect(named.mixer, isTrue);
     });
 
     test('an unknown Type read as English raises no "imported as a contra" '

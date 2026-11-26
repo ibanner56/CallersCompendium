@@ -8868,7 +8868,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importUsrEnglishBody =>
-      'Caller\'s Companion führt englische Country Dances oft als Contra. Enthält diese Datei englische Tänze, werden sie mit englischen Figuren, Aufstellungen und Taktzählungen gelesen. Square Dances bleiben Square Dances.';
+      'Caller\'s Companion führt englische Country Dances oft als Contra. Enthält diese Datei englische Tänze, werden sie mit englischen Figuren, Aufstellungen und Taktzählungen gelesen, und ein als Square geführter Tanz wird zu einem englischen Tanz in einem Square-Set.';
 
   @override
   String get importUsrEnglishNo => 'Nein, nach Typ lesen';

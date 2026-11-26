@@ -441,15 +441,19 @@ CcDanceMapping mapCallersCompanionDance(
   final usr = record.fromUsrColumns;
 
   // Type → DanceForm, best-effort; unknown types are preserved as a note.
-  // A file the person says holds English dances reads every dance that is not
-  // a square as English, whatever its Type says (Hudson, 19 November 2026: a
-  // Caller's Companion library often types its English dances "Contra").
+  // A file the person says holds English dances reads every dance as English,
+  // whatever its Type says (Hudson, 19 November 2026: a Caller's Companion
+  // library often types its English dances "Contra"), a square included: an
+  // English library's squares are English dances in a square set, such as
+  // Newcastle (the maintainer, 26 November 2026).
   final (mappedForm, typeNote) = _mapForm(
     record.type,
     issues,
     typeIsFormation: usr,
   );
-  final form = englishDances && mappedForm == DanceForm.contra
+  final form =
+      englishDances &&
+          (mappedForm == DanceForm.contra || mappedForm == DanceForm.square)
       ? DanceForm.ecd
       : mappedForm;
   // An unknown Type was read as English, not "imported as a contra": its
@@ -461,16 +465,28 @@ CcDanceMapping mapCallersCompanionDance(
   // Formation → FormationShape, preserving unmapped text as detail. An
   // English dance takes the ECD shape its contra shape names (ADR-006 W6).
   final formation = form == DanceForm.ecd
-      ? _mapEcdFormation(record, usr, issues)
+      ? _mapEcdFormation(
+          record,
+          usr,
+          issues,
+          squareType: mappedForm == DanceForm.square,
+        )
       : usr
       ? _mapFormationColumns(record, issues)
       : _mapFormation(record.formation, issues);
   // A CC mixer is a Type ("Circle Mixer", "Scatter Mixer") or a square's
-  // SubType ("Mixer, H H S S").
-  final mixer = usr && _isCcMixer(record);
+  // SubType ("Mixer, H H S S"). An English circle mixer keeps the flag on
+  // its circle, since ECD has no circle-mixer shape.
+  // The text export has no Type for it, so an English dance there is a mixer
+  // when its formation says so ("Circle mixer"), not for a circle alone.
+  final mixer = usr
+      ? _isCcMixer(record)
+      : form == DanceForm.ecd &&
+            _ccMixerWord.hasMatch(_sanitizeLine(record.formation) ?? '');
   // A square's SubType also names its repeat order ("Keeper, H S H S"), the
-  // way American Country Dances On-Line files its squares (ADR-007 §8.1).
-  final repeatOrder = form == DanceForm.square
+  // way American Country Dances On-Line files its squares (ADR-007 §8.1),
+  // and a square read as English keeps it.
+  final repeatOrder = mappedForm == DanceForm.square
       ? ccSquareRepeatOrder(record.subType)
       : SquareRepeatOrder.unstated;
 
@@ -1412,6 +1428,66 @@ Formation _mapFormationColumns(CcDanceRecord r, List<ImportIssue> issues) {
 Formation _mapEcdFormation(
   CcDanceRecord record,
   bool usr,
+  List<ImportIssue> issues, {
+  required bool squareType,
+}) {
+  final issuesBefore = issues.length;
+  final formation = _mapEcdShape(record, usr, issues);
+  final family = usr ? (_sanitizeLine(record.formationFamily) ?? '') : '';
+  final text = usr ? '' : (_sanitizeLine(record.formation) ?? '');
+  final own = usr ? _sanitizeLine(record.formationOther) : null;
+  final start = usr ? _sanitizeLine(record.contraForm) : null;
+  final direction = usr ? _sanitizeLine(record.direction) : null;
+  // A `.USR` with no family and no start is read from the caller's own
+  // description, as the text export's single string is (#1972).
+  final squareFamily = usr
+      ? family.toLowerCase() == 'square' ||
+            (family.isEmpty &&
+                start == null &&
+                _ccSquareWord.hasMatch(own ?? ''))
+      : _ccSquareWord.hasMatch(text);
+  if (!squareType && !squareFamily) return formation;
+  // A square in a big circle keeps the circle, which squares use for it
+  // (ADR-007 §8.1).
+  if (formation.shape == FormationShape.circle) return formation;
+  // Otherwise it is danced in a square set: ECD's square shape. What the
+  // source said of its formation, past the word "Square" the shape now
+  // carries, stays as the detail, so a formation the importer did not know
+  // is kept, as its warning says, and one it now places raises none.
+  if (squareFamily) {
+    final added = issues.sublist(issuesBefore)
+      ..removeWhere((issue) => issue.code == 'cc_unmapped_formation');
+    issues
+      ..removeRange(issuesBefore, issues.length)
+      ..addAll(added);
+  }
+  final parts = <String>[
+    if (family.isNotEmpty && family.toLowerCase() != 'square') family,
+    ?start,
+    ?direction,
+    if (text.isNotEmpty && text.toLowerCase() != 'square') text,
+    if (own != null && own.toLowerCase() != 'square') own,
+  ];
+  return Formation(
+    FormationShape.square,
+    detail: parts.isEmpty ? null : parts.join('; '),
+  );
+}
+
+/// A formation text that names a square ("Square", "Square set").
+final RegExp _ccSquareWord = RegExp(r'\bsquares?\b', caseSensitive: false);
+
+/// A formation text that names a mixer ("Circle mixer").
+final RegExp _ccMixerWord = RegExp(r'\bmixer\b', caseSensitive: false);
+
+/// The ECD shape [record]'s contra shape names ([ecdFormationFromContra]).
+/// A contra circle mixer is an ECD circle, since ECD has no circle-mixer
+/// shape; whether the dance mixes is its Type's to say ([_isCcMixer]), not
+/// the formation's, since the text export reads any "circle" as a circle
+/// mixer.
+Formation _mapEcdShape(
+  CcDanceRecord record,
+  bool usr,
   List<ImportIssue> issues,
 ) {
   final text = (_sanitizeLine(record.formation) ?? '').toLowerCase();
@@ -1428,6 +1504,9 @@ Formation _mapEcdFormation(
             )
       : text.contains('improper');
   final mapped = ecdFormationFromContra(source);
+  if (source.shape == FormationShape.circleMixer) {
+    return mapped.copyWith(shape: FormationShape.circle);
+  }
   if (source.shape == FormationShape.dupleImproper && !statesImproper) {
     return mapped.copyWith(improper: false);
   }

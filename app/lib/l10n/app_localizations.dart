@@ -13009,7 +13009,7 @@ abstract class AppLocalizations {
   /// Body of the English-dances question for a Caller's Companion .USR file. 'Contra' is the Type value the other app shows.
   ///
   /// In en, this message translates to:
-  /// **'Caller\'s Companion often lists English country dances as Contra. If this file holds English dances, they\'re read with English figures, formations and bar counts. Square dances stay squares.'**
+  /// **'Caller\'s Companion often lists English country dances as Contra. If this file holds English dances, they\'re read with English figures, formations and bar counts, and a dance typed Square becomes an English dance in a square set.'**
   String get importUsrEnglishBody;
 
   /// Answer: the file's dances are read by the Type each one has in the file.
@@ -13018,7 +13018,7 @@ abstract class AppLocalizations {
   /// **'No, read their types'**
   String get importUsrEnglishNo;
 
-  /// Answer: every dance in the file except squares is read as an English country dance.
+  /// Answer: every dance in the file, squares included, is read as an English country dance.
   ///
   /// In en, this message translates to:
   /// **'Yes, English dances'**

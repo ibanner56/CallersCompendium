@@ -8566,9 +8566,9 @@
   "@importUsrEnglishTitle": {
     "x-sourceSha256": "4ccb8d548911fe8a939c5c7baf01eb8662cb28fe120d64ae579dcdeb47928c7e"
   },
-  "importUsrEnglishBody": "Caller's Companion angiver ofte engelske country dances som Contra. Hvis filen indeholder engelske danse, læses de med engelske figurer, formationer og taktantal. Squaredanse forbliver squaredanse.",
+  "importUsrEnglishBody": "Caller's Companion angiver ofte engelske country dances som Contra. Hvis filen indeholder engelske danse, læses de med engelske figurer, formationer og taktantal, og en dans angivet som Square bliver en engelsk dans i et squaresæt.",
   "@importUsrEnglishBody": {
-    "x-sourceSha256": "e0d3b4c20184559722ab1fb3b63da0d68f20136edc897b8a1a73276599da3759"
+    "x-sourceSha256": "722d3f38bf7d6258d236dd5203b0244c02c53754f979386f44bd588cd6061304"
   },
   "importUsrEnglishNo": "Nej, læs deres typer",
   "@importUsrEnglishNo": {

@@ -662,8 +662,14 @@ say Improper comes across proper.
 
 Many Caller's Companion libraries of English dances type them all "Contra",
 so before reading a `.USR` file the app asks once: **Are these English country
-dances?** Choose **Yes, English dances** and every dance in the file but a
-square comes across as an English country dance; choose **No, read their
+dances?** Choose **Yes, English dances** and every dance in the file comes
+across as an English country dance. A dance typed Square, or with a Square
+formation, becomes an English dance in a square set, as Newcastle is,
+keeping what Caller's Companion said of its formation as the formation's
+description and the repeat order its SubType names; a square in a big circle
+stays a circle. A dance typed Circle Mixer becomes a circle marked as a mixer.
+A dance typed English is read the same way whichever you answer, so one with a
+Square formation is an English dance in a square set. Choose **No, read their
 types** and each dance comes across by its Type, as above. Closing the question reads nothing, and choosing the file
 again asks again. Re-importing a dance you first brought in with the other
 answer takes the form along with the figures, so a contra dance re-imported

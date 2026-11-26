@@ -90,8 +90,8 @@ class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
   /// The [ImportRequest.options] key that marks a file whose dances are
   /// English Country Dances: the import asks the person once per `.USR`
   /// (Hudson, 19 November 2026), since Caller's Companion types them
-  /// "Contra". Every dance that is not a square is then read as English
-  /// ([mapCallersCompanionDance]'s `englishDances`).
+  /// "Contra". Every dance is then read as English, a square as one in a
+  /// square set ([mapCallersCompanionDance]'s `englishDances`).
   static const String englishDancesOption = 'englishDances';
 
   /// Structural bounds handed to [readCcUsrArchive]; exceeding one fails closed

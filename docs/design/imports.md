@@ -2557,7 +2557,7 @@ above: an unprefixed move in an ECD dance means one stored before the ECD
 taxonomy existed (ADR-006 §5.1), so new entry must not create one. It is used
 by free-text entry when the dance's taxonomy is ECD's
 (`shippedTaxonomies.forForm(DanceForm.ecd)`), by a Caller's Companion dance
-whose Type is English (or every non-square dance of a `.USR` file the person
+whose Type is English (or every dance, squares included, of a `.USR` file the person
 says holds English dances), and by **Re-check unrecognized figures** for an
 ECD dance.
 
@@ -2704,9 +2704,28 @@ ECD dance.
   2026; `.USR` only, since an ECDDB source is always English, a ContraDB one
   always contra, and a Compendium file states each dance's form). The answer
   rides on the request (`CallersCompanionUsrAdapter.englishDancesOption`)
-  from discover to parse; yes reads every dance but a square as English
+  from discover to parse; yes reads every dance as English
   (`mapCallersCompanionDance(englishDances: true)`, which raises no
-  "imported as a contra" note for an unknown Type). Closing the question
+  "imported as a contra" note for an unknown Type). A square comes across as
+  an English dance in a square set (`FormationShape.square`), as does a dance
+  of another Type whose formation is Square: an English library's squares are
+  English dances such as Newcastle (the maintainer, 26 November 2026; until
+  then a square stayed a square dance). What the source said of the
+  formation past the word "Square" stays as the detail (Newcastle's
+  "Quadruplet; Four couples…", an unknown family such as "Hexagon", a
+  `ContraForm` start and `Direction`, or a text "Square set"; a `.USR` with no
+  family and no start is read from its `FormationOther`, as #1972 reads it), so an unknown family is kept as its `cc_unmapped_formation`
+  warning says, and a Square formation raises no such warning. A square in a
+  big circle (`Circle` family) keeps the `circle` shape, which squares use for
+  it (ADR-007 §8.1). A square keeps its SubType's repeat order and its
+  "Mixer" SubType's mixer flag. A contra `circleMixer`, which ECD has no shape
+  for, is an ECD `circle` (implementer's call; rejected: keeping the
+  contra-only shape, which is not one of `ecdFormationShapes`), and the dance
+  is a mixer only when its Type says so (`Circle Mixer`) or, in the text
+  export, which has no such Type, when its formation says "mixer": the text
+  export reads any "circle" as a circle mixer, and a circle alone must not
+  make Sellenger's Round a mixer. These formation rules belong to the English
+  reading, so they hold for a dance typed English whatever the answer. Closing the question
   plans nothing. The answer is held per file bytes in an `Expando`, so
   trying a file again after a failed plan does not ask again, and the
   screen can still release a planned file.
