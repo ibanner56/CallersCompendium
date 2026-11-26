@@ -1700,8 +1700,8 @@ Sync is off and open while it is on.
   settings now stay on each device, so the updated device leaves them alone. To
   clear the notice, update the app on the older device.
 
-  A dance in one of the English country dance or square formations (such as
-  duple minor, a three-couple longways set or a square), or one whose phrases
+  A dance in one of the new English country dance or square formations (such
+  as duple minor, a three-couple longways set or a square), or one whose phrases
   are named, reaches a device on an older version as a record that couldn't be
   used, not as one waiting for an update. That device skips the dance, and any
   program or related-dance link that names it, until you update it there. If
@@ -1709,7 +1709,8 @@ Sync is off and open while it is on.
   it there, even just its notes or rating, replaces the newer version on all
   your devices: the formation, named phrases, meter, key, English or square
   figures and the other details the newer version added are gone. So update
-  every device before you convert or edit English or square dances. A dance's
+  every device before you convert or edit English or square dances, and don't
+  edit a program that names such a dance on the older device either. A dance's
   meter, key or improper mark alone doesn't hold it back: an older device
   keeps those and passes them on unchanged.
 - These settings belong to this device. They are not synced to your other

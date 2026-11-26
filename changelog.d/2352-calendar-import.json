@@ -4,9 +4,6 @@
   "app": {
     "added": [
       "You can import gigs from your online calendar as draft programs. Give the app your calendar's iCal address (From calendar in the Import program menu, or Settings ▸ Program ▸ Calendar ▸ Pull now), choose Fetch events, and pick the events to add. Each draft gets the event's title, date and venue name, your Default template, and your default caller and band; street addresses, descriptions and organiser details are not kept. Events from today up to 6 months ahead are offered (3 or 12 if you prefer, and you can filter by a word in the title); repeating events are read only 30 days ahead. An event you have already imported is not offered again, on any of your devices once they have synced, and Undo removes a whole import. The app reads your calendar only when you ask it to, and your calendar address stays on this device: it is not synced, not put in backups, and removed from diagnostics."
-    ],
-    "data_migrations": [
-      "A backup that holds a program imported from your calendar is written as backup version 3, so versions 0.5.2 to 0.10.0 refuse to replace your library with it, instead of restoring it without that memory and offering the events again."
     ]
   },
   "core": {

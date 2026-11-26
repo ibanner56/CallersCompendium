@@ -11,8 +11,8 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 ## Next release from main
 
 Text already on `main` names **0.11.0** as the next app version: the user
-guide (`docs/user/backup-portability.md`) and pending release notes say a
-backup this build writes needs 0.11.0 or later. Since `v0.10.0-beta`, `main`
+guide (`docs/user/backup-portability.md`) says a backup holding an archived
+program needs 0.11.0 or later, and `server/CHANGELOG.md` names app `0.11.0`. Since `v0.10.0-beta`, `main`
 has also raised the schema (41 → 42), the schema floor (39 → 40) and the
 contra taxonomy (39 → 40), and can write backup version 3. So the next tag cut
 from `main` is `v0.11.0-beta`, unless that text changes with it. It must not
@@ -154,7 +154,11 @@ relies on (§2). Update this section when that tag is cut.
 - [ ] Athenaeum server deployed **before** any client shipped — the
  `deploy_server` job (`release-server` approval) succeeded on **that tag's**
  run, ahead of `publish_mobile` and `pages`; it builds the tagged commit as
- `callers-compendium-athenaeum:<version>` and waits for `/heartbeat`.
+ `callers-compendium-athenaeum:<version>` and waits for `/heartbeat`. It
+ deploys the hosted server only: if this release's registry adds a shareable
+ settings key, key prefix, record field or record kind, the release notes'
+ Data / Migrations tells people who run their own sync server to update it
+ before any device.
 - [ ] Update channel advanced **after** the draft was published — the `pages` job
  (`release-manifest` approval) passed its public-release check, verified the
  manifest signatures, and pushed `gh-pages`; `verify` was green first.

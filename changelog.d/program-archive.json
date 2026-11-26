@@ -6,9 +6,6 @@
       "You can archive a program you're done with but want to keep: choose Archive from its row's ⋮ menu, or next to Duplicate on its summary or in the builder. It leaves the Programs list without being deleted, still counts in your calling history, and is no longer offered when you add a dance to a program. Choose Show archived in the Programs ⋮ menu to list archived programs too, and Unarchive to bring one back.",
       "Archiving syncs to your other devices and is kept in backups. A program you share arrives unarchived.",
       "Restoring a program from Recently deleted brings it back unarchived, so it shows in your Programs list."
-    ],
-    "data_migrations": [
-      "A backup that holds an archived program is written as backup version 3, so versions 0.5.2 to 0.10.0 refuse to replace your library with it, instead of restoring your archived programs unarchived."
     ]
   },
   "core": {
