@@ -620,8 +620,14 @@ class _ProgramTemplateEditorScreenState
       final repos = RepositoriesScope.of(context);
       unawaited(_loadDanceTitles(repos.dances));
       unawaited(_loadSavedSearchNames(repos.savedSearches));
+      // The saved search names are read again with each change to the
+      // rules, as Manage rules reads them: a rule a sync brings with a new
+      // saved search finds its name, and is not shown as needing attention.
       _rulesWatch = repos.eventRules.watchAll().listen(
-        (_) => unawaited(_loadRules(repos.eventRules)),
+        (_) => unawaited(() async {
+          await _loadSavedSearchNames(repos.savedSearches);
+          await _loadRules(repos.eventRules);
+        }()),
         onError: (Object error, StackTrace stackTrace) => logCaughtError(
           error,
           stackTrace,

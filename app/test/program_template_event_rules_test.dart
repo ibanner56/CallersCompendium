@@ -338,10 +338,20 @@ void main() {
       );
       await repos.eventRules.writeFromSync(removed);
       await repos.eventRules.delete(removed.id);
+      // A rule a newer version of the app wrote, with a quantifier this one
+      // does not know.
+      final newer = EventRule(
+        id: 'rule-newer',
+        savedSearchId: becket.id,
+        quantifierName: 'mostly',
+        count: 1,
+        scopeName: 'wholeProgram',
+      );
+      await repos.eventRules.writeFromSync(newer);
       final template = ProgramTemplate(
         id: 't',
         name: 'Family dance',
-        eventRuleIds: [fine.id, gone.id, removed.id],
+        eventRuleIds: [fine.id, gone.id, removed.id, newer.id],
       );
       await saveProgramTemplate(repos.settings, template);
       await _pump(
@@ -364,11 +374,68 @@ void main() {
           reason: text,
         );
       }
+      expect(
+        find.descendant(
+          of: attention(newer.id),
+          matching: find.text(
+            'Made by a newer version of the app, so it is not checked.',
+          ),
+        ),
+        findsOneWidget,
+      );
       expect(attention(fine.id), findsNothing);
       expect(find.text('Removed: Old rule'), findsOneWidget);
       expect(attention(removed.id), findsNothing);
     },
   );
+
+  testWidgets('a rule a sync brings with a new saved search while the editor '
+      'is open names that search, and does not need attention', (tester) async {
+    final repos = openTestRepositories();
+    const template = ProgramTemplate(
+      id: 't',
+      name: 'Family dance',
+      eventRuleIds: ['rule-late'],
+    );
+    await saveProgramTemplate(repos.settings, template);
+    await _pump(
+      tester,
+      repos,
+      const ProgramTemplateEditorScreen(template: template),
+      enabled: true,
+    );
+    await pumpUntilFound(
+      tester,
+      find.text("Removed: a rule that isn't on this device"),
+    );
+
+    final facets = FacetSelections()..formations.add(FormationShape.becketCcw);
+    final late = await repos.savedSearches.create(
+      name: 'Late search',
+      spec: SavedSearchSpec.fromPanelState(
+        CollectionPanelState(facets: facets),
+        today: DateTime.utc(2026, 1, 1),
+      ).value!,
+    );
+    await repos.eventRules.writeFromSync(
+      EventRule(
+        id: 'rule-late',
+        savedSearchId: late.id,
+        quantifierName: 'atMost',
+        count: 1,
+        scopeName: 'wholeProgram',
+        nickname: 'Late rule',
+      ),
+    );
+    await pumpUntilFound(
+      tester,
+      find.text('At most 1 dance matching "Late search" in the whole program'),
+    );
+    expect(
+      find.byKey(const ValueKey('program-template-rule-rule-late-attention')),
+      findsNothing,
+    );
+  });
 
   testWidgets('Duplicate keeps the rules, and Rename leaves them alone', (
     tester,
