@@ -1056,19 +1056,25 @@ void main() {
       });
     }
 
-    test('`cross and go below` is a cross, then a cast down one place', () {
+    test('`cross and go below` is a trade by the right, then a cast down one '
+        'place', () {
       for (final line in const [
         'Ones cross and go below',
         '1s cross & go below',
         'Ones cross over and go below',
+        'Ones cross and go outside below',
+        'Ones cross and go outside below the twos who move up',
+        'Ones cross by Right and go outside below the twos who move up',
+        'Ones cross over and go below the Twos 2 moving up',
       ]) {
         final f = _one(line);
         expect(f.isSequence, isTrue, reason: line);
         expect(f.subFigures.map((s) => [s.move, s.params]), [
           [
-            'ecd_cross',
+            'ecd_change_places',
             {
               'who': ['ones'],
+              'hand': 'right',
             },
           ],
           [
@@ -1080,6 +1086,103 @@ void main() {
             },
           ],
         ], reason: line);
+      }
+    });
+
+    test('the twos moving up after `go below` is the note', () {
+      expect(
+        _one('Ones cross and go outside below the twos who move up').note,
+        'the twos move up',
+      );
+      expect(
+        _one('Ones cross by left and go below').subFigures.first.params['hand'],
+        'left',
+      );
+    });
+
+    test('a couple passing its own partner by a side trades places', () {
+      for (final (line, who, hand) in const [
+        ('Ones pass P by R', 'ones', 'right'),
+        ('Twos pass partner by left', 'twos', 'left'),
+      ]) {
+        final f = _one(line);
+        expect(f.move, 'ecd_change_places', reason: line);
+        expect(f.params, {
+          'who': [who],
+          'hand': hand,
+        }, reason: line);
+      }
+      // With no couple, a pass of partners is still a pass through.
+      expect(_one('Pass P by R').move, 'ecd_pass_through');
+    });
+
+    test('`turn single … face P` ends facing them, as its note', () {
+      for (final (line, shoulder, note) in const [
+        ('Turn single right face P', 'right', 'end facing partners'),
+        ('Turn single left face N', 'left', 'end facing neighbors'),
+        (
+          'Turn single right forward face P',
+          'right',
+          'forward; end facing partners',
+        ),
+      ]) {
+        final f = _one(line);
+        expect(f.move, 'ecd_turn_single', reason: line);
+        expect(f.params['shoulder'], shoulder, reason: line);
+        expect(f.note, note, reason: line);
+      }
+      // A move with its own end facing still reads a direction.
+      expect(_one('Partners cross face up').params['endFacing'], 'up');
+    });
+
+    test('`(PR, NL, …)` names who a rights and lefts or a circular hey starts '
+        'with and its first side', () {
+      for (final (line, move, side, whom, value) in const [
+        (
+          '4 changes of Rights & Lefts (PR, NL, PR, NL)',
+          'ecd_rights_and_lefts',
+          'hand',
+          'partners',
+          'right',
+        ),
+        (
+          '2 changes of Lefts & Rights (PL, NR)',
+          'ecd_rights_and_lefts',
+          'hand',
+          'partners',
+          'left',
+        ),
+        (
+          '3 changes of a Circular Hey (PR,NL,PR)',
+          'ecd_circular_hey',
+          'shoulder',
+          'partners',
+          'right',
+        ),
+        (
+          '2 changes of rights and lefts (NL, PR)',
+          'ecd_rights_and_lefts',
+          'hand',
+          'neighbors',
+          'left',
+        ),
+      ]) {
+        final f = _one(line);
+        expect(f.move, move, reason: line);
+        expect(f.params['whom'], whom, reason: line);
+        expect(f.params[side], value, reason: line);
+        expect(f.note, isNull, reason: line);
+      }
+      // Passes that do not alternate, or number other than the changes,
+      // stay as written.
+      for (final line in const [
+        '2 changes of Rights & Lefts (PR, NL,NR hold on)',
+        '4 changes of Rights & Lefts (PR, NL)',
+        '2 changes of Rights & Lefts (PR, PL)',
+      ]) {
+        final f = _one(line);
+        expect(f.params.containsKey('whom'), isFalse, reason: line);
+        expect(f.note, isNotNull, reason: line);
       }
     });
 
@@ -1160,14 +1263,16 @@ void main() {
       for (final line in const [
         // A pass by a hand is a pull by, not a pass through.
         'Pass P by the right hand',
-        // Ones and their partner both named before and after the movement.
-        'Ones pass P by R',
+        // Ones and their neighbors: only a couple's own partner is a trade.
+        'Ones pass N by R',
         // A couple's neighbour is other dancers: not the couple's own.
         'Ones Neighbor Set',
         // Who follows a movement other than a cast has nowhere to go.
         'Ones lead down partner follow',
-        // The fuller form says what the twos do as well: two figures.
-        'Ones cross and go outside below the twos who move up',
+        // What the twos do that is not moving up: two figures.
+        'Ones cross and go outside below the twos while the twos WAIT',
+        // The passes after a colon rather than in brackets.
+        '3 changes of a circular hey: pass PR, NL, PR',
       ]) {
         expect(_typed(line).single.isCustom, isTrue, reason: line);
       }

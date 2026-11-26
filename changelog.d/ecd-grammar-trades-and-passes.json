@@ -1,0 +1,17 @@
+{
+  "id": "ecd-grammar-trades-and-passes",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "English free text, Caller's Companion English imports and Re-check unrecognized figures read more wordings: \"Ones pass P by R\" is the ones changing places by the right; \"Turn single right face P\" is a turn single with the note \"end facing partners\"; passes in brackets after rights and lefts or a circular hey, such as \"(PR, NL, PR, NL)\" (partner right, neighbor left), name who it starts with and its first side; and \"lefts and rights\" is read."
+    ],
+    "changed": [
+      "\"Cross and go below\", and \"cross and go outside below the twos who move up\", are a change of places by the right and a cast down one place, with the twos moving up kept as the note."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`parseEcdFigureLine` reads `cross … and go below` as `ecd_change_places` (hand right, or the cross's stated side) then the cast; a couple's `pass P by <side>` as `ecd_change_places`; `face P`/`face N` on a turn single as its note; a `(PR, NL, …)` note on rights and lefts or a circular hey as `whom` and the first `hand`/`shoulder`; `lefts and rights`; and `cross by <side>` as the cross's side."
+    ]
+  }
+}
