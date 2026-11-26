@@ -1092,12 +1092,37 @@ void main() {
     test('the twos moving up after `go below` is the note', () {
       expect(
         _one('Ones cross and go outside below the twos who move up').note,
-        'the twos move up',
+        'outside below the twos who move up',
+      );
+      expect(
+        _one('Ones cross over and go below the Twos 2 moving up').note,
+        'below the Twos 2 moving up',
       );
       expect(
         _one('Ones cross by left and go below').subFigures.first.params['hand'],
         'left',
       );
+    });
+
+    test('a side an aside names is the trade\'s side; a cross stating more '
+        'stays a cross', () {
+      for (final (line, hand) in const [
+        ('Ones (take left hands) cross and go below', 'left'),
+        ('Ones cross (passing left) and go below', 'left'),
+        ('Ones (take right hands) cross and go below', 'right'),
+      ]) {
+        final first = _one(line).subFigures.first;
+        expect(first.move, 'ecd_change_places', reason: line);
+        expect(first.params['hand'], hand, reason: line);
+      }
+      for (final line in const [
+        'Ones cross diagonally and go below',
+        'Ones cross facing up and go below',
+        'Ones cross by right (passing left) and go below',
+        'Ones (take left hands, then right) cross and go below',
+      ]) {
+        expect(_one(line).subFigures.first.move, 'ecd_cross', reason: line);
+      }
     });
 
     test('a couple passing its own partner by a side trades places', () {
@@ -1173,12 +1198,23 @@ void main() {
         expect(f.params[side], value, reason: line);
         expect(f.note, isNull, reason: line);
       }
-      // Passes that do not alternate, or number other than the changes,
-      // stay as written.
+      // Beside another aside, or written with semicolons, they still read,
+      // and the other aside stays the note.
+      final beside = _one('2 changes of Lefts & Rights (PL, NR) (quickly)');
+      expect(beside.params['whom'], 'partners');
+      expect(beside.params['hand'], 'left');
+      expect(beside.note, 'quickly');
+      expect(
+        _one('2 changes of rights and lefts (PR;NL)').params['whom'],
+        'partners',
+      );
+      // Passes that do not alternate, number other than the changes, or are
+      // only one pass, stay as written.
       for (final line in const [
         '2 changes of Rights & Lefts (PR, NL,NR hold on)',
         '4 changes of Rights & Lefts (PR, NL)',
         '2 changes of Rights & Lefts (PR, PL)',
+        'Rights and lefts (PR)',
       ]) {
         final f = _one(line);
         expect(f.params.containsKey('whom'), isFalse, reason: line);

@@ -2604,9 +2604,11 @@ ECD dance.
   back`. `go below` after a cross is a cast down one place, and the cross
   before it is a change of places by the right, or by the side the cross
   states (`cross by left`): `1s cross and go below` is that trade, then that
-  cast (the maintainer, 26 November 2026). `go outside below` is `go below`,
-  and `the twos who move up` (`the Twos 2 moving up`) after it is the cast's
-  note. A couple passing its own partner by a side (`Ones pass P by R`) is a
+  cast (the maintainer, 26 November 2026); when the line's asides name one
+  side (`(take left hands)`), that is the side, and asides naming both, or
+  one the cross contradicts, keep the cross (implementer's call). `go outside
+  below` and `go below the twos who move up` (`the Twos 2 moving up`) are
+  read as `go below`, with the words after `go` kept verbatim as the note. A couple passing its own partner by a side (`Ones pass P by R`) is a
   change of places by that side (the maintainer, same day); with no couple,
   `pass P by R` is still a pass through. A detail the movement has no
   parameter for is the figure's note: `forward` on a turn single, the
@@ -2614,10 +2616,12 @@ ECD dance.
   maintainer, same day; turn single has no end facing), and who follows a
   cast (`cast partner follow`, `followed by partner`). In rights and lefts
   and a circular hey, a note that is only a list of passes (`(PR, NL, PR,
-  NL)`, partner right then neighbor left, as the Caller's Box writes
-  `1R;NL`) sets `whom` and the first `hand` (rights and lefts) or `shoulder`
-  (circular hey) and is dropped, when the passes alternate dancers and sides
-  and number the stated changes; any other note stays (implementer's call).
+  NL)`, partner right then neighbor left; commas or semicolons) sets `whom`
+  and the first `hand` (rights and lefts) or `shoulder` (circular hey) and is
+  dropped, when there are two or more passes, they alternate dancers and
+  sides, and they number the stated changes. The passes may be one part of
+  a note with other asides, which stay; any other note stays whole
+  (implementer's call).
   `lefts and rights` is rights and lefts by the left. `cross by <side>` sets
   a cross's side. `trade by right`, and `trade by right shoulder`, store `hand = right`:
   change places' `hand` names the side the dancers pass by, not a hand they

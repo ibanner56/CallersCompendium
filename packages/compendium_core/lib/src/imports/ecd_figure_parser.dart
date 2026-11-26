@@ -175,41 +175,56 @@ Figure? parseEcdFigureLine(
   }
 }
 
-/// `go outside below`: `go below`, which is down the outside.
-final RegExp _goOutsideBelow = RegExp(
-  r'\bgo\s+outside\s+below\b',
+/// `go outside below` and `go below the twos who move up`: read as `go
+/// below`, with the words after `go` kept verbatim as an aside (the cast's
+/// note), so nothing the line says is lost.
+final RegExp _goBelowWords = RegExp(
+  r'\bgo\s+(?:(outside)\s+)?below\b'
+  r'((?:\s+(?:the\s+)?(?:twos|2s|threes|3s)(?:\s+\d)?\s+'
+  r'(?:who\s+)?(?:move|moves|moving)\s+up)\b)?',
   caseSensitive: false,
 );
 
-/// `go below the twos who move up`: what the twos do, kept as an aside (the
-/// cast's note) so the words still read.
-final RegExp _belowWhoMoveUp = RegExp(
-  r'\bgo\s+below\s+(?:the\s+)?((?:twos|2s|threes|3s)(?:\s+\d)?)\s+'
-  r'(?:who\s+)?(?:move|moves|moving)\s+up\b',
-  caseSensitive: false,
-);
+/// [scrubbed] with [_goBelowWords] read as `go below (<words>)`.
+String _withGoBelowAside(String scrubbed) =>
+    scrubbed.replaceAllMapped(_goBelowWords, (m) {
+      if (m[1] == null && m[2] == null) return m[0]!;
+      return 'go below (${m[0]!.substring(2).trim()})';
+    });
 
 /// A note that is only a list of passes, `PR, NL, PR` (partner right,
 /// neighbor left), optionally after `pass`.
 final RegExp _passList = RegExp(
-  r'^\s*(?:pass\s+)?([pn][rl](?:\s*,\s*[pn][rl])*)\s*$',
+  r'^\s*(?:pass\s+)?([pn][rl](?:\s*[,;]\s*[pn][rl])+)\s*$',
   caseSensitive: false,
 );
 
+final RegExp _passSeparator = RegExp('[,;]');
+
+/// A side word in an aside: `left` or `right`.
+final RegExp _sideWord = RegExp(r'\b(?:left|right)\b', caseSensitive: false);
+
 /// [figure] with a rights and lefts' or a circular hey's note of passes
 /// (`(PR, NL, PR, NL)`: partner by the right, neighbor by the left) read as
-/// who it starts with and its first side, when the passes alternate dancers
-/// and sides as the figure does and number its changes. Any other note stays.
+/// who it starts with and its first side, when there are two or more passes,
+/// they alternate dancers and sides as the figure does, and they number its
+/// changes. The passes may be one part of a note joined with `; ` (a count
+/// beside them); the other parts stay. Any other note stays whole.
 Figure _withPassList(Figure figure) {
   final side = switch (figure.move) {
     'ecd_rights_and_lefts' => 'hand',
     'ecd_circular_hey' => 'shoulder',
     _ => null,
   };
-  final match = _passList.firstMatch(figure.note ?? '');
-  if (side == null || match == null) return figure;
+  if (side == null || figure.note == null) return figure;
+  final parts = figure.note!.split('; ');
+  final at = parts.indexWhere(_passList.hasMatch);
+  if (at < 0 || parts.where(_passList.hasMatch).length != 1) return figure;
+  final match = _passList.firstMatch(parts[at])!;
+  final rest = [...parts]..removeAt(at);
   final passes = [
-    for (final pass in match.group(1)!.split(',')) pass.trim().toLowerCase(),
+    for (final pass in match.group(1)!.split(_passSeparator))
+      pass.trim().toLowerCase(),
   ];
   for (var i = 1; i < passes.length; i++) {
     if (passes[i][0] == passes[i - 1][0] || passes[i][1] == passes[i - 1][1]) {
@@ -228,6 +243,7 @@ Figure _withPassList(Figure figure) {
     schemaVersion: figure.schemaVersion,
     move: figure.move,
     params: {...figure.params, 'whom': whom, side: first},
+    note: rest.isEmpty ? null : rest.join('; '),
     progression: figure.progression,
     customOrigin: figure.customOrigin,
     assumedSubject: figure.assumedSubject,
@@ -240,18 +256,15 @@ Figure _withPassList(Figure figure) {
 Figure? recognizeEcdLine(String scrubbed, {int beats = 0, int? ringDancers}) {
   try {
     if (scrubbed.length > maxEcdLineLength) return null;
-    final lexed = _lex(
-      scrubbed
-          .replaceAll(_goOutsideBelow, 'go below')
-          .replaceAllMapped(
-            _belowWhoMoveUp,
-            (m) => 'go below (the ${m[1]} move up)',
-          ),
-    );
+    final lexed = _lex(_withGoBelowAside(scrubbed));
     if (lexed == null || lexed.tokens.isEmpty) return null;
     final figure = _Reader(
       lexed.tokens,
       ringDancers: ringDancers,
+      asideSides: {
+        for (final aside in lexed.notes)
+          for (final m in _sideWord.allMatches(aside)) m[0]!.toLowerCase(),
+      },
     ).readLine(beats < 0 ? 0 : beats);
     if (figure == null) return null;
     if (lexed.notes.isEmpty) return _withPassList(figure);
@@ -1623,10 +1636,15 @@ class _Step {
 }
 
 class _Reader {
-  _Reader(this.tokens, {required int? ringDancers})
+  _Reader(this.tokens, {required int? ringDancers, this.asideSides = const {}})
     : context = _Context(ringDancers: ringDancers);
 
   final List<String> tokens;
+
+  /// The sides (`left`, `right`) the line's asides name (`(take left
+  /// hands)`), which the line's note keeps: a cross before `go below` trades
+  /// by the one they name.
+  final Set<String> asideSides;
   final _Context context;
   int pos = 0;
 
@@ -1690,12 +1708,20 @@ class _Reader {
           final cross = current.last;
           final other = cross.params.keys.toSet()
             ..removeAll({'who', 'shoulder'});
-          if (other.isEmpty) {
+          // A side the line's asides name (`(take left hands)`, `(passing
+          // left)`) is its side; asides naming both, or one the cross
+          // contradicts, keep the cross.
+          final named = asideSides;
+          final stated = cross.params['shoulder'] as String?;
+          final side = stated ?? (named.length == 1 ? named.single : 'right');
+          if (other.isEmpty &&
+              named.length < 2 &&
+              (stated == null || named.isEmpty || named.single == stated)) {
             current[current.length - 1] = _Step(
               'ecd_change_places',
               {
                 if (cross.params['who'] != null) 'who': cross.params['who'],
-                'hand': cross.params['shoulder'] ?? 'right',
+                'hand': side,
               },
               note: cross.note,
               statedWho: cross.statedWho,
