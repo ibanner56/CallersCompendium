@@ -76,6 +76,23 @@ class FailingSettingsRepository extends SettingsRepository {
   }
 }
 
+/// Settings whose saved search reads fail while [failSearchReads] is set, as
+/// a damaged or locked store would: [SavedSearchRepository.list] lists their
+/// keys first, so it throws. Every other read and write delegates.
+class FailingSavedSearchReadsSettings extends SettingsRepository {
+  FailingSavedSearchReadsSettings(super.db);
+
+  bool failSearchReads = false;
+
+  @override
+  Future<List<String>> keysWithPrefix(String prefix) {
+    if (failSearchReads && prefix == savedSearchKeyPrefix) {
+      throw StateError('saved searches unreadable');
+    }
+    return super.keysWithPrefix(prefix);
+  }
+}
+
 /// The exception thrown by [FailingSettingsRepository] while
 /// [FailingSettingsRepository.failWrites] is set. An [Exception] (not an
 /// [Error]) so it models a real settings-store I/O failure that the service is
