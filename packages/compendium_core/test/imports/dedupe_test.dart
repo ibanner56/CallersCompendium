@@ -409,6 +409,23 @@ void main() {
       expect(fandango.first.confident, isTrue);
     });
 
+    test('a dance matched without its date is not also a possible match', () {
+      final index = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'Jack’s Maggot   1702',
+          authorNames: ['Jane Doe'],
+        ),
+      ]);
+      final verdict = index.verdictFor(
+        source: ProvenanceSource.callersCompanion,
+        title: 'Jack’s Maggot',
+        authorNames: ['Jane Doe'],
+      );
+      expect(verdict.hasConfidentMatch, isTrue);
+      expect(verdict.possibleMatchIds, isEmpty);
+    });
+
     test('and the other way round', () {
       final index = DedupeIndex([
         DedupeEntry(

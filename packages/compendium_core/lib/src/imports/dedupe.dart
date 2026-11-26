@@ -126,8 +126,8 @@ class DedupeCandidate {
   final double score;
 
   /// Whether this candidate is a **confident match**: the titles share a
-  /// [dedupeTitleKeys] key (normalized titles exactly equal, as written or
-  /// with a trailing article fronted, #1976) AND the tokenized author sets intersect (issue #685's
+  /// [dedupeTitleKeys] key (normalized titles exactly equal, as written,
+  /// with a trailing article fronted, #1976, or without a padded date) AND the tokenized author sets intersect (issue #685's
   /// dedupe sanity check). A confident candidate is always included in
   /// [DedupeIndex.fuzzyMatches] regardless of [DedupeIndex.defaultThreshold]
   /// — inconsistent author-string tokenization across sources must never be
@@ -343,19 +343,20 @@ class DedupeIndex {
         _byExternalKey['${e.source!.name}\u0000$ext'] = e.danceId;
       }
       final nTitle = normalizeTitle(e.title);
-      // Keyed as written and with a trailing article fronted (#1976), so both
-      // are reachable; `''` never is (see [dedupeTitleKeys]).
-      final fronted = _frontedKey(e.title, nTitle);
-      for (final key in {
+      // Keyed as written, with a trailing article fronted (#1976) and
+      // without a padded Caller's Companion date, so each is reachable; `''`
+      // never is (see [dedupeTitleKeys]).
+      final keys = {
         if (nTitle.isNotEmpty) nTitle,
         ..._extraTitleKeys(e.title, nTitle),
-      }) {
+      };
+      for (final key in keys) {
         (_byNormalizedTitle[key] ??= []).add(_normalized.length);
       }
       for (final coreTitle in _coreTitleKeys(e.title)) {
         (_byCoreTitle[coreTitle] ??= []).add(_normalized.length);
       }
-      _frontedTitles.add(fronted);
+      _titleKeys.add(keys);
       _normalized.add((
         danceId: e.danceId,
         normalizedTitle: nTitle,
@@ -372,11 +373,12 @@ class DedupeIndex {
   final List<_NormalizedEntry> _normalized = [];
   final Map<String, String> _byExternalKey = {};
 
-  /// Each entry's [normalizeTitle] with a trailing article fronted, when that
-  /// differs from its `normalizedTitle` (#1976); parallel to [_normalized].
-  /// Usually `null`. Read by [possibleTitleMatches]; [fuzzyMatches] reaches it
-  /// only through [_byNormalizedTitle].
-  final List<String?> _frontedTitles = [];
+  /// Each entry's [dedupeTitleKeys] (as written, with a trailing article
+  /// fronted, and without a padded date); parallel to [_normalized]. Read by
+  /// [possibleTitleMatches], so that tier leaves out every entry the exact
+  /// tier can reach; [fuzzyMatches] reaches the keys through
+  /// [_byNormalizedTitle].
+  final List<Set<String>> _titleKeys = [];
 
   /// Each [dedupeTitleKeys] key → ascending indices into [_normalized] of
   /// the entries carrying it. Every [DedupeCandidate.confident] match comes
@@ -384,7 +386,8 @@ class DedupeIndex {
   final Map<String, List<int>> _byNormalizedTitle = {};
 
   /// [dedupeCoreTitleKey] (non-empty) of a title as written and with a
-  /// trailing article fronted → ascending indices into [_normalized].
+  /// trailing article fronted, each also without a padded date ([_coreTitleKeys])
+  /// → ascending indices into [_normalized].
   /// The only source of [possibleTitleMatches].
   final Map<String, List<int>> _byCoreTitle = {};
 
@@ -458,7 +461,7 @@ class DedupeIndex {
     // [threshold] could never have reached it, and is not confident (its
     // titles differ), so skipping it cannot change the result.
     //
-    // A fronted key (#1976) only decides which entries are exact: an exact
+    // A fronted or dateless key (#1976) only decides which entries are exact: an exact
     // entry scores as the same title, and every other entry is scored on the
     // titles as written, as before, so a query costs what it did.
     final queryHasAuthors = nAuthors.isNotEmpty;
@@ -537,8 +540,9 @@ class DedupeIndex {
   }
 
   /// Existing dances that may be this record under a differently written title
-  /// (issue #1907): a shared [dedupeCoreTitleKey] (of either title as written
-  /// or with its trailing article fronted, #1976), at least one shared
+  /// (issue #1907): a shared [dedupeCoreTitleKey] (of either title as written,
+  /// with its trailing article fronted, #1976, or without a padded date), at
+  /// least one shared
   /// normalized author, and **no** shared [dedupeTitleKeys] key. Collection
   /// order.
   ///
@@ -564,8 +568,7 @@ class DedupeIndex {
     final queryKeys = dedupeTitleKeys(title);
     return [
       for (final i in indices)
-        if (!queryKeys.contains(_normalized[i].normalizedTitle) &&
-            !queryKeys.contains(_frontedTitles[i]) &&
+        if (!_titleKeys[i].any(queryKeys.contains) &&
             _normalized[i].normalizedAuthors.any(nAuthors.contains))
           _normalized[i].danceId,
     ];
@@ -640,7 +643,8 @@ String? _frontedKey(String title, String plain) {
 }
 
 /// [dedupeCoreTitleKey] of [title] as written and with a trailing article
-/// fronted, without `''`.
+/// fronted, and of [title] without a padded date ([splitCcNameTail]) the same
+/// two ways, without `''`.
 Set<String> _coreTitleKeys(String title) {
   final untailed = splitCcNameTail(title);
   return {

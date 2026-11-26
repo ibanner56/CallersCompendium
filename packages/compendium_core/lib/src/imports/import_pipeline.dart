@@ -1170,8 +1170,8 @@ class ImportPipeline {
   ///
   /// It **never** skips and **never** links on a weak match. A match is
   /// *confident* only when the candidate's title shares a [dedupeTitleKeys]
-  /// key with the incoming title (its [normalizeTitle] as written or with a
-  /// trailing article fronted, #1976: an exact gate — not merely a fuzzy
+  /// key with the incoming title (its [normalizeTitle] as written, with a
+  /// trailing article fronted, #1976, or without a padded date: an exact gate — not merely a fuzzy
   /// near-match) **and** one of:
   ///   - the choreography body is equal (form, formation, progression, phrase
   ///     structure, figures, hook, calling notes, level, mixed-level, tunes),
