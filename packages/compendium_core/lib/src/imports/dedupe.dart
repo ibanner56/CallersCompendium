@@ -4,6 +4,7 @@ import 'package:unorm_dart/unorm_dart.dart';
 import '../model/dance.dart';
 import '../model/enums.dart';
 import '../serialization/archive_entity_codec.dart';
+import 'callers_companion_title_tail.dart';
 import 'title_article.dart';
 
 const _choreographyFields = [
@@ -345,7 +346,10 @@ class DedupeIndex {
       // Keyed as written and with a trailing article fronted (#1976), so both
       // are reachable; `''` never is (see [dedupeTitleKeys]).
       final fronted = _frontedKey(e.title, nTitle);
-      for (final key in [if (nTitle.isNotEmpty) nTitle, ?fronted]) {
+      for (final key in {
+        if (nTitle.isNotEmpty) nTitle,
+        ..._extraTitleKeys(e.title, nTitle),
+      }) {
         (_byNormalizedTitle[key] ??= []).add(_normalized.length);
       }
       for (final coreTitle in _coreTitleKeys(e.title)) {
@@ -429,7 +433,7 @@ class DedupeIndex {
     double threshold = defaultThreshold,
   }) {
     final nTitle = normalizeTitle(title);
-    final nFronted = _frontedKey(title, nTitle);
+    final extraKeys = _extraTitleKeys(title, nTitle);
     final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
     if (nTitle.isEmpty) return const [];
     final out = <DedupeCandidate>[];
@@ -437,11 +441,11 @@ class DedupeIndex {
     // the only possible confident matches. They are visited in entry order,
     // merged into the scan below, so the candidate order (and thus the order of
     // equal scores after the sort) is exactly that of a plain scan.
-    final exact = nFronted == null
+    final exact = extraKeys.isEmpty
         ? _byNormalizedTitle[nTitle] ?? const <int>[]
         : ({
             ...?_byNormalizedTitle[nTitle],
-            ...?_byNormalizedTitle[nFronted],
+            for (final key in extraKeys) ...?_byNormalizedTitle[key],
           }.toList()..sort());
     var nextExact = 0;
     // Length bound for every other entry. Levenshtein distance is at least the
@@ -602,7 +606,28 @@ final RegExp _leadingArticleRe = RegExp(r'^(the|a|an)\s+');
 /// sync's keys stay plain [normalizeTitle].
 Set<String> dedupeTitleKeys(String title) {
   final plain = normalizeTitle(title);
-  return {if (plain.isNotEmpty) plain, ?_frontedKey(title, plain)};
+  return {if (plain.isNotEmpty) plain, ..._extraTitleKeys(title, plain)};
+}
+
+/// The keys besides [plain] (the [normalizeTitle] of [title]) that [title]
+/// matches on: with a trailing article fronted (#1976), and without a date a
+/// Caller's Companion library padded onto it ([splitCcNameTail]:
+/// "Jack's Maggot   1702" is "Jack's Maggot"), and both. A dance imported
+/// before that date was taken off its title keeps it in its stored title, so
+/// pasting it again still finds it (implementer's call: the padding, two or
+/// more spaces before a year, is not how a title is written). Without `''`
+/// or [plain].
+Set<String> _extraTitleKeys(String title, String plain) {
+  final untailed = splitCcNameTail(title);
+  final bare = untailed.tail == null ? null : untailed.title;
+  final keys = {
+    ?_frontedKey(title, plain),
+    if (bare != null) normalizeTitle(bare),
+    if (bare != null) ?_frontedKey(bare, normalizeTitle(bare)),
+  };
+  return keys
+    ..remove('')
+    ..remove(plain);
 }
 
 /// [normalizeTitle] of [title] with a trailing article fronted, when that is
@@ -617,10 +642,15 @@ String? _frontedKey(String title, String plain) {
 /// [dedupeCoreTitleKey] of [title] as written and with a trailing article
 /// fronted, without `''`.
 Set<String> _coreTitleKeys(String title) {
-  final fronted = frontTrailingArticle(title);
+  final untailed = splitCcNameTail(title);
   return {
-    dedupeCoreTitleKey(title),
-    if (!identical(fronted, title)) dedupeCoreTitleKey(fronted),
+    for (final variant in {
+      title,
+      if (untailed.tail != null) untailed.title,
+    }) ...{
+      dedupeCoreTitleKey(variant),
+      dedupeCoreTitleKey(frontTrailingArticle(variant)),
+    },
   }..remove('');
 }
 

@@ -387,6 +387,54 @@ void main() {
     });
   });
 
+  group('a date padded onto a Caller\'s Companion title is left out', () {
+    test('a stored title with its date matches the title without it', () {
+      final index = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'Jack’s Maggot   1702',
+          authorNames: ['Jane Doe'],
+        ),
+        DedupeEntry(
+          danceId: 'd2',
+          title: 'Fandango, The              1774',
+          authorNames: ['Jane Doe'],
+        ),
+      ]);
+      final jack = index.fuzzyMatches('Jack’s Maggot', ['Jane Doe']);
+      expect(jack.map((m) => m.danceId), ['d1']);
+      expect(jack.single.confident, isTrue);
+      final fandango = index.fuzzyMatches('The Fandango', ['Jane Doe']);
+      expect(fandango.first.danceId, 'd2');
+      expect(fandango.first.confident, isTrue);
+    });
+
+    test('and the other way round', () {
+      final index = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'Jack’s Maggot',
+          authorNames: ['Jane Doe'],
+        ),
+      ]);
+      final matches = index.fuzzyMatches('Jack’s Maggot   1702', ['Jane Doe']);
+      expect(matches.single.confident, isTrue);
+    });
+
+    test('a number after one space is part of the title', () {
+      expect(dedupeTitleKeys('Trip to the Manors 2000'), {
+        normalizeTitle('Trip to the Manors 2000'),
+      });
+      expect(
+        dedupeTitleKeys('Bloomsbury Market     1703/2009'),
+        containsAll([
+          normalizeTitle('Bloomsbury Market     1703/2009'),
+          normalizeTitle('Bloomsbury Market'),
+        ]),
+      );
+    });
+  });
+
   group('a trailing article is fronted before comparing (#1976)', () {
     final index = DedupeIndex([
       DedupeEntry(

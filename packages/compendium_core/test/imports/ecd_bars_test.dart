@@ -875,6 +875,28 @@ void main() {
       });
     });
 
+    test('an English scatter mixer is another formation that mixes', () {
+      final dance = mapCallersCompanionDance(
+        CcDanceRecord(
+          name: 'Scatter',
+          type: 'Scatter Mixer',
+          formationOther: 'Couples anywhere',
+          fromUsrColumns: true,
+        ),
+        englishDances: true,
+      ).dance;
+      expect(dance.form, DanceForm.ecd);
+      expect(
+        dance.formation,
+        const Formation(
+          FormationShape.other,
+          detail: 'Scatter mixer; Couples anywhere',
+        ),
+      );
+      expect(dance.mixer, isTrue);
+      expect(ecdFormationShapes, contains(dance.formation.shape));
+    });
+
     test('an English circle mixer is a circle that mixes', () {
       final usr = mapCallersCompanionDance(
         CcDanceRecord(
