@@ -5,14 +5,16 @@ library;
 import '../util/text_sanitizer.dart';
 import 'title_article.dart';
 
-/// Where a Name's trailing annotation starts: a run of two or more spaces
-/// (no-break spaces included), or a tab, followed by a year, optionally after `Circa`, `ca.` or `c.`.
-///
-/// A single space is not enough: a title may end in a number of its own
-/// ("Trip to the Manors 2000" is left alone), but Caller's Companion lists
-/// pad a date out to a column with several.
-final RegExp _tailStart = RegExp(
-  r'(?:[ \u00A0]{2,}|\t)\s*(?=(?:(?:circa|ca\.?|c\.)\s*)?\d{4}(?!\d))',
+/// A run of whitespace: a candidate for the gap before a Name's date.
+final RegExp _whitespaceRun = RegExp(r'\s+');
+
+/// Two spaces in a row (no-break spaces included): what makes a run of
+/// whitespace a gap, rather than the single space between words.
+final RegExp _padding = RegExp(r'[ \u00A0]{2}');
+
+/// A year, optionally after `Circa`, `ca.` or `c.`, matched where a gap ends.
+final RegExp _dateAhead = RegExp(
+  r'(?:(?:circa|ca\.?|c\.)\s*)?\d{4}(?!\d)',
   caseSensitive: false,
 );
 
@@ -40,11 +42,30 @@ final RegExp _leadingDate = RegExp(
 /// (`Foo\tBar  1702` is titled `Foo  Bar`).
 ({String title, String? tail}) splitCcNameTail(String name) {
   final spaced = _clean(name.replaceAll('\t', '  '));
-  final match = _tailStart.firstMatch(spaced);
+  final match = _tailGap(spaced);
   final title = match == null ? '' : spaced.substring(0, match.start).trim();
   final tail = match == null ? '' : spaced.substring(match.end).trim();
   if (title.isEmpty || tail.isEmpty) return (title: _clean(name), tail: null);
   return (title: title, tail: tail);
+}
+
+/// The first run of whitespace in [text] that holds two spaces in a row (a
+/// single space is not enough: a title may end in a number of its own, "Trip
+/// to the Manors 2000", but Caller's Companion lists pad a date out to a
+/// column with several) and is followed by a year, optionally after `Circa`,
+/// `ca.` or `c.`; null when there is none.
+///
+/// Linear in the length of [text], whatever it holds: each run is found once,
+/// searched once for its two spaces, and the year looked for once where it
+/// ends. A single pattern that let two whitespace quantifiers share a run
+/// tried every split of it from every start, so a Name with a few thousand
+/// spaces and no year after them held the import for minutes.
+Match? _tailGap(String text) {
+  for (final run in _whitespaceRun.allMatches(text)) {
+    if (!_padding.hasMatch(run[0]!)) continue;
+    if (_dateAhead.matchAsPrefix(text, run.end) != null) return run;
+  }
+  return null;
 }
 
 String _clean(String text) =>

@@ -640,6 +640,11 @@ its date alone, and one with no date, or a date the app cannot read, by its
 location. With no location and a date the app cannot read, it is named
 "Caller's Companion set" and the date as written; with neither, "Caller's
 Companion set" and its number. Importing a set again renames its program the same way.
+It also takes the set's date, location, band, caller, dancer level, notes, slots
+and whether alternates are hidden from the file again, and sets the program back
+to Draft, but keeps what you added to the program in the app, which a `.USR`
+file cannot say: the venue you linked it to, its times, pay, Perform dialect,
+event rules and calendar link, and whether it is archived.
 
 A slot keeps the name of the caller Caller's Companion recorded for it only
 when the set's slots name more than one caller, when a slot names someone other
