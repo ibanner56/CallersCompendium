@@ -1174,6 +1174,75 @@ void main() {
       expect(read('Lead up a double [4] and back'), hasLength(1));
     });
 
+    group('a line is not split where its counts are its words', () {
+      List<Figure> read(String line, {String? music = 'Meter: 2/2'}) =>
+          (mapCallersCompanionDance(
+                    record(music: music, lines: [line]),
+                    englishDances: true,
+                  ).dance.figuresSource
+                  as DecodedFigures)
+              .figures;
+      int beats(List<Figure> figures) =>
+          figures.fold(0, (sum, f) => sum + f.beats);
+
+      test('a count right after a leading bar range', () {
+        for (final line in const [
+          '1-4 (6) circle left',
+          'A1 1-4 (8) circle left',
+        ]) {
+          final figures = read(line);
+          expect(figures, hasLength(1), reason: line);
+          expect(beats(figures), 8, reason: line);
+        }
+      });
+
+      test('a section label before a bracketed range', () {
+        final one = read('A1 (1-4) circle left');
+        expect(one, hasLength(1));
+        expect(beats(one), 8);
+        final two = read('A1 (1-4) circle left (5-8) turn single');
+        expect(two, hasLength(2));
+        expect(two.first.isCustom, isFalse);
+        expect(beats(two), 16);
+      });
+
+      test('a bracket with no space before its word', () {
+        final figures = read(
+          '(5-6) Partner Set (while holding hands with N) (7-8)and link',
+        );
+        expect(beats(figures), 8);
+        expect(figures, hasLength(1));
+      });
+
+      test('counts in beats inside a line counted in bars', () {
+        final figures = read(
+          '(5-8) 1st corners join R hands (5) then L hands (6) and with '
+          'crossed hands turn 1/2',
+        );
+        expect(figures, hasLength(1));
+        expect(beats(figures), 8);
+      });
+
+      test('a count of hands or places', () {
+        expect(read('(8) Circle left (3) hands round'), hasLength(1));
+        expect(read('(8) Ones cast (2) places down'), hasLength(1));
+      });
+
+      test('a later piece\'s bar range with no meter still warns', () {
+        final mapping = mapCallersCompanionDance(
+          record(
+            music: 'Key G',
+            lines: const ['(4) Lead up a double (5-8) Turn single right'],
+          ),
+          englishDances: true,
+        );
+        expect(
+          mapping.issues.map((i) => i.code),
+          contains('cc_bars_meter_unstated'),
+        );
+      });
+    });
+
     test('a piece that does not read stays as text with its own count', () {
       final figures =
           (mapCallersCompanionDance(

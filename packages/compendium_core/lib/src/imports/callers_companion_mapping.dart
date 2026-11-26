@@ -625,10 +625,13 @@ CcDanceMapping mapCallersCompanionDance(
       final ecd = form == DanceForm.ecd;
       final ring = ecd ? ecdRingDancers(formation.shape) : null;
       final bar = ecd ? barBeats.beatsPerBar : null;
-      // The bars are counted after a `(8)` prefix, so look past it too.
+      // The bars are counted after a `(8)` prefix, so look past it too, in
+      // every piece the line is read as.
       if (ecd &&
           !barBeats.stated &&
-          splitEcdBarRange(splitCcBeatPrefix(line).text) != null) {
+          splitCcEcdCountedLine(line, beatsPerBar: barBeats.beatsPerBar).any(
+            (piece) => splitEcdBarRange(splitCcBeatPrefix(piece).text) != null,
+          )) {
         countedBarsUnstated = true;
       }
       final cached = lineCache?.lookup(
@@ -1104,18 +1107,58 @@ List<String> splitCcEcdCountedLine(String line, {int beatsPerBar = 2}) {
       ecdStatedBeats(prefix.text, beatsPerBar) == prefix.beats) {
     source = prefix.text;
   }
-  final pieces = source
-      .split(_ccMidLineCount)
+  // A line counted in bars splits only at its further bar ranges: a count in
+  // beats inside it (`(5-8) join R hands (5) then L hands (6)`) or right
+  // after its range (`1-4 (6) circle left`) is part of its words.
+  final inBars = splitEcdBarRange(splitCcBeatPrefix(source).text) != null;
+  final raw = source
+      .split(inBars ? _ccMidLineRange : _ccMidLineCount)
       .map((piece) => piece.trim())
-      .where((piece) => piece.isNotEmpty)
-      .toList();
+      .where((piece) => piece.isNotEmpty);
+  // A piece with no words of its own (a section label, `A1 (1-4) …`, or
+  // only counts) is part of the piece after it.
+  final pieces = <String>[];
+  var carry = '';
+  for (final piece in raw) {
+    final joined = carry.isEmpty ? piece : '$carry $piece';
+    if (_ccPieceHasWords(piece)) {
+      pieces.add(joined);
+      carry = '';
+    } else {
+      carry = joined;
+    }
+  }
+  if (carry.isNotEmpty) {
+    if (pieces.isEmpty) return [line];
+    pieces[pieces.length - 1] = '${pieces.last} $carry';
+  }
   return pieces.isEmpty ? [line] : pieces;
 }
 
+/// Whether [piece] has words besides a section label (`A1`) and its counts.
+bool _ccPieceHasWords(String piece) => _ccPieceWord.hasMatch(
+  piece.replaceFirst(_ccLeadingLabel, '').replaceAll(_ccCounts, ' '),
+);
+
+final RegExp _ccLeadingLabel = RegExp(r'^\s*[A-Da-d]\d{0,2}\b');
+final RegExp _ccCounts = RegExp(r'[(\[][^)\]]*[)\]]|\d+');
+final RegExp _ccPieceWord = RegExp('[A-Za-z]');
+
 /// A gap before a bracketed count (`(4)`) or bar range (`(5-8)`) followed by
-/// a word, not at the start of the line.
+/// a space and a word, not at the start of the line. A word that counts what
+/// the number counts (`circle (3) hands round`, `cast (2) places`) keeps the
+/// number in the words.
 final RegExp _ccMidLineCount = RegExp(
-  r'(?<=\S)\s+(?=\(\s*\d{1,3}(?:\s*[-–—]\s*\d{1,3})?\s*\)\s*[A-Za-z])',
+  r'(?<=\S)\s+(?=\(\s*\d{1,3}(?:\s*[-–—]\s*\d{1,3})?\s*\)\s+'
+  r'(?!(?:hands?|places?|times?|couples?|bars?|beats?|changes?)\b)[A-Za-z])',
+  caseSensitive: false,
+);
+
+/// [_ccMidLineCount] for a bracketed bar range only.
+final RegExp _ccMidLineRange = RegExp(
+  r'(?<=\S)\s+(?=\(\s*\d{1,3}\s*[-–—]\s*\d{1,3}\s*\)\s+'
+  r'(?!(?:hands?|places?|times?|couples?|bars?|beats?|changes?)\b)[A-Za-z])',
+  caseSensitive: false,
 );
 
 /// The figures of one [piece] of an English line ([splitCcEcdCountedLine]),
