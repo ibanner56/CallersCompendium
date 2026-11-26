@@ -1103,7 +1103,9 @@ List<String> splitCcEcdCountedLine(String line, {int beatsPerBar = 2}) {
   // `(4) X  (4) Y` the prefix is X's.
   if (prefix.beats > 0 &&
       splitEcdBarRange(prefix.text) != null &&
-      _ccMidLineCount.hasMatch(prefix.text) &&
+      // The pattern the line is then split by: a line counted in bars
+      // splits only at further ranges.
+      _ccMidLineRange.hasMatch(prefix.text) &&
       ecdStatedBeats(prefix.text, beatsPerBar) == prefix.beats) {
     source = prefix.text;
   }

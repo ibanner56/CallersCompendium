@@ -1223,6 +1223,14 @@ void main() {
         expect(beats(figures), 8);
       });
 
+      test('a total prefix over a line that does not split stays in its '
+          'text', () {
+        final figures = read('(16) 1-4 circle left (8) circle right');
+        expect(figures, hasLength(1));
+        expect(figures.single.isCustom, isTrue);
+        expect(figures.single.params['text'], startsWith('(16)'));
+      });
+
       test('a count of hands or places', () {
         expect(read('(8) Circle left (3) hands round'), hasLength(1));
         expect(read('(8) Ones cast (2) places down'), hasLength(1));
