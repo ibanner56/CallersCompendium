@@ -2,7 +2,8 @@ import '../model/event_rule.dart';
 
 /// The body of an `eventRule` record (#2340): the rule as stored, its
 /// quantifier and scope as their stored names, so a rule a newer build wrote
-/// travels on as it came. `nickname` is sent only when the rule has one.
+/// travels on as it came. `nickname` is sent only when the rule has one; a
+/// receiver reads a missing one as none ([withOmittedEventRuleDefaults]).
 Map<String, Object?> syncEventRuleBody(EventRule rule) => {
   'id': rule.id,
   'savedSearchId': rule.savedSearchId,
@@ -12,6 +13,21 @@ Map<String, Object?> syncEventRuleBody(EventRule rule) => {
   if (rule.nickname != null) 'nickname': rule.nickname,
   'position': rule.position,
 };
+
+/// The `eventRule` body keys [syncEventRuleBody] leaves out when they are
+/// empty, with that empty value.
+const Map<String, Object?> omittedEventRuleDefaults = {'nickname': null};
+
+/// [body], an `eventRule` body, with each omitted empty value
+/// ([omittedEventRuleDefaults]) written in where it is missing, so a nickname
+/// removed on one device is removed on the others: Device Sync overlays an
+/// inbound body on the stored record key by key, and would otherwise keep the
+/// stored nickname (sync-spec §4.1, §6.7). A body with no `savedSearchId` is
+/// not a whole rule body and is returned as is.
+Map<String, Object?> withOmittedEventRuleDefaults(Map<String, Object?> body) {
+  if (!body.containsKey('savedSearchId')) return body;
+  return {...omittedEventRuleDefaults, ...body};
+}
 
 /// Reads an `eventRule` body, throwing [FormatException] for one this build
 /// cannot store. A quantifier or scope it does not know is kept: the rule is
