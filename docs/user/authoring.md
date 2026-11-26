@@ -713,8 +713,9 @@ bars 6 beats too. Typing a **Meter** that states other beats to the bar than
 before sets them in the phrase structure as well, keeping its phrases and their
 bars, so the phrases stay whole bars long: the standard four 8-bar phrases
 become `4*8*3` in 3/2, as an import of the dance writes them, and the standard
-structure again in 2/2. A Meter typed before you make the dance English does
-the same when you make it English. A structure whose parts have different
+structure again in 2/2. A Meter given while the dance was another type is
+applied the same way when you make it English, unless it states the same beats
+to the bar as when the dance was last English. A structure whose parts have different
 beats to the bar is never rewritten from the Meter (see **Phrases** below). A
 tune whose phrases have different numbers of beats to the
 bar (`A:2*4*3 + B:1*8*2`, an A in 3/4 and a B in 6/8) counts each bar by the

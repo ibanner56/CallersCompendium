@@ -746,8 +746,9 @@ declines the collapse.
   - **Re-import** writes no custom-field values. *Amended 2026-10-30
     (maintainer decision R2-intake7-native, INTAKE-7):* a re-import from any
     source, archives and `.USR` files included, replaces only the dance's
-    figures, formation and progression, with the form, meter, key and phrase
-    structure they need (see *Re-import replaces only the choreography*), so every stored value stays and a column the file carries
+    figures, formation and progression (see *Re-import replaces only the
+    choreography*; the form, meter, key and phrase structure they need were
+    added later, as implementer's calls recorded there), so every stored value stays and a column the file carries
     is not applied; a definition only re-imported dances carried is dropped
     with the other unused ones after the `.USR` commit. This supersedes the #1890 rule that a
     re-import replaced the dance's content from the file and merged the
