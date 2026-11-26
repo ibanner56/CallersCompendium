@@ -15,6 +15,7 @@ import '../util/uuid.dart';
 import 'author_tokenizer.dart';
 import 'beat_implied_balance.dart';
 import 'callers_companion_comma_split.dart';
+import 'callers_companion_title_tail.dart';
 import 'callers_companion_user_fields.dart';
 import 'ecd_bars.dart';
 import 'ecd_figure_parser.dart';
@@ -386,8 +387,17 @@ CcDanceMapping mapCallersCompanionDance(
   // Title — placeholder + warning when absent (never throw). Sanitized
   // single-line so control/bidi/format spoofing chars never reach storage
   // (issue #444). CC files titles library-style ("Baby Rose, The"); the
-  // article goes back to the front (#1976).
-  final rawName = _sanitizeLine(record.name) ?? '';
+  // article goes back to the front (#1976). A date a library padded onto
+  // the end of the Name ("Jack's Maggot   1702") comes off it first: a plain
+  // year becomes the composed date below, and anything more is kept in the
+  // notes ([splitCcNameTail]).
+  final nameSplit = splitCcNameTail(record.name ?? '');
+  var rawName = _sanitizeLine(nameSplit.title) ?? '';
+  var nameTail = _sanitizeLine(nameSplit.tail);
+  if (rawName.isEmpty) {
+    rawName = _sanitizeLine(record.name) ?? '';
+    nameTail = null;
+  }
   final String title;
   if (rawName.isEmpty) {
     title = ccUntitledDanceTitle;
@@ -469,7 +479,19 @@ CcDanceMapping mapCallersCompanionDance(
   final progression = _mapProgression(record.progression, issues);
 
   // Dates → PartialDate, warning (and skipping) unparseable values.
-  final composedOn = _mapDate(record.composed, 'composed', issues);
+  // A plain year after the title is the composed date when the DateComposed
+  // column gives none. The tail is kept in the notes unless that year is the
+  // dance's composed date, so a tail that says more is never lost.
+  final composedColumn = (record.composed ?? '').trim();
+  final tailYear = nameTail == null ? null : ccNameTailPlainYear(nameTail);
+  final tailDate = tailYear == null ? null : _tryPartialDate(tailYear);
+  final composedOn = composedColumn.isEmpty
+      ? tailDate
+      : _mapDate(record.composed, 'composed', issues);
+  final titleNote =
+      nameTail == null || (tailDate != null && composedOn?.year == tailYear)
+      ? null
+      : 'From the title: $nameTail';
   final revisedOn = _mapDate(record.revised, 'revised', issues);
 
   // Rating → 1..5 star scale, best-effort; out-of-range → warning + unset.
@@ -499,6 +521,7 @@ CcDanceMapping mapCallersCompanionDance(
       record.callingNotes!.trim(),
     if ((record.music ?? '').trim().isNotEmpty)
       'Music: ${record.music!.trim()}',
+    ?titleNote,
     ?typeNote,
     if ((record.progressionOther ?? '').trim().isNotEmpty)
       'Progression: ${record.progressionOther!.trim()}',
@@ -565,8 +588,10 @@ CcDanceMapping mapCallersCompanionDance(
   // not prefixed.
   // An English dance's tune meter and key, from the Music text ("Key: G,
   // Meter: 2/2"); a leading bar range counts in bars of that meter.
+  // A meter or key the Music does not state may follow the date padded onto
+  // the Name ("Gypsy Round, The      1979    Am 3/4").
   final music = form == DanceForm.ecd
-      ? ccMusicMeterAndKey(record.music)
+      ? _ccEcdMeterAndKey(record.music, nameTail)
       : (meter: '', key: '');
   final meter = music.meter;
   final barBeats = ecdBeatsPerBar(meter);
@@ -1093,6 +1118,25 @@ List<Figure> _ecdLineFigures(
     ];
   }
   return [figure];
+}
+
+/// An English dance's meter and key: each from its [music] text
+/// ([ccMusicMeterAndKey]) or, when that states none, from what its Name's
+/// [nameTail] says after the date ([ccNameTailAfterDate]).
+({String meter, String key}) _ccEcdMeterAndKey(
+  String? music,
+  String? nameTail,
+) {
+  final fromMusic = ccMusicMeterAndKey(music);
+  if (nameTail == null ||
+      (fromMusic.meter.isNotEmpty && fromMusic.key.isNotEmpty)) {
+    return fromMusic;
+  }
+  final fromTitle = ccMusicMeterAndKey(ccNameTailAfterDate(nameTail));
+  return (
+    meter: fromMusic.meter.isNotEmpty ? fromMusic.meter : fromTitle.meter,
+    key: fromMusic.key.isNotEmpty ? fromMusic.key : fromTitle.key,
+  );
 }
 
 /// The tune [music] text's meter (`2/2`, `6/8`) and key (`G`, `Dm`, `Bb`),

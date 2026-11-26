@@ -3,13 +3,13 @@ import 'dart:typed_data';
 
 import '../model/enums.dart';
 import 'callers_companion_mapping.dart';
+import 'callers_companion_title_tail.dart';
 import 'callers_companion_usr_archive.dart';
 import 'fmp/fmp_reader.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
-import 'title_article.dart';
 
 /// A [SourceAdapter] that migrates Caller's Companion (CC) dances from the
 /// **binary FileMaker Pro 12 `.USR`** file — the *headline* Phase 6.5
@@ -178,10 +178,10 @@ class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
         DiscoveredRecord(
           source: source,
           externalId: entry.recordId,
-          // Fronted like the drafted title (#1976), so the two agree.
+          // Read like the drafted title (#1976), so the two agree.
           label: (entry.record.name ?? '').trim().isEmpty
               ? null
-              : frontTrailingArticle(entry.record.name!.trim()),
+              : ccDanceTitleOf(entry.record.name!),
           locator: {
             'rowId': entry.recordId,
             'columns': entry.rawColumns,
