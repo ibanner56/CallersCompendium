@@ -2704,9 +2704,18 @@ ECD dance.
   2026; `.USR` only, since an ECDDB source is always English, a ContraDB one
   always contra, and a Compendium file states each dance's form). The answer
   rides on the request (`CallersCompanionUsrAdapter.englishDancesOption`)
-  from discover to parse; yes reads every dance but a square as English
+  from discover to parse; yes reads every dance as English
   (`mapCallersCompanionDance(englishDances: true)`, which raises no
-  "imported as a contra" note for an unknown Type). Closing the question
+  "imported as a contra" note for an unknown Type). A square comes across as
+  an English dance in a square set (`FormationShape.square`), as does a dance
+  of another Type whose formation is Square: an English library's squares are
+  English dances such as Newcastle (the maintainer, 26 November 2026; until
+  then a square stayed a square dance). The set keeps only the caller's own
+  formation description as its detail, and a square's "Mixer" SubType still
+  marks a mixer. A circle mixer, which ECD has no shape for, is a `circle`
+  with `mixer: true` (implementer's call; rejected: keeping the contra-only
+  `circleMixer` shape on an English dance, though it is not one of
+  `ecdFormationShapes`). Closing the question
   plans nothing. The answer is held per file bytes in an `Expando`, so
   trying a file again after a failed plan does not ask again, and the
   screen can still release a planned file.

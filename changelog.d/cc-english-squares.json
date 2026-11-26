@@ -1,0 +1,14 @@
+{
+  "id": "cc-english-squares",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "When you tell the app a Caller's Companion file holds English country dances, a dance typed Square, or with a Square formation, now comes across as an English dance in a square set, such as Newcastle, instead of a square dance. A circle mixer in such a file comes across as a circle marked as a mixer."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`mapCallersCompanionDance(englishDances: true)` reads a Square-typed dance as `DanceForm.ecd` with `FormationShape.square`, and a circle mixer as `FormationShape.circle` with `mixer: true`."
+    ]
+  }
+}

@@ -11487,7 +11487,7 @@
   "@importUsrEnglishTitle": {
     "description": "Title of the question asked once per Caller's Companion .USR file before it is read: whether its dances are English country dances."
   },
-  "importUsrEnglishBody": "Caller's Companion often lists English country dances as Contra. If this file holds English dances, they're read with English figures, formations and bar counts. Square dances stay squares.",
+  "importUsrEnglishBody": "Caller's Companion often lists English country dances as Contra. If this file holds English dances, they're read with English figures, formations and bar counts, and a dance typed Square becomes an English dance in a square set.",
   "@importUsrEnglishBody": {
     "description": "Body of the English-dances question for a Caller's Companion .USR file. 'Contra' is the Type value the other app shows."
   },

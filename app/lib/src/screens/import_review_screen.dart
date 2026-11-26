@@ -1968,7 +1968,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   final Expando<bool> _usrEnglishAnswers = Expando<bool>();
 
   /// Whether a Caller's Companion file's dances are English country dances:
-  /// true reads every dance but a square as English, false reads them by
+  /// true reads every dance as English, a square as one in a square set,
+  /// false reads them by
   /// their Type, and null (the question closed) plans nothing.
   Future<bool?> _askUsrEnglishDances() {
     final l10n = AppLocalizations.of(context);

@@ -8749,7 +8749,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importUsrEnglishBody =>
-      'Caller\'s Companion often lists English country dances as Contra. If this file holds English dances, they\'re read with English figures, formations and bar counts. Square dances stay squares.';
+      'Caller\'s Companion often lists English country dances as Contra. If this file holds English dances, they\'re read with English figures, formations and bar counts, and a dance typed Square becomes an English dance in a square set.';
 
   @override
   String get importUsrEnglishNo => 'No, read their types';

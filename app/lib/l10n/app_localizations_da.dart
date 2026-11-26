@@ -8786,7 +8786,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importUsrEnglishBody =>
-      'Caller\'s Companion angiver ofte engelske country dances som Contra. Hvis filen indeholder engelske danse, læses de med engelske figurer, formationer og taktantal. Squaredanse forbliver squaredanse.';
+      'Caller\'s Companion angiver ofte engelske country dances som Contra. Hvis filen indeholder engelske danse, læses de med engelske figurer, formationer og taktantal, og en dans angivet som Square bliver en engelsk dans i et squaresæt.';
 
   @override
   String get importUsrEnglishNo => 'Nej, læs deres typer';
