@@ -424,10 +424,12 @@ const Map<String, Object?> omittedProgramDefaults = {
 /// key by key, so a key the sender left out would keep the stored value: an
 /// un-archived program would stay archived on the receiver. For these keys a
 /// missing key means empty, so it is filled in first and a value cleared on
-/// one device is cleared on the others (sync-spec §4.1, §6.7). A build that
-/// does not know a key keeps it aside and sends it back when it edits the
-/// program, so its edit does not clear the key here. A body with no `slots`
-/// list is not a whole program body and is returned as is.
+/// one device is cleared on the others (sync-spec §4.1, §6.7). A build since
+/// v0.7.0 that does not know a key keeps it aside and sends it back when it
+/// edits the program, so its edit does not clear the key here; an older build
+/// reports such a record as malformed and keeps the copy it had, so an edit
+/// made there does clear it. A body with no `slots` list is not a whole
+/// program body and is returned as is.
 Map<String, Object?> withOmittedProgramDefaults(Map<String, Object?> body) {
   if (body['slots'] is! List) return body;
   return {...omittedProgramDefaults, ...body};

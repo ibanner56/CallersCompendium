@@ -5,6 +5,8 @@
 // the two devices then hold the same bytes, so neither queues a conflict.
 // The dance fields have the same rule (`withOmittedDanceDefaults`).
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/src/serialization/archive_entity_codec.dart'
+    show archiveProgramToJson;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
@@ -61,40 +63,57 @@ void main() {
     updatedAt: edited,
   );
 
-  // Every key `omittedProgramDefaults` lists, cleared on A the way the app
-  // clears it; B must end up with the empty value and A's bytes. A key added
-  // to that table needs a case here (`sync_omitted_defaults_test.dart`).
+  // Each key a program body leaves out when empty, cleared on A the way the
+  // app clears it: the keys the cleared body no longer carries, the edit, and
+  // the value that must end up empty. B must end up with the empty value and
+  // A's bytes. The last test below checks that these cover every such key.
   final cases =
-      <String, (Program Function(Program), Object? Function(Program))>{
+      <
+        String,
+        (Set<String>, Program Function(Program), Object? Function(Program))
+      >{
         'un-archiving': (
+          {'archivedAt'},
           (p) => p.copyWith(clearArchivedAt: true),
           (p) => p.archivedAt,
         ),
         'clearing the start time': (
+          {'startMinute'},
           (p) => p.copyWith(clearStartMinute: true),
           (p) => p.startMinute,
         ),
         'clearing the end time': (
+          {'endMinute'},
           (p) => p.copyWith(clearEndMinute: true),
           (p) => p.endMinute,
         ),
         'clearing the lesson time': (
+          {'lessonMinute'},
           (p) => p.copyWith(clearLessonMinute: true),
           (p) => p.lessonMinute,
         ),
         'clearing the arrival time': (
+          {'arrivalMinute'},
           (p) => p.copyWith(clearArrivalMinute: true),
           (p) => p.arrivalMinute,
         ),
         'removing the last event rule': (
+          {'eventRuleIds'},
           (p) => p.copyWith(eventRuleIds: const []),
           (p) => p.eventRuleIds.isEmpty ? null : p.eventRuleIds,
         ),
         'clearing the calendar flag': (
+          {'calendarFlag'},
           (p) => p.copyWith(clearCalendarFlag: true),
           (p) => p.calendarFlag,
         ),
         'unlinking the calendar event': (
+          {
+            'calendarEventKey',
+            'calendarEventFingerprint',
+            'calendarWrittenAt',
+            'calendarFlag',
+          },
           (p) => p.copyWith(clearCalendarEventKey: true),
           (p) => [
             p.calendarEventKey,
@@ -104,27 +123,36 @@ void main() {
           ].nonNulls.firstOrNull,
         ),
         'clearing the pay': (
+          {'payMinorUnits', 'payCurrency'},
           (p) => p.copyWith(clearPay: true),
           (p) => p.payMinorUnits ?? p.payCurrency,
         ),
         'clearing the dialect': (
+          {'dialectName'},
           (p) => p.copyWith(clearDialectName: true),
           (p) => p.dialectName,
         ),
       };
 
   group('a program value cleared on one device is cleared on the other', () {
-    for (final MapEntry(key: name, value: (clear, valueOf)) in cases.entries) {
+    for (final MapEntry(key: name, value: (keys, clear, valueOf))
+        in cases.entries) {
       test(name, () async {
         await a.programs.create(full());
         await receive(await held(a));
         expect((await held(b)).wireHash, (await held(a)).wireHash);
         expect(valueOf((await b.programs.getById('p1'))!), isNotNull);
+        expect(keys.every((await held(a)).blob.body.containsKey), isTrue);
 
         final mine = (await a.programs.getById('p1'))!;
         await a.programs.update(clear(mine).copyWith(updatedAt: cleared));
         expect(valueOf((await a.programs.getById('p1'))!), isNull);
         final newer = await held(a);
+        expect(
+          keys.where(newer.blob.body.containsKey),
+          isEmpty,
+          reason: 'the cleared body leaves the keys out',
+        );
         await receive(newer);
 
         final onB = (await b.programs.getById('p1'))!;
@@ -133,6 +161,21 @@ void main() {
         expect((await held(b)).wireHash, newer.wireHash);
       });
     }
+  });
+
+  test('the cases cover every key a program body leaves out when empty', () {
+    // Derived from the wire mapping, which its own ratchets hold to the
+    // privacy registry, rather than from a fixture someone must remember.
+    final empty = archiveProgramToJson(
+      Program(id: 'p0', title: 'Empty', createdAt: created, updatedAt: created),
+      includeOptionalFields: true,
+    );
+    final leftOut = {
+      for (final field in syncWireFields[SyncRecordKind.program]!)
+        if (!field.path.contains('.') && !empty.containsKey(field.path))
+          field.path,
+    };
+    expect({for (final (keys, _, _) in cases.values) ...keys}, leftOut);
   });
 
   test('removing an event rule\'s nickname reaches the other device', () async {

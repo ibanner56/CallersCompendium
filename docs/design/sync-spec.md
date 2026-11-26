@@ -744,6 +744,8 @@ Canonical JSON means:
     `calendarEventFingerprint`, `calendarWrittenAt` and `calendarFlag`, all
     `null`, and `eventRuleIds` (`[]`) (`omittedProgramDefaults`);
   - an event rule's `nickname` (`null`; `omittedEventRuleDefaults`);
+  - a program slot's `placeholderSearchId` (`null`), which needs no filling:
+    `slots` is applied as a whole list, never key by key;
 - **timestamps emitted at exactly one-tick precision** (§2), UTC, with the
   sub-tick component always zero;
 - **all strings in Unicode NFC**, normalised on write as described below.
@@ -4039,10 +4041,15 @@ and leaves every dance with kept parts on an older device.
 The program and event rule keys §4.1 lists (`omittedProgramDefaults`,
 `omittedEventRuleDefaults`) follow the same rule, for the same reason, and are
 filled in the same way, so a program un-archived on one device is un-archived
-on the others. A v0.10.0-beta peer
-keeps the program keys it does not know and sends them back when it edits the
-program, so its edit does not clear them here; it does know `dialectName` and
-the pay keys, and still keeps a value another device cleared until it updates.
+on the others. A peer on v0.7.0 to v0.10.0-beta keeps the program keys it does
+not know and sends them back when it edits the program, so its edit does not
+clear them here. Such a peer does know `dialectName` and the pay keys, and
+fills nothing: until it updates, it keeps a value another device cleared,
+holds the program at the same `updatedAt` with a different body, and the user
+is asked to choose between the two (§6.3), as before this rule. **Limit:** a
+build older than v0.7.0 reports a record carrying a key it does not know as
+malformed and keeps the copy it had (§6.15), so an edit made there clears the
+newer keys here, as it already does a dance's.
 Decided by Claude, not the maintainer, in a pre-release audit; the rejected
 alternative, sending an explicit `null`, changes every program's body and
 content hash at once.

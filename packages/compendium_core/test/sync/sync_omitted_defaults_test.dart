@@ -19,57 +19,48 @@ import 'package:test/test.dart';
 void main() {
   final at = DateTime.utc(2026, 11, 1, 12);
 
+  // Every top-level key the wire mapping syncs for [kind] that [emptyBody], a
+  // body with nothing optional set, does not carry. The wire mapping is held
+  // to the privacy registry by its own ratchets, so a new column cannot be
+  // left out of it, and a key the encoder starts leaving out when empty shows
+  // up here without anyone remembering to set it in a fixture.
+  Set<String> leftOutWhenEmpty(
+    SyncRecordKind kind,
+    Map<String, Object?> emptyBody,
+  ) => {
+    for (final field in syncWireFields[kind]!)
+      if (!field.path.contains('.') && !emptyBody.containsKey(field.path))
+        field.path,
+  };
+
   test('the program table names every key a sync body leaves out when '
       'empty', () {
-    // A key the encoder starts leaving out without an entry here would not be
-    // cleared on the other devices when it is emptied.
-    Map<String, Object?> body(Program p) =>
-        archiveProgramToJson(p, includeOptionalFields: true);
-    final empty = body(
+    // A key left out without an entry here would not be cleared on the other
+    // devices when it is emptied.
+    final empty = archiveProgramToJson(
       Program(id: 'p0', title: 'Empty', createdAt: at, updatedAt: at),
-    );
-    final whole = body(
-      Program(
-        id: 'p0',
-        title: 'Whole',
-        dialectName: 'Larks and Robins',
-        payMinorUnits: 15000,
-        payCurrency: 'USD',
-        startMinute: 1170,
-        endMinute: 1320,
-        lessonMinute: 1140,
-        arrivalMinute: 1110,
-        archivedAt: at,
-        calendarEventKey: 'a' * 64,
-        calendarEventFingerprint: 'b' * 64,
-        calendarWrittenAt: at,
-        calendarFlag: 'cancelled',
-        eventRuleIds: const ['r1'],
-        createdAt: at,
-        updatedAt: at,
-      ),
+      includeOptionalFields: true,
     );
     expect(
-      whole.keys.toSet().difference(empty.keys.toSet()),
+      leftOutWhenEmpty(SyncRecordKind.program, empty),
       omittedProgramDefaults.keys.toSet(),
     );
   });
 
   test('the event rule table names every key a sync body leaves out when '
       'empty', () {
-    EventRule rule({String? nickname}) => EventRule.of(
-      id: 'r1',
-      savedSearchId: 's1',
-      quantifier: EventRuleQuantifier.atMost,
-      count: 1,
-      scope: EventRuleScope.wholeProgram,
-      nickname: nickname,
-      position: 0,
+    final empty = syncEventRuleBody(
+      EventRule.of(
+        id: 'r1',
+        savedSearchId: 's1',
+        quantifier: EventRuleQuantifier.atMost,
+        count: 1,
+        scope: EventRuleScope.wholeProgram,
+        position: 0,
+      ),
     );
     expect(
-      syncEventRuleBody(
-        rule(nickname: 'One petronella'),
-      ).keys.toSet().difference(syncEventRuleBody(rule()).keys.toSet()),
+      leftOutWhenEmpty(SyncRecordKind.eventRule, empty),
       omittedEventRuleDefaults.keys.toSet(),
     );
   });
