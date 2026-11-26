@@ -290,6 +290,22 @@ void main() {
       expect(controller.phraseController.text, '6*8*2');
     });
 
+    test('a Meter typed before the dance is made English sets the phrases '
+        'when it becomes English, in the same undo step', () async {
+      final repos = openTestRepositories();
+      final controller = await openEnglish(repos);
+      addTearDown(controller.dispose);
+      controller.setForm(DanceForm.contra);
+      controller.meterController.text = '3/2';
+      controller.onMeterChanged();
+      expect(controller.phraseController.text, '');
+      controller.setForm(DanceForm.ecd);
+      expect(controller.phraseController.text, '4*8*3');
+      controller.undo();
+      expect(controller.form, DanceForm.contra);
+      expect(controller.phraseController.text, '');
+    });
+
     test('a contra dance\'s structure is not the Meter\'s to set', () async {
       final repos = openTestRepositories();
       final controller = await openEnglish(repos);
