@@ -168,6 +168,30 @@ void main() {
       ]);
     });
 
+    // A free-form dance's figures carry no phrase label: the compact layout
+    // must not write a blank heading line above the first one. Mutation:
+    // drop the `isNotEmpty` check → '' heads the list.
+    test('compactFigures writes no label line for a free-form dance', () {
+      final text = danceToPlainText(
+        dance(
+          figures: [
+            Figure(move: 'swing', params: {'who': 'partners', 'beats': 16}),
+            Figure(move: 'do_si_do', params: {'who': 'partners', 'beats': 8}),
+          ],
+        ).copyWith(form: DanceForm.square, freeForm: true),
+        dialect: Dialect.canonical,
+        authorNames: const [],
+        formationLabel: 'Square',
+        statusLabel: 'Active',
+        compactFigures: true,
+      );
+      final lines = text.split('\n');
+      expect(lines.sublist(lines.indexOf('Figures:') + 1), [
+        'partner swing',
+        'partner dosido once',
+      ]);
+    });
+
     // #594: a `meanwhile` container (#590) exports as one figure line with
     // both concurrent sides joined by "while" and the container's single
     // shared beat count — never two lines, never double-counted.
@@ -541,6 +565,19 @@ void main() {
             Figure(move: 'ecd_cast', params: const {'beats': 21}),
           ],
         );
+
+    test('compactFigures drops bar counts too', () {
+      final text = danceToPlainText(
+        ecd(),
+        dialect: Dialect.canonical,
+        authorNames: const [],
+        formationLabel: 'Longways',
+        statusLabel: 'Active',
+        compactFigures: true,
+      );
+      expect(text, isNot(contains('bars)')));
+      expect(text, isNot(contains('beats)')));
+    });
 
     test('a count of whole and half bars reads in bars', () {
       final text = render(ecd());

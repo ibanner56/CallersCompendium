@@ -20,7 +20,8 @@ import 'export_labels.dart';
 /// in one place.
 ///
 /// Unlike a program set list, a dance card *is* dance-card territory, so the
-/// figure table is rendered in full and **dialect-aware** using the same core
+/// figure table is rendered in full (unless [compactFigures] asks for the
+/// set-list layout) and **dialect-aware** using the same core
 /// APIs the detail and Perform screens use ([deriveSections] +
 /// [FigureRenderer.renderSummary] for figures, [FigureRenderer.renderFreeText]
 /// for calling notes). Using [FigureRenderer.renderSummary] (not the terse
@@ -50,9 +51,9 @@ import 'export_labels.dart';
 /// per citation, built by the app from its localized strings); they appear
 /// only when [DanceShareField.sources] is in [fields].
 ///
-/// [compactFigures] selects the set-list figure layout: no beat counts, and
-/// each phrase label on a line of its own above the figures that start in
-/// that phrase. Nothing relies on aligned spacing, so the layout survives a
+/// [compactFigures] selects the set-list figure layout: no beat or bar
+/// counts, and each phrase label on a line of its own above the figures that
+/// start in that phrase. Nothing relies on aligned spacing, so the layout survives a
 /// proportional font. The single-dance card
 /// and the dances CSV keep the default layout, which labels and times every
 /// figure. See [danceCardFigureLines].
@@ -189,15 +190,16 @@ String danceToPlainText(
   return lines.join('\n');
 }
 
-/// The figure lines of [dance]'s card, one per figure with its phrase label,
-/// beat count and progression mark, each followed by its indented note when it
+/// The figure lines of [dance]'s card: by default one per figure with its
+/// phrase label (none for a free-form dance), beat or bar count and
+/// progression mark, each followed by its indented note when it
 /// has one. They are worded in [content]'s dialect, exactly as
 /// [danceToPlainText] words them: that renderer writes these lines under its
 /// Figures heading, and the dances CSV export (#2332) writes them in its Figures
 /// cell, so the two cannot drift.
 ///
 /// With [compact] (the set-list layout, [danceToPlainText]'s
-/// `compactFigures`) the beat counts are left off, and each phrase label gets
+/// `compactFigures`) the beat and bar counts are left off, and each phrase label gets
 /// a line of its own, written once above the figures that start in that
 /// phrase.
 ///
