@@ -132,7 +132,7 @@ final RegExp _laterBarRange = RegExp(
 final RegExp _barRange = RegExp(
   // A section label (`A1`, `a1`, `A1&2`, `A1&A2`, `A1:`), dropped.
   r'^\s*(?:(?:[ABCD][1-4]?|[abcd][1-4])'
-  r'(?:\s*&\s*[ABCDabcd]?[1-4])?\s*:?\s+)?'
+  r'(?:\s*&\s*[ABCDabcd]?[1-4])?(?:\s*:\s+|\s+))?'
   // The range, alone or in a matched pair of brackets.
   r'(?:\(\s*(\d{1,3})\s*[-–—]\s*(\d{1,3})\s*\)|(\d{1,3})\s*[-–—]\s*(\d{1,3}))'
   r'(?:\s*[:.,]\s*|\s+)'

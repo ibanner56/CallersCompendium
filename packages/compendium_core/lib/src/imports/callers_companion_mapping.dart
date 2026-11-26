@@ -1148,7 +1148,9 @@ bool _ccPieceHasWords(String piece) => _ccPieceWord.hasMatch(
   piece.replaceFirst(_ccLeadingLabel, '').replaceAll(_ccCounts, ' '),
 );
 
-final RegExp _ccLeadingLabel = RegExp(r'^\s*[A-Da-d]\d{0,2}\b');
+final RegExp _ccLeadingLabel = RegExp(
+  r'^\s*[A-Da-d]\d{0,2}(?:\s*&\s*[A-Da-d]?\d{1,2})?\b',
+);
 
 /// The count a line's text starts with, after an optional section label
 /// (`A1`, `a1`, `A1&A2`, `A1:`, as [splitEcdBarRange] takes them): a count or
@@ -1156,7 +1158,7 @@ final RegExp _ccLeadingLabel = RegExp(r'^\s*[A-Da-d]\d{0,2}\b');
 /// brackets (`1-4`, `(5-8)`).
 final RegExp _ccLeadingCount = RegExp(
   r'^\s*(?:(?:[ABCD][1-4]?|[abcd][1-4])'
-  r'(?:\s*&\s*[ABCDabcd]?[1-4])?\s*:?\s+)?'
+  r'(?:\s*&\s*[ABCDabcd]?[1-4])?(?:\s*:\s+|\s+))?'
   r'(?:\(\s*\d{1,4}(?:\s*(?:,\s*\d{1,4}|[-–—]\s*\d{1,3}))*\s*\)'
   r'|\d{1,3}\s*[-–—]\s*\d{1,3}(?![\w/]|[.-]\d))',
 );
@@ -1184,11 +1186,12 @@ final RegExp _ccMidLineRange = RegExp(
 
 /// The words after a bracketed number that say it counts something other
 /// than beats, as a pattern: hands, places, steps, doubles, dancers and the
-/// like, or the half or quarter of a turn. A dancer word that can start a
-/// figure (`(4) Ladies cross`) is not among them.
+/// like, or the half or quarter of a turn. A word that can start a figure is
+/// not among them: a dancer word (`(4) Ladies cross`), or the singular of a
+/// step (`(8) Slip left`, `(8) Double figure eight`, `(4) Step right`).
 const String _ccCountedWords =
-    r'(?:hands?|places?|times?|couples?|bars?|beats?|changes?|steps?|slips?'
-    r'|doubles?|singles?|dancers?|people|persons?|rounds?|circuits?'
+    r'(?:hands?|places?|times?|couples?|bars?|beats?|changes?|steps|slips'
+    r'|doubles|singles|dancers?|people|persons?|rounds|circuits?'
     r'|and\s+(?:a\s+)?(?:half|quarter))\b';
 
 /// The figures of one [piece] of an English line ([splitCcEcdCountedLine]),

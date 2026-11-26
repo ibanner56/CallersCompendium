@@ -2730,9 +2730,10 @@ ECD dance.
   piece (`… into (6) (3-4) Ladies …`) stays with it, as does one with no
   space before its word (`(7-8)and link`) or followed by what it counts
   (`circle (3) hands`, `cast (2) places`, `slip (8) steps`, `lead up (2)
-  doubles`, `hey for three (3) dancers`, `turn (1) and a half`). A dancer
-  word that can start a figure (`(4) Ladies cross`) still splits, so
-  `(8) Circle (3) ladies only` does too. A line whose text starts with a
+  doubles`, `hey for three (3) dancers`, `turn (1) and a half`). A word
+  that can start a figure still splits: a dancer word (`(4) Ladies cross`,
+  so `(8) Circle (3) ladies only` splits too) or a step's singular (`(8)
+  Slip left`, `(8) Double figure eight`). A line whose text starts with a
   bar range splits only at further bracketed ranges: a count in beats right
   after the range (`1-4 (6) circle left`) or inside the line (`(5-8) join R
   hands (5) then L hands (6)`) is part of its words. A piece with no words of

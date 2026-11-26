@@ -1,9 +1,9 @@
 {
   "id": "cc-ecd-line-split-leading-counts",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "A Caller's Companion English line that writes each count after its figure, such as \"Set (4) Turn single (2)\", is read whole again instead of being split so that each count lands on the next figure, and a bracketed number that counts steps, doubles, dancers or people (\"Slip (8) steps to the left\") no longer splits a line and adds beats to the dance. An English line with a long run of spaces no longer slows the import."
+  "user_visible": false,
+  "core": {
+    "changed": [
+      "`splitCcEcdCountedLine` splits a Caller's Companion English line only when the line starts with a count or bar range (after an optional section label, `A1&A2` included), and not before a bracketed number followed by what it counts (steps, doubles, dancers, people, `and a half`). `ecdStatedCountPattern` (formerly private, now `@visibleForTesting`) and the section-label prefix of the bar-range pattern no longer backtrack quadratically on a long run of spaces."
     ]
   }
 }
