@@ -6,9 +6,6 @@
       "A dance can now carry other titles it goes by, one per line under More details. The dance page shows them under its title, and searching by Title or All fields finds the dance by any of them.",
       "An English dance can now record where its tune is printed in the Barnes books, book and page in one line, such as BIII p. 92, or NiB when it's not in them. It sits with the meter and key, shows on the dance page and its Perform card, and All fields search finds it. Changing a dance to another type clears it.",
       "Backups, share files and Device Sync carry both. An older version of the app can't restore a backup that holds them."
-    ],
-    "data_migrations": [
-      "The database's move to schema v42 also adds a place for each dance's other titles and Barnes reference. Every existing dance starts with none."
     ]
   },
   "core": {

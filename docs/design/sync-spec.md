@@ -5229,7 +5229,10 @@ tombstones included. A build without it knows only the single
 `default_starting_program` setting, which stays ungated and is no longer
 written. The reference client advertises it from the change that adds
 templates, so it is subject to *Rollout*: a device on a build that lists only
-the glossary capabilities holds it closed and is named for it.
+the glossary capabilities holds it closed and is named for it. The server
+validates the prefix and both exact keys through the registry it is built
+from, so it MUST be deployed before the first client build that advertises
+`programTemplates.v1` (§7.5).
 Until a device's first change to its templates, it shows the legacy Starting
 program as the first template without writing anything, and copies it into
 `program_template:starting_program` (with the default and order keys) at that
@@ -5288,7 +5291,9 @@ client advertises it from the change that adds them, so it is subject to
 gate publishes past it. `suggestion_settings` carries its own `version`; a
 build that reads a newer one keeps it unchanged (see
 [suggestions.md](suggestions.md#stored-settings)), so the capability is not
-bumped for a change the version field covers.
+bumped for a change the version field covers. The server validates the three
+keys through the registry it is built from, so it MUST be deployed before the
+first client build that advertises `suggestions.v1` (§7.5).
 
 **`performSwap.v1`.** Gates Perform's **Swap a dance** defaults (#2346): the
 exact key `perform_swap_defaults`, tombstones included. A build without it has
@@ -5299,7 +5304,9 @@ and `suggestions.v1` but not this one holds it closed and is named for it,
 while what those gate publishes past it. The value carries its own `version`;
 a build that reads a newer one keeps it unchanged and its settings editor does
 not overwrite it, so the capability is not bumped for a change the version
-field covers.
+field covers. The server validates the key through the registry it is built
+from, so it MUST be deployed before the first client build that advertises
+`performSwap.v1` (§7.5).
 
 **`eventRules.v1`.** Gates every `eventRule` record, tombstones included, and
 the exact settings keys `event_rules_enabled`, the Experimental toggle (#2340),
@@ -5340,7 +5347,17 @@ first client build that advertises `weekendsAndSeries.v1` (§7.5).
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed
-before any client emits the capability prefix or a gated kind (§7.5).
+before any client emits the capability prefix, a gated key or a gated kind
+(§7.5). The gate does not protect an older server: it waits for devices, and
+the server is not one, so a gated key or kind is sent to an older server as
+soon as every device advertises the capability. Nor is the rule limited to
+gated keys. A new shareable settings key that no capability gates (for
+example `last_used_dance_form`, `undo_prompt_seconds`, `show_program_pay` or
+`custom_dialects_ecd`), and a new field on an existing record kind (a dance's
+`meter` or a program's `startMinute`), are sent from the first pass that
+writes them, and an older server refuses them the same way. So the server
+MUST be deployed before the first client build whose registry adds any
+shareable key, key prefix, field or record kind (§7.2).
 
 ## 7. Server conformance
 

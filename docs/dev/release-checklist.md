@@ -8,6 +8,17 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 > external beta, Play testing tracks, listings, privacy/data forms) is in
 > [`store-submission/`](store-submission/README.md).
 
+## Next release from main
+
+Text already on `main` names **0.11.0** as the next app version: the user
+guide (`docs/user/backup-portability.md`) and pending release notes say a
+backup this build writes needs 0.11.0 or later. Since `v0.10.0-beta`, `main`
+has also raised the schema (41 → 42), the schema floor (39 → 40) and the
+contra taxonomy (39 → 40), and can write backup version 3. So the next tag cut
+from `main` is `v0.11.0-beta`, unless that text changes with it. It must not
+be tagged before **2026-11-30**, the end of life of 0.7.0 that the floor raise
+relies on (§2). Update this section when that tag is cut.
+
 ## 0. Pre-flight
 - [ ] main is green: your target commit's CI passed — Format/analyze/test and the
  5-platform Build matrix (android/ios/linux/macos/windows). (The **Schema
@@ -20,7 +31,12 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 ## 1. Version & metadata (Gate)
 - [ ] Inputs are decided and recorded: beta status and valid no-leading-zero
  `X.Y.Z`. The only tags are `vX.Y.Z-beta` and `vX.Y.Z`; the selected tag
- determines channel and prerelease status.
+ determines channel and prerelease status. Check it against **Next release
+ from main** above. If `main` has moved the schema or the taxonomy since the
+ last tag, that tag is not a stable
+ promotion of the last beta: a release with a schema or taxonomy change gets
+ a full beta soak first ([releasing.md](releasing.md#release-cadence)), so it
+ is a new `X.Y`'s beta. The tooling does not check this.
 - [ ] `app/pubspec.yaml` and `kAppVersion` are both exactly `X.Y.Z`, with no
  build metadata or prerelease suffix. The workflow rejects any other pubspec
  format or a tag whose core differs. (The repo-root `pubspec.yaml` is the
@@ -93,6 +109,11 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  floor (`docs/dev/releasing.md`, "Announcing an end of life for older builds"),
  committed before the tag, or the choice not to announce it is recorded in the
  release decision.
+- [ ] If the floor relies on an announced end of life (the floor's doc comment
+ on `kMinSupportedSchemaVersion` says which), the release date is **on or
+ after** that entry's `endOfLife`. A release before it refuses those users'
+ libraries before the date their app told them. No tool compares the two
+ dates.
 
 ## 3. Build & signing (Gate)
 - [ ] Android release build is SIGNED — on the **actual tag push**, or an explicit

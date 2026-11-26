@@ -3,8 +3,8 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Traditional square figures: when you edit a dance whose form is Square, the figure picker now offers square calls, such as swing (with or without a balance), promenade, allemande left and right, circle, forward and back, pass through, chain, star, balance, dosido and seesaw, separate, right and left through, lead, face, pass by, pull by, hey, turn alone and shoulder round. Who dances can be the heads or sides, a couple, your corner, opposite or right-hand dancer, and the roles show in your dialect's words. Anything a source leaves out can stay unstated. Typing square figures as text still reads them as contra figures for now.",
-      "A square dance that holds contra figures, such as one imported or typed as text, which still read as contra figures, now shows the note about figures of another form. Those figures are kept and shown as before. A stand still, such as the rows a new dance starts with, isn't counted.",
+      "Traditional square figures: when you edit a dance whose form is Square, the figure picker now offers square calls, such as swing (with or without a balance), promenade, allemande left and right, circle, forward and back, pass through, chain, star, balance, dosido and seesaw, separate, right and left through, lead, face, pass by, pull by, hey, turn alone and shoulder round. Who dances can be the heads or sides, a couple, your corner, opposite or right-hand dancer, and the roles show in your dialect's words. Anything a source leaves out can stay unstated. A line you type as text in a square dance stays as you typed it, because the app can't read square calls from text yet.",
+      "A square dance that holds contra figures, such as one typed as text before this version or imported (imports still read a square dance's lines as contra figures), now shows the note about figures of another form. Those figures are kept and shown as before. A stand still, such as the rows a new dance starts with, isn't counted.",
       "The Glossary now has a Square list of these calls. They have no written definitions yet."
     ]
   },

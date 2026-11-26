@@ -13,9 +13,6 @@
     ],
     "changed": [
       "Settings ▸ Program ▸ Sharing's \"Include date and venue\" switch is now \"Include date, times and venue\", and also covers the start, end and lesson times."
-    ],
-    "data_migrations": [
-      "The database's move to schema v42 also adds a place for each program's start, end, lesson and arrival times. Every existing program starts with none."
     ]
   },
   "core": {

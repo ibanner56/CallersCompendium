@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "English Country Dance figures: when you edit a dance whose form is English, the figure picker now offers its own figures, such as set, turn single (including cloverleaf), cast, lead, siding, back-to-back, the heys for three, four and six, contra corners, petronella, pull by, and poussette, pushed or drawn. Who dances can name several groups at once (\"twos and threes\"), and a figure you pick leaves unstated anything you don't fill in. Typing English figures as text still reads them as contra figures for now.",
+      "English Country Dance figures: when you edit a dance whose form is English, the figure picker now offers its own figures, such as set, turn single (including cloverleaf), cast, lead, siding, back-to-back, the heys for three, four and six, contra corners, petronella, pull by, and poussette, pushed or drawn. Who dances can name several groups at once (\"twos and threes\"), and a figure you pick leaves unstated anything you don't fill in.",
       "Advanced search can find dances by English figures too; where an English figure shares a contra figure's name, the picker labels it with its form, such as \"circle · English (ECD)\"."
     ]
   },
