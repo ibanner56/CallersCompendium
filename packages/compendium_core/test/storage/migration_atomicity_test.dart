@@ -7,7 +7,7 @@
 // `lib/src/runtime/api/db_base.dart`, `beforeOpen`). Every step in
 // `CompendiumDatabase.onUpgrade` therefore commits as it goes, so an exception
 // — or a process death — after one step and before the stamp leaves a file
-// whose `user_version` says "v39" but whose tables are already partly at v40.
+// whose `user_version` says "v40" but whose tables are already partly at v41.
 // A step that is not idempotent (the since-retired v35 `program_slots` rebuild
 // was the case that found this: re-entered, its `INSERT … SELECT
 // planned_minutes` failed with `no such column`) then fails on every later
@@ -21,16 +21,18 @@
 // and drift's own (redundant) stamp, which still has the whole of
 // `beforeOpen` to run first.
 //
-// The first test starts at the floor (v39) and injects a throw in the v41
-// step, right after it creates its first index, so the whole v40 step has
-// already run. It asserts the rollback: the stamp is unchanged, *and* both the
-// v40 tables and that index are gone, so a real reopen then migrates cleanly.
-// (Both steps are idempotent, so the reopen would survive leaked DDL; the
-// table and index assertions are what prove the rollback.)
+// The first test starts at the floor (v40) and injects a throw in the v42
+// step, right after it creates the `dance_interpreters` lookup index, so the
+// whole v41 step has already run, and so have the v42 step's new `dances`
+// columns and its new table. It asserts the rollback: the stamp is unchanged,
+// *and* the v41 indexes, the v42 table and a v42 column are all gone, so a
+// real reopen then migrates cleanly. (Every step is idempotent, so the reopen
+// would survive leaked DDL; the table, column and index assertions are what
+// prove the rollback.)
 //
 // Mutations the first test catches: remove the `transaction()` wrap, or give
-// each step its own transaction. Either way `user_version` still reads 39
-// (drift never stamped it), but `user_glossary_entries` already exists.
+// each step its own transaction. Either way `user_version` still reads 40
+// (drift never stamped it), but the v41 step's indexes already exist.
 //
 // The second test lets the transaction commit and then throws from
 // `beforeOpen`, before drift's own stamp would run, and asserts
@@ -69,18 +71,19 @@ class _RecordingMigrator extends Migrator {
   }
 }
 
-/// Throws after the v41 step's first index is created: every v40 DDL and one
-/// v41 DDL have run, and drift has not stamped `user_version`.
-class _FailingInV41Step extends CompendiumDatabase {
-  _FailingInV41Step(super.executor);
+/// Throws after the v42 step creates the `dance_interpreters` lookup index:
+/// every v41 DDL and part of the v42 step's have run, and drift has not
+/// stamped `user_version`.
+class _FailingInV42Step extends CompendiumDatabase {
+  _FailingInV42Step(super.executor);
 
   late final migrator = _RecordingMigrator(this);
 
   @override
   Future<void> customStatement(String statement, [List<dynamic>? args]) async {
     await super.customStatement(statement, args);
-    if (statement == citedIdLookupIndexSql.first) {
-      throw StateError('injected failure in the v41 step');
+    if (statement == danceInterpretersChoreographerIdIndexSql) {
+      throw StateError('injected failure in the v42 step');
     }
   }
 
@@ -120,9 +123,10 @@ void main() {
     await historical.customSelect('SELECT 1').get();
     await historical.close();
     expect(_userVersion(raw), kMinSupportedSchemaVersion);
-    expect(_tables(raw), isNot(contains('user_glossary_entries')));
+    expect(_indexes(raw), isNot(contains(_firstCitedIdIndex)));
+    expect(_tables(raw), isNot(contains('dance_interpreters')));
 
-    final failing = _FailingInV41Step(
+    final failing = _FailingInV42Step(
       NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
     );
     await expectLater(
@@ -144,7 +148,7 @@ void main() {
 
     expect(
       failing.migrator.foreignKeysSeen,
-      [false, false],
+      [false],
       reason:
           'foreign keys must be OFF during onUpgrade (beforeOpen turns them ON '
           'afterwards); if this ever reads true, alterTable will try to toggle '
@@ -156,17 +160,27 @@ void main() {
       reason: 'drift stamps user_version only after onUpgrade returns',
     );
     expect(
-      _tables(raw),
-      isNot(contains('user_glossary_entries')),
+      _indexes(raw),
+      isNot(contains(_firstCitedIdIndex)),
       reason:
-          'the whole v40 step ran before the throw; unless every step shares '
-          'one transaction its tables stay committed under a user_version '
-          'that still says v39',
+          'the whole v41 step ran before the throw; unless every step shares '
+          'one transaction its indexes stay committed under a user_version '
+          'that still says v40',
+    );
+    expect(
+      _tables(raw),
+      isNot(contains('dance_interpreters')),
+      reason: 'the v42 table created before the throw must roll back too',
+    );
+    expect(
+      _columns(raw, 'dances'),
+      isNot(contains('formation_improper')),
+      reason: 'and so must the v42 columns added before it',
     );
     expect(
       _indexes(raw),
-      isNot(contains(_firstCitedIdIndex)),
-      reason: 'the v41 index created just before the throw must roll back too',
+      isNot(contains('dance_interpreters_choreographer_id')),
+      reason: 'and the index created just before the throw',
     );
 
     // The proof that the rollback matters: a real reopen now migrates.
@@ -176,10 +190,8 @@ void main() {
     addTearDown(reopened.close);
     await reopened.customSelect('SELECT 1').get();
     expect(_userVersion(raw), kCompendiumSchemaVersion);
-    expect(
-      _tables(raw),
-      containsAll(['user_glossary_entries', 'figure_notes']),
-    );
+    expect(_tables(raw), contains('dance_interpreters'));
+    expect(_indexes(raw), contains(_firstCitedIdIndex));
   });
 
   test("user_version already reads the new value if the process dies in "
@@ -247,6 +259,11 @@ Set<String> _indexes(sqlite3.Database raw) => {
   for (final row in raw.select(
     "SELECT name FROM sqlite_master WHERE type = 'index'",
   ))
+    row['name'] as String,
+};
+
+Set<String> _columns(sqlite3.Database raw, String table) => {
+  for (final row in raw.select("SELECT name FROM pragma_table_info('$table')"))
     row['name'] as String,
 };
 

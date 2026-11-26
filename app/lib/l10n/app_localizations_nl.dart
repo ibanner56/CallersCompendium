@@ -15364,6 +15364,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programTemplateRulesNone => 'Geen';
 
   @override
+  String programTemplateDuplicateSearchGone(String label) {
+    return 'Dupliceren is niet gelukt: de opgeslagen zoekopdracht van de plekregel “$label” is verwijderd. Bewerk of verwijder die regel en probeer het opnieuw.';
+  }
+
+  @override
   String get programTemplateSlotRuleNotSavedSearchGone =>
       'Die opgeslagen zoekopdracht is net verwijderd, dus de plekregel is niet opgeslagen.';
 

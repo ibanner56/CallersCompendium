@@ -475,44 +475,62 @@ Future<List<String>> newProgramEventRuleIds(
   }
 }
 
+/// Which of a template's slot rules [saveProgramTemplate] checks name a saved
+/// search that is stored (#2529): a slot rule cannot start using one that is
+/// not.
+enum SlotRuleSearchCheck {
+  /// None: the slot rules are written as they are (an Undo, which brings
+  /// rules back rather than starting them).
+  none,
+
+  /// Those the stored copy of the template does not already name: the
+  /// template editor's saves, so a template whose search was deleted since
+  /// can still be renamed. With no stored copy (the template was deleted
+  /// elsewhere while its editor was open), none, and the template is written
+  /// back.
+  added,
+
+  /// Every one: a copy (**Duplicate**), whose every slot rule is a new use.
+  all,
+}
+
 /// Writes [template] under its own key, and only that key (after
 /// [materializeProgramTemplates], which writes nothing once the Starting
 /// program has been copied).
 ///
-/// With [checkNewSlotRules] (the template editor's saves), a slot rule that
-/// starts using a saved search must name one that is stored (#2529): every
-/// slot rule's saved search that the stored copy of [template] does not
-/// already name is checked, in one transaction with the write, and
-/// [SavedSearchGone] is thrown, writing nothing, for one that is not. A slot
-/// rule the stored copy already has is never checked, so a template whose
-/// search was deleted since can still be renamed. With no stored copy (the
-/// template was deleted elsewhere while its editor was open), nothing is
-/// checked and the template is written back. Without the flag (a copy, an
-/// Undo), the slot rules are written as they are.
+/// Unless [checkSlotRules] is [SlotRuleSearchCheck.none], the slot rules it
+/// selects are checked to name a stored saved search, in one transaction with
+/// the write, and [SavedSearchGone] is thrown, writing nothing, for the first
+/// that does not.
 Future<void> saveProgramTemplate(
   SettingsRepository settings,
   ProgramTemplate template, {
-  bool checkNewSlotRules = false,
+  SlotRuleSearchCheck checkSlotRules = SlotRuleSearchCheck.none,
 }) async {
   await materializeProgramTemplates(settings);
   final key = programTemplateKey(template.id);
-  if (!checkNewSlotRules) {
+  if (checkSlotRules == SlotRuleSearchCheck.none) {
     await settings.set(key, encodeProgramTemplate(template));
     return;
   }
   await settings.transaction(() async {
-    final stored = tryDecodeProgramTemplate(
-      template.id,
-      await settings.get(key),
-    );
-    if (stored == null) {
-      // Deleted elsewhere while the editor was open (or unreadable): there
-      // is no stored copy to tell a new slot rule from an old one, so the
-      // write goes through as it did before, bringing the template back.
-      await settings.set(key, encodeProgramTemplate(template));
-      return;
+    final Set<String> named;
+    if (checkSlotRules == SlotRuleSearchCheck.all) {
+      named = const {};
+    } else {
+      final stored = tryDecodeProgramTemplate(
+        template.id,
+        await settings.get(key),
+      );
+      if (stored == null) {
+        // Deleted elsewhere while the editor was open (or unreadable): there
+        // is no stored copy to tell a new slot rule from an old one, so the
+        // write goes through as it did before, bringing the template back.
+        await settings.set(key, encodeProgramTemplate(template));
+        return;
+      }
+      named = {for (final entry in stored.entries) ?entry.savedSearchId};
     }
-    final named = {for (final entry in stored.entries) ?entry.savedSearchId};
     for (final entry in template.entries) {
       final id = entry.savedSearchId;
       if (id == null || named.contains(id)) continue;
@@ -520,6 +538,33 @@ Future<void> saveProgramTemplate(
     }
     await settings.set(key, encodeProgramTemplate(template));
   });
+}
+
+/// [entries] with the slot rules a refused save added or changed to name the
+/// saved search [goneId] undone (#2529): a rule that [editedFrom] maps to the
+/// entry it replaced goes back to that entry, in its place, and one added is
+/// removed. A slot rule naming [goneId] that the stored copy already names
+/// ([storedSearchIds]) is kept, and so is every other entry, so an edit made
+/// after the refused save is not lost. Returns `null` when nothing changed.
+List<ProgramTemplateEntry>? undoSlotRulesNaming(
+  List<ProgramTemplateEntry> entries,
+  String goneId, {
+  required Set<String> storedSearchIds,
+  required Map<ProgramTemplateEntry, ProgramTemplateEntry> editedFrom,
+}) {
+  if (storedSearchIds.contains(goneId)) return null;
+  var changed = false;
+  final next = <ProgramTemplateEntry>[];
+  for (final entry in entries) {
+    if (entry.savedSearchId != goneId) {
+      next.add(entry);
+      continue;
+    }
+    changed = true;
+    final original = editedFrom[entry];
+    if (original != null) next.add(original);
+  }
+  return changed ? next : null;
 }
 
 /// Writes the templates' order, keeping at most

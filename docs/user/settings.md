@@ -751,9 +751,12 @@ Select **Program defaults** to open this group.
   break. While a template has a rule that uses a saved search, that search
   can't be deleted; the message names the template and the rule. If the
   saved search you choose for a rule is deleted before the rule is saved, the
-  template says so and keeps its slots as they were. If the saved search is
-  gone anyway (deleted on another device, say), or can't be opened, the rule's
-  row says so, and the placeholder still offers Fill.
+  template says so and undoes just that rule: a new rule is removed, and an
+  edited one goes back to how it was. If the saved search is gone anyway
+  (deleted on another device, say), or can't be opened, the rule's row says
+  so, and the placeholder still offers Fill. **Duplicate** won't copy a
+  template while one of its slot rules uses a saved search that has been
+  deleted; the message names the rule, so you can edit or remove it first.
 - **Rules** (optional, *Experimental*) — while [Event rules](#event-rules) is
   on, a template has a **Rules** row under its name, listing the template's
   rules: each by its nickname with its sentence beneath, or by its sentence if

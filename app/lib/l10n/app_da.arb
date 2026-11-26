@@ -14526,6 +14526,10 @@
   "@programTemplateRulesNone": {
     "x-sourceSha256": "dc937b59892604f5a86ac96936cd7ff09e25f18ae6b758e8014a24c7fa039e91"
   },
+  "programTemplateDuplicateSearchGone": "Kunne ikke duplikere: den gemte søgning til pladsreglen „{label}“ er slettet. Rediger eller fjern reglen, og prøv igen.",
+  "@programTemplateDuplicateSearchGone": {
+    "x-sourceSha256": "2b6e7b2f1c72734b0fb1bf1fa87d54326315dd009a415ae00a229c1affcb0b25"
+  },
   "programTemplateSlotRuleNotSavedSearchGone": "Den gemte søgning blev netop slettet, så pladsreglen blev ikke gemt.",
   "@programTemplateSlotRuleNotSavedSearchGone": {
     "x-sourceSha256": "6688d691e5716697612548cfe5d8de2887a3591418f7183f21ad7828ed53a456"

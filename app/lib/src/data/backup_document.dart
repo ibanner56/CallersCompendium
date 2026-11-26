@@ -41,8 +41,9 @@ const int backupSchemaVersionGlossary = 2;
 /// Those keys arrived in 0.6.0 with no archive version bump, so 0.5.2 to 0.5.4,
 /// which already refuse a newer backup, would restore such a backup and drop
 /// them without a word. The bump lives in this envelope rather than the core
-/// archive because the core version also stamps share files, and a bump there
-/// would make 0.7.0 and older refuse them at the share sheet (#1885).
+/// archive because the core version also stamps share files, and when this was
+/// added a bump there would have made 0.7.0 and older refuse them at the share
+/// sheet (#1885).
 ///
 /// The same number as [backupSchemaVersionGlossary] on purpose. 0.8.0, the
 /// first build that reads envelope v2, already reads these keys, so it and

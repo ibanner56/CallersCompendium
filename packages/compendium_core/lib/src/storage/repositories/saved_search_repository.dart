@@ -309,10 +309,10 @@ class SavedSearchRepository {
   /// removal is not prevented by the delete itself: a writer that starts
   /// using a saved search checks [isSavedSearchStored] in its own transaction
   /// and throws [SavedSearchGone] instead (an event rule's create, or a save
-  /// that changes its search; a template's new or changed slot rule). Writes
-  /// that bring a use back rather than start one (Undo, restore, a copy) and
-  /// a peer's rule arriving by sync are not checked, so a dependent must still
-  /// handle a missing id.
+  /// that changes its search; a template's new or changed slot rule, and
+  /// every slot rule of a copy). Writes that bring a use back rather than
+  /// start one (Undo, restore) and a peer's rule arriving by sync are not
+  /// checked, so a dependent must still handle a missing id.
   Future<void> delete(String id, {DateTime? at}) =>
       _settings.transaction(() async {
         final uses = await usage.usesOf(id);

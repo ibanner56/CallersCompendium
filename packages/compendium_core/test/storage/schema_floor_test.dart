@@ -47,10 +47,11 @@ void main() {
   });
 
   test('the floor is the schema version of the oldest supported release', () {
-    // v0.7.0-beta shipped schema v39 and is the oldest supported release
-    // (every release before v0.7.0 was retired, 2026-11-12). v0.6.0-beta
-    // shipped v38, so a v0.6.0-beta database is deliberately below the floor.
-    expect(kMinSupportedSchemaVersion, 39);
+    // v0.8.0-beta shipped schema v40 and is the oldest supported release
+    // (releases through v0.7.0 were retired: v0.7.0's end of life is
+    // 2026-11-30). v0.7.0-beta shipped v39, so a v0.7.0-beta database is
+    // deliberately below the floor.
+    expect(kMinSupportedSchemaVersion, 40);
     expect(
       kMinSupportedSchemaVersion,
       lessThanOrEqualTo(kCompendiumSchemaVersion),
@@ -86,8 +87,8 @@ void main() {
       });
     }
 
-    test('v38 is refused even though it is only one below the floor', () async {
-      // The boundary is the interesting case: v38 is what v0.6.0-beta, the
+    test('v39 is refused even though it is only one below the floor', () async {
+      // The boundary is the interesting case: v39 is what v0.7.0-beta, the
       // newest retired release, shipped. The floor is exact, so a database
       // that release last opened must be refused, not partly migrated.
       final path = _databaseStampedAt(dir, kMinSupportedSchemaVersion - 1);

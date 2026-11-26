@@ -739,13 +739,13 @@ void main() {
         await saveProgramTemplate(
           repos.settings,
           withRules(['kept']),
-          checkNewSlotRules: true,
+          checkSlotRules: SlotRuleSearchCheck.added,
         );
         await expectLater(
           saveProgramTemplate(
             repos.settings,
             withRules(['kept', 'gone']),
-            checkNewSlotRules: true,
+            checkSlotRules: SlotRuleSearchCheck.added,
           ),
           throwsA(isA<SavedSearchGone>().having((e) => e.id, 'id', 'gone')),
         );
@@ -765,13 +765,13 @@ void main() {
         await saveProgramTemplate(
           repos.settings,
           withRules(['s']),
-          checkNewSlotRules: true,
+          checkSlotRules: SlotRuleSearchCheck.added,
         );
         await repos.savedSearches.delete('s');
         await saveProgramTemplate(
           repos.settings,
           withRules(['s'], name: 'Renamed'),
-          checkNewSlotRules: true,
+          checkSlotRules: SlotRuleSearchCheck.added,
         );
         expect((await stored(repos.settings))!.name, 'Renamed');
       });
@@ -784,13 +784,36 @@ void main() {
           await saveProgramTemplate(
             repos.settings,
             withRules(['gone'], name: 'Renamed'),
-            checkNewSlotRules: true,
+            checkSlotRules: SlotRuleSearchCheck.added,
           );
           expect((await stored(repos.settings))!.name, 'Renamed');
         },
       );
 
-      test('without the check (a copy, an Undo) the slots are written as '
+      test('a copy checks every slot rule, even one the template it is under '
+          'already names', () async {
+        final repos = openTestRepositories();
+        await saveProgramTemplate(repos.settings, withRules(['gone']));
+        await expectLater(
+          saveProgramTemplate(
+            repos.settings,
+            withRules(['gone'], name: 'Copy'),
+            checkSlotRules: SlotRuleSearchCheck.all,
+          ),
+          throwsA(isA<SavedSearchGone>().having((e) => e.id, 'id', 'gone')),
+        );
+        expect((await stored(repos.settings))!.name, 'T');
+
+        await storeSavedSearches(repos.settings, ['gone']);
+        await saveProgramTemplate(
+          repos.settings,
+          withRules(['gone'], name: 'Copy'),
+          checkSlotRules: SlotRuleSearchCheck.all,
+        );
+        expect((await stored(repos.settings))!.name, 'Copy');
+      });
+
+      test('without the check (an Undo) the slots are written as '
           'they are', () async {
         final repos = openTestRepositories();
         await saveProgramTemplate(repos.settings, withRules(['gone']));
@@ -802,6 +825,60 @@ void main() {
           ['gone'],
         );
       });
+    });
+  });
+
+  group('undoing the slot rules a refused save named (#2529)', () {
+    const waltz = ProgramTemplateEntry(text: 'Waltz');
+    const unsaved = ProgramTemplateEntry(text: 'Added meanwhile');
+    final kept = ProgramTemplateEntry.rule(savedSearchId: 'a', label: 'Kept');
+    final before = ProgramTemplateEntry.rule(savedSearchId: 'a', label: 'Was');
+    final edited = ProgramTemplateEntry.rule(
+      savedSearchId: 'gone',
+      label: 'Is',
+    );
+    final added = ProgramTemplateEntry.rule(
+      savedSearchId: 'gone',
+      label: 'New',
+    );
+
+    test('an edit goes back to the rule it changed, in its place; an added '
+        'rule goes; every other entry stays, an unsaved one included', () {
+      final editedFrom =
+          Map<ProgramTemplateEntry, ProgramTemplateEntry>.identity()
+            ..[edited] = before;
+      expect(
+        undoSlotRulesNaming(
+          [waltz, edited, kept, added, unsaved],
+          'gone',
+          storedSearchIds: {'a'},
+          editedFrom: editedFrom,
+        ),
+        [waltz, before, kept, unsaved],
+      );
+    });
+
+    test('nothing to undo when no entry names the search, or the stored copy '
+        'already does', () {
+      final none = Map<ProgramTemplateEntry, ProgramTemplateEntry>.identity();
+      expect(
+        undoSlotRulesNaming(
+          [waltz, kept],
+          'gone',
+          storedSearchIds: {'a'},
+          editedFrom: none,
+        ),
+        isNull,
+      );
+      expect(
+        undoSlotRulesNaming(
+          [waltz, added],
+          'gone',
+          storedSearchIds: {'gone'},
+          editedFrom: none,
+        ),
+        isNull,
+      );
     });
   });
 

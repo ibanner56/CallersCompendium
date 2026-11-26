@@ -157,7 +157,7 @@ When you change the schema:
   `schemaVersion` without adding or changing such a test/fixture. A test built
   from a drift schema dump seeds its own rows, so it cannot notice a step that
   corrupts existing data; the **floor** version therefore keeps a real
-  fixture captured from its release tag (`test/storage/fixtures/v39.sqlite`,
+  fixture captured from its release tag (`test/storage/fixtures/v40.sqlite`,
   exercised by `real_release_fixture_test.dart`), and raising the floor
   requires capturing the next one (see "Retiring a schema version" in
   [`docs/design/storage.md`](docs/design/storage.md)).
@@ -210,13 +210,14 @@ development build had stamped v39 before the step was complete, and every sync
 pass failed). The precedent is an idempotent `_ensureV<N>Schema` helper that
 both the `from < N` step and `beforeOpen` call, so the repair runs on every open
 of a file stamped `N` or later (`database.dart`, with
-`v39_partial_stamp_repair_test.dart`). v39 is now the floor, so its `from < 39`
-step is retired and only the `beforeOpen` call remains; a new repair of this
-kind would still call the helper from both. Weigh the cost: the helper runs on every
-open for as long as it stays. v39 and v42 are repaired this way today: v42 because
-test builds stamped it before later pieces joined it while it was unreleased,
-and reading a dance then failed on a missing column.
-`_ensureV40Schema` has no `beforeOpen` call, so copying that helper does not
+`v42_partial_stamp_repair_test.dart`). Weigh the cost: the helper runs on every
+open for as long as it stays. v42 is repaired this way today, because test
+builds stamped it before later pieces joined it while it was unreleased, and
+reading a dance then failed on a missing column. v39's repair was retired with
+v39: the repair (#1760) merged before the v40 step (#1772), so every build that
+could stamp a file past v39 repaired it on that same open, and a file still at
+v39 is now below the floor.
+`_ensureV41Schema` has no `beforeOpen` call, so copying that helper does not
 give you the repair.
 
 Old schema versions are **retired** once they fall below the oldest supported

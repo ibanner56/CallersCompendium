@@ -15403,6 +15403,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programTemplateRulesNone => 'Keine';
 
   @override
+  String programTemplateDuplicateSearchGone(String label) {
+    return 'Duplizieren nicht möglich: Die gespeicherte Suche der Eintragsregel „$label“ wurde gelöscht. Bearbeite oder entferne diese Regel und versuche es dann erneut.';
+  }
+
+  @override
   String get programTemplateSlotRuleNotSavedSearchGone =>
       'Diese gespeicherte Suche wurde gerade gelöscht, deshalb wurde die Eintragsregel nicht gespeichert.';
 

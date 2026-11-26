@@ -15273,6 +15273,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programTemplateRulesNone => 'Ingen';
 
   @override
+  String programTemplateDuplicateSearchGone(String label) {
+    return 'Kunne ikke duplikere: den gemte søgning til pladsreglen „$label“ er slettet. Rediger eller fjern reglen, og prøv igen.';
+  }
+
+  @override
   String get programTemplateSlotRuleNotSavedSearchGone =>
       'Den gemte søgning blev netop slettet, så pladsreglen blev ikke gemt.';
 
