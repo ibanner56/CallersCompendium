@@ -2589,6 +2589,36 @@ ECD dance.
   reads), a cast's shoulder beside `up` or `down`, a bare `improper`
   (`ending improper` reads), and a subject before a poussette, whose `who` is
   the dancers who push (`half poussette, 2s push` reads; "all" adds nothing).
+- **Callers' shorthand** (a beta tester's Caller's Companion library of English
+  dances; the maintainer asked that free text learn these wordings). `P`/`Ps`
+  and `N`/`Ns` are partners and neighbors, as in the contra grammar. `trade` is
+  `change` (`First corners trade by right` reads as `change by the L` does, a
+  `hand`). `pass X by L` is `pass_through` with that `shoulder`; a stated hand
+  (`pass by the right hand`) is not read, and `pass right shoulder` before
+  another movement is still that movement's shoulder. A leading `all`/
+  `everyone` before other dancers, or `all` after them (`Partners all 2-hand
+  turn`), adds no one (`everyone` is never stored beside another selector), and
+  a couple's `partner` (`Ones Partner Set`) is the couple itself, so `who` is
+  `["ones"]` (a couple naming `Neighbor` stays custom). `set right and left` /
+  `set L & R` is the side set to first. `go forward and back` is `forward and
+  back`. `go below` is a cast down one place, so `1s cross and go below` is a
+  cross, then that cast. A detail the movement has no parameter for is the
+  figure's note: a shoulder on `change_places` (`trade by right shoulder`),
+  `forward` on a turn single, and who follows a cast (`cast partner follow`,
+  `followed by partner`). Implementer's calls, not the maintainer's: (1) `trade
+  by right` stores `hand = right`, consistent with the existing `change by the
+  L`; the same library writes "role1s change by R shoulder; (Neutral First
+  corners trade by right)", which suggests this caller means a shoulder, but
+  reading `by the <side>` after `change` as a shoulder would change a tested
+  reading, and leaving it custom would leave the commonest miss unread. (2)
+  `pass P by L` is `pass_through`, not `cross` (which ADR-006 §7.5 calls
+  roughly the union of pass through and pass by): `cross` would state a
+  crossing the words do not. (3) `go below` is a cast rather than a `lead
+  down`, which travels down the middle. (4) A couple's partner is absorbed
+  rather than stored as `set`'s `whom`, which ADR-006 §7.1 keeps for setting to
+  someone other than each other. The fuller `Ones cross and go outside below
+  the twos who move up` says what the twos do too and stays custom, as do lines
+  joining figures with a count (`X (4) Y`).
 - **Cast** reads the shape ADR-006 §9.4 gives it: `up`, `down`, a bare
   `left`/`right` (the shoulder turned over) or `clockwise` (right) /
   `counterclockwise` (left) is its `direction`; no shoulder is assumed from

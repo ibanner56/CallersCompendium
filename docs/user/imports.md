@@ -708,7 +708,12 @@ The app also reads Caller's Companion's abbreviations and wording. "Circle L",
 neighbors and first corners. "Ring balance, spin to the right", "Balance wave
 and slide to the right", "Wave balance, circulate" and "Partner R-hand balance,
 square through 2" read as a petronella, a Rory O'More, a box circulate and a
-square through, each with its balance. The same wordings work in
+square through, each with its balance. In an English dance, "First corners
+trade by right", "Pass P by L", "All Partner Set", "Ones Partner right-hand
+turn 1.5", "Partner Set Right and Left advancing" and "Lines of three go
+forward and back" are read as English figures too. A line that joins several
+figures with a count, as "First corners trade by right (4) Second corners trade
+by right" does, is still kept as written. The same wordings work in
 [Free-text entry](./authoring.md#free-text-entry). For dances brought across
 earlier, [Re-check unrecognized figures](./authoring.md#fix-figures-an-import-could-not-read)
 can upgrade such lines, but it does not split a line at its commas: re-import
