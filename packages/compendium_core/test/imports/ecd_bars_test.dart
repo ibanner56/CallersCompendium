@@ -1258,6 +1258,43 @@ void main() {
         expect(read('(8) Ones cast (2) places down'), hasLength(1));
       });
 
+      // A line that does not start with a count writes its counts after its
+      // figures, so a split there would give each count to the next figure.
+      test('a count written after its figure', () {
+        for (final line in const [
+          'Set (4) Turn single (2)',
+          'Circle left (8) circle right (8)',
+          '1s cross (4) cast (4)',
+          'Circle left (8) Set and turn single (8)',
+          'Lead up a double (4) and fall back (4)',
+          'Partners set (4) and turn single (4)',
+          'First corners trade by right (4) Second corners trade by right',
+        ]) {
+          expect(read(line), hasLength(1), reason: line);
+        }
+        final setAndTurn = read('Partners set (4) and turn single (4)').single;
+        expect(setAndTurn.isCustom, isFalse);
+        expect(
+          setAndTurn.subFigures.map((f) => f.move),
+          ['ecd_set', 'ecd_turn_single'],
+        );
+      });
+
+      test('a count of steps, doubles, dancers or people', () {
+        for (final (line, count) in const [
+          ('(8) Slip (8) steps to the left', 8),
+          ('(8) Lead up (2) doubles and back', 8),
+          ('(8) Hey for three (3) dancers', 8),
+          ('(4) Set (2) singles right and left', 4),
+          ('(8) Star (4) people', 8),
+          ('(8) Turn (1) and a half', 8),
+        ]) {
+          final figures = read(line);
+          expect(figures, hasLength(1), reason: line);
+          expect(beats(figures), count, reason: line);
+        }
+      });
+
       test('a later piece\'s bar range with no meter still warns', () {
         final mapping = mapCallersCompanionDance(
           record(
