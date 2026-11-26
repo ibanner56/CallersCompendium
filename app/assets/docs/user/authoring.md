@@ -716,7 +716,8 @@ become `4*8*3` in 3/2, as an import of the dance writes them, and the standard
 structure again in 2/2. A Meter given while the dance was another type is
 applied the same way when you make it English, unless it states the same beats
 to the bar as it did when you changed the dance from English since opening it
-(an **Undo** to before that change forgets it). A structure whose parts have different
+(an **Undo** or **Redo** that lands on a step where the dance was not
+English forgets it). A structure whose parts have different
 beats to the bar is never rewritten from the Meter (see **Phrases** below). A
 tune whose phrases have different numbers of beats to the
 bar (`A:2*4*3 + B:1*8*2`, an A in 3/4 and a B in 6/8) counts each bar by the
