@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+
+import '../figures_support.dart';
 
 /// Three Caller's Box line shapes that used to stay free text (2026-11-24,
 /// user-ruled): a neighbour number before a same-role pair, hey pass lists
@@ -8,16 +12,149 @@ import 'package:test/test.dart';
 Figure _parse(String line) =>
     parseFigureLine(line, frontEnd: tcbFigureFrontEnd)!;
 
+/// [line] imported through the whole adapter, so the role words are the
+/// site's own (`men`, `women`) and the scrub turns them into role tokens.
+Future<Figure> _import(String line) async {
+  final payload = jsonEncode({
+    'ID': '1',
+    'Name': 'Numbered pair',
+    'Permission': 'full',
+    'phrases': [
+      {
+        'name': 'A1',
+        'figures': [line],
+      },
+    ],
+  });
+  final adapter = CallersBoxAdapter();
+  final discovered = await adapter.discover(ImportRequest(payload: payload));
+  final raw = await adapter.fetch(discovered.single);
+  return figuresOf(adapter.parse(raw).dance).single;
+}
+
 void main() {
   group('N2 Men allemande: a neighbour number before a same-role pair', () {
-    test('reads as the role pair, with the number as a note', () {
+    test('N2 reads as the next neighbours\' role, with no note', () {
       final f = _parse('N2 role1s allemande left 3/4');
       expect(f.move, 'allemande');
-      // Still the two larks, never next neighbours.
-      expect(f.params['who'], 'role1s');
+      // Taxonomy v40: the next larks (user-ruled 2026-11-26).
+      expect(f.params['who'], 'nextRole1s');
       expect(f.params['hand'], 'left');
       expect(f.params['travel'], 0.75);
-      expect(f.note, 'with nextNeighbors');
+      expect(f.note, isNull);
+    });
+
+    test('N0 is the previous neighbours\' role, for either role', () {
+      final larks = _parse('N0 role1s allemande left 1');
+      expect(larks.move, 'allemande');
+      expect(larks.params['who'], 'prevRole1s');
+      expect(larks.note, isNull);
+      final robins = _parse('N2 role2s allemande right 1/2');
+      expect(robins.params['who'], 'nextRole2s');
+      expect(robins.note, isNull);
+    });
+
+    test('the site\'s own role words read as the four role tokens', () async {
+      // User-ruled 2026-11-26: N2 men, N2 women, N0 men and N0 women each read
+      // as their gender-free counterpart when only that role takes part.
+      const expected = {
+        '(8) N2 men allemande left 1': 'nextRole1s',
+        '(8) N2 women allemande right 1': 'nextRole2s',
+        '(8) N0 men allemande left 1': 'prevRole1s',
+        '(8) N0 women allemande right 1': 'prevRole2s',
+      };
+      for (final MapEntry(key: line, value: token) in expected.entries) {
+        final f = await _import(line);
+        expect(f.move, 'allemande', reason: line);
+        expect(f.params['who'], token, reason: line);
+        expect(f.note, isNull, reason: line);
+      }
+    });
+
+    test('a figure done with a neighbour numbers the neighbour instead', () {
+      // The neighbour set is preferred where it can be used: the larks roll
+      // away their next neighbours, so `who` stays the role.
+      final next = _parse('N2 role1s roll away neighbor');
+      expect(next.move, 'roll_away');
+      expect(next.params['who'], 'role1s');
+      expect(next.params['whom'], 'nextNeighbors');
+      expect(next.note, isNull);
+      final prev = _parse('N0 role2s roll away neighbor');
+      expect(prev.params['who'], 'role2s');
+      expect(prev.params['whom'], 'prevNeighbors');
+      // A number with no role token reads this way too.
+      expect(
+        _parse('N3 role1s roll away neighbor').params['whom'],
+        'thirdNeighbors',
+      );
+    });
+
+    test('a figure another dancer takes part in keeps the number a note', () {
+      // A bare roll away is done with partners, so it is not only the larks.
+      for (final line in [
+        'N2 role1s roll away',
+        'N2 role1s roll away partners',
+      ]) {
+        final f = _parse(line);
+        expect(f.move, 'roll_away', reason: line);
+        expect(f.params['who'], 'role1s', reason: line);
+        expect(f.note, contains('with nextNeighbors'), reason: line);
+      }
+    });
+
+    test('a counterpart that defaults to neighbours takes the number', () {
+      // Cross trails is done with neighbours unless the line says otherwise.
+      final f = _parse('N2 role1s cross trails');
+      expect(f.move, 'cross_trails');
+      expect(f.params['who'], 'role1s');
+      expect(f.params['who2'], 'nextNeighbors');
+      expect(f.note, isNull);
+    });
+
+    test('an explicit current neighbour is kept, with the number a note', () {
+      for (final line in [
+        'N2 role1s roll away N1',
+        'N2 role1s roll away N',
+        'N2 role1s roll away neighbor 1',
+      ]) {
+        final f = _parse(line);
+        expect(f.params['who'], 'role1s', reason: line);
+        expect(f.params['whom'], 'neighbors', reason: line);
+        expect(f.note, 'with nextNeighbors', reason: line);
+      }
+    });
+
+    test('a numbered role still folds with the other role\'s fall back', () {
+      final figures = parseFigureLines(
+        'N0 role2s form long wave in center || role1s fall back',
+        frontEnd: tcbFigureFrontEnd,
+      );
+      expect(figures, hasLength(1));
+      expect(figures.single.move, 'form_a_long_wave');
+      expect(figures.single.params['who'], 'prevRole2s');
+      expect(figures.single.params['out'], isTrue);
+      // A numbered falling-back side is never folded away.
+      for (final line in [
+        'role2s form long wave in center || next role1s fall back',
+        'next role2s form long wave in center || prev role1s fall back',
+      ]) {
+        final kept = parseFigureLines(line, frontEnd: tcbFigureFrontEnd);
+        expect(kept.single.isContainer, isTrue, reason: line);
+      }
+    });
+
+    test('a promenade destination is not a neighbour the figure is with', () {
+      final f = _parse('N2 role1s promenade to neighbor');
+      expect(f.params['destination'], isNot('nextNeighbors'));
+      expect(f.params['who'], isNot('nextRole1s'));
+    });
+
+    test('a number with no role token keeps the pair and the note', () {
+      // There is no third or fourth role token (taxonomy v40).
+      final f = _parse('N3 role1s allemande left 3/4');
+      expect(f.move, 'allemande');
+      expect(f.params['who'], 'role1s');
+      expect(f.note, 'with thirdNeighbors');
     });
 
     test('matches the bracket form the importer already read', () {
@@ -44,16 +181,22 @@ void main() {
       // and re-reads it through this recognizer, so neither note is lost.
       final f = _parse('N2 role2s allemande right (1 or 2)');
       expect(f.isCustom, isFalse);
-      expect(f.params['who'], 'role2s');
+      expect(f.params['who'], 'nextRole2s');
       expect(f.params['travel'], 1.0);
-      expect(f.note, 'with nextNeighbors; 1 or 2');
+      expect(f.note, '1 or 2');
+      final third = _parse('N3 role2s allemande right (1 or 2)');
+      expect(third.params['who'], 'role2s');
+      expect(third.note, 'with thirdNeighbors; 1 or 2');
     });
 
-    test('mixed case and other moves keep the number as the note', () {
+    test('mixed case and other moves read the number too', () {
       final f = _parse('n2 Role2s trade by right');
       expect(f.isCustom, isFalse);
-      expect(f.params['who'], 'role2s');
-      expect(f.note, 'with nextNeighbors');
+      expect(f.params['who'], 'nextRole2s');
+      expect(f.note, isNull);
+      final fourth = _parse('n4 Role2s trade by right');
+      expect(fourth.params['who'], 'role2s');
+      expect(fourth.note, 'with fourthNeighbors');
     });
 
     test('a numbered same-role neighbour stays custom', () {
