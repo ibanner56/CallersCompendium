@@ -733,7 +733,8 @@ final List<_VerbPhrase> _verbPhrases = [
   _v('cast', 'cast'),
   _v('cast off', 'cast', {'where': 'off'}),
   // "Cross and go below": down the outside past one couple, a cast down one
-  // place (the next couple moves up).
+  // place (the next couple moves up). Read only after a cross
+  // ([_Reader.readLine]).
   _v('go below', 'cast', {'where': 'down', 'placeCount': 1}),
   _v('galop', 'galop'),
   _v('gallop', 'galop'),
@@ -1560,8 +1561,15 @@ class _Reader {
       if (back != null) {
         current.add(back);
       } else {
+        final start = pos;
         final step = readStep();
         if (step == null) return null;
+        // `go below` is a cast down one place only after a cross (`cross and
+        // go below`): after a lead down the middle, or a cast, it is not.
+        if (_goesBelow(start, pos) &&
+            (current.isEmpty || current.last.move != 'ecd_cross')) {
+          return null;
+        }
         // `, bending the line` makes the step before it a modifier.
         current.add(step);
       }
@@ -1585,6 +1593,14 @@ class _Reader {
       figures: [for (final f in figures) f!],
       beats: span,
     );
+  }
+
+  /// Whether the tokens from [start] to [end] read `go below`.
+  bool _goesBelow(int start, int end) {
+    for (var i = start; i < end - 1; i++) {
+      if (wordsAt(i, const ['go', 'below'])) return true;
+    }
+    return false;
   }
 
   /// A connector between steps, or null when there is none at [pos].
@@ -1743,8 +1759,9 @@ class _Reader {
   ///   `everyone` is never stored beside another selector (ADR-006 Q1b).
   /// - `all` after the dancers (`Partners all 2-hand turn`), the same.
   /// - A couple's `partner` (`Ones Partner Set`): a couple's partners are the
-  ///   couple's own two dancers, so it names no one else. `set`'s `whom` is
-  ///   for setting to someone other than each other (ADR-006 §7.1).
+  ///   couple's own two dancers, so it names no one else, and the subject is
+  ///   the couple. (A partner named after the movement, `Ones set to P`, is
+  ///   still read as `set`'s `whom`, as before.)
   List<String>? takeSubject() {
     var who = takeDancers(subject: true);
     if (who == null) return null;

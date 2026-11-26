@@ -1083,6 +1083,43 @@ void main() {
       }
     });
 
+    test('`go below` is a cast only after a cross', () {
+      for (final line in const [
+        '1s cast and go below',
+        '1s lead down and go below',
+        'half figure eight and go below',
+        'go below',
+      ]) {
+        final f = parseEcdFigureLine(line, beats: 8);
+        expect(f?.isCustom, isTrue, reason: line);
+      }
+    });
+
+    test('a hand and a shoulder that disagree in a change of places are not '
+        'read', () {
+      final f = parseEcdFigureLine(
+        'change places right hand passing left shoulder',
+        beats: 8,
+      );
+      expect(f?.isCustom, isTrue);
+    });
+
+    test('a shoulder after other movements reads as their shoulder', () {
+      for (final (line, move) in const [
+        ('partners cross by the right shoulder', 'ecd_cross'),
+        ('1st corners pass by the right shoulder', 'ecd_pass_through'),
+      ]) {
+        final f = _one(line);
+        expect(f.move, move, reason: line);
+        expect(f.params['shoulder'], 'right', reason: line);
+      }
+    });
+
+    test('a couple\'s partner joined to other dancers is not absorbed', () {
+      final f = parseEcdFigureLine('Ones partner and twos set', beats: 8);
+      expect(f?.isCustom, isTrue);
+    });
+
     test('an imported bar range is the count of a trade', () {
       final f = parseEcdFigureLine(
         '(7-8) Second corners trade by right',
