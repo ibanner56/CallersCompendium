@@ -1,0 +1,9 @@
+{
+  "id": "manage-rules-search-read-failure",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Event rules (Experimental): if your saved searches can't be read, Manage rules still lists your rules instead of loading forever, and doesn't mark a rule Needs attention just because its saved search couldn't be read this time."
+    ]
+  }
+}
