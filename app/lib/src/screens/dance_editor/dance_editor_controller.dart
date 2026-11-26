@@ -1532,6 +1532,9 @@ class DanceEditorController extends ChangeNotifier {
 
     // Enum fields.
     _form = s.form;
+    // Snapshots (also the autosave draft's format) do not carry it, so a
+    // restored non-English dance forgets the Meter it had when last English,
+    // and making it English applies the Meter as for a dance just opened.
     _statedBeatsPerBarSeen = _statedBeatsPerBarApplied;
     _formationShape = s.formationShape;
     _improper = s.improper;
