@@ -263,8 +263,11 @@ in the background, on a timer, or when you come back to the app.
 **What each draft gets.** The event's title (or **Untitled event**), its date,
 its [start and end times](#times) when the event has a time of day (an all-day
 event gets none), and the first part of its location as the venue — "Glen Echo Park, 7300
-MacArthur Blvd, …" becomes **Glen Echo Park**. If that matches the name of a
-saved [venue](./glossary.md#venue), the draft is linked to it. The rest of the
+MacArthur Blvd, …" becomes **Glen Echo Park**, and so does a location with
+the address on the lines after the name. If the venue matches the name of a
+saved [venue](./glossary.md#venue), the draft is linked to it. A location that
+is only an address, with a house number in that first part, gives the draft no
+venue. The rest of the
 location, usually a street address, is not kept. Nor is the event's
 description, organiser, guests or link: that is where other people's names,
 emails and phone numbers live. The draft starts with your **Default template**,

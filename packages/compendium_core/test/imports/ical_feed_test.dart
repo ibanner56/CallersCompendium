@@ -694,7 +694,11 @@ void main() {
             r'LOCATION:Hauptstraße 5\, 10115 Berlin',
           ],
           // Only an address, over lines.
-          ['UID:d', 'DTSTART:20300620', r'LOCATION:12B Elm Street\nSpringfield'],
+          [
+            'UID:d',
+            'DTSTART:20300620',
+            r'LOCATION:12B Elm Street\nSpringfield',
+          ],
           // A name with an ordinal, or a number that is part of it.
           ['UID:e', 'DTSTART:20300620', r'LOCATION:1st Church\, 4 Elm St'],
           ['UID:f', 'DTSTART:20300620', r'LOCATION:Town Hall\NElm St'],

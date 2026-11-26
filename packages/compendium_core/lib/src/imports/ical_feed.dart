@@ -620,8 +620,10 @@ class CalendarImportCandidate {
   /// program's start and end can say.
   final int? endMinute;
 
-  /// The first comma-separated segment of `LOCATION`, sanitized and
-  /// single-line; the rest (usually a street address) is dropped.
+  /// The place name `LOCATION` starts with: its first line up to the first
+  /// comma, sanitized. The rest (usually a street address) is dropped, and
+  /// so is that part when it holds a house number, as a location that is
+  /// only an address does: then `null`.
   final String? venueLabel;
 
   /// For an event whose `UID` is `<id>@callers-compendium` (this app's
@@ -869,7 +871,7 @@ CalendarImportPlan planCalendarImport(
         date: date,
         startMinute: startMinute,
         endMinute: endMinute,
-        venueLabel: _clean(e.location?.split(',').first),
+        venueLabel: _venueLabelOf(e.location),
         exportedProgramId: e.uid.endsWith(programCalendarUidSuffix)
             ? e.uid.substring(0, e.uid.length - programCalendarUidSuffix.length)
             : null,
@@ -1123,6 +1125,31 @@ DateTime _addMonths(DateTime d, int months) {
   final last = DateTime.utc(year, month + 1, 0).day;
   return DateTime.utc(year, month, d.day > last ? last : d.day);
 }
+
+/// The venue label a calendar event's unescaped `LOCATION` gives (#2352): its
+/// first line, up to the first comma, sanitized and trimmed. Calendars write a
+/// place picked from a map as the name, then the address on the following
+/// lines or after a comma, so this keeps the name.
+///
+/// `null` when that part holds a house number, so a location that is only an
+/// address gives no venue: `programs.venue` is a shareable label that sync,
+/// share files and every export carry, and must not hold a street line. A
+/// name that holds a number ("Studio 54") is dropped with it; the caller can
+/// type it back, whereas a kept address would travel.
+String? _venueLabelOf(String? location) {
+  if (location == null) return null;
+  final label = _clean(location.split(_lineBreak).first.split(',').first);
+  if (label == null) return null;
+  return label.split(_whitespace).any(_houseNumber.hasMatch) ? null : label;
+}
+
+final _lineBreak = RegExp('\r\n|[\n\r\u0085\u2028\u2029]');
+final _whitespace = RegExp(r'\s+');
+
+/// A house-number token: digits with an optional letter, or a range or
+/// unit of them ("12", "12B", "12-14", "5/1"). An ordinal ("1st", "4th") is
+/// part of a name, not a number.
+final _houseNumber = RegExp(r'^\d+[A-Za-z]?(?:[-/]\d+[A-Za-z]?)?$');
 
 String? _clean(String? value) {
   if (value == null) return null;
