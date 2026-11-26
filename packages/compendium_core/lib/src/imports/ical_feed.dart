@@ -622,8 +622,8 @@ class CalendarImportCandidate {
 
   /// The place name `LOCATION` starts with: its first non-blank line up to
   /// the first comma, sanitized. The rest (usually a street address) is
-  /// dropped, and so is that part when it looks like a street line, as in a
-  /// location that is only an address: then `null`.
+  /// dropped, and so is that part when it holds a number, as a street line
+  /// does: then `null`.
   final String? venueLabel;
 
   /// For an event whose `UID` is `<id>@callers-compendium` (this app's
@@ -1131,12 +1131,12 @@ DateTime _addMonths(DateTime d, int months) {
 /// Calendars write a place picked from a map as the name, then the address on
 /// the following lines or after a comma, so this keeps the name.
 ///
-/// `null` when that part looks like a street line, so a location that is only
-/// an address gives no venue: `programs.venue` is a shareable label that sync,
-/// share files and every export carry, and must not hold one. It looks like
-/// one when a word in it starts with a digit ("12", "#12", "No.12", "12bis",
-/// "1-2-3") other than an ordinal ("1st", "4th"), or when the next part on
-/// the line is a house number alone ("Via Roma, 10, 20121 Milano"). A name
+/// `null` when that part holds a number, as a street line does ("12 Elm
+/// St", "Hauptstraße 5", "#12", "東京都渋谷区神宮前１丁目"), or when the next
+/// comma part is a word or two holding a number ("Via Roma, 10, Milano").
+/// An English ordinal ("1st Church") is not a number here. So a location that
+/// starts with its street address gives no venue: `programs.venue` is a
+/// shareable label that sync, share files and every export carry. A name
 /// that holds a number ("Studio 54") is dropped with it: the caller can type
 /// it back, whereas a kept address would travel.
 String? _venueLabelOf(String? location) {
@@ -1145,13 +1145,12 @@ String? _venueLabelOf(String? location) {
       .split(_lineBreak)
       .firstWhere((l) => _clean(l) != null, orElse: () => '');
   // Whitespace the sanitizer would strip (a tab) still separates words.
-  final parts = line.replaceAll(_whitespace, ' ').split(',');
+  final parts = line.replaceAll(_whitespace, ' ').split(_comma);
   final label = _clean(parts.first);
-  if (label == null) return null;
-  if (label.split(' ').any(_isHouseNumberWord)) return null;
+  if (label == null || _holdsNumber(label)) return null;
   if (parts.length > 1) {
     final next = _clean(parts[1]);
-    if (next != null && !next.contains(' ') && _isHouseNumberWord(next)) {
+    if (next != null && _words(next).length <= 2 && _holdsNumber(next)) {
       return null;
     }
   }
@@ -1161,13 +1160,9 @@ String? _venueLabelOf(String? location) {
 final _lineBreak = RegExp('\r\n|[\n\r\u0085\u2028\u2029]');
 final _whitespace = RegExp(r'\s', unicode: true);
 
-/// A word that starts with a digit, after an optional `#`, `No.`, `Nr.` or
-/// `N°`.
-final _numberedWord = RegExp(
-  r'^(?:#|n[or°º]\.?)?\p{Nd}',
-  caseSensitive: false,
-  unicode: true,
-);
+/// A comma, fullwidth comma or ideographic comma.
+final _comma = RegExp('[,\uFF0C\u3001]');
+final _digit = RegExp(r'\p{Nd}', unicode: true);
 
 /// An English ordinal, which is part of a name ("1st Church", "4th Street
 /// Hall"), not a house number.
@@ -1177,8 +1172,12 @@ final _ordinal = RegExp(
   unicode: true,
 );
 
-bool _isHouseNumberWord(String word) =>
-    _numberedWord.hasMatch(word) && !_ordinal.hasMatch(word);
+List<String> _words(String s) =>
+    s.split(' ').where((w) => w.isNotEmpty).toList();
+
+/// Whether a word of [s] holds a digit and is not an ordinal.
+bool _holdsNumber(String s) =>
+    _words(s).any((w) => _digit.hasMatch(w) && !_ordinal.hasMatch(w));
 
 String? _clean(String? value) {
   if (value == null) return null;

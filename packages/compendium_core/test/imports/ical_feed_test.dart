@@ -692,7 +692,26 @@ void main() {
         r'1-2-3 Jingumae\, Shibuya-ku': null,
         r'12bis Rue de Rivoli\, Paris': null,
         '１２ Elm Street': null,
-        '12\tElm Street': null,
+        'The Smiths\t12 Elm Street': null,
+        // A tab still separates an ordinal from the rest of the name.
+        '1st\tChurch': '1st Church',
+        // Punctuation, brackets or invisible characters around the number.
+        '(12) Elm Street': null,
+        'Smith residence (12 Elm St)': null,
+        'Smiths:12 Elm St': null,
+        // A feed that escapes its line breaks twice.
+        r'The Smiths\\n12 Elm Street': null,
+        'The Smiths\u200B12 Elm Street': null,
+        // A comma that is not ASCII splits off the address; an address with
+        // no spaces is dropped whole.
+        'The Smiths\uFF0C12 Elm Street': 'The Smiths',
+        '\u65E5\u672C\u3001\u3012150-0001 \u6771\u4EAC\u90FD': null,
+        '\u4E2D\u56FD\u5317\u4EAC\u5E0288\u53F7': null,
+        // A street, then its house number in the next part.
+        'Calle Mayor\\, n\u00BA 5\\, Madrid': null,
+        r'Elm St.\, No. 12': null,
+        // A name with an ordinal floor after it is a name.
+        r'Grange Hall\, 2nd floor': 'Grange Hall',
         r'Via Roma\, 10\, 20121 Milano': null,
         // A name that holds a number goes with it; the caller can type it.
         r'Studio 54': null,
