@@ -2206,14 +2206,16 @@ has to be judged in its own context.
   distinguishable from the ordinary progression target. `dir` and `shoulder` are
   never written: both are `pass_through`'s own taxonomy defaults, and stating
   them would assert a direction and a shoulder the source did not.
+  *A stated subject* on either pass-through reading (`Women walk forward to
+  N2`, `Men walk forward; form wave of four with shadow`) is the pass
+  through's note (`role2s to n2`, `role1s`), never its `who`: The Caller's Box
+  uses it too unevenly to say who passes whom (the maintainer's ruling,
+  2026-11-26). Until then such a line stayed custom.
   *Stays custom:* a genuinely bare `walk forward` (nothing anchors an
   interpretation); every travel qualifier the mapping cannot carry
   (`one step`, `slowly (step; step)`, `until right shoulders are adjacent`,
   `towards partner`, `(out of the set)`); non-dancer or qualified destinations
-  (`to center`, `to next star`, `to second person`, `to shadow S1`); a stated
-  subject on either pass-through reading (`Women walk forward to N2` —
-  nothing reads the subject onto the pass through's `who`, which it has had
-  since taxonomy v40, so structuring it would drop the role); and
+  (`to center`, `to next star`, `to second person`, `to shadow S1`); and
   **every diagonal** (`walk forward on left/right diagonal [(optional spin)]`),
   because `form_a_long_wave` has no `dir` at all and on the short-wave side the
   source states the direction of TRAVEL rather than the wave's orientation —

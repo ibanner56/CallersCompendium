@@ -1,0 +1,14 @@
+{
+  "id": "walk-forward-subject-pass-through",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Importing from The Caller's Box now reads lines like “Women walk forward to N2” and “Men walk forward; form wave of four with shadow” as a pass through, with who walks kept in the figure's note, instead of leaving them as plain text. Lines that also say how the dancers walk, such as “on side”, stay as text."
+    ]
+  },
+  "core": {
+    "changed": [
+      "A walk-forward pass through that names its subject (`Women walk forward to N2`, `… form wave of four with <dancer>`) structures as `pass_through` with the subject leading its note and `who` unstated, in both the shared figure parser and The Caller's Box front end."
+    ]
+  }
+}
