@@ -2712,17 +2712,20 @@ ECD dance.
   English dances such as Newcastle (the maintainer, 26 November 2026; until
   then a square stayed a square dance). What the source said of the
   formation past the word "Square" stays as the detail (Newcastle's
-  "Quadruplet; Four couples…", an unknown family such as "Hexagon", or a text
-  "Square set"), so an unknown family is kept as its `cc_unmapped_formation`
+  "Quadruplet; Four couples…", an unknown family such as "Hexagon", a
+  `ContraForm` start and `Direction`, or a text "Square set"; a `.USR` with no
+  family and no start is read from its `FormationOther`, as #1972 reads it), so an unknown family is kept as its `cc_unmapped_formation`
   warning says, and a Square formation raises no such warning. A square in a
   big circle (`Circle` family) keeps the `circle` shape, which squares use for
   it (ADR-007 §8.1). A square keeps its SubType's repeat order and its
   "Mixer" SubType's mixer flag. A contra `circleMixer`, which ECD has no shape
   for, is an ECD `circle` (implementer's call; rejected: keeping the
   contra-only shape, which is not one of `ecdFormationShapes`), and the dance
-  is a mixer only when its Type says so (`Circle Mixer`): the text export
-  reads any "circle" as a circle mixer, and a formation alone must not make
-  Sellenger's Round a mixer. Closing the question
+  is a mixer only when its Type says so (`Circle Mixer`) or, in the text
+  export, which has no such Type, when its formation says "mixer": the text
+  export reads any "circle" as a circle mixer, and a circle alone must not
+  make Sellenger's Round a mixer. These formation rules belong to the English
+  reading, so they hold for a dance typed English whatever the answer. Closing the question
   plans nothing. The answer is held per file bytes in an `Expando`, so
   trying a file again after a failed plan does not ask again, and the
   screen can still release a planned file.

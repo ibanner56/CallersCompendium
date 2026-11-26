@@ -477,7 +477,12 @@ CcDanceMapping mapCallersCompanionDance(
   // A CC mixer is a Type ("Circle Mixer", "Scatter Mixer") or a square's
   // SubType ("Mixer, H H S S"). An English circle mixer keeps the flag on
   // its circle, since ECD has no circle-mixer shape.
-  final mixer = usr && _isCcMixer(record);
+  // The text export has no Type for it, so an English dance there is a mixer
+  // when its formation says so ("Circle mixer"), not for a circle alone.
+  final mixer = usr
+      ? _isCcMixer(record)
+      : form == DanceForm.ecd &&
+            _ccMixerWord.hasMatch(_sanitizeLine(record.formation) ?? '');
   // A square's SubType also names its repeat order ("Keeper, H S H S"), the
   // way American Country Dances On-Line files its squares (ADR-007 §8.1),
   // and a square read as English keeps it.
@@ -1430,8 +1435,16 @@ Formation _mapEcdFormation(
   final formation = _mapEcdShape(record, usr, issues);
   final family = usr ? (_sanitizeLine(record.formationFamily) ?? '') : '';
   final text = usr ? '' : (_sanitizeLine(record.formation) ?? '');
+  final own = usr ? _sanitizeLine(record.formationOther) : null;
+  final start = usr ? _sanitizeLine(record.contraForm) : null;
+  final direction = usr ? _sanitizeLine(record.direction) : null;
+  // A `.USR` with no family and no start is read from the caller's own
+  // description, as the text export's single string is (#1972).
   final squareFamily = usr
-      ? family.toLowerCase() == 'square'
+      ? family.toLowerCase() == 'square' ||
+            (family.isEmpty &&
+                start == null &&
+                _ccSquareWord.hasMatch(own ?? ''))
       : _ccSquareWord.hasMatch(text);
   if (!squareType && !squareFamily) return formation;
   // A square in a big circle keeps the circle, which squares use for it
@@ -1450,8 +1463,10 @@ Formation _mapEcdFormation(
   }
   final parts = <String>[
     if (family.isNotEmpty && family.toLowerCase() != 'square') family,
+    ?start,
+    ?direction,
     if (text.isNotEmpty && text.toLowerCase() != 'square') text,
-    if (usr) ?_sanitizeLine(record.formationOther),
+    if (own != null && own.toLowerCase() != 'square') own,
   ];
   return Formation(
     FormationShape.square,
@@ -1460,7 +1475,10 @@ Formation _mapEcdFormation(
 }
 
 /// A formation text that names a square ("Square", "Square set").
-final RegExp _ccSquareWord = RegExp(r'\bsquare\b', caseSensitive: false);
+final RegExp _ccSquareWord = RegExp(r'\bsquares?\b', caseSensitive: false);
+
+/// A formation text that names a mixer ("Circle mixer").
+final RegExp _ccMixerWord = RegExp(r'\bmixer\b', caseSensitive: false);
 
 /// The ECD shape [record]'s contra shape names ([ecdFormationFromContra]).
 /// A contra circle mixer is an ECD circle, since ECD has no circle-mixer

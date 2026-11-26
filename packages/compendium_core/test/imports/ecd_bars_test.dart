@@ -782,6 +782,37 @@ void main() {
         );
       });
 
+      test('reads a .USR square set named only in its own description', () {
+        final dance = mapped(
+          CcDanceRecord(
+            name: 'Set',
+            type: 'Contra',
+            formationOther: 'Squares',
+            fromUsrColumns: true,
+          ),
+        );
+        expect(
+          dance.formation,
+          const Formation(FormationShape.square, detail: 'Squares'),
+        );
+      });
+
+      test('keeps a square\'s start and direction in the detail', () {
+        final dance = mapped(
+          CcDanceRecord(
+            name: 'Set',
+            type: 'Square',
+            contraForm: 'Becket',
+            direction: 'CCW',
+            fromUsrColumns: true,
+          ),
+        );
+        expect(
+          dance.formation,
+          const Formation(FormationShape.square, detail: 'Becket; CCW'),
+        );
+      });
+
       test('a square in a big circle keeps the circle', () {
         final dance = mapped(
           CcDanceRecord(
@@ -879,6 +910,18 @@ void main() {
         expect(dance.formation.shape, FormationShape.circle);
         expect(dance.mixer, isFalse);
       }
+
+      // A text formation that says "mixer" is one: the text export has no
+      // Type to say it.
+      final named = mapCallersCompanionDance(
+        CcDanceRecord(
+          name: 'Mixer',
+          type: 'English',
+          formation: 'Circle mixer',
+        ),
+      ).dance;
+      expect(named.formation.shape, FormationShape.circle);
+      expect(named.mixer, isTrue);
     });
 
     test('an unknown Type read as English raises no "imported as a contra" '
