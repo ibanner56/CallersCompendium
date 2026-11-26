@@ -850,4 +850,266 @@ void main() {
       expect(figuresOf(dance('Triple Minor')).single.params['places'], 3);
     });
   });
+
+  group('a caller\'s library wordings (Caller\'s Companion, English)', () {
+    // Single-figure lines a real caller's library writes, which fell back to
+    // custom text before the grammar read them. Each case is the move, its
+    // params and the figure's note.
+    final cases = <String, (String, Map<String, Object?>, String?)>{
+      // `trade` is `change`: `by right` reads as `change by the L` does.
+      'First corners trade by right': (
+        'ecd_change_places',
+        {
+          'who': ['firstCorners'],
+          'hand': 'right',
+        },
+        null,
+      ),
+      'Second corners trade by right': (
+        'ecd_change_places',
+        {
+          'who': ['secondCorners'],
+          'hand': 'right',
+        },
+        null,
+      ),
+      'Second corners trade by LEFT': (
+        'ecd_change_places',
+        {
+          'who': ['secondCorners'],
+          'hand': 'left',
+        },
+        null,
+      ),
+      'Second diagonals trade by right': (
+        'ecd_change_places',
+        {
+          'who': ['secondDiagonals'],
+          'hand': 'right',
+        },
+        null,
+      ),
+      // Change places holds no shoulder: the shoulder is the note.
+      'trade by right shoulder': ('ecd_change_places', {}, 'by right shoulder'),
+      'role1s change by R shoulder': (
+        'ecd_change_places',
+        {
+          'who': ['role1s'],
+        },
+        'by right shoulder',
+      ),
+      // `pass ... by` a side is the shoulder passed.
+      'Pass P by L': (
+        'ecd_pass_through',
+        {
+          'who': ['partners'],
+          'shoulder': 'left',
+        },
+        null,
+      ),
+      'Pass P by R': (
+        'ecd_pass_through',
+        {
+          'who': ['partners'],
+          'shoulder': 'right',
+        },
+        null,
+      ),
+      'Pass Partner by Right': (
+        'ecd_pass_through',
+        {
+          'who': ['partners'],
+          'shoulder': 'right',
+        },
+        null,
+      ),
+      'Pass Partner by Left': (
+        'ecd_pass_through',
+        {
+          'who': ['partners'],
+          'shoulder': 'left',
+        },
+        null,
+      ),
+      'Pass N by R': (
+        'ecd_pass_through',
+        {
+          'who': ['neighbors'],
+          'shoulder': 'right',
+        },
+        null,
+      ),
+      // `all`/`everyone` adds no dancers to a pair named after it.
+      'Everyone Partner two-hand turn': (
+        'ecd_two_hand_turn',
+        {
+          'who': ['partners'],
+        },
+        null,
+      ),
+      'All Partner Set': (
+        'ecd_set',
+        {
+          'who': ['partners'],
+        },
+        null,
+      ),
+      'All Turn single left': (
+        'ecd_turn_single',
+        {
+          'who': ['everyone'],
+          'shoulder': 'left',
+        },
+        null,
+      ),
+      'Partners all 2-hand turn': (
+        'ecd_two_hand_turn',
+        {
+          'who': ['partners'],
+        },
+        null,
+      ),
+      'Partner Set Right and Left advancing': (
+        'ecd_set',
+        {
+          'who': ['partners'],
+          'direction': 'right',
+          'where': 'forward',
+        },
+        null,
+      ),
+      'First Corner Set R & L': (
+        'ecd_set',
+        {
+          'who': ['firstCorners'],
+          'direction': 'right',
+        },
+        null,
+      ),
+      'Second Corner Set L & R': (
+        'ecd_set',
+        {
+          'who': ['secondCorners'],
+          'direction': 'left',
+        },
+        null,
+      ),
+      // A turn single holds no direction of travel: `forward` is the note.
+      'Turn single right forward': (
+        'ecd_turn_single',
+        {'shoulder': 'right'},
+        'forward',
+      ),
+      'Lines of three go forward and back': (
+        'ecd_forward_and_back',
+        {'formation': 'linesOfThree', 'distance': 'double', 'goBack': true},
+        null,
+      ),
+      // A couple's partner is the couple's own two dancers.
+      'Ones Partner Set': (
+        'ecd_set',
+        {
+          'who': ['ones'],
+        },
+        null,
+      ),
+      'Ones Partner right-hand turn 1.5': (
+        'ecd_hand_turn',
+        {
+          'who': ['ones'],
+          'hand': 'right',
+          'travel': 1.5,
+        },
+        null,
+      ),
+      // Who follows a cast has no parameter: the words are the note.
+      'Second corners cast partner follow': (
+        'ecd_cast',
+        {
+          'who': ['secondCorners'],
+        },
+        'partner follow',
+      ),
+    };
+    for (final MapEntry(key: line, value: (move, params, note))
+        in cases.entries) {
+      test(line, () {
+        for (final figure in [
+          _one(line),
+          parseEcdFigureLine(line, ringDancers: 4)!,
+        ]) {
+          expect(figure.move, move, reason: line);
+          expect(figure.params, params, reason: line);
+          expect(figure.note, note, reason: line);
+          expect(_ecd.validateFigure(figure), isEmpty, reason: line);
+        }
+      });
+    }
+
+    test('`cross and go below` is a cross, then a cast down one place', () {
+      for (final line in const [
+        'Ones cross and go below',
+        '1s cross & go below',
+        'Ones cross over and go below',
+      ]) {
+        final f = _one(line);
+        expect(f.isSequence, isTrue, reason: line);
+        expect(f.subFigures.map((s) => [s.move, s.params]), [
+          [
+            'ecd_cross',
+            {
+              'who': ['ones'],
+            },
+          ],
+          [
+            'ecd_cast',
+            {
+              'who': ['ones'],
+              'direction': 'down',
+              'places': 1,
+            },
+          ],
+        ], reason: line);
+      }
+    });
+
+    test('an imported bar range is the count of a trade', () {
+      final f = parseEcdFigureLine(
+        '(7-8) Second corners trade by right',
+        meter: '2/2',
+      )!;
+      expect(f.move, 'ecd_change_places');
+      expect(f.params, {
+        'who': ['secondCorners'],
+        'hand': 'right',
+        'beats': 4,
+      });
+    });
+
+    test('`pass right shoulder` before a movement is still its shoulder', () {
+      final f = _one('1s pass right shoulder cross');
+      expect(f.move, 'ecd_cross');
+      expect(f.params, {
+        'who': ['ones'],
+        'shoulder': 'right',
+      });
+    });
+
+    test('words these readings could guess at stay custom', () {
+      for (final line in const [
+        // A pass by a hand is a pull by, not a pass through.
+        'Pass P by the right hand',
+        // Ones and their partner both named before and after the movement.
+        'Ones pass P by R',
+        // A couple's neighbour is other dancers: not the couple's own.
+        'Ones Neighbor Set',
+        // Who follows a movement other than a cast has nowhere to go.
+        'Ones lead down partner follow',
+        // The fuller form says what the twos do as well: two figures.
+        'Ones cross and go outside below the twos who move up',
+      ]) {
+        expect(_typed(line).single.isCustom, isTrue, reason: line);
+      }
+    });
+  });
 }
