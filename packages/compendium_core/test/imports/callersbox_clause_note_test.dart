@@ -254,13 +254,14 @@ void main() {
       // it into the `form_a_long_wave` the next clause names (the move's `in`
       // flag already renders the inbound travel). That removes the line from
       // the set where a leading clause FAILS; it does not weaken the rule.
-      // `Women walk forward; form wave of four with N2` is the same shape and
-      // still exercises it exactly: #733 declines the fold because nothing
-      // reads "women" onto the pass through's `who`, so the leading
-      // clause still fails while the trailing `form wave of four with N2`
-      // still structures — which is precisely the "note would have to hang on
-      // a LATER figure" case.
-      _staysWholeCustom('Women walk forward; form wave of four with N2');
+      // `Walk forward one step; form wave of four with N2` is the same shape and
+      // still exercises it exactly: a qualified walk forward is no clause
+      // #733 folds, so the leading clause still fails while the trailing
+      // `form wave of four with N2` still structures — which is precisely the
+      // "note would have to hang on a LATER figure" case. (The example was
+      // `Women walk forward; …` until a stated subject became the pass
+      // through's note, 2026-11-26.)
+      _staysWholeCustom('Walk forward one step; form wave of four with N2');
       _staysWholeCustom('Fall back; face up');
     });
   });

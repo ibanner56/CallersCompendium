@@ -912,11 +912,17 @@ Figure? modifierFromWhile(
 /// walk-forward clause at all" (which [_bareWalkForwardClause] reports as a
 /// null result).
 class _WalkForwardClause {
-  const _WalkForwardClause(this.who);
+  const _WalkForwardClause(this.who, [this.lead]);
 
   /// The canonical dancer-set token the clause names, or `null` for a bare
   /// `Walk forward` that names nobody.
   final String? who;
+
+  /// The words before `walk forward`, as the source wrote them (scrubbed and
+  /// lowercased), or `null` when there are none. A pass through keeps them in
+  /// its note rather than the token [who] resolves them to, which may not
+  /// read as words (`nextNeighbors` for `N2`).
+  final String? lead;
 }
 
 /// Recognises a clause that is EXACTLY `[<dancer set>] walk forward`, on
@@ -944,7 +950,7 @@ _WalkForwardClause? _bareWalkForwardClause(String scrubbedClause) {
   // exactly one dancer set and nothing else — so a bracketed qualifier
   // (`[Sides] Women walk forward`) or any other lead declines the fold.
   final who = resolveDancerSetPhrase(lead);
-  return who == null ? null : _WalkForwardClause(who);
+  return who == null ? null : _WalkForwardClause(who, lead.toLowerCase());
 }
 
 final RegExp _bareWalkForwardRe = RegExp(
@@ -995,17 +1001,17 @@ const String _walkForwardPassThroughMove = 'form_short_waves';
 ///   structures on its own today, so the pair emits two figures. A bare
 ///   `pass_through()` is emitted and `where`/`shoulder` are deliberately NOT
 ///   written — both are the move's own taxonomy defaults, and writing them
-///   would assert a direction and a shoulder the source never stated.
+///   would assert a direction and a shoulder the source never stated. A
+///   subject the walk clause names (`Women walk forward; form wave of four
+///   with N2`) is the pass through's note (`role2s walk forward`), NOT its
+///   `who`: The Caller's Box uses it too unevenly to say who passes whom (the
+///   maintainer's ruling, 2026-11-26, after reviewing real lines), and as the
+///   note the line keeps its words, in the source's own spelling.
 ///
-/// Declines (→ `null`, never a partial structuring) when:
-/// - the formation clause does not structure, or structures to any other move
-///   (`turn alone`, `face across`, `form interlocking long waves`, `form wave
-///   of two`, `form ring of four`, …);
-/// - the walk clause names a subject AND the reading is the pass-through one:
-///   `Women walk forward; form wave of four with N2` would silently drop the
-///   role. (`pass_through` has had a `who` since taxonomy v40, when it became
-///   one figure with pass by, but nothing yet reads a walk-forward subject
-///   onto it.)
+/// Declines (→ `null`, never a partial structuring) when the formation clause
+/// does not structure, or structures to any other move (`turn alone`, `face
+/// across`, `form interlocking long waves`, `form wave of two`, `form ring of
+/// four`, …).
 ///
 /// **Beats.** The pair consumes two clauses but the source states ONE combined
 /// total, which by the file's Option A convention rides on the FIRST clause —
@@ -1061,11 +1067,15 @@ List<Figure>? _walkForwardIntoFormation(
       ];
     }
 
-    if (probe.move == _walkForwardPassThroughMove && walk.who == null) {
+    if (probe.move == _walkForwardPassThroughMove) {
       final tax = taxonomy ?? contraTaxonomy;
+      // A stated subject is the note, never `who` (see above), with its verb,
+      // so the note does not read as the subject of the pass through.
+      final lead = walk.lead;
       final passThrough = Figure(
         move: 'pass_through',
         params: {if (safeBeats > 0) 'beats': safeBeats},
+        note: lead == null ? null : '$lead walk forward',
       );
       final hasError = tax
           .validateFigure(passThrough)
