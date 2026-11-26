@@ -312,7 +312,10 @@ Map<String, Object?> archiveProgramToJson(
     'hideAlternates': p.hideAlternates,
   // Emitted only when set, in every mode — unlike `venueId` above. Sync bodies
   // pass includeOptionalFields, and a null-valued key there would change the
-  // wire hash of every program that has no dialect.
+  // wire hash of every program that has no dialect. Device Sync reads a
+  // missing key as empty ([withOmittedProgramDefaults]), so clearing it still
+  // reaches other devices; the same holds for every key below written only
+  // when set.
   if (p.dialectName != null) 'dialectName': p.dialectName,
   // Same rule, same reason: only when set, so a program without pay keeps its
   // wire hash. The two keys travel together. Neither raises the archive
@@ -392,6 +395,43 @@ Map<String, Object?> archiveProgramSlotToJson(
   if (s.placeholderSearchId != null)
     'placeholderSearchId': s.placeholderSearchId,
 };
+
+/// The program body keys [archiveProgramToJson] leaves out when they are
+/// empty, with that empty value. `dialectName`, `payMinorUnits` and
+/// `payCurrency` were written this way before v0.10.0-beta; the rest were
+/// added after it. Omitting an empty value keeps every other program's body,
+/// and so its content hash, as it was.
+const Map<String, Object?> omittedProgramDefaults = {
+  'dialectName': null,
+  'payMinorUnits': null,
+  'payCurrency': null,
+  'archivedAt': null,
+  'calendarEventKey': null,
+  'startMinute': null,
+  'endMinute': null,
+  'lessonMinute': null,
+  'arrivalMinute': null,
+  'calendarEventFingerprint': null,
+  'calendarWrittenAt': null,
+  'calendarFlag': null,
+  'eventRuleIds': <String>[],
+};
+
+/// [body], a program body, with each omitted empty value
+/// ([omittedProgramDefaults]) written in where it is missing.
+///
+/// Device Sync applies an inbound body by overlaying it on the stored record,
+/// key by key, so a key the sender left out would keep the stored value: an
+/// un-archived program would stay archived on the receiver. For these keys a
+/// missing key means empty, so it is filled in first and a value cleared on
+/// one device is cleared on the others (sync-spec §4.1, §6.7). A build that
+/// does not know a key keeps it aside and sends it back when it edits the
+/// program, so its edit does not clear the key here. A body with no `slots`
+/// list is not a whole program body and is returned as is.
+Map<String, Object?> withOmittedProgramDefaults(Map<String, Object?> body) {
+  if (body['slots'] is! List) return body;
+  return {...omittedProgramDefaults, ...body};
+}
 
 /// Builds the archive-shaped body for a venue.
 Map<String, Object?> archiveVenueToJson(
