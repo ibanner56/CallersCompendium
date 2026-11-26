@@ -288,6 +288,9 @@ void main() {
       controller.meterController.text = '3/4 waltz';
       controller.onMeterChanged();
       expect(controller.phraseController.text, '6*8*2');
+      // Nor does choosing English again for a dance that already is.
+      controller.setForm(DanceForm.ecd);
+      expect(controller.phraseController.text, '6*8*2');
     });
 
     test('a Meter typed before the dance is made English sets the phrases '
