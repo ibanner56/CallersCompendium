@@ -1084,6 +1084,139 @@ void main() {
       expect(reloaded.arrivalMinute, 1110);
     });
 
+    // A re-import rewrites only the columns in `rewritten`: what a `.USR` file
+    // says, and the status, which goes back to Draft because a set has none.
+    // It must keep every other column of the matched program as the caller
+    // left it.
+    // The census is the table's own column list, so a column added to
+    // `programs` fails this test until it is sorted into one of the two sets.
+    test('re-import keeps every column a .USR file does not write, and '
+        'rewrites the ones it does', () async {
+      const rewritten = {
+        'title',
+        'event_date',
+        'venue',
+        'band',
+        'caller',
+        'dancer_level',
+        'notes',
+        'status',
+        'hide_alternates',
+        'updated_at',
+      };
+      const kept = {
+        'id',
+        'created_at',
+        'deleted_at',
+        'existence_at',
+        'venue_id',
+        'archived_at',
+        'dialect_name',
+        'pay_minor_units',
+        'pay_currency',
+        'start_minute',
+        'end_minute',
+        'lesson_minute',
+        'arrival_minute',
+        'calendar_event_key',
+        'calendar_event_fingerprint',
+        'calendar_written_at',
+        'calendar_flag',
+        'event_rule_ids',
+      };
+      expect(
+        {for (final c in db.programs.$columns) c.$name},
+        {...rewritten, ...kept},
+        reason: 'sort a new programs column into rewritten or kept',
+      );
+
+      Future<Map<String, Object?>> row(String id) async =>
+          (await db
+                  .customSelect(
+                    'SELECT * FROM programs WHERE id = ?',
+                    variables: [Variable.withString(id)],
+                  )
+                  .getSingle())
+              .data;
+
+      final first = await importer.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: false,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+      final programId = first.programs.single.id;
+      final fromFirstImport = await row(programId);
+      await venues.upsert(Venue(id: 'venue-kept', name: 'The Grange'));
+      final imported = (await programs.getById(programId))!;
+      await programs.update(
+        imported.copyWith(
+          // The caller's edits to what the file says, which it rewrites.
+          title: 'Renamed here',
+          eventDate: DateTime.utc(2027, 1, 2),
+          venue: 'Typed here',
+          band: 'Band here',
+          caller: 'Caller here',
+          dancerLevel: 'Level here',
+          notes: 'Notes here',
+          status: imported.status == ProgramStatus.performed
+              ? ProgramStatus.draft
+              : ProgramStatus.performed,
+          hideAlternates: !imported.hideAlternates,
+          updatedAt: DateTime.utc(2026, 7, 21),
+          // What the file cannot say, which it keeps.
+          venueId: 'venue-kept',
+          archivedAt: DateTime.utc(2026, 7, 20),
+          dialectName: 'Larks & Robins',
+          payMinorUnits: 25000,
+          payCurrency: 'USD',
+          startMinute: 1170,
+          endMinute: 1350,
+          lessonMinute: 1140,
+          arrivalMinute: 1110,
+          calendarEventKey: 'cal-key-1',
+          calendarEventFingerprint: 'cal-fingerprint-1',
+          calendarWrittenAt: DateTime.utc(2026, 7, 16),
+          calendarFlag: calendarFlagCancelled,
+          eventRuleIds: const ['rule-1', 'rule-2'],
+        ),
+      );
+      final before = await row(programId);
+      // Every kept column but the tombstone holds a value, so the comparison
+      // below cannot pass by comparing a default with a default.
+      for (final column in kept.difference({'deleted_at'})) {
+        expect(before[column], isNotNull, reason: column);
+      }
+      expect(before['event_rule_ids'], isNot('[]'));
+      // Every column the file writes was edited, so the second loop below
+      // cannot pass by finding the caller's value still in place.
+      for (final column in rewritten) {
+        expect(before[column], isNot(fromFirstImport[column]), reason: column);
+      }
+
+      final second = await importer.import(
+        _ccUsrBytes(),
+        now: DateTime.utc(2026, 8, 1),
+        venueEntityMode: false,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+      expect(second.updatedProgramCount, 1);
+      final after = await row(programId);
+      for (final column in kept) {
+        expect(after[column], before[column], reason: column);
+      }
+      for (final column in rewritten.difference({'updated_at'})) {
+        expect(after[column], fromFirstImport[column], reason: column);
+      }
+      expect(
+        after['updated_at'],
+        isNot(before['updated_at']),
+        reason: 'the rewrite is stamped',
+      );
+    });
+
     group('a prior venue link that no row backs', () {
       // The repository's save guard refuses a dead id, so the column is
       // rewritten directly: the state #2076 leaves on a restore.
