@@ -452,8 +452,8 @@ void main() {
     final unnamed = byTitle['House party']!;
     expect(named.venue, 'The Smiths');
     expect(unnamed.venue, isNull);
-    // The fingerprint hashes the same location segment the program stores,
-    // and nothing more.
+    // The fingerprint hashes the venue label the program stores (none for
+    // the address-only location), and nothing more of the location.
     for (final p in [named, unnamed]) {
       expect(
         p.calendarEventFingerprint,
