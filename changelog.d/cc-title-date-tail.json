@@ -1,0 +1,14 @@
+{
+  "id": "cc-title-date-tail",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A Caller's Companion dance whose title has a date padded onto its end, such as \"Jack's Maggot   1702\", now imports as \"Jack's Maggot\" composed in 1702. A date that says more, such as \"1703/2009\" or \"Circa 1800\", or a year followed by the tune's key and meter, is kept in the dance's calling notes, and an English dance takes its meter and key from it when its Music gives none."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`mapCallersCompanionDance` takes such a date off the title: a plain year becomes `composedOn` when `DateComposed` is blank, and any other tail is kept in `callingNotes` as `From the title: …`. Both Caller's Companion adapters' discovery labels drop the date too."
+    ]
+  }
+}
