@@ -620,10 +620,10 @@ class CalendarImportCandidate {
   /// program's start and end can say.
   final int? endMinute;
 
-  /// The place name `LOCATION` starts with: its first line up to the first
-  /// comma, sanitized. The rest (usually a street address) is dropped, and
-  /// so is that part when it holds a house number, as a location that is
-  /// only an address does: then `null`.
+  /// The place name `LOCATION` starts with: its first non-blank line up to
+  /// the first comma, sanitized. The rest (usually a street address) is
+  /// dropped, and so is that part when it looks like a street line, as in a
+  /// location that is only an address: then `null`.
   final String? venueLabel;
 
   /// For an event whose `UID` is `<id>@callers-compendium` (this app's
@@ -1127,29 +1127,58 @@ DateTime _addMonths(DateTime d, int months) {
 }
 
 /// The venue label a calendar event's unescaped `LOCATION` gives (#2352): its
-/// first line, up to the first comma, sanitized and trimmed. Calendars write a
-/// place picked from a map as the name, then the address on the following
-/// lines or after a comma, so this keeps the name.
+/// first non-blank line, up to the first comma, sanitized and trimmed.
+/// Calendars write a place picked from a map as the name, then the address on
+/// the following lines or after a comma, so this keeps the name.
 ///
-/// `null` when that part holds a house number, so a location that is only an
-/// address gives no venue: `programs.venue` is a shareable label that sync,
-/// share files and every export carry, and must not hold a street line. A
-/// name that holds a number ("Studio 54") is dropped with it; the caller can
-/// type it back, whereas a kept address would travel.
+/// `null` when that part looks like a street line, so a location that is only
+/// an address gives no venue: `programs.venue` is a shareable label that sync,
+/// share files and every export carry, and must not hold one. It looks like
+/// one when a word in it starts with a digit ("12", "#12", "No.12", "12bis",
+/// "1-2-3") other than an ordinal ("1st", "4th"), or when the next part on
+/// the line is a house number alone ("Via Roma, 10, 20121 Milano"). A name
+/// that holds a number ("Studio 54") is dropped with it: the caller can type
+/// it back, whereas a kept address would travel.
 String? _venueLabelOf(String? location) {
   if (location == null) return null;
-  final label = _clean(location.split(_lineBreak).first.split(',').first);
+  final line = location
+      .split(_lineBreak)
+      .firstWhere((l) => _clean(l) != null, orElse: () => '');
+  // Whitespace the sanitizer would strip (a tab) still separates words.
+  final parts = line.replaceAll(_whitespace, ' ').split(',');
+  final label = _clean(parts.first);
   if (label == null) return null;
-  return label.split(_whitespace).any(_houseNumber.hasMatch) ? null : label;
+  if (label.split(' ').any(_isHouseNumberWord)) return null;
+  if (parts.length > 1) {
+    final next = _clean(parts[1]);
+    if (next != null && !next.contains(' ') && _isHouseNumberWord(next)) {
+      return null;
+    }
+  }
+  return label;
 }
 
 final _lineBreak = RegExp('\r\n|[\n\r\u0085\u2028\u2029]');
-final _whitespace = RegExp(r'\s+');
+final _whitespace = RegExp(r'\s', unicode: true);
 
-/// A house-number token: digits with an optional letter, or a range or
-/// unit of them ("12", "12B", "12-14", "5/1"). An ordinal ("1st", "4th") is
-/// part of a name, not a number.
-final _houseNumber = RegExp(r'^\d+[A-Za-z]?(?:[-/]\d+[A-Za-z]?)?$');
+/// A word that starts with a digit, after an optional `#`, `No.`, `Nr.` or
+/// `N°`.
+final _numberedWord = RegExp(
+  r'^(?:#|n[or°º]\.?)?\p{Nd}',
+  caseSensitive: false,
+  unicode: true,
+);
+
+/// An English ordinal, which is part of a name ("1st Church", "4th Street
+/// Hall"), not a house number.
+final _ordinal = RegExp(
+  r'^\p{Nd}+(?:st|nd|rd|th)$',
+  caseSensitive: false,
+  unicode: true,
+);
+
+bool _isHouseNumberWord(String word) =>
+    _numberedWord.hasMatch(word) && !_ordinal.hasMatch(word);
 
 String? _clean(String? value) {
   if (value == null) return null;

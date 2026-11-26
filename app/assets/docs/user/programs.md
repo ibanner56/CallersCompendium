@@ -266,8 +266,10 @@ event gets none), and the first part of its location as the venue — "Glen Echo
 MacArthur Blvd, …" becomes **Glen Echo Park**, and so does a location with
 the address on the lines after the name. If the venue matches the name of a
 saved [venue](./glossary.md#venue), the draft is linked to it. A location that
-is only an address, with a house number in that first part, gives the draft no
-venue. The rest of the
+is only an address gives the draft no venue: when a word in that first part
+starts with a number (other than an ordinal such as **1st**), or the part after
+it is only a house number, the draft gets none, so type a name such as
+**Studio 54** in yourself. The rest of the
 location, usually a street address, is not kept. Nor is the event's
 description, organiser, guests or link: that is where other people's names,
 emails and phone numbers live. The draft starts with your **Default template**,

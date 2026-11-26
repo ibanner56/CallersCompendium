@@ -673,45 +673,43 @@ void main() {
 
     test('the venue is the first line before its first comma; a street line '
         'is never kept', () {
+      // LOCATION as written in the feed (escaped) => the venue label.
+      const cases = <String, String?>{
+        // A name, then the address on the following lines.
+        r'The Smiths\n12 Elm Street\nSpringfield\, MA 01101': 'The Smiths',
+        r'Town Hall\NElm St': 'Town Hall',
+        r'\nGlen Echo Park\, 7300 MacArthur Blvd': 'Glen Echo Park',
+        // A name holding an ordinal is a name.
+        r'1st Church\, 4 Elm St': '1st Church',
+        r'4th Street Hall': '4th Street Hall',
+        // Only an address, in the shapes calendars and maps write.
+        r'12 Elm Street\, Springfield\, MA 01101\, USA': null,
+        r'12B Elm Street\nSpringfield': null,
+        r'Hauptstraße 5\, 10115 Berlin': null,
+        r'#12 Elm Street\, Springfield': null,
+        r'No.12 Elm Street': null,
+        '12–14 Elm Street\\, Springfield': null,
+        r'1-2-3 Jingumae\, Shibuya-ku': null,
+        r'12bis Rue de Rivoli\, Paris': null,
+        '１２ Elm Street': null,
+        '12\tElm Street': null,
+        r'Via Roma\, 10\, 20121 Milano': null,
+        // A name that holds a number goes with it; the caller can type it.
+        r'Studio 54': null,
+      };
+      final locations = cases.keys.toList();
       final p = plan(
         _cal([
-          // A name, then the address on the following lines.
-          [
-            'UID:a',
-            'DTSTART:20300620',
-            r'LOCATION:The Smiths\n12 Elm Street\nSpringfield\, MA 01101',
-          ],
-          // Only an address, house number first.
-          [
-            'UID:b',
-            'DTSTART:20300620',
-            r'LOCATION:12 Elm Street\, Springfield\, MA 01101\, USA',
-          ],
-          // Only an address, house number last.
-          [
-            'UID:c',
-            'DTSTART:20300620',
-            r'LOCATION:Hauptstraße 5\, 10115 Berlin',
-          ],
-          // Only an address, over lines.
-          [
-            'UID:d',
-            'DTSTART:20300620',
-            r'LOCATION:12B Elm Street\nSpringfield',
-          ],
-          // A name with an ordinal, or a number that is part of it.
-          ['UID:e', 'DTSTART:20300620', r'LOCATION:1st Church\, 4 Elm St'],
-          ['UID:f', 'DTSTART:20300620', r'LOCATION:Town Hall\NElm St'],
+          for (var i = 0; i < locations.length; i++)
+            ['UID:loc-$i', 'DTSTART:20300620', 'LOCATION:${locations[i]}'],
         ]),
       );
-      expect(p.candidates.map((c) => c.venueLabel), [
-        'The Smiths',
-        null,
-        null,
-        null,
-        '1st Church',
-        'Town Hall',
-      ]);
+      expect({
+        for (var i = 0; i < locations.length; i++)
+          locations[i]: p.candidates
+              .singleWhere((c) => c.eventKey == calendarEventKey('loc-$i', ''))
+              .venueLabel,
+      }, cases);
     });
 
     test('a title that sanitizes to nothing is empty, for the app to fill', () {
