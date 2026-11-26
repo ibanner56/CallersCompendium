@@ -1298,6 +1298,35 @@ void main() {
         ]);
       });
 
+      test('a figure that starts with a word for what a count counts', () {
+        for (final (line, count) in const [
+          ('(8) Circle left (8) Slip left', 16),
+          ('(8) Set and turn single (8) Double figure eight', 16),
+          ('(4) Set (4) Step right', 8),
+          ('(8) Circle left (8) Round the set', 16),
+        ]) {
+          final figures = read(line);
+          expect(figures, hasLength(2), reason: line);
+          expect(beats(figures), count, reason: line);
+        }
+      });
+
+      test('a section label for two sections', () {
+        final figures = read('A1&A2 (1-4) circle left (5-8) circle right');
+        expect(figures, hasLength(2));
+        expect(figures.any((f) => f.isCustom), isFalse);
+        expect(beats(figures), 16);
+      });
+
+      test('a section label and its colon, however spaced', () {
+        for (final line in [
+          'A1${' ' * 40}(1-4) circle left (5-8) circle right',
+          'A1 :  (1-4) circle left (5-8) circle right',
+        ]) {
+          expect(beats(read(line)), 16, reason: line);
+        }
+      });
+
       test('a count of steps, doubles, dancers or people', () {
         for (final (line, count) in const [
           ('(8) Slip (8) steps to the left', 8),
