@@ -1086,9 +1086,12 @@ bool callersCompanionDifficultyLabelMatches(
 /// [line] split before each count in brackets (`(4)`) or bar range in
 /// brackets (`(5-8)`) that comes after its start and is followed by words:
 /// `(4) First Corner Set  (4) Turn single right` is two pieces, each read as
-/// a line of its own with its own count. A count that ends a piece
-/// (`… into (6) (3-4) Ladies …`) stays with the words before it. A line with
-/// no such count is one piece, itself. A prefix that counts the whole line,
+/// a line of its own with its own count. Only a line that itself starts with
+/// a count (`(4)`, `(1-2)`, `1-4`, after a section label `A1`) is split, since
+/// only there do its counts lead their figures: in `Set (4) Turn single (2)`
+/// each count follows its figure, and a split would give it to the next one.
+/// A count that ends a piece (`… into (6) (3-4) Ladies …`) stays with the
+/// words before it. A line with no such count is one piece, itself. A prefix that counts the whole line,
 /// the total of the counts after it (`(16) 1-4 partners set (5-8) turn
 /// single` at two beats a bar, [beatsPerBar]), is dropped rather than read
 /// as the first piece's count, when the first piece starts with a bar range
@@ -1099,6 +1102,7 @@ bool callersCompanionDifficultyLabelMatches(
 /// The English path only: a contra line keeps its single-line reading
 /// (comma splitting, [splitCallersCompanionCommaLine]).
 List<String> splitCcEcdCountedLine(String line, {int beatsPerBar = 2}) {
+  if (!_ccLeadingCount.hasMatch(line)) return [line];
   var source = line;
   final prefix = splitCcBeatPrefix(line);
   // Only when the first piece has a count of its own, a bar range: in
@@ -1145,25 +1149,47 @@ bool _ccPieceHasWords(String piece) => _ccPieceWord.hasMatch(
 );
 
 final RegExp _ccLeadingLabel = RegExp(r'^\s*[A-Da-d]\d{0,2}\b');
+
+/// The count a line's text starts with, after an optional section label
+/// (`A1`, `a1`, `A1&A2`, `A1:`, as [splitEcdBarRange] takes them): a count or
+/// compound count in brackets (`(4)`, `(4,4)`), or a bar range alone or in
+/// brackets (`1-4`, `(5-8)`).
+final RegExp _ccLeadingCount = RegExp(
+  r'^\s*(?:(?:[ABCD][1-4]?|[abcd][1-4])'
+  r'(?:\s*&\s*[ABCDabcd]?[1-4])?\s*:?\s+)?'
+  r'(?:\(\s*\d{1,4}(?:\s*(?:,\s*\d{1,4}|[-–—]\s*\d{1,3}))*\s*\)'
+  r'|\d{1,3}\s*[-–—]\s*\d{1,3}(?![\w/]|[.-]\d))',
+);
 final RegExp _ccCounts = RegExp(r'[(\[][^)\]]*[)\]]|\d+');
 final RegExp _ccPieceWord = RegExp('[A-Za-z]');
 
 /// A gap before a bracketed count (`(4)`) or bar range (`(5-8)`) followed by
-/// a space and a word, not at the start of the line. A word that counts what
-/// the number counts (`circle (3) hands round`, `cast (2) places`) keeps the
-/// number in the words.
+/// a space and a word, not at the start of the line. A word that says what
+/// else the number counts, so that it is no count of beats (`circle (3)
+/// hands round`, `cast (2) places`, `slip (8) steps`, `lead up (2) doubles`,
+/// `hey for three (3) dancers`, `turn (1) and a half`), keeps the number in
+/// the words ([_ccCountedWords]).
 final RegExp _ccMidLineCount = RegExp(
   r'(?<=\S)\s+(?=\(\s*\d{1,3}(?:\s*[-–—]\s*\d{1,3})?\s*\)\s+'
-  r'(?!(?:hands?|places?|times?|couples?|bars?|beats?|changes?)\b)[A-Za-z])',
+  '(?!$_ccCountedWords)[A-Za-z])',
   caseSensitive: false,
 );
 
 /// [_ccMidLineCount] for a bracketed bar range only.
 final RegExp _ccMidLineRange = RegExp(
   r'(?<=\S)\s+(?=\(\s*\d{1,3}\s*[-–—]\s*\d{1,3}\s*\)\s+'
-  r'(?!(?:hands?|places?|times?|couples?|bars?|beats?|changes?)\b)[A-Za-z])',
+  '(?!$_ccCountedWords)[A-Za-z])',
   caseSensitive: false,
 );
+
+/// The words after a bracketed number that say it counts something other
+/// than beats, as a pattern: hands, places, steps, doubles, dancers and the
+/// like, or the half or quarter of a turn. A dancer word that can start a
+/// figure (`(4) Ladies cross`) is not among them.
+const String _ccCountedWords =
+    r'(?:hands?|places?|times?|couples?|bars?|beats?|changes?|steps?|slips?'
+    r'|doubles?|singles?|dancers?|people|persons?|rounds?|circuits?'
+    r'|and\s+(?:a\s+)?(?:half|quarter))\b';
 
 /// The figures of one [piece] of an English line ([splitCcEcdCountedLine]),
 /// read as a whole line is: its `(8)` prefix, then [_ecdLineFigures].

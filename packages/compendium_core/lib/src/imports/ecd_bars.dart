@@ -5,6 +5,8 @@
 /// where its phrases differ in beats per bar, by the phrase each bar falls in.
 library;
 
+import 'package:meta/meta.dart';
+
 import '../model/bar_timing.dart';
 import '../model/phrase_structure.dart';
 
@@ -192,7 +194,7 @@ const int _maxBeats = 64;
 /// all of its lines' counts ([EcdSectionBeats.counted]).
 int ecdStatedBeats(String line, int beatsPerBar) {
   var beats = 0;
-  for (final match in _statedCount.allMatches(line)) {
+  for (final match in ecdStatedCountPattern.allMatches(line)) {
     final range = match.group(2);
     if (range != null) {
       final first = int.parse(range);
@@ -208,8 +210,9 @@ int ecdStatedBeats(String line, int beatsPerBar) {
 }
 
 /// A bracketed count in beats, or a bar range alone or in brackets, not part
-/// of a longer number, a meter or a word.
-final RegExp _statedCount = RegExp(
+/// of a longer number, a meter or a word ([ecdStatedBeats]).
+@visibleForTesting
+final RegExp ecdStatedCountPattern = RegExp(
   r'\(\s*(\d{1,3}(?:\s*[,+]\s*\d{1,3})*)\s*\)'
   r'|(?<![\w/.-])\(?\s*(\d{1,3})\s*[-–—]\s*(\d{1,3})\s*\)?(?![\w/]|[.-]\d)',
 );

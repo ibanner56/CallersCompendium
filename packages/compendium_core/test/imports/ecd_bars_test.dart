@@ -696,6 +696,24 @@ void main() {
       }
     });
 
+    // A match that could start at any space of a run would scan the rest of
+    // the run from each one, so a long run of spaces would cost its length
+    // squared. Starting only at a bracket or a digit, each space is scanned
+    // a bounded number of times.
+    test('a stated count never starts inside a run of spaces', () {
+      final line = '(4) circle left${' ' * 40}1-4 circle right (2-3)  (4)';
+      for (var i = 0; i < line.length; i++) {
+        if (line[i] != ' ') continue;
+        expect(
+          ecdStatedCountPattern.matchAsPrefix(line, i),
+          isNull,
+          reason: 'a match starts at $i',
+        );
+      }
+      expect(ecdStatedBeats(line, 2), 4 + 8 + 4 + 4);
+      expect(ecdStatedBeats('circle${' ' * 40}( 1-4 ) x', 2), 8);
+    });
+
     test('a file of English dances reads a Contra-typed dance as English, '
         'and a square as English in a square set', () {
       final english = mapCallersCompanionDance(
@@ -1274,10 +1292,10 @@ void main() {
         }
         final setAndTurn = read('Partners set (4) and turn single (4)').single;
         expect(setAndTurn.isCustom, isFalse);
-        expect(
-          setAndTurn.subFigures.map((f) => f.move),
-          ['ecd_set', 'ecd_turn_single'],
-        );
+        expect(setAndTurn.subFigures.map((f) => f.move), [
+          'ecd_set',
+          'ecd_turn_single',
+        ]);
       });
 
       test('a count of steps, doubles, dancers or people', () {
