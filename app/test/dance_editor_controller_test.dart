@@ -238,6 +238,20 @@ void main() {
       expect(controller.phraseController.text, '4*8*3');
     });
 
+    test('a Meter typed again after an Undo sets the phrases again', () async {
+      final repos = openTestRepositories();
+      final controller = await openEnglish(repos);
+      addTearDown(controller.dispose);
+      controller.meterController.text = '3/2';
+      controller.onMeterChanged();
+      expect(controller.phraseController.text, '4*8*3');
+      controller.undo();
+      expect(controller.phraseController.text, '');
+      controller.meterController.text = '3/2';
+      controller.onMeterChanged();
+      expect(controller.phraseController.text, '4*8*3');
+    });
+
     test('a Meter back in two beats to the bar gives the standard structure '
         'again', () async {
       final repos = openTestRepositories();
