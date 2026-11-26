@@ -162,6 +162,7 @@ void main() {
   group('the Meter sets the beats to the bar of unnamed English phrases', () {
     Future<DanceEditorController> openEnglish(
       CompendiumRepositories repos, {
+      DanceForm form = DanceForm.ecd,
       String meter = '',
       String phraseStructure = '',
     }) async {
@@ -169,8 +170,12 @@ void main() {
         Dance(
           id: 'd1',
           title: 'Triple Time',
-          form: DanceForm.ecd,
-          formation: const Formation(FormationShape.dupleMinor),
+          form: form,
+          formation: Formation(
+            form == DanceForm.ecd
+                ? FormationShape.dupleMinor
+                : FormationShape.dupleImproper,
+          ),
           meter: meter,
           phraseStructure: phraseStructure,
           // Eight figures of 4 bars of 3/2: the ordinary 32-bar tune.
@@ -307,6 +312,43 @@ void main() {
       controller.undo();
       expect(controller.form, DanceForm.contra);
       expect(controller.phraseController.text, '');
+    });
+
+    test('changing the type away from English and back leaves phrases the '
+        'Meter left alone (ADR-006 §9.2 point 8)', () async {
+      final repos = openTestRepositories();
+      // Set to 2 beats a bar by hand under a Meter of 3/4.
+      final controller = await openEnglish(
+        repos,
+        meter: '3/4',
+        phraseStructure: '6*8*2',
+      );
+      addTearDown(controller.dispose);
+      controller.setForm(DanceForm.contra);
+      controller.setForm(DanceForm.ecd);
+      expect(controller.phraseController.text, '6*8*2');
+      // A Meter edited while it was contra that ends where it started is no
+      // change either.
+      controller.setForm(DanceForm.contra);
+      controller.meterController.text = '2/2';
+      controller.onMeterChanged();
+      controller.meterController.text = '3/4';
+      controller.onMeterChanged();
+      controller.setForm(DanceForm.ecd);
+      expect(controller.phraseController.text, '6*8*2');
+    });
+
+    test('a contra dance saved with a Meter takes its beats when it is made '
+        'English', () async {
+      final repos = openTestRepositories();
+      final controller = await openEnglish(
+        repos,
+        form: DanceForm.contra,
+        meter: '3/2',
+      );
+      addTearDown(controller.dispose);
+      controller.setForm(DanceForm.ecd);
+      expect(controller.phraseController.text, '4*8*3');
     });
 
     test('a contra dance\'s structure is not the Meter\'s to set', () async {
