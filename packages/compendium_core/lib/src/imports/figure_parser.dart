@@ -2308,10 +2308,12 @@ _Match? _passThrough(List<String> w) {
 /// recoverable instead of flattened into an undifferentiated pass through.
 ///
 /// Deliberately narrow (prefer-custom):
-/// - The line must LEAD with "walk forward to". A stated subject ("Women walk
-///   forward to N2") is DECLINED: structuring it would silently drop the
-///   role. `pass_through` has had a `who` since taxonomy v40, but this
-///   recognizer does not yet read a subject onto it.
+/// - The line must LEAD with "walk forward to", after at most one dancer word
+///   naming who walks ("Women walk forward to N2"). That subject is NOT read
+///   as `who`, which stays unstated: The Caller's Box uses it too unevenly to
+///   say who passes whom (the maintainer's ruling, 2026-11-26, after
+///   reviewing real lines). It leads the note instead (`role2s to n2`), so
+///   the line keeps every word it stated.
 /// - `where` and `shoulder` are NEVER written. `pass_through` declares
 ///   `along`/`right` as its own taxonomy defaults; writing either here would
 ///   assert a direction and a shoulder the source did not state.
@@ -2322,13 +2324,21 @@ _Match? _passThrough(List<String> w) {
 ///   qualifier ("walk forward on left diagonal to N1"), which never reaches the
 ///   leading anchor.
 _Match? _walkForwardTo(List<String> w) {
-  if (w.length < 4 || w[0] != 'walk' || w[1] != 'forward' || w[2] != 'to') {
+  // A leading subject ("Women walk forward to N2") is kept in the note, not
+  // read as `who`: The Caller's Box uses the subject too unevenly to say who
+  // passes whom (the maintainer's ruling, 2026-11-26).
+  final subject = w.isNotEmpty && dancerWords.containsKey(w[0]) ? w[0] : null;
+  final at = subject == null ? 0 : 1;
+  if (w.length < at + 4 ||
+      w[at] != 'walk' ||
+      w[at + 1] != 'forward' ||
+      w[at + 2] != 'to') {
     return null;
   }
-  final dest = w[3];
+  final dest = w[at + 3];
   if (!dancerWords.containsKey(dest)) return null;
-  var end = 4;
-  var note = 'to $dest';
+  var end = at + 4;
+  var note = subject == null ? 'to $dest' : '$subject to $dest';
   // Absorb an optional trailing N-tag ("to neighbor N2") exactly as `_chain`
   // does, so the numeric qualifier does not survive as leftover → custom.
   if (end < w.length && _neighborNumbers.contains(w[end])) {

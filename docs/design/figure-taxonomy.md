@@ -2573,9 +2573,10 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       direction). A dance imported earlier keeps its unstated `who`, and
       re-importing it offers each such pass through as a variation. ContraDB
       has the two figures apart with their own params, so its advanced filter
-      leaves out `passType` and the other figure's `who` or `where`. Walk
-      forward lines with a subject (`Women walk forward to N2`) still decline
-      to custom: nothing reads the subject onto `who` yet.
+      leaves out `passType` and the other figure's `who` or `where`. A walk
+      forward line with a subject (`Women walk forward to N2`) imports as a
+      pass through with that subject in its note and `who` unstated (the
+      maintainer's ruling, 2026-11-26; see `imports.md`).
     - Search filters on the stored id and stored params, as before: a "pass
       through" leaf matches pass throughs and not passes by, and neither leaf
       offers the pass type, which is never stored. Nor do Settings' per-move
