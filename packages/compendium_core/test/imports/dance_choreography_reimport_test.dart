@@ -246,6 +246,51 @@ void main() {
     }
   });
 
+  group('composed date', () {
+    final stamp = DateTime.utc(2026);
+    final existing = Dance(
+      id: 'saved',
+      title: 'Bloomsbury Market     1702',
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    final incoming = Dance(
+      id: 'remote',
+      title: 'Bloomsbury Market',
+      composedOn: PartialDate(1702),
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+
+    test('comes with the title into an empty composed date', () {
+      final result = withReimportedChoreography(
+        existing,
+        incoming,
+        updatedAt: DateTime.utc(2026, 2),
+        alsoTitleAndCredit: true,
+      );
+      expect(result.title, 'Bloomsbury Market');
+      expect(result.composedOn, PartialDate(1702));
+    });
+
+    test('stays without the title, and never replaces a set date', () {
+      final withoutTitle = withReimportedChoreography(
+        existing,
+        incoming,
+        updatedAt: DateTime.utc(2026, 2),
+      );
+      expect(withoutTitle.composedOn, isNull);
+
+      final kept = withReimportedChoreography(
+        existing.copyWith(composedOn: PartialDate(1703)),
+        incoming,
+        updatedAt: DateTime.utc(2026, 2),
+        alsoTitleAndCredit: true,
+      );
+      expect(kept.composedOn, PartialDate(1703));
+    });
+  });
+
   group('dance form', () {
     final stamp = DateTime.utc(2026);
     final contraFigures = DecodedFigures([

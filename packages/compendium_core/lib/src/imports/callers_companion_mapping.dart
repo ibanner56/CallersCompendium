@@ -128,7 +128,9 @@ class CcDanceRecord {
        userFields = List.unmodifiable(userFields),
        body = List.unmodifiable(body);
 
-  /// CC `Name` — the dance title. `null`/blank means "no title supplied".
+  /// CC `Name` — the dance title, and in some libraries a date (and the
+  /// tune's key and meter) padded onto its end, which the mapping takes off
+  /// ([splitCcNameTail]). `null`/blank means "no title supplied".
   final String? name;
 
   /// CC `Author1`/`Author2` display names, in order. Names only — CC exports no
@@ -391,13 +393,10 @@ CcDanceMapping mapCallersCompanionDance(
   // the end of the Name ("Jack's Maggot   1702") comes off it first: a plain
   // year becomes the composed date below, and anything more is kept in the
   // notes ([splitCcNameTail]).
+  // The split sanitizes both parts, so the title and the tail are clean.
   final nameSplit = splitCcNameTail(record.name ?? '');
-  var rawName = _sanitizeLine(nameSplit.title) ?? '';
-  var nameTail = _sanitizeLine(nameSplit.tail);
-  if (rawName.isEmpty) {
-    rawName = _sanitizeLine(record.name) ?? '';
-    nameTail = null;
-  }
+  final rawName = nameSplit.title;
+  final nameTail = nameSplit.tail;
   final String title;
   if (rawName.isEmpty) {
     title = ccUntitledDanceTitle;

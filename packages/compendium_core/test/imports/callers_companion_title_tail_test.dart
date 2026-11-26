@@ -48,6 +48,28 @@ void main() {
       }
     });
 
+    test('finds the gap through invisible characters and no-break spaces', () {
+      for (final name in [
+        'Title  \u200B1702',
+        'Title \u200B 1702',
+        'Title\u00A0\u00A01702',
+      ]) {
+        expect(splitCcNameTail(name), (
+          title: 'Title',
+          tail: '1702',
+        ), reason: name);
+      }
+    });
+
+    test('keeps a tab in the tail as spaces, and drops one in a title '
+        'without a date', () {
+      expect(splitCcNameTail('Gypsy Round, The\t1979\tAm 3/4'), (
+        title: 'Gypsy Round, The',
+        tail: '1979  Am 3/4',
+      ));
+      expect(splitCcNameTail('Foo\tBar'), (title: 'FooBar', tail: null));
+    });
+
     test('never leaves an empty title', () {
       expect(splitCcNameTail('   1702'), (title: '1702', tail: null));
     });
@@ -150,6 +172,30 @@ void main() {
       expect(fromMusic.musicalKey, 'G');
     });
 
+    test('a tab-separated tail reaches the notes with its spaces', () {
+      final dance = mapCallersCompanionDance(
+        CcDanceRecord(name: 'Gypsy Round, The\t1979\tAm 3/4', type: 'Contra'),
+        englishDances: true,
+      ).dance;
+      expect(dance.title, 'The Gypsy Round');
+      expect(dance.callingNotes, contains('From the title: 1979  Am 3/4'));
+      expect(dance.meter, '3/4');
+    });
+
+    test('an English dance whose Music has a meter but no key takes the key '
+        'from the tail', () {
+      final dance = mapCallersCompanionDance(
+        CcDanceRecord(
+          name: 'Gypsy Round, The      1979    Am 3/4',
+          type: 'Contra',
+          music: 'Meter: 6/8',
+        ),
+        englishDances: true,
+      ).dance;
+      expect(dance.meter, '6/8');
+      expect(dance.musicalKey, 'Am');
+    });
+
     test('a contra dance does not take a meter from the tail', () {
       final dance = mapCallersCompanionDance(
         CcDanceRecord(name: 'Reel Time    1999    G 2/2', type: 'Contra'),
@@ -157,6 +203,16 @@ void main() {
       expect(dance.meter, '');
       expect(dance.title, 'Reel Time');
     });
+  });
+
+  test('the label and the title agree when only invisible text precedes '
+      'the date', () {
+    const name = '\u202E  1702';
+    expect(ccDanceTitleOf(name), '1702');
+    expect(
+      mapCallersCompanionDance(CcDanceRecord(name: name)).dance.title,
+      '1702',
+    );
   });
 
   test('a text-export discovery label agrees with the drafted title', () async {

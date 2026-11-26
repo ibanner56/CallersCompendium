@@ -2,16 +2,17 @@
 /// dance Name.
 library;
 
+import '../util/text_sanitizer.dart';
 import 'title_article.dart';
 
-/// Where a Name's trailing annotation starts: a run of two or more spaces, or
-/// a tab, followed by a year, optionally after `Circa`, `ca.` or `c.`.
+/// Where a Name's trailing annotation starts: a run of two or more spaces
+/// (no-break spaces included), or a tab, followed by a year, optionally after `Circa`, `ca.` or `c.`.
 ///
 /// A single space is not enough: a title may end in a number of its own
 /// ("Trip to the Manors 2000" is left alone), but Caller's Companion lists
 /// pad a date out to a column with several.
 final RegExp _tailStart = RegExp(
-  r'(?:[ ]{2,}|\t)\s*(?=(?:(?:circa|ca\.?|c\.)\s*)?\d{4}(?!\d))',
+  r'(?:[ \u00A0]{2,}|\t)\s*(?=(?:(?:circa|ca\.?|c\.)\s*)?\d{4}(?!\d))',
   caseSensitive: false,
 );
 
@@ -31,17 +32,22 @@ final RegExp _leadingDate = RegExp(
 /// The [tail] starts at the first run of two or more spaces (or a tab) that is
 /// followed by a four-digit year, optionally after `Circa`, `ca.` or `c.`, and
 /// runs to the end of the name. It is null when there is none, and then
-/// [title] is the whole [name], trimmed. Both are trimmed but otherwise
-/// unchanged: the caller sanitizes them.
+/// [title] is the whole name sanitized as a single line, as it always was (a
+/// tab in it is dropped). Both parts are sanitized ([sanitizeImportedText])
+/// and trimmed. The date is looked for after sanitizing, so an invisible
+/// character cannot hide the gap before it, and with each tab read as two
+/// spaces, so a tab in the tail is kept as spaces rather than dropped.
 ({String title, String? tail}) splitCcNameTail(String name) {
-  final trimmed = name.trim();
-  final match = _tailStart.firstMatch(trimmed);
-  if (match == null) return (title: trimmed, tail: null);
-  final title = trimmed.substring(0, match.start).trim();
-  final tail = trimmed.substring(match.end).trim();
-  if (title.isEmpty || tail.isEmpty) return (title: trimmed, tail: null);
+  final spaced = _clean(name.replaceAll('\t', '  '));
+  final match = _tailStart.firstMatch(spaced);
+  final title = match == null ? '' : spaced.substring(0, match.start).trim();
+  final tail = match == null ? '' : spaced.substring(match.end).trim();
+  if (title.isEmpty || tail.isEmpty) return (title: _clean(name), tail: null);
   return (title: title, tail: tail);
 }
+
+String _clean(String text) =>
+    sanitizeImportedText(text.trim(), allowLineBreaks: false).trim();
 
 /// The year [tail] states when it is exactly one plain year (`1702`), or null
 /// when it says anything more or less: `1703/2009`, `2024?`, `Circa 1800`,
