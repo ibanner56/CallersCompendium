@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../search/event_rule_check.dart';
+import '../theme/app_spacing.dart';
 import 'saved_search_actions.dart' show savedSearchMissingText;
 
 /// An event rule as the sentence the app shows (#2340): "At most 1 dance
@@ -94,6 +95,53 @@ EventRuleName eventRuleName(
           title: nickname,
           spoken: l10n.eventRuleSpokenTitle(nickname, sentence),
         );
+}
+
+/// Why [rule] is not checked, as a list of rules tells it from the rule and
+/// the name of its saved search alone ([searchName], null when the search
+/// is gone or can't be read): Manage rules and a template's Rules row. Null
+/// when nothing says it needs attention. A program's check, which resolves
+/// the search, can also find [EventRuleSearchUnresolvable].
+EventRuleAttention? eventRuleListAttention(
+  EventRule rule,
+  String? searchName,
+) => !rule.isReadable
+    ? const EventRuleUnreadable()
+    : searchName == null
+    ? const EventRuleSearchGone()
+    : null;
+
+/// "Needs attention" with a warning icon, in the error colour, then why
+/// ([eventRuleAttentionLines]): how a list of rules marks a rule that is not
+/// checked.
+class EventRuleAttentionNote extends StatelessWidget {
+  const EventRuleAttentionNote({super.key, required this.attention});
+
+  final EventRuleAttention attention;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final error = Theme.of(context).colorScheme.error;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.warning_amber, size: 16, color: error),
+            const SizedBox(width: AppSpacing.xxs),
+            Flexible(
+              child: Text(
+                l10n.savedSearchNeedsAttention,
+                style: TextStyle(color: error),
+              ),
+            ),
+          ],
+        ),
+        for (final line in eventRuleAttentionLines(l10n, attention)) Text(line),
+      ],
+    );
+  }
 }
 
 /// Why a rule is not checked, as lines to show: the reason, then each

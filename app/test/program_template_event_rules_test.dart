@@ -1,8 +1,9 @@
 // Event rules on a program template (#2342): the template editor's Rules row
 // (only while Event rules is on), the list kept through a save with the
 // feature off, a deleted rule shown as removed and brought back by Undo, a
-// nicknamed rule's sentence shown beneath it, a duplicate keeping the rules,
-// and New program starting with exactly the template's live rules.
+// nicknamed rule's sentence shown beneath it, a rule whose saved search is
+// gone marked as needing attention, a duplicate keeping the rules, and New
+// program starting with exactly the template's live rules.
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
@@ -293,6 +294,81 @@ void main() {
     await pumpUntilFound(tester, find.text('Removed: One becket'));
     expect(tester.widget<Text>(sentence(named.id)).data, namedSentence);
   });
+
+  testWidgets(
+    'a live rule whose saved search is gone needs attention, as in '
+    'Manage rules; a rule whose search is there, or a removed one, does not',
+    (tester) async {
+      final repos = openTestRepositories();
+      final facets = FacetSelections()
+        ..formations.add(FormationShape.becketCcw);
+      final becket = await repos.savedSearches.create(
+        name: 'Becket',
+        spec: SavedSearchSpec.fromPanelState(
+          CollectionPanelState(facets: facets),
+          today: DateTime.utc(2026, 1, 1),
+        ).value!,
+      );
+      final fine = await repos.eventRules.create(
+        savedSearchId: becket.id,
+        quantifier: EventRuleQuantifier.atMost,
+        count: 1,
+        scope: EventRuleScope.wholeProgram,
+        nickname: 'One becket',
+      );
+      // A rule whose saved search is not stored, as a sync can bring it (its
+      // search deleted on another device). [_rule]'s search is stored.
+      const gone = EventRule(
+        id: 'rule-gone',
+        savedSearchId: 'search-gone',
+        quantifierName: 'atMost',
+        count: 1,
+        scopeName: 'wholeProgram',
+        nickname: 'Lost search',
+      );
+      await repos.eventRules.writeFromSync(gone);
+      // Removed, and its search is not stored either: still not flagged.
+      const removed = EventRule(
+        id: 'rule-removed',
+        savedSearchId: 'search-gone',
+        quantifierName: 'atMost',
+        count: 1,
+        scopeName: 'wholeProgram',
+        nickname: 'Old rule',
+      );
+      await repos.eventRules.writeFromSync(removed);
+      await repos.eventRules.delete(removed.id);
+      final template = ProgramTemplate(
+        id: 't',
+        name: 'Family dance',
+        eventRuleIds: [fine.id, gone.id, removed.id],
+      );
+      await saveProgramTemplate(repos.settings, template);
+      await _pump(
+        tester,
+        repos,
+        ProgramTemplateEditorScreen(template: template),
+        enabled: true,
+      );
+      Finder attention(String id) =>
+          find.byKey(ValueKey('program-template-rule-$id-attention'));
+      await pumpUntilFound(tester, attention(gone.id));
+
+      for (final text in [
+        'Needs attention',
+        "Its saved search was deleted or can't be read, so it is not checked.",
+      ]) {
+        expect(
+          find.descendant(of: attention(gone.id), matching: find.text(text)),
+          findsOneWidget,
+          reason: text,
+        );
+      }
+      expect(attention(fine.id), findsNothing);
+      expect(find.text('Removed: Old rule'), findsOneWidget);
+      expect(attention(removed.id), findsNothing);
+    },
+  );
 
   testWidgets('Duplicate keeps the rules, and Rename leaves them alone', (
     tester,

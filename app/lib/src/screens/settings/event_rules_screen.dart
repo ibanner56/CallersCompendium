@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/repositories_scope.dart';
 import '../../diagnostics/error_log.dart';
-import '../../search/event_rule_check.dart';
 import '../../theme/app_spacing.dart';
 import '../../utils/confirm_delete.dart';
 import '../../utils/undo_snack_bar.dart';
@@ -201,12 +200,7 @@ class _EventRuleTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final sentence = eventRuleSentence(l10n, rule, searchName);
     final title = rule.nickname ?? sentence;
-    final attention = !rule.isReadable
-        ? const EventRuleUnreadable()
-        : searchName == null
-        ? const EventRuleSearchGone()
-        : null;
-    final error = Theme.of(context).colorScheme.error;
+    final attention = eventRuleListAttention(rule, searchName);
     return ListTile(
       leading: ReorderableDragStartListener(
         index: index,
@@ -225,22 +219,7 @@ class _EventRuleTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (rule.nickname != null) Text(sentence),
-          if (attention != null) ...[
-            Row(
-              children: [
-                Icon(Icons.warning_amber, size: 16, color: error),
-                const SizedBox(width: AppSpacing.xxs),
-                Flexible(
-                  child: Text(
-                    l10n.savedSearchNeedsAttention,
-                    style: TextStyle(color: error),
-                  ),
-                ),
-              ],
-            ),
-            for (final line in eventRuleAttentionLines(l10n, attention))
-              Text(line),
-          ],
+          if (attention != null) EventRuleAttentionNote(attention: attention),
         ],
       ),
       // A rule a newer version wrote cannot be edited here; it can still be

@@ -16,6 +16,7 @@ import '../../data/program_templates.dart';
 import '../../data/repositories_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../search/collection_data.dart';
+import '../../search/event_rule_check.dart' show EventRuleAttention;
 import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../utils/confirm_delete.dart';
@@ -702,9 +703,21 @@ class _ProgramTemplateEditorScreenState
     );
   }
 
+  /// Why live rule [id] is not checked ([eventRuleListAttention]), as Manage
+  /// rules says it, or null. A removed rule is not added to new programs, so
+  /// it is never flagged.
+  EventRuleAttention? _ruleAttention(String id) {
+    final rule = _rulesById?[id];
+    if (rule == null || !_liveRuleIds.contains(id)) return null;
+    return eventRuleListAttention(rule, _savedSearchNames?[rule.savedSearchId]);
+  }
+
   Widget _rulesRow(AppLocalizations l10n) {
     final theme = Theme.of(context);
-    final known = _rulesById != null;
+    // The rules and the saved search names both read: until then a sentence
+    // would name its search as unknown, and a rule whose search is only not
+    // read yet would look like one whose search is gone.
+    final known = _rulesById != null && _savedSearchNames != null;
     return ListTile(
       key: const ValueKey('program-template-rules'),
       leading: const Icon(Icons.rule),
@@ -734,10 +747,18 @@ class _ProgramTemplateEditorScreenState
                   // it never reads as the help line below.
                   style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                 ),
+              // A rule that is not checked says so, as Manage rules does:
+              // its saved search is gone or can't be read, or a newer
+              // version of the app made it.
+              if (_ruleAttention(id) case final attention?)
+                EventRuleAttentionNote(
+                  key: ValueKey('program-template-rule-$id-attention'),
+                  attention: attention,
+                ),
             ]
           else
-            // The rules are not read yet, or could not be: say how many the
-            // template lists rather than nothing.
+            // The rules or the saved search names are not read yet, or could
+            // not be: say how many the template lists rather than nothing.
             Text(l10n.programsRulesButton(_eventRuleIds.length)),
           Text(l10n.programTemplateRulesHelp, style: theme.textTheme.bodySmall),
         ],
