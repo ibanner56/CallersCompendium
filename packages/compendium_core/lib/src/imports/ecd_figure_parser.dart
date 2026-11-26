@@ -1342,10 +1342,8 @@ final Map<String, _MoveRule> _rules = {
   'change_places': _MoveRule('ecd_change_places', (b, c) {
     // `trade by right shoulder`: the movement's `hand` names the side the
     // dancers pass by, not a hand they give (the maintainer, 26 November
-    // 2026), so a shoulder is that side too. The shoulder's words are taken
-    // so they are not left unread.
+    // 2026), so a shoulder is that side too.
     final shoulder = _shoulder(b, sideIsShoulder: false);
-    b.take<String>('shoulderWords');
     final hand = _hand(
       b,
       // `change R`: the side is the hand, as for a turn.
@@ -2058,12 +2056,19 @@ class _Reader {
     return true;
   }
 
-  /// `pass right shoulder` before a movement (`pass right shoulder cross`):
-  /// the shoulder, rather than the movement `pass`, when a movement follows.
+  /// `pass right shoulder` before a movement (`pass right shoulder cross`,
+  /// `pass right shoulder half hey for three`): the shoulder, rather than the
+  /// movement `pass`, when a movement follows it, past any words that may
+  /// come before a movement.
   bool takePassingShoulder(_Bag bag) {
     if (at(pos) != 'pass') return false;
     final start = pos;
-    final ok = takeShoulder(_Bag()) && verbAt(pos) != null;
+    final scratch = _Bag();
+    var ok = takeShoulder(scratch);
+    while (ok && !atEnd && verbAt(pos) == null) {
+      if (!takePreModifier(scratch)) ok = false;
+    }
+    ok = ok && !atEnd && verbAt(pos) != null;
     pos = start;
     return ok && takeShoulder(bag);
   }
@@ -2101,9 +2106,7 @@ class _Reader {
 
   bool takeShoulder(_Bag bag) {
     final start = pos;
-    String? via;
     if (const {'by', 'passing', 'over', 'pass'}.contains(at(pos))) {
-      via = at(pos);
       pos++;
       if (at(pos) == 'the') pos++;
     }
@@ -2115,10 +2118,6 @@ class _Reader {
     // `right shoulder round` is the movement's own name.
     if (at(pos + 2) == 'round') return _undo(start);
     if (!bag.put('shoulder', side)) return _undo(start);
-    // The words, for a movement that keeps the shoulder as its note.
-    if (bag.put('shoulderWords', [?via, side, noun!].join(' '))) {
-      bag.drop('shoulderWords');
-    }
     pos += 2;
     return true;
   }

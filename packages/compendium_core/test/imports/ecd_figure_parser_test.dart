@@ -1083,6 +1083,20 @@ void main() {
       }
     });
 
+    test('`pass <side> shoulder` before other words and a movement is still '
+        'its shoulder', () {
+      final hey = _one('1s pass right shoulder half hey for three');
+      expect(hey.move, 'ecd_hey_for_three');
+      expect(hey.params, {
+        'who': ['ones'],
+        'shoulder': 'right',
+        'fraction': 'half',
+      });
+      final circular = _one('pass left shoulder 3 changes circular hey');
+      expect(circular.move, 'ecd_circular_hey');
+      expect(circular.params, {'changes': 3, 'shoulder': 'left'});
+    });
+
     test('`go below` is a cast only after a cross', () {
       for (final line in const [
         '1s cast and go below',
