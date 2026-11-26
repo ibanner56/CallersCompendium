@@ -1339,27 +1339,25 @@ final Map<String, _MoveRule> _rules = {
     });
   }),
   'change_places': _MoveRule('ecd_change_places', (b, c) {
-    // `trade by right shoulder`: the movement holds a hand but no shoulder,
-    // so the shoulder passed is its note.
+    // `trade by right shoulder`: the movement's `hand` names the side the
+    // dancers pass by, not a hand they give (the maintainer, 26 November
+    // 2026), so a shoulder is that side too. The shoulder's words are taken
+    // so they are not left unread.
     final shoulder = _shoulder(b, sideIsShoulder: false);
-    final shoulderWords = b.take<String>('shoulderWords');
-    final params = _params({
+    b.take<String>('shoulderWords');
+    final hand = _hand(
+      b,
+      // `change R`: the side is the hand, as for a turn.
+      allowed: const {'right', 'left', 'none'},
+    );
+    if (hand != null && shoulder != null && hand != shoulder) return null;
+    return _params({
       'who': _whoOf(b, objectIsWho: false),
       'whom': _whom(b, const {'with'}),
-      'hand': _hand(
-        b,
-        // `change R`: the side is the hand, as for a turn.
-        allowed: const {'right', 'left', 'none'},
-      ),
+      'hand': hand ?? shoulder,
       'where': _where(b, const ['along', 'across', 'diagonally', 'up', 'down']),
       'destination': _dest(b),
-      'shoulder': shoulder,
     });
-    if (params == null) return null;
-    return {
-      ...params..remove('shoulder'),
-      if (shoulder != null) _noteSlot: shoulderWords ?? '$shoulder shoulder',
-    };
   }),
   'pull_by': _MoveRule('ecd_pull_by', (b, c) {
     // Dancers named straight after the movement: no preposition reads as its

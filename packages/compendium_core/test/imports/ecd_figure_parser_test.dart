@@ -889,14 +889,24 @@ void main() {
         },
         null,
       ),
-      // Change places holds no shoulder: the shoulder is the note.
-      'trade by right shoulder': ('ecd_change_places', {}, 'by right shoulder'),
+      // Change places' `hand` is the side passed, so a shoulder is that
+      // side (the maintainer, 26 November 2026).
+      'trade by right shoulder': ('ecd_change_places', {'hand': 'right'}, null),
       'role1s change by R shoulder': (
         'ecd_change_places',
         {
           'who': ['role1s'],
+          'hand': 'right',
         },
-        'by right shoulder',
+        null,
+      ),
+      'role1s change by the left shoulder': (
+        'ecd_change_places',
+        {
+          'who': ['role1s'],
+          'hand': 'left',
+        },
+        null,
       ),
       // `pass ... by` a side is the shoulder passed.
       'Pass P by L': (
