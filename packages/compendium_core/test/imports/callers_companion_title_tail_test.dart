@@ -73,6 +73,29 @@ void main() {
     test('never leaves an empty title', () {
       expect(splitCcNameTail('   1702'), (title: '1702', tail: null));
     });
+
+    // A run of spaces no year follows was once tried at every split from
+    // every start: cubic in the run's length, so 1,600 spaces took about 40 s
+    // and these 50,000 would not finish. Each run is now read once. No time
+    // bound is asserted: a linear scan returns at once, and the old pattern
+    // runs past the test timeout by many orders of magnitude.
+    test('reads a Name with a very long run of spaces', () {
+      for (final pad in [' ', ' ', '   ']) {
+        final run = pad * (50000 ~/ pad.length);
+        expect(splitCcNameTail('Jack${run}Maggot'), (
+          title: 'Jack${run}Maggot',
+          tail: null,
+        ), reason: 'pad ${pad.runes.toList()}');
+        expect(splitCcNameTail('Jack${run}Maggot  1702'), (
+          title: 'Jack${run}Maggot',
+          tail: '1702',
+        ), reason: 'pad ${pad.runes.toList()}');
+        expect(splitCcNameTail('Jack${run}Circa${run}x'), (
+          title: 'Jack${run}Circa${run}x',
+          tail: null,
+        ), reason: 'pad ${pad.runes.toList()}');
+      }
+    });
   });
 
   test('ccNameTailPlainYear reads only a tail that is one plain year', () {
