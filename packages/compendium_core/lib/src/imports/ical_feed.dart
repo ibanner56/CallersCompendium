@@ -621,9 +621,10 @@ class CalendarImportCandidate {
   final int? endMinute;
 
   /// The place name `LOCATION` starts with: its first non-blank line up to
-  /// the first comma, sanitized. The rest (usually a street address) is
-  /// dropped, and so is that part when it holds a number, as a street line
-  /// does: then `null`.
+  /// the first comma, sanitized, with any whitespace read as a space. The rest
+  /// (usually a street address) is dropped, and so is that part when it
+  /// holds a number, as a street line does, or the part after its first
+  /// comma is a word or two holding one: then `null`.
   final String? venueLabel;
 
   /// For an event whose `UID` is `<id>@callers-compendium` (this app's
@@ -1132,10 +1133,10 @@ DateTime _addMonths(DateTime d, int months) {
 /// the following lines or after a comma, so this keeps the name.
 ///
 /// `null` when that part holds a number, as a street line does ("12 Elm
-/// St", "Hauptstraße 5", "#12", "東京都渋谷区神宮前１丁目"), or when the next
-/// comma part is a word or two holding a number ("Via Roma, 10, Milano").
-/// An English ordinal ("1st Church") is not a number here. So a location that
-/// starts with its street address gives no venue: `programs.venue` is a
+/// St", "Hauptstraße 5", "#12", "神宮前１丁目", "建国路八十八号"), or when the
+/// part after its first comma is a word or two holding a number ("Via Roma,
+/// 10, Milano"). An English ordinal ("1st Church") is not a number here. So a
+/// location that starts with a numbered street address gives no venue: `programs.venue` is a
 /// shareable label that sync, share files and every export carry. A name
 /// that holds a number ("Studio 54") is dropped with it: the caller can type
 /// it back, whereas a kept address would travel.
@@ -1162,7 +1163,10 @@ final _whitespace = RegExp(r'\s', unicode: true);
 
 /// A comma, fullwidth comma or ideographic comma.
 final _comma = RegExp('[,\uFF0C\u3001]');
-final _digit = RegExp(r'\p{Nd}', unicode: true);
+
+/// Any numeral, or a number in CJK numerals before a block, lot or house
+/// counter (丁目, 番地, 番, 号).
+final _digit = RegExp(r'\p{N}|[〇零一二三四五六七八九十百千万]+(?:丁目|番地|番|号)', unicode: true);
 
 /// An English ordinal, which is part of a name ("1st Church", "4th Street
 /// Hall"), not a house number.

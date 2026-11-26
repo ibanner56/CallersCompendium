@@ -707,6 +707,12 @@ void main() {
         'The Smiths\uFF0C12 Elm Street': 'The Smiths',
         '\u65E5\u672C\u3001\u3012150-0001 \u6771\u4EAC\u90FD': null,
         '\u4E2D\u56FD\u5317\u4EAC\u5E0288\u53F7': null,
+        // Numerals other than decimal digits.
+        '\u5317\u4EAC\u5E02\u5EFA\u56FD\u8DEF\u516B\u5341\u516B\u53F7': null,
+        '\u795E\u5BAE\u524D\u4E00\u4E01\u76EE\\, \u6E0B\u8C37\u533A': null,
+        '\u00B9\u00B2 Elm St\\, Springfield': null,
+        '\u2460\u2461 Elm Street': null,
+        '\u216B Elm Street': null,
         // A street, then its house number in the next part.
         'Calle Mayor\\, n\u00BA 5\\, Madrid': null,
         r'Elm St.\, No. 12': null,
