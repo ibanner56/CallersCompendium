@@ -2735,8 +2735,8 @@ ECD dance.
   split: a dancer word (`(4) Ladies cross`, so `(8) Circle (3) ladies only`
   splits too) or a step's singular (`(8) Slip left`, `(8) Double figure
   eight`). Some older words can start a figure too (`Hands across`, `Change
-  places`, `Couples cross`), and a line with a count before one is read
-  whole. A line whose text starts with a
+  places`, `Couples cross`), and a count before one stays with the piece
+  before it, so the line is not split there. A line whose text starts with a
   bar range splits only at further bracketed ranges: a count in beats right
   after the range (`1-4 (6) circle left`) or inside the line (`(5-8) join R
   hands (5) then L hands (6)`) is part of its words. A piece with no words of

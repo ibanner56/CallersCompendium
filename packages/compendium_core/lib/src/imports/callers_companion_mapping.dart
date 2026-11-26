@@ -1191,7 +1191,8 @@ final RegExp _ccMidLineRange = RegExp(
 /// cross`) and the singular of a step (`(8) Slip left`, `(8) Double figure
 /// eight`, `(4) Step right`). Some of the older words can start one too
 /// (`Hands across`, `Change places`, `Couples cross`), so a count before such
-/// a figure does not split the line, which is then read whole.
+/// a figure stays in the words of the piece before it: the line is not split
+/// there, though it still splits at its other counts.
 const String _ccCountedWords =
     r'(?:hands?|places?|times?|couples?|bars?|beats?|changes?|steps|slips'
     r'|doubles|singles|dancers?|people|persons?|rounds|circuits?'
