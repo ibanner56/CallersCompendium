@@ -1,6 +1,6 @@
 import '../dialect/dialect.dart';
 import '../model/figure.dart';
-import '../taxonomy/dance_vocabulary.dart' show seriesDancerWords;
+import '../taxonomy/dance_vocabulary.dart' show seriesDancerPhrases;
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'contradb_dancer_vocab.dart';
@@ -189,12 +189,8 @@ final List<MapEntry<String, String>> _dancerPhrases = [
     'third role2': 'threesRole2',
     'fourth role1': 'foursRole1',
     'fourth role2': 'foursRole2',
-    for (final MapEntry(key: noun, value: byOrdinal)
-        in seriesDancerWords.entries)
-      for (final MapEntry(key: ordinal, value: token) in byOrdinal.entries) ...{
-        '$ordinal $noun': token,
-        '$ordinal ${noun}s': token,
-      },
+    for (final MapEntry(key: phrase, value: token) in seriesDancerPhrases())
+      phrase: token,
   }.entries,
 ]..sort((a, b) => b.key.length.compareTo(a.key.length));
 
