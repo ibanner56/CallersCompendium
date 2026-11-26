@@ -1608,6 +1608,16 @@ Formation _mapEcdShape(
   if (source.shape == FormationShape.circleMixer) {
     return mapped.copyWith(shape: FormationShape.circle);
   }
+  // ECD has no scatter-mixer shape either: an English scatter mixer is
+  // `other`, its words the detail; whether it mixes is its Type's to say
+  // (implementer's call; rejected: a shape the source does not name).
+  if (source.shape == FormationShape.scatterMixer) {
+    final detail = source.detail;
+    return Formation(
+      FormationShape.other,
+      detail: detail == null ? 'Scatter mixer' : 'Scatter mixer; $detail',
+    );
+  }
   if (source.shape == FormationShape.dupleImproper && !statesImproper) {
     return mapped.copyWith(improper: false);
   }

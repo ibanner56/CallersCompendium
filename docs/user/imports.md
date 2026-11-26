@@ -667,7 +667,9 @@ across as an English country dance. A dance typed Square, or with a Square
 formation, becomes an English dance in a square set, as Newcastle is,
 keeping what Caller's Companion said of its formation as the formation's
 description and the repeat order its SubType names; a square in a big circle
-stays a circle. A dance typed Circle Mixer becomes a circle marked as a mixer.
+stays a circle. A dance typed Circle Mixer becomes a circle marked as a mixer,
+and one typed Scatter Mixer a formation described as "Scatter mixer", marked
+as a mixer.
 A dance typed English is read the same way whichever you answer, so one with a
 Square formation is an English dance in a square set. Choose **No, read their
 types** and each dance comes across by its Type, as above. Closing the question reads nothing, and choosing the file
@@ -782,7 +784,10 @@ a title may end in one ("Trip to the Manors 2000"). A dance you imported
 before keeps the title it has. If you re-import it with **Also update title
 and credit**, it takes the title without the date, but a re-import changes
 neither the composed date nor the notes, so the date is not kept anywhere:
-note it down from the old title first if you want to keep it.
+note it down from the old title first if you want to keep it. When the app
+looks for a dance you already have, a title with such a date counts as the
+same title without it, so pasting "Jack's Maggot" finds a dance imported as
+"Jack's Maggot   1702".
 
 A dance Caller's Companion credits to a choreographer **"and others"** (such
 as "Rick Mohr" and "And Others") is credited to the people it names, and the
