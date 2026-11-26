@@ -754,7 +754,10 @@ Select **Program defaults** to open this group.
   template says so and undoes just that rule: a new rule is removed, and an
   edited one goes back to how it was. If the saved search is gone anyway
   (deleted on another device, say), or can't be opened, the rule's row says
-  so, and the placeholder still offers Fill. **Duplicate** won't copy a
+  so, and the placeholder still offers Fill. If your saved searches can't be
+  read at all, a rule whose search the app hasn't seen shows just **Slot
+  rule**, rather than guess that its search is gone; reopen the template once
+  they can be read. **Duplicate** won't copy a
   template while one of its slot rules uses a saved search that has been
   deleted; the message names the rule, so you can edit or remove it first.
 - **Rules** (optional, *Experimental*) — while [Event rules](#event-rules) is
@@ -762,7 +765,8 @@ Select **Program defaults** to open this group.
   rules: each by its nickname with its sentence beneath, or by its sentence if
   it has no nickname. A rule whose saved search was deleted or can't be read,
   or that a newer version of the app made, is marked **Needs attention**, as
-  in Manage rules, and a program doesn't check it. Select it to open the same
+  in Manage rules, and a program doesn't check it; while your saved searches
+  can't be read, no rule is marked for its search. Select it to open the same
   rule picker a program has, with **New rule…** at the top: tick the rules a
   program made from this template should start with, and untick one to take it
   off. They are added to each new program made from the template (see [Rules

@@ -1147,6 +1147,7 @@ class _ProgramTemplateEditorScreenState
               danceTitles: _danceTitles ?? const {},
               savedSearchNames: _savedSearchNames,
               unreadableSearchIds: _unreadableSearchIds,
+              searchNamesFresh: _searchNamesFresh,
               onAddDance: _addDance,
               onAddRule: _addRule,
               onEditRule: _editRule,
@@ -1188,6 +1189,7 @@ class ProgramTemplateSlotsEditor extends StatefulWidget {
     required this.danceTitles,
     this.savedSearchNames,
     this.unreadableSearchIds = const {},
+    this.searchNamesFresh = true,
     required this.onAddDance,
     this.onAddRule,
     this.onEditRule,
@@ -1208,6 +1210,13 @@ class ProgramTemplateSlotsEditor extends StatefulWidget {
 
   /// Saved searches that are stored but cannot be read, by id.
   final Set<String> unreadableSearchIds;
+
+  /// Whether [savedSearchNames] and [unreadableSearchIds] are the latest
+  /// read's. After a failed read they are the last good read's, which may
+  /// miss a search a sync has just brought, so a slot rule whose search is
+  /// not in them is not said to be gone or unreadable until a read succeeds,
+  /// as the Rules row and Manage rules do.
+  final bool searchNamesFresh;
   final VoidCallback onAddDance;
 
   /// **Edit** on a slot rule (#2338); no Edit button when null.
@@ -1264,6 +1273,7 @@ class _ProgramTemplateSlotsEditorState
     if (names == null) return l10n.programTemplateSlotRuleBadge;
     final name = names[savedSearchId];
     if (name != null) return l10n.programTemplateSlotRuleSubtitle(name);
+    if (!widget.searchNamesFresh) return l10n.programTemplateSlotRuleBadge;
     return widget.unreadableSearchIds.contains(savedSearchId)
         ? l10n.programTemplateSlotRuleSearchUnreadable
         : l10n.programTemplateSlotRuleSearchGone;

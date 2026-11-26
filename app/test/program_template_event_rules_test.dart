@@ -536,6 +536,71 @@ void main() {
     expect(attention('rule-newer'), findsOneWidget);
   });
 
+  testWidgets('after a failed read of the saved search names, a slot rule '
+      'whose search was missing from the last good read is no longer said to '
+      'be gone; a good read names it', (tester) async {
+    final db = openWidgetTestDatabase();
+    final settings = FailingSavedSearchReadsSettings(db);
+    final repos = CompendiumRepositories(
+      db,
+      contraTaxonomy,
+      settings: settings,
+    );
+    final template = ProgramTemplate(
+      id: 't',
+      name: 'Family dance',
+      entries: [
+        ProgramTemplateEntry.rule(savedSearchId: 'search-x', label: 'Opener'),
+      ],
+    );
+    await saveProgramTemplate(repos.settings, template);
+    await _pump(
+      tester,
+      repos,
+      ProgramTemplateEditorScreen(template: template),
+      enabled: true,
+    );
+    final subtitle = find.byKey(
+      const ValueKey('program-template-rule-subtitle-0'),
+    );
+    String text() => tester.widget<Text>(subtitle).data!;
+    await pumpUntil(
+      tester,
+      () =>
+          subtitle.evaluate().isNotEmpty &&
+          text() == 'Its saved search was deleted',
+      description: 'the slot rule said to be gone',
+    );
+
+    // A sync brings the search; the next read of the names fails.
+    await storeSavedSearches(settings, ['search-x']);
+    settings.failSearchReads = true;
+    // Any change to the rules reads the names again.
+    await repos.eventRules.writeFromSync(
+      const EventRule(
+        id: 'rule-any',
+        savedSearchId: 'search-x',
+        quantifierName: 'atMost',
+        count: 1,
+        scopeName: 'wholeProgram',
+      ),
+    );
+    await pumpUntil(
+      tester,
+      () => text() == 'Slot rule',
+      description: 'the slot rule no longer said to be gone',
+    );
+
+    // A good read names its search.
+    settings.failSearchReads = false;
+    await repos.eventRules.delete('rule-any');
+    await pumpUntil(
+      tester,
+      () => text() == 'Filled from the saved search "search-x"',
+      description: 'the slot rule named by its search',
+    );
+  });
+
   testWidgets('Duplicate keeps the rules, and Rename leaves them alone', (
     tester,
   ) async {
