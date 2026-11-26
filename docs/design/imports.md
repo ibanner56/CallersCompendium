@@ -235,7 +235,9 @@ takes the incoming title and the resolved author credit
 from the record's author names is taken: unlike a create or a link, a draft
 with no names does not fall back to its own `authorIds`, which are the
 sender's ids and may name no choreographer here. An incoming record with no
-resolved credit keeps the dance's. Ratings, tags, notes, links and status never
+resolved credit keeps the dance's. An empty composed date is filled from the
+incoming dance with the title, since a source may read a date off the title
+(see *A date padded onto the Name*). Ratings, tags, notes, links and status never
 change. The choice rides on the verdict because the `.USR` and archive
 importers rebuild each `ImportRecordPlan` before the pipeline commits it,
 copying the verdict through. The implementer's calls, not the maintainer's:
@@ -669,7 +671,14 @@ declines the collapse.
   is lost. Implementer's call: the second year of `1703/2009` is not read as
   an interpretation date, because a library may mean a reconstruction, a
   revision or a publication by it. An English dance whose Music states no
-  meter or key takes them from what the tail says after its date.
+  meter, or no key, takes the missing one from what the tail says after its
+  date. Both parts are sanitized before the date is looked for, so a
+  zero-width character cannot hide the gap, a no-break space counts as a
+  space, and a tab in the tail is kept as spaces. A re-import with **Also
+  update title and credit** fills an empty `composedOn` from the incoming
+  dance along with the title (implementer's call, as for an empty meter or
+  key; a set date stays); its notes do not change, so a tail kept as a note
+  on a fresh import is not added on re-import.
 - **Program slots link to dances the commit did not write (INTAKE-1).** A slot
   resolves its CC dance id through the records the commit wrote *plus*
   `existingDanceIdByExternalId`: the review passes each re-import row's target

@@ -755,9 +755,14 @@ off the title. A plain year becomes the dance's composed date, unless
 Caller's Companion's own composed date says otherwise. Anything more, such as
 "1703/2009", "Circa 1800", "2024?" or a year followed by the tune's key and
 meter, is kept as a line in the calling notes ("From the title: 1703/2009"),
-and an English dance whose Music gives no meter or key takes them from that
-line. A number after a single space stays in the title, because a title may
-end in one ("Trip to the Manors 2000").
+and an English dance whose Music gives no meter, or no key, takes the missing
+one from that line. A number after a single space stays in the title, because
+a title may end in one ("Trip to the Manors 2000"). A dance you imported
+before keeps the title it has; if you re-import it with **Also update title
+and credit**, it takes the title without the date, and the year becomes its
+composed date if it has none. Its notes do not change, so a date that says
+more than a year is not added to them: copy it from the old title first if
+you want to keep it.
 
 A dance Caller's Companion credits to a choreographer **"and others"** (such
 as "Rick Mohr" and "And Others") is credited to the people it names, and the
