@@ -1186,9 +1186,12 @@ final RegExp _ccMidLineRange = RegExp(
 
 /// The words after a bracketed number that say it counts something other
 /// than beats, as a pattern: hands, places, steps, doubles, dancers and the
-/// like, or the half or quarter of a turn. A word that can start a figure is
-/// not among them: a dancer word (`(4) Ladies cross`), or the singular of a
-/// step (`(8) Slip left`, `(8) Double figure eight`, `(4) Step right`).
+/// like, or the half or quarter of a turn. The words added for steps and
+/// dancers leave out those that start figures: a dancer word (`(4) Ladies
+/// cross`) and the singular of a step (`(8) Slip left`, `(8) Double figure
+/// eight`, `(4) Step right`). Some of the older words can start one too
+/// (`Hands across`, `Change places`, `Couples cross`), so a count before such
+/// a figure does not split the line, which is then read whole.
 const String _ccCountedWords =
     r'(?:hands?|places?|times?|couples?|bars?|beats?|changes?|steps|slips'
     r'|doubles|singles|dancers?|people|persons?|rounds|circuits?'
