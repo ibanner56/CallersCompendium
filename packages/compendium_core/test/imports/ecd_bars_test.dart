@@ -616,8 +616,9 @@ void main() {
         final dance = sectioned('Key G Meter 3/4', {
           'A1': ['(12) circle left', '(12) circle right'],
           'A2': ['(12) circle left', '(12) circle right'],
-          // Two counts in one line read as text keep only the first.
-          'B1': ['(3) something only this caller says (3) and more'],
+          // A prefix the line's bars disagree with is kept as text with the
+          // bars' count, so the prefix's count is lost.
+          'B1': ['(3) 1-2 something only this caller says'],
         });
         expect(dance.phraseStructure.raw, '4*8*3');
       });
@@ -1131,16 +1132,141 @@ void main() {
       }
     });
 
-    test('a line of several ranges is kept as text, counted across them', () {
-      const line = '(16) 1-4 partners set (5-8) and turn single';
-      final dance = mapCallersCompanionDance(
-        record(music: 'Meter: 2/2', lines: const [line]),
-        englishDances: true,
-      ).dance;
-      final figure = (dance.figuresSource as DecodedFigures).figures.single;
-      expect(figure.isCustom, isTrue);
-      expect(figure.params['text'], contains('1-4 partners set (5-8)'));
-      expect(figure.params['beats'], 16);
+    test('a line of several bracketed counts or ranges is read piece by '
+        'piece', () {
+      List<Figure> read(String line, {String meter = '2/2'}) =>
+          (mapCallersCompanionDance(
+                    record(music: 'Meter: $meter', lines: [line]),
+                    englishDances: true,
+                  ).dance.figuresSource
+                  as DecodedFigures)
+              .figures;
+
+      final corners = read(
+        '(4) First corners trade by right  (4) Second corners trade by right',
+      );
+      expect(corners.map((f) => f.move), [
+        'ecd_change_places',
+        'ecd_change_places',
+      ]);
+      expect(corners.map((f) => f.params['beats']), [4, 4]);
+      expect(corners.map((f) => f.params['who']), [
+        ['firstCorners'],
+        ['secondCorners'],
+      ]);
+
+      final ranges = read(
+        '(1-2) First Corner Set (3-4) First corners right-hand turn half way',
+        meter: '3/2',
+      );
+      expect(ranges.map((f) => f.move), ['ecd_set', 'ecd_hand_turn']);
+      expect(ranges.map((f) => f.params['beats']), [6, 6]);
+
+      // A prefix that totals the ranges after it counts the line, not its
+      // first piece.
+      final total = read('(16) 1-4 partners set (5-8) turn single');
+      expect(total.map((f) => f.move), ['ecd_set', 'ecd_turn_single']);
+      expect(total.map((f) => f.params['beats']), [8, 8]);
+
+      // An unbracketed count, or a bracketed one not followed by words,
+      // does not split.
+      expect(read('(8) circle left (2 bars, starting L foot)'), hasLength(1));
+      expect(read('Lead up a double [4] and back'), hasLength(1));
+    });
+
+    group('a line is not split where its counts are its words', () {
+      List<Figure> read(String line, {String? music = 'Meter: 2/2'}) =>
+          (mapCallersCompanionDance(
+                    record(music: music, lines: [line]),
+                    englishDances: true,
+                  ).dance.figuresSource
+                  as DecodedFigures)
+              .figures;
+      int beats(List<Figure> figures) =>
+          figures.fold(0, (sum, f) => sum + f.beats);
+
+      test('a count right after a leading bar range', () {
+        for (final line in const [
+          '1-4 (6) circle left',
+          'A1 1-4 (8) circle left',
+        ]) {
+          final figures = read(line);
+          expect(figures, hasLength(1), reason: line);
+          expect(beats(figures), 8, reason: line);
+        }
+      });
+
+      test('a section label before a bracketed range', () {
+        final one = read('A1 (1-4) circle left');
+        expect(one, hasLength(1));
+        expect(beats(one), 8);
+        final two = read('A1 (1-4) circle left (5-8) turn single');
+        expect(two, hasLength(2));
+        expect(two.first.isCustom, isFalse);
+        expect(beats(two), 16);
+      });
+
+      test('a bracket with no space before its word', () {
+        final figures = read(
+          '(5-6) Partner Set (while holding hands with N) (7-8)and link',
+        );
+        expect(beats(figures), 8);
+        expect(figures, hasLength(1));
+      });
+
+      test('counts in beats inside a line counted in bars', () {
+        final figures = read(
+          '(5-8) 1st corners join R hands (5) then L hands (6) and with '
+          'crossed hands turn 1/2',
+        );
+        expect(figures, hasLength(1));
+        expect(beats(figures), 8);
+      });
+
+      test('a total prefix over a line that does not split stays in its '
+          'text', () {
+        final figures = read('(16) 1-4 circle left (8) circle right');
+        expect(figures, hasLength(1));
+        expect(figures.single.isCustom, isTrue);
+        expect(figures.single.params['text'], startsWith('(16)'));
+      });
+
+      test('a count of hands or places', () {
+        expect(read('(8) Circle left (3) hands round'), hasLength(1));
+        expect(read('(8) Ones cast (2) places down'), hasLength(1));
+      });
+
+      test('a later piece\'s bar range with no meter still warns', () {
+        final mapping = mapCallersCompanionDance(
+          record(
+            music: 'Key G',
+            lines: const ['(4) Lead up a double (5-8) Turn single right'],
+          ),
+          englishDances: true,
+        );
+        expect(
+          mapping.issues.map((i) => i.code),
+          contains('cc_bars_meter_unstated'),
+        );
+      });
+    });
+
+    test('a piece that does not read stays as text with its own count', () {
+      final figures =
+          (mapCallersCompanionDance(
+                    record(
+                      music: 'Meter: 2/2',
+                      lines: const [
+                        '(4) Neighbor Set advancing to a wave of 4 (4) N Set',
+                      ],
+                    ),
+                    englishDances: true,
+                  ).dance.figuresSource
+                  as DecodedFigures)
+              .figures;
+      expect(figures, hasLength(2));
+      expect(figures.map((f) => f.params['beats']), [4, 4]);
+      expect(figures.fold(0, (sum, f) => sum + f.beats), 8);
     });
 
     test('a beat prefix the bars agree with reads the line', () {

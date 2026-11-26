@@ -625,10 +625,13 @@ CcDanceMapping mapCallersCompanionDance(
       final ecd = form == DanceForm.ecd;
       final ring = ecd ? ecdRingDancers(formation.shape) : null;
       final bar = ecd ? barBeats.beatsPerBar : null;
-      // The bars are counted after a `(8)` prefix, so look past it too.
+      // The bars are counted after a `(8)` prefix, so look past it too, in
+      // every piece the line is read as.
       if (ecd &&
           !barBeats.stated &&
-          splitEcdBarRange(splitCcBeatPrefix(line).text) != null) {
+          splitCcEcdCountedLine(line, beatsPerBar: barBeats.beatsPerBar).any(
+            (piece) => splitEcdBarRange(splitCcBeatPrefix(piece).text) != null,
+          )) {
         countedBarsUnstated = true;
       }
       final cached = lineCache?.lookup(
@@ -643,14 +646,16 @@ CcDanceMapping mapCallersCompanionDance(
       }
       final prefix = splitCcBeatPrefix(line);
       if (ecd) {
-        final read = _ecdLineFigures(
-          prefix.text,
-          prefix.beats,
-          prefix.parts,
-          line: line,
-          ringDancers: ring,
-          meter: meter,
-        );
+        // `(4) First corners trade by right  (4) Second corners trade by
+        // right`: each count starts a figure of its own, and each piece is
+        // read as a line of its own.
+        final read = [
+          for (final piece in splitCcEcdCountedLine(
+            line,
+            beatsPerBar: barBeats.beatsPerBar,
+          ))
+            ..._ecdPieceFigures(piece, ringDancers: ring, meter: meter),
+        ];
         lineCache?.remember(
           line,
           read,
@@ -1076,6 +1081,102 @@ bool callersCompanionDifficultyLabelMatches(
     }.contains(value),
     _ => false,
   };
+}
+
+/// [line] split before each count in brackets (`(4)`) or bar range in
+/// brackets (`(5-8)`) that comes after its start and is followed by words:
+/// `(4) First Corner Set  (4) Turn single right` is two pieces, each read as
+/// a line of its own with its own count. A count that ends a piece
+/// (`… into (6) (3-4) Ladies …`) stays with the words before it. A line with
+/// no such count is one piece, itself. A prefix that counts the whole line,
+/// the total of the counts after it (`(16) 1-4 partners set (5-8) turn
+/// single` at two beats a bar, [beatsPerBar]), is dropped rather than read
+/// as the first piece's count, when the first piece starts with a bar range
+/// of its own and the line splits at a further bracketed range (`(5-8)`).
+/// Over a line that does not split (`(16) 1-4 circle left (8) circle
+/// right`) the prefix is kept in its text.
+///
+/// The English path only: a contra line keeps its single-line reading
+/// (comma splitting, [splitCallersCompanionCommaLine]).
+List<String> splitCcEcdCountedLine(String line, {int beatsPerBar = 2}) {
+  var source = line;
+  final prefix = splitCcBeatPrefix(line);
+  // Only when the first piece has a count of its own, a bar range: in
+  // `(4) X  (4) Y` the prefix is X's.
+  if (prefix.beats > 0 &&
+      splitEcdBarRange(prefix.text) != null &&
+      // The pattern the line is then split by: a line counted in bars
+      // splits only at further ranges.
+      _ccMidLineRange.hasMatch(prefix.text) &&
+      ecdStatedBeats(prefix.text, beatsPerBar) == prefix.beats) {
+    source = prefix.text;
+  }
+  // A line counted in bars splits only at its further bar ranges: a count in
+  // beats inside it (`(5-8) join R hands (5) then L hands (6)`) or right
+  // after its range (`1-4 (6) circle left`) is part of its words.
+  final inBars = splitEcdBarRange(splitCcBeatPrefix(source).text) != null;
+  final raw = source
+      .split(inBars ? _ccMidLineRange : _ccMidLineCount)
+      .map((piece) => piece.trim())
+      .where((piece) => piece.isNotEmpty);
+  // A piece with no words of its own (a section label, `A1 (1-4) …`, or
+  // only counts) is part of the piece after it.
+  final pieces = <String>[];
+  var carry = '';
+  for (final piece in raw) {
+    final joined = carry.isEmpty ? piece : '$carry $piece';
+    if (_ccPieceHasWords(piece)) {
+      pieces.add(joined);
+      carry = '';
+    } else {
+      carry = joined;
+    }
+  }
+  if (carry.isNotEmpty) {
+    if (pieces.isEmpty) return [line];
+    pieces[pieces.length - 1] = '${pieces.last} $carry';
+  }
+  return pieces.isEmpty ? [line] : pieces;
+}
+
+/// Whether [piece] has words besides a section label (`A1`) and its counts.
+bool _ccPieceHasWords(String piece) => _ccPieceWord.hasMatch(
+  piece.replaceFirst(_ccLeadingLabel, '').replaceAll(_ccCounts, ' '),
+);
+
+final RegExp _ccLeadingLabel = RegExp(r'^\s*[A-Da-d]\d{0,2}\b');
+final RegExp _ccCounts = RegExp(r'[(\[][^)\]]*[)\]]|\d+');
+final RegExp _ccPieceWord = RegExp('[A-Za-z]');
+
+/// A gap before a bracketed count (`(4)`) or bar range (`(5-8)`) followed by
+/// a space and a word, not at the start of the line. A word that counts what
+/// the number counts (`circle (3) hands round`, `cast (2) places`) keeps the
+/// number in the words.
+final RegExp _ccMidLineCount = RegExp(
+  r'(?<=\S)\s+(?=\(\s*\d{1,3}(?:\s*[-–—]\s*\d{1,3})?\s*\)\s+'
+  r'(?!(?:hands?|places?|times?|couples?|bars?|beats?|changes?)\b)[A-Za-z])',
+  caseSensitive: false,
+);
+
+/// [_ccMidLineCount] for a bracketed bar range only.
+final RegExp _ccMidLineRange = RegExp(
+  r'(?<=\S)\s+(?=\(\s*\d{1,3}\s*[-–—]\s*\d{1,3}\s*\)\s+'
+  r'(?!(?:hands?|places?|times?|couples?|bars?|beats?|changes?)\b)[A-Za-z])',
+  caseSensitive: false,
+);
+
+/// The figures of one [piece] of an English line ([splitCcEcdCountedLine]),
+/// read as a whole line is: its `(8)` prefix, then [_ecdLineFigures].
+List<Figure> _ecdPieceFigures(String piece, {int? ringDancers, String? meter}) {
+  final prefix = splitCcBeatPrefix(piece);
+  return _ecdLineFigures(
+    prefix.text,
+    prefix.beats,
+    prefix.parts,
+    line: piece,
+    ringDancers: ringDancers,
+    meter: meter,
+  );
 }
 
 /// The figures of one body line of an English dance, read by the ECD grammar
