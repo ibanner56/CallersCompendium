@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Program templates: if your saved searches can't be read, a slot rule no longer says its saved search was deleted or can't be opened based on an older read. It shows \"Slot rule\" until the saved searches can be read again."
+      "Program templates: if your saved searches can't be read, a slot rule no longer says its saved search was deleted or can't be opened based on an older read. It shows \"Slot rule\" instead; reopen the template once they can be read."
     ]
   }
 }
