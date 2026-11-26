@@ -1,0 +1,14 @@
+{
+  "id": "sync-program-cleared-fields",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "With Device Sync on, clearing a program's pay or dialect on one device now clears it on your other devices too, once they are all updated, instead of leaving the old value there and asking you to choose between the two versions."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Device Sync reads a program body's missing dialectName, payMinorUnits, payCurrency, archivedAt, startMinute, endMinute, lessonMinute, arrivalMinute, calendarEventKey, calendarEventFingerprint, calendarWrittenAt, calendarFlag and eventRuleIds, and an event rule body's missing nickname, as empty (omittedProgramDefaults, omittedEventRuleDefaults), as it already did for a dance's omitted defaults. The receiver used to keep its stored value for a key the sender left out, so un-archiving a program, clearing its times, pay, dialect or calendar flag, removing its last event rule, or removing a rule's nickname did not reach other devices, which then held different bodies at one updatedAt. Wire bodies and content hashes are unchanged."
+    ]
+  }
+}
