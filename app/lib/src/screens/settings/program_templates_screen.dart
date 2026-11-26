@@ -643,9 +643,10 @@ class _ProgramTemplateEditorScreenState
   /// is loaded only when the picker opens.
   Map<String, String>? _danceTitles;
 
-  /// The names of the saved searches the slot rules can use (#2338), by id;
-  /// a rule whose id is not here names a saved search that is gone. `null`
-  /// until read.
+  /// The names of the saved searches the slot rules can use (#2338), by id,
+  /// as the last good read found them; a rule whose id is not here names a
+  /// saved search that was gone then. `null` until read. After a failed read
+  /// it may be stale ([_searchNamesFresh]).
   Map<String, String>? _savedSearchNames;
 
   /// Saved searches that are stored but cannot be read (Needs attention).
@@ -1201,7 +1202,8 @@ class ProgramTemplateSlotsEditor extends StatefulWidget {
   final Map<String, String> danceTitles;
 
   /// Saved-search names by id, to say which search each slot rule uses; an id
-  /// missing from it is a search that is gone. `null` while unknown.
+  /// missing from it is a search that was gone when last read (which, after
+  /// a failed read, may be stale). `null` while unknown.
   final Map<String, String>? savedSearchNames;
 
   /// Saved searches that are stored but cannot be read, by id.
