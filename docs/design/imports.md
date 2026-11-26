@@ -2695,7 +2695,14 @@ ECD dance.
   range that follows its start and is followed by a word, and each piece is
   read as a line of its own (`(8)` prefix, bars, grammar), so a piece kept as
   text keeps its own count and the others still read. A count that ends a
-  piece (`… into (6) (3-4) Ladies …`) stays with it. A leading prefix that
+  piece (`… into (6) (3-4) Ladies …`) stays with it, as does one with no
+  space before its word (`(7-8)and link`) or followed by what it counts
+  (`circle (3) hands`, `cast (2) places`). A line whose text starts with a
+  bar range splits only at further bracketed ranges: a count in beats right
+  after the range (`1-4 (6) circle left`) or inside the line (`(5-8) join R
+  hands (5) then L hands (6)`) is part of its words. A piece with no words of
+  its own (a section label, `A1 (1-4) …`) joins the piece after it. The
+  cc_bars_meter_unstated warning looks at every piece's range. A leading prefix that
   totals the counts after it when the first piece starts with a bar range
   (`(16) 1-4 partners set (5-8) turn single`) counts the line, not the first
   piece, and is dropped; in `(4) X (4) Y` the prefix is X's. Unbracketed

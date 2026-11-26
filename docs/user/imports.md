@@ -694,7 +694,11 @@ the app cannot read is kept as text without holding back the others. An
 opening count that is the total of the counts after it, as in `(16) 1-4
 partners set (5-8) turn single`, counts the line rather than its first
 figure. A count in brackets that ends a piece of the line, rather than
-starting one, stays with it.
+starting one, stays with it, and so does one followed by what it counts
+(`circle (3) hands round`). A line counted in bars splits only at its further
+bar ranges, so `1-4 (6) circle left` and a count in beats inside a ranged line
+stay as written, and a section label (`A1 (1-4) circle left`) stays with the
+figure after it.
 A number after a word like Track, CD or Disc ("Track 3/4 of CD") isn't taken
 for a meter unless a word like Meter names it, and "A 3/2 hornpipe" gives the
 meter 3/2 but no key ("A 3/2 hornpipe in G" gives the key G).
