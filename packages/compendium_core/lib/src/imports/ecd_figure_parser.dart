@@ -186,11 +186,24 @@ final RegExp _goBelowWords = RegExp(
 );
 
 /// [scrubbed] with [_goBelowWords] read as `go below (<words>)`.
-String _withGoBelowAside(String scrubbed) =>
-    scrubbed.replaceAllMapped(_goBelowWords, (m) {
-      if (m[1] == null && m[2] == null) return m[0]!;
-      return 'go below (${m[0]!.substring(2).trim()})';
-    });
+/// Only outside brackets: an aside already in brackets (`(go outside
+/// below)`) is left as it is, so no bracket is nested in another.
+String _withGoBelowAside(String scrubbed) {
+  String rewrite(String text) => text.replaceAllMapped(_goBelowWords, (m) {
+    if (m[1] == null && m[2] == null) return m[0]!;
+    return 'go below (${m[0]!.substring(2).trim()})';
+  });
+  final out = StringBuffer();
+  var last = 0;
+  for (final group in _bracketGroup.allMatches(scrubbed)) {
+    out
+      ..write(rewrite(scrubbed.substring(last, group.start)))
+      ..write(group[0]);
+    last = group.end;
+  }
+  out.write(rewrite(scrubbed.substring(last)));
+  return out.toString();
+}
 
 /// A note that is only a list of passes, `PR, NL, PR` (partner right,
 /// neighbor left), optionally after `pass`.
@@ -204,49 +217,48 @@ final RegExp _passSeparator = RegExp('[,;]');
 /// A side word in an aside: `left` or `right`.
 final RegExp _sideWord = RegExp(r'\b(?:left|right)\b', caseSensitive: false);
 
-/// [figure] with a rights and lefts' or a circular hey's note of passes
-/// (`(PR, NL, PR, NL)`: partner by the right, neighbor by the left) read as
-/// who it starts with and its first side, when there are two or more passes,
-/// they alternate dancers and sides as the figure does, and they number its
-/// changes. The passes may be one part of a note joined with `; ` (a count
-/// beside them); the other parts stay. Any other note stays whole.
-Figure _withPassList(Figure figure) {
+/// [figure] with a rights and lefts' or a circular hey's aside of passes
+/// (`(PR, NL, PR, NL)` or `(PR; NL)`: partner by the right, neighbor by the
+/// left) read as who it starts with and its first side, and [asides] without
+/// it, when exactly one aside is such a list, of two or more passes that
+/// alternate dancers and sides as the figure does and number its changes.
+/// Otherwise both are returned as they are, and the asides become the note.
+({Figure figure, List<String> asides}) _withPassList(
+  Figure figure,
+  List<String> asides,
+) {
+  final unread = (figure: figure, asides: asides);
   final side = switch (figure.move) {
     'ecd_rights_and_lefts' => 'hand',
     'ecd_circular_hey' => 'shoulder',
     _ => null,
   };
-  if (side == null || figure.note == null) return figure;
-  final parts = figure.note!.split('; ');
-  final at = parts.indexWhere(_passList.hasMatch);
-  if (at < 0 || parts.where(_passList.hasMatch).length != 1) return figure;
-  final match = _passList.firstMatch(parts[at])!;
-  final rest = [...parts]..removeAt(at);
+  if (side == null) return unread;
+  final at = asides.indexWhere(_passList.hasMatch);
+  if (at < 0 || asides.where(_passList.hasMatch).length != 1) return unread;
+  final match = _passList.firstMatch(asides[at])!;
   final passes = [
     for (final pass in match.group(1)!.split(_passSeparator))
       pass.trim().toLowerCase(),
   ];
   for (var i = 1; i < passes.length; i++) {
     if (passes[i][0] == passes[i - 1][0] || passes[i][1] == passes[i - 1][1]) {
-      return figure;
+      return unread;
     }
   }
   final changes = figure.params['changes'];
-  if (changes is int && changes != passes.length) return figure;
+  if (changes is int && changes != passes.length) return unread;
   final whom = passes.first[0] == 'p' ? 'partners' : 'neighbors';
   final first = passes.first[1] == 'r' ? 'right' : 'left';
   final statedWhom = figure.params['whom'];
   final statedSide = figure.params[side];
-  if (statedWhom != null && statedWhom != whom) return figure;
-  if (statedSide != null && statedSide != first) return figure;
-  return Figure(
-    schemaVersion: figure.schemaVersion,
-    move: figure.move,
-    params: {...figure.params, 'whom': whom, side: first},
-    note: rest.isEmpty ? null : rest.join('; '),
-    progression: figure.progression,
-    customOrigin: figure.customOrigin,
-    assumedSubject: figure.assumedSubject,
+  if (statedWhom != null && statedWhom != whom) return unread;
+  if (statedSide != null && statedSide != first) return unread;
+  return (
+    figure: figure.copyWith(
+      params: {...figure.params, 'whom': whom, side: first},
+    ),
+    asides: [...asides]..removeAt(at),
   );
 }
 
@@ -267,12 +279,13 @@ Figure? recognizeEcdLine(String scrubbed, {int beats = 0, int? ringDancers}) {
       },
     ).readLine(beats < 0 ? 0 : beats);
     if (figure == null) return null;
-    if (lexed.notes.isEmpty) return _withPassList(figure);
-    var note = figure.note;
-    for (final aside in lexed.notes) {
+    final read = _withPassList(figure, lexed.notes);
+    if (read.asides.isEmpty) return read.figure;
+    var note = read.figure.note;
+    for (final aside in read.asides) {
       note = combineFigureNotes(note, aside);
     }
-    return _withPassList(figure.copyWith(note: note));
+    return read.figure.copyWith(note: note);
   } catch (_) {
     return null;
   }

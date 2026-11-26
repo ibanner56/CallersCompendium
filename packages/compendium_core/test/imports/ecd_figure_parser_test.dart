@@ -1125,6 +1125,16 @@ void main() {
       }
     });
 
+    test('`go below` words already in an aside are left as they are', () {
+      for (final line in const [
+        'Ones cross and cast (go outside below)',
+        'Ones cross and cast (go below the twos who move up)',
+      ]) {
+        final f = parseEcdFigureLine(line, beats: 8);
+        expect(f?.isCustom, isFalse, reason: line);
+      }
+    });
+
     test('a couple passing its own partner by a side trades places', () {
       for (final (line, who, hand) in const [
         ('Ones pass P by R', 'ones', 'right'),
@@ -1208,6 +1218,10 @@ void main() {
         _one('2 changes of rights and lefts (PR;NL)').params['whom'],
         'partners',
       );
+      final spaced = _one('4 changes of rights and lefts (PR; NL; PR; NL)');
+      expect(spaced.params['whom'], 'partners');
+      expect(spaced.params['hand'], 'right');
+      expect(spaced.note, isNull);
       // Passes that do not alternate, number other than the changes, or are
       // only one pass, stay as written.
       for (final line in const [
