@@ -1567,7 +1567,7 @@ final Map<String, _MoveRule> _rules = {
         whom = via == 'around' ? single ?? _fail : _fail;
       }
     }
-    // `second corners cast, partner follow`: who follows has no parameter,
+    // `second corners cast partner follow`: who follows has no parameter,
     // so the words are the note.
     final follow = b.take<String>('follow');
     final params = _params({

@@ -210,11 +210,13 @@ int ecdStatedBeats(String line, int beatsPerBar) {
 }
 
 /// A bracketed count in beats, or a bar range alone or in brackets, not part
-/// of a longer number, a meter or a word ([ecdStatedBeats]).
+/// of a longer number, a meter or a word ([ecdStatedBeats]). A range's space
+/// is taken only after its bracket, so no match starts inside a run of
+/// spaces: from each of a run's spaces it would scan the rest of the run.
 @visibleForTesting
 final RegExp ecdStatedCountPattern = RegExp(
   r'\(\s*(\d{1,3}(?:\s*[,+]\s*\d{1,3})*)\s*\)'
-  r'|(?<![\w/.-])\(?\s*(\d{1,3})\s*[-–—]\s*(\d{1,3})\s*\)?(?![\w/]|[.-]\d)',
+  r'|(?<![\w/.-])(?:\(\s*)?(\d{1,3})\s*[-–—]\s*(\d{1,3})\s*\)?(?![\w/]|[.-]\d)',
 );
 
 /// One section of an English dance as its source lays it out: its [label]
