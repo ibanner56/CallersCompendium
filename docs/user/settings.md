@@ -759,17 +759,20 @@ Select **Program defaults** to open this group.
   deleted; the message names the rule, so you can edit or remove it first.
 - **Rules** (optional, *Experimental*) — while [Event rules](#event-rules) is
   on, a template has a **Rules** row under its name, listing the template's
-  rules: each by its nickname with its sentence beneath, or by its sentence
-  if it has no nickname. Select it to open the same rule picker a program
-  has, with **New rule…** at the top: tick the rules a program made from this template should
-  start with, and untick one to take it off. They are added to each new
-  program made from the template (see [Rules that come with a
+  rules: each by its nickname with its sentence beneath, or by its sentence if
+  it has no nickname. A rule whose saved search was deleted or can't be read,
+  or that a newer version of the app made, is marked **Needs attention**, as
+  in Manage rules, and a program doesn't check it. Select it to open the same
+  rule picker a program has, with **New rule…** at the top: tick the rules a
+  program made from this template should start with, and untick one to take it
+  off. They are added to each new program made from the template (see [Rules
+  that come with a
   template](./programs.md#check-your-program-against-your-rules)); changing
   them later changes no program already made. A rule you delete stays on the
   template, shown as **Removed**, and isn't added to new programs; **Undo** of
-  the delete brings it back on the template too. A template can carry up to
-  64 rules; once it does, only the rules you deleted are let go to make room
-  for another.
+  the delete brings it back on the template too. A template can carry up to 64
+  rules; once it does, only the rules you deleted are let go to make room for
+  another.
 - **Default template** — the template a new program starts from when you are
   not asked to choose, or **Blank program**. The first template you add
   becomes the default unless you have chosen Blank program. With two or more
