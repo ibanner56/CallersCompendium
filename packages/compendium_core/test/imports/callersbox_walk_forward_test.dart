@@ -162,7 +162,7 @@ void main() {
         beats: 4,
       );
       expect(figures.map((f) => f.move), ['pass_through', 'form_short_waves']);
-      expect(figures[0].note, 'role2s');
+      expect(figures[0].note, 'role2s walk forward');
       expect(figures[0].params, isNot(contains('who')));
       expect(figures[1].params['sides'], 'nextNeighbors');
       expect(_totalBeats(figures), 4);
@@ -229,12 +229,39 @@ void main() {
       expect(walk.params, isNot(contains('who')));
     });
 
-    test('a walk with more than a destination stays custom', () {
-      // "on side" is a path a pass through cannot hold.
-      expect(
-        _parse('Men walk forward on side to partner', beats: 4).single.isCustom,
-        isTrue,
+    // Mutation caught: accepting any leading word as the subject, which reads
+    // "Then walk forward to N2" as a pass through noted "then to n2".
+    test('only a dancer leads the walk', () {
+      for (final line in const [
+        'Then walk forward to N2',
+        'Slowly walk forward to N2',
+        'Men walk forward on side to partner',
+      ]) {
+        expect(_parse(line, beats: 4).single.isCustom, isTrue, reason: line);
+      }
+    });
+
+    test('a subject in the source\'s own words, even where it resolves to a '
+        'token', () {
+      final figures = _parse(
+        'N2 walk forward; form wave of four with N3',
+        beats: 4,
       );
+      expect(figures.first.move, 'pass_through');
+      expect(figures.first.note, 'n2 walk forward');
+    });
+
+    // Like the same line without "Ones": the clauses after the walk are its
+    // note, as clause notes are anywhere (Please Don't Leave Us, Mary
+    // Kathleen!, The Caller's Box dance 9746).
+    test('clauses after a subject-led walk are its note', () {
+      final figure = _parse(
+        'Ones walk forward to N2; face down; form two-faced line',
+        beats: 4,
+      ).single;
+      expect(figure.move, 'pass_through');
+      expect(figure.params, isNot(contains('who')));
+      expect(figure.note, 'ones to n2; face down; form two-faced line');
     });
 
     test('a "to <dancer>" clause pairs with a following wave clause', () {
