@@ -2444,6 +2444,12 @@ void main() {
         expect(captured!.text, contains('Rory O\'More'));
         // Figure card separator and the dance title appear in the appendix.
         expect(captured!.text, contains('---'));
+        // The set list's cards use the compact figure layout: the phrase
+        // label on its own line, no beat count. Mutation: drop
+        // `compactFigures: true` → "A1  partner swing (16 beats)".
+        final figures = captured!.text!.split('Figures:\n').last.split('\n');
+        expect(figures.take(2), ['A1', 'partner swing']);
+        expect(captured!.text, isNot(contains('beats)')));
       },
     );
 
