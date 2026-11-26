@@ -1365,11 +1365,11 @@ void main() {
       // #733 changed this test's EXAMPLE, not its rule: the former example
       // (`Walk forward; form long wave in center`) is now absorbed into
       // `form_a_long_wave`, so its leading clause no longer fails. This line
-      // is the same shape and still fails at the leading clause — #733
-      // declines it because nothing reads "women" onto the pass through —
-      // while its trailing clause still structures.
+      // is the same shape and still fails at the leading clause — a qualified
+      // walk forward is no clause #733 folds — while its trailing clause still
+      // structures.
       final fs = _parseLines(
-        'Women walk forward; form wave of four with N2',
+        'Walk forward one step; form wave of four with N2',
         beats: 4,
       );
       expect(fs, hasLength(1));

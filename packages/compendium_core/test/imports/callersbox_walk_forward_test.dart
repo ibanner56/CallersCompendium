@@ -150,16 +150,22 @@ void main() {
       expect(_totalBeats(figures), 4);
     });
 
-    // Nothing reads a walk-forward subject onto `pass_through.who` (which the
-    // move has had since taxonomy v40), so a stated subject cannot ride — the
-    // line stays whole-custom rather than silently dropping the role.
-    test('a stated subject declines the line (prefer-custom)', () {
+    // A stated subject is the pass through's note, never its `who`: The
+    // Caller's Box uses it too unevenly to say who passes whom (the
+    // maintainer's ruling, 2026-11-26).
+    //
+    // Mutation caught: declining the line again (whole custom), or reading the
+    // subject as `who`.
+    test('a stated subject is the pass through\'s note, not its who', () {
       final figures = _parse(
         'Women walk forward; form wave of four with N2',
         beats: 4,
       );
-      expect(figures, hasLength(1));
-      expect(figures.single.isCustom, isTrue);
+      expect(figures.map((f) => f.move), ['pass_through', 'form_short_waves']);
+      expect(figures[0].note, 'role2s');
+      expect(figures[0].params, isNot(contains('who')));
+      expect(figures[1].params['sides'], 'nextNeighbors');
+      expect(_totalBeats(figures), 4);
     });
   });
 
@@ -198,9 +204,35 @@ void main() {
       expect(notes, hasLength(6));
     });
 
-    test('a stated subject declines the line (not read onto who)', () {
+    // As for a wave (above): the subject leads the note, `who` stays unset.
+    test('a stated subject leads the note and is not read as who', () {
+      for (final (line, note) in const [
+        ('Women walk forward to N2', 'role2s to n2'),
+        ('Men walk forward to N3', 'role1s to n3'),
+        ('Women walk forward to shadow', 'role2s to shadow'),
+      ]) {
+        final figure = _parse(line, beats: 4).single;
+        expect(figure.move, 'pass_through', reason: line);
+        expect(figure.note, note, reason: line);
+        expect(figure.params, isNot(contains('who')), reason: line);
+      }
+    });
+
+    test('so does one side of a `||` line', () {
+      final group = _parse(
+        'Men allemande left 1 || Women walk forward to shadow',
+        beats: 4,
+      ).single;
+      final walk = group.subFigures.last;
+      expect(walk.move, 'pass_through');
+      expect(walk.note, 'role2s to shadow');
+      expect(walk.params, isNot(contains('who')));
+    });
+
+    test('a walk with more than a destination stays custom', () {
+      // "on side" is a path a pass through cannot hold.
       expect(
-        _parse('Women walk forward to N2', beats: 4).single.isCustom,
+        _parse('Men walk forward on side to partner', beats: 4).single.isCustom,
         isTrue,
       );
     });
@@ -421,7 +453,7 @@ void main() {
     // still fails still collapses the line.
     test('a still-failing leading clause still collapses the whole line', () {
       final figures = _parse(
-        'Women walk forward; form wave of four with N2',
+        'Walk forward one step; form wave of four with N2',
         beats: 4,
       );
       expect(figures, hasLength(1));

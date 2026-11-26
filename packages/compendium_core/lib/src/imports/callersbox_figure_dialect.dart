@@ -995,17 +995,17 @@ const String _walkForwardPassThroughMove = 'form_short_waves';
 ///   structures on its own today, so the pair emits two figures. A bare
 ///   `pass_through()` is emitted and `where`/`shoulder` are deliberately NOT
 ///   written — both are the move's own taxonomy defaults, and writing them
-///   would assert a direction and a shoulder the source never stated.
+///   would assert a direction and a shoulder the source never stated. A
+///   subject the walk clause names (`Women walk forward; form wave of four
+///   with N2`) is the pass through's note, NOT its `who`: The Caller's Box
+///   uses it too unevenly to say who passes whom (the maintainer's ruling,
+///   2026-11-26, after reviewing real lines), and as the note the line keeps
+///   the word.
 ///
 /// Declines (→ `null`, never a partial structuring) when:
 /// - the formation clause does not structure, or structures to any other move
 ///   (`turn alone`, `face across`, `form interlocking long waves`, `form wave
 ///   of two`, `form ring of four`, …);
-/// - the walk clause names a subject AND the reading is the pass-through one:
-///   `Women walk forward; form wave of four with N2` would silently drop the
-///   role. (`pass_through` has had a `who` since taxonomy v40, when it became
-///   one figure with pass by, but nothing yet reads a walk-forward subject
-///   onto it.)
 ///
 /// **Beats.** The pair consumes two clauses but the source states ONE combined
 /// total, which by the file's Option A convention rides on the FIRST clause —
@@ -1061,11 +1061,13 @@ List<Figure>? _walkForwardIntoFormation(
       ];
     }
 
-    if (probe.move == _walkForwardPassThroughMove && walk.who == null) {
+    if (probe.move == _walkForwardPassThroughMove) {
       final tax = taxonomy ?? contraTaxonomy;
+      // A stated subject is the note, never `who` (see above).
       final passThrough = Figure(
         move: 'pass_through',
         params: {if (safeBeats > 0) 'beats': safeBeats},
+        note: walk.who,
       );
       final hasError = tax
           .validateFigure(passThrough)
