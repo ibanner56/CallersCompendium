@@ -413,6 +413,60 @@ void main() {
     expect(stored, contains('Glen Echo Park'));
   });
 
+  // Once stored, programs.venue is a shareable label: Device Sync, share
+  // files, the .ics export, the PDF and the programs CSV all carry it. So the
+  // guard is at the import, for the two LOCATION shapes whose first comma
+  // segment is not a place name.
+  test('guard: a LOCATION written as a name over address lines keeps only '
+      'the name, and one that is only an address keeps nothing', () async {
+    final repos = openTestRepositories();
+    await _importAll(
+      repos,
+      await _preview(
+        repos,
+        _cal([
+          [
+            'UID:lines',
+            'DTSTART;VALUE=DATE:20300620',
+            'SUMMARY:Contra at the Smiths',
+            r'LOCATION:The Smiths\n12 Elm Street\nSpringfield\, MA 01101\n'
+                'United States',
+          ],
+          [
+            'UID:address-only',
+            'DTSTART;VALUE=DATE:20300621',
+            'SUMMARY:House party',
+            r'LOCATION:12 Elm Street\, Springfield\, MA 01101\, USA',
+          ],
+        ]),
+      ),
+    );
+    final stored = (await _storedText(repos)).join('\n');
+    for (final leaked in ['12 Elm', 'Elm Street', 'Springfield', '01101']) {
+      expect(stored.contains(leaked), isFalse, reason: '"$leaked" stored');
+    }
+    final byTitle = {
+      for (final p in await repos.programs.listAll()) p.title: p,
+    };
+    final named = byTitle['Contra at the Smiths']!;
+    final unnamed = byTitle['House party']!;
+    expect(named.venue, 'The Smiths');
+    expect(unnamed.venue, isNull);
+    // The fingerprint hashes the same location segment the program stores,
+    // and nothing more.
+    for (final p in [named, unnamed]) {
+      expect(
+        p.calendarEventFingerprint,
+        calendarEventFingerprint(
+          title: p.title,
+          date: p.eventDate!,
+          venueLabel: p.venue,
+        ),
+        reason: p.title,
+      );
+    }
+  });
+
   group('privacy boundaries', () {
     test('sanitizeProgramForShare strips the key, and a share bundle and '
         'its JSON do not carry it', () async {

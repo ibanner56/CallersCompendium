@@ -671,6 +671,45 @@ void main() {
       ]);
     });
 
+    test('the venue is the first line before its first comma; a street line '
+        'is never kept', () {
+      final p = plan(
+        _cal([
+          // A name, then the address on the following lines.
+          [
+            'UID:a',
+            'DTSTART:20300620',
+            r'LOCATION:The Smiths\n12 Elm Street\nSpringfield\, MA 01101',
+          ],
+          // Only an address, house number first.
+          [
+            'UID:b',
+            'DTSTART:20300620',
+            r'LOCATION:12 Elm Street\, Springfield\, MA 01101\, USA',
+          ],
+          // Only an address, house number last.
+          [
+            'UID:c',
+            'DTSTART:20300620',
+            r'LOCATION:Hauptstraße 5\, 10115 Berlin',
+          ],
+          // Only an address, over lines.
+          ['UID:d', 'DTSTART:20300620', r'LOCATION:12B Elm Street\nSpringfield'],
+          // A name with an ordinal, or a number that is part of it.
+          ['UID:e', 'DTSTART:20300620', r'LOCATION:1st Church\, 4 Elm St'],
+          ['UID:f', 'DTSTART:20300620', r'LOCATION:Town Hall\NElm St'],
+        ]),
+      );
+      expect(p.candidates.map((c) => c.venueLabel), [
+        'The Smiths',
+        null,
+        null,
+        null,
+        '1st Church',
+        'Town Hall',
+      ]);
+    });
+
     test('a title that sanitizes to nothing is empty, for the app to fill', () {
       final p = plan(
         _cal([

@@ -10,7 +10,7 @@ import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
 import 'package:compendium_app/src/screens/settings/calendar_settings_tiles.dart';
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/drift.dart' show Variable, driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -369,5 +369,33 @@ void main() {
       await tester.runAsync(() => repos.settings.get(kCalendarFeedUrlKey)),
       _secret,
     );
+  });
+
+  // The address holds a secret token and never syncs, so clearing it erases
+  // the row: a tombstone would keep the address on disk with nobody to tell.
+  testWidgets('guard: clearing the address in Settings erases it from the '
+      'database, not just from view', (tester) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kCalendarFeedUrlKey, _secret);
+    await pump(tester, repos, const Scaffold(body: CalendarSettingsTiles()));
+    await tester.tap(find.byKey(const ValueKey('calendar-settings-address')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('calendar-settings-address-field')),
+      '',
+    );
+    await tester.tap(find.byKey(const ValueKey('calendar-settings-save')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Not set'), findsOneWidget);
+    final rows = await tester.runAsync(
+      () => repos.db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable<String>(kCalendarFeedUrlKey)],
+          )
+          .get(),
+    );
+    expect(rows, isEmpty, reason: 'no row, tombstoned or not, holds it');
   });
 }
