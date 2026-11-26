@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Importing from The Caller's Box now reads lines like “Women walk forward to N2” and “Men walk forward; form wave of four with shadow” as a pass through, with who walks kept in the figure's note, instead of leaving them as plain text. Lines that also say how the dancers walk, such as “on side”, stay as text."
+      "Lines like “Women walk forward to N2” and “Men walk forward; form wave of four with shadow” now read as a pass through, with who walks kept in the figure's note, instead of as plain text. This covers importing from The Caller's Box and typing a line in the dance editor, where you then choose who passes as for any new pass. A line with words between “walk forward” and where it goes, such as “on side”, stays as text."
     ]
   },
   "core": {
     "changed": [
-      "A walk-forward pass through that names its subject (`Women walk forward to N2`, `… form wave of four with <dancer>`) structures as `pass_through` with the subject leading its note and `who` unstated, in both the shared figure parser and The Caller's Box front end."
+      "A walk-forward pass through that names its subject (`Women walk forward to N2`, `… walk forward; form wave of four with <dancer>`) structures as `pass_through` with `who` unstated and the subject, in the source's words, leading its note (`role2s to n2`, `role2s walk forward`), in both the shared figure parser and The Caller's Box front end."
     ]
   }
 }

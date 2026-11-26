@@ -698,8 +698,9 @@ through is what puts you facing the dancer you then swing.
 
 **⚠️ The subject is the pass through's note, not its `who`.** `Women walk
 forward to N2` imports as a pass through noted `role2s to n2`, and `Men walk
-forward; form wave of four with shadow` as a pass through noted `role1s` before
-the wave. These stayed `custom` until 2026-11-26. The maintainer then ruled,
+forward; form wave of four with shadow` as a pass through noted `role1s walk
+forward` before the wave. The note keeps the source's own words, never the
+token they resolve to. These stayed `custom` until 2026-11-26. The maintainer then ruled,
 after reviewing real lines, that The Caller's Box uses the subject too unevenly
 to say who passes whom, so `who` stays unstated and the note keeps the word. Of
 14 dances found by searching the site for the exact lines `<Women|Men> walk
@@ -707,8 +708,13 @@ forward to <N2|shadow>`, `… form wave of four with <N2|shadow>` and `Ones walk
 forward to N2` (2026-11-25), most state the walk as one side of a `||` line
 while the other role turns (`Men allemande left 1 || Women walk forward to
 shadow`); each side reads on its own, so the walk is the same pass through. A
-walk that carries more than its destination (`Men walk forward on side to
-partner`) stays `custom`. `who` DOES
+walk with words between `walk forward` and its destination (`Men walk forward
+on side to partner`) stays `custom`. Later `;` clauses and bracketed
+qualifiers become the note, as they do on a walk with no subject: `Ones walk
+forward to N2; face down; form two-faced line` is a pass through noted `ones to
+n2; face down; form two-faced line`. That site search is a different
+population from the census above, which was not re-measured: subject-led
+lines of groups 1b and 2 now leave group 3. `who` DOES
 transfer on group 1a, and it must: every subject-bearing line in that group
 states the role on the WALK clause and none on the wave clause, while
 `form_a_long_wave.who` defaults to `role2s` — absorbing without transferring

@@ -2208,9 +2208,11 @@ has to be judged in its own context.
   them would assert a direction and a shoulder the source did not.
   *A stated subject* on either pass-through reading (`Women walk forward to
   N2`, `Men walk forward; form wave of four with shadow`) is the pass
-  through's note (`role2s to n2`, `role1s`), never its `who`: The Caller's Box
-  uses it too unevenly to say who passes whom (the maintainer's ruling,
-  2026-11-26). Until then such a line stayed custom.
+  through's note (`role2s to n2`, `role1s walk forward`), in the source's own
+  words, never its `who`: The Caller's Box uses it too unevenly to say who
+  passes whom (the maintainer's ruling, 2026-11-26). Before that ruling such a
+  line stayed custom. The shared parser reads it, so typed free text does too;
+  in the dance editor a typed one then asks for `who`, as any new pass does.
   *Stays custom:* a genuinely bare `walk forward` (nothing anchors an
   interpretation); every travel qualifier the mapping cannot carry
   (`one step`, `slowly (step; step)`, `until right shoulders are adjacent`,
