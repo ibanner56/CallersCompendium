@@ -1885,6 +1885,8 @@ class DanceEditorController extends ChangeNotifier {
         newPartnerText: newPartnerText,
         singing: _singing,
         freeForm: _freeForm,
+        // Null is "follow the kind" (setFreeForm), not "keep the stored one".
+        clearFreeForm: _freeForm == null,
         form: _form,
         formation: formation,
         progression: _progression,
@@ -2902,41 +2904,33 @@ class DanceEditorController extends ChangeNotifier {
   /// one that only has more words in it.
   int? _statedBeatsPerBarSeen;
 
-  /// The Meter field changed. Named phrases count their bars by it (Hudson,
-  /// 19 November 2026: "the meter is the rule"), so a Meter that now states
-  /// other beats in a bar than it did sets them in each named phrase, keeping
-  /// its bars.
+  /// The Meter field changed. An English dance's phrases count their bars by
+  /// it (Hudson, 19 November 2026: "the meter is the rule"; ADR-006), so a
+  /// Meter that now states other beats in a bar than it did sets them in each
+  /// part of the phrase structure, keeping its phrases and bars. Named phrases
+  /// keep their names; an unnamed structure becomes the one an import writes
+  /// for that meter (the standard `4*8*2` is `4*8*3` in 3/2, and the
+  /// standard again in 2/2), so its phrases stay a whole number of bars.
   ///
   /// A Meter that states the same beats in a bar as before (a word added after
   /// "3/4"), or none or several meters ("3/4 and 6/8"), leaves the phrases as
-  /// they are. So does any Meter when the phrases differ in beats to the bar
-  /// among themselves: a structure a caller set phrase by phrase (#2303) is
-  /// never flattened, whatever the Meter says, and typing the Meter a
-  /// character at a time cannot reach it. An unnamed structure is not
-  /// rewritten.
+  /// they are. So does any Meter when the parts differ in beats to the bar
+  /// among themselves: a structure a caller set part by part (#2303) is never
+  /// flattened, whatever the Meter says, and typing the Meter a character at
+  /// a time cannot reach it.
   void onMeterChanged() {
     final perBar = statedBeatsPerBar;
     final changed = perBar != _statedBeatsPerBarSeen;
     _statedBeatsPerBarSeen = perBar;
-    final phrases = typedPhraseStructure?.namedPhrases;
+    final structure = typedPhraseStructure;
     if (offersNamedPhrases &&
         perBar != null &&
         changed &&
-        phrases != null &&
-        phrases.every((p) => p.beatsPerBar == phrases.first.beatsPerBar) &&
-        phrases.any((p) => p.beatsPerBar != perBar)) {
+        structure != null &&
+        !structure.hasMixedMeter &&
+        structure.components.first.beatsPerBar != perBar) {
       try {
-        setPhraseStructureText(
-          PhraseStructure.named([
-            for (final p in phrases)
-              NamedPhrase(
-                name: p.name,
-                plays: p.plays,
-                bars: p.bars,
-                beatsPerBar: perBar,
-              ),
-          ]).raw,
-        );
+        setPhraseStructureText(_inBeatsPerBar(structure, perBar));
         return;
       } on FormatException {
         // diagnostics: silent — the bars in this meter are past the bounds;
@@ -2944,6 +2938,29 @@ class DanceEditorController extends ChangeNotifier {
       }
     }
     onTextEdited();
+  }
+
+  /// [structure] with every part counting [perBar] beats to the bar, its
+  /// phrases and bars kept, as it is stored: the standard structure as `''`.
+  /// Throws [FormatException] when the result is past the bounds.
+  static String _inBeatsPerBar(PhraseStructure structure, int perBar) {
+    if (structure.namedPhrases case final phrases?) {
+      return PhraseStructure.named([
+        for (final p in phrases)
+          NamedPhrase(
+            name: p.name,
+            plays: p.plays,
+            bars: p.bars,
+            beatsPerBar: perBar,
+          ),
+      ]).raw;
+    }
+    final unnamed = PhraseStructure.parse(
+      structure.components
+          .map((c) => '${c.phraseCount}*${c.bars}*$perBar')
+          .join(' + '),
+    );
+    return unnamed == PhraseStructure.standard ? '' : unnamed.raw;
   }
 
   /// The phrase-structure field changed.
