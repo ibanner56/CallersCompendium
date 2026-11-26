@@ -780,6 +780,11 @@ void main() {
           mapping.dance.formation,
           const Formation(FormationShape.square, detail: 'Hexagon'),
         );
+        // The family is not a square's, so its warning stays.
+        expect(
+          mapping.issues.map((i) => i.code),
+          contains('cc_unmapped_formation'),
+        );
       });
 
       test('reads a .USR square set named only in its own description', () {

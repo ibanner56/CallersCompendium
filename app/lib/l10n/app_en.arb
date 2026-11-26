@@ -11497,7 +11497,7 @@
   },
   "importUsrEnglishYes": "Yes, English dances",
   "@importUsrEnglishYes": {
-    "description": "Answer: every dance in the file except squares is read as an English country dance."
+    "description": "Answer: every dance in the file, squares included, is read as an English country dance."
   },
   "importReviewEditOverwriteTitle": "Replace the existing dance now?",
   "@importReviewEditOverwriteTitle": {

@@ -13018,7 +13018,7 @@ abstract class AppLocalizations {
   /// **'No, read their types'**
   String get importUsrEnglishNo;
 
-  /// Answer: every dance in the file except squares is read as an English country dance.
+  /// Answer: every dance in the file, squares included, is read as an English country dance.
   ///
   /// In en, this message translates to:
   /// **'Yes, English dances'**

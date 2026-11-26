@@ -2557,7 +2557,7 @@ above: an unprefixed move in an ECD dance means one stored before the ECD
 taxonomy existed (ADR-006 §5.1), so new entry must not create one. It is used
 by free-text entry when the dance's taxonomy is ECD's
 (`shippedTaxonomies.forForm(DanceForm.ecd)`), by a Caller's Companion dance
-whose Type is English (or every non-square dance of a `.USR` file the person
+whose Type is English (or every dance, squares included, of a `.USR` file the person
 says holds English dances), and by **Re-check unrecognized figures** for an
 ECD dance.
 

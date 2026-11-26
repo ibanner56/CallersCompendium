@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Importing a Caller's Companion .USR file asks once whether its dances are English country dances. Yes brings every dance but a square across as an English dance, with its meter and key from the Music field.",
+      "Importing a Caller's Companion .USR file asks once whether its dances are English country dances. Yes brings every dance across as an English dance, with its meter and key from the Music field.",
       "In an English dance, a line that starts with a bar range, such as \"1-4 partners set and turn single\" or \"(5-8) circle left\", counts those bars by the dance's meter: 8 beats in 2/2, 12 in 3/2. The bars are the count; a line that also gives a count in beats is kept as written. This applies to typing figures, to Caller's Companion imports, to Re-check unrecognized figures and to Convert English dances."
     ],
     "changed": [
