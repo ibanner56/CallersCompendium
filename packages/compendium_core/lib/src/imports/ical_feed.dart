@@ -703,7 +703,7 @@ class CalendarImportPlan {
 }
 
 /// What a calendar import last wrote from an event (#2354): its title, date,
-/// first location segment, start time and end time (#2423), each as a
+/// venue label (the venue the program stores), start time and end time (#2423), each as a
 /// 16-hex-digit SHA-256 prefix, joined as
 /// `v2:<title>:<date>:<location>:<start>:<end>`. For a UTC event ([utc]) the
 /// date and minutes are UTC, and the date is hashed marked as UTC. Kept per field so a later import
