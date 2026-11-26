@@ -78,9 +78,11 @@ const Map<String, String> dancerWords = {
 
 /// The neighbour, partner and shadow series as the figure display names them
 /// (#2121): an ordinal, then the relationship (`prev neighbor`, `third
-/// partner`, `second shadow`), and since v40 a role (`next role1s`, plural only). Keyed by
-/// the relationship's singular, then by the ordinal. Read with
-/// [seriesDancer], which also takes the plural and the British spelling.
+/// partner`, `second shadow`), and since v40 a role (`next role1s`). Keyed by
+/// the relationship's singular, then by the ordinal; a role is keyed by its
+/// plural (`role1s`), which is the only form that names a set. Read with
+/// [seriesDancer], which also takes the plural of the others and the British
+/// spelling.
 ///
 /// These are two-word names: neither word alone names the set, and `next`,
 /// `third` and `second` are ordinary words elsewhere in a call. `previous` is
@@ -126,8 +128,9 @@ const Map<String, Map<String, String>> seriesDancerWords = {
 };
 
 /// The dancer set [ordinal] then [relationship] names in [seriesDancerWords],
-/// or `null`. [relationship] may be singular or plural, and `neighbour` is
-/// read as `neighbor`; both words are lowercase.
+/// or `null`. [relationship] may be singular or plural, except a plural-only
+/// noun (`role1s`), which takes only the plural, and `neighbour` is read as
+/// `neighbor`; both words are lowercase.
 String? seriesDancer(String ordinal, String? relationship) {
   if (relationship == null) return null;
   var noun = relationship.replaceFirst('neighbour', 'neighbor');

@@ -3095,7 +3095,9 @@ final List<MapEntry<String, String>> _subjectPhrases =
 
 /// The figure display's names for the neighbour, partner and shadow series,
 /// singular and plural (`prev neighbor`, `third partners`, `second shadow`;
-/// #2121), so free-text entry reads back a figure only this reader knows.
+/// #2121) and the neighbors' roles, plural only (`next role1s`), as
+/// [seriesDancerPhrases] lists them, so free-text entry reads back a figure
+/// only this reader knows.
 /// Two words each, so they sit ahead of the bare entries.
 Iterable<MapEntry<String, String>> _seriesSubjectEntries() =>
     seriesDancerPhrases();
