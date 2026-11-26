@@ -2,7 +2,8 @@
 // (only while Event rules is on), the list kept through a save with the
 // feature off, a deleted rule shown as removed and brought back by Undo, a
 // nicknamed rule's sentence shown beneath it, a rule whose saved search is
-// gone marked as needing attention, a duplicate keeping the rules, and New
+// gone marked as needing attention (and the rules still listed when the
+// saved search names can't be read), a duplicate keeping the rules, and New
 // program starting with exactly the template's live rules.
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
@@ -435,6 +436,104 @@ void main() {
       find.byKey(const ValueKey('program-template-rule-rule-late-attention')),
       findsNothing,
     );
+  });
+
+  testWidgets('a failed read of the saved search names still lists the rules, '
+      'flagging only a newer-version rule; a good read flags a gone search', (
+    tester,
+  ) async {
+    final db = openWidgetTestDatabase();
+    final settings = FailingSavedSearchReadsSettings(db);
+    final repos = CompendiumRepositories(
+      db,
+      contraTaxonomy,
+      settings: settings,
+    );
+    final facets = FacetSelections()..formations.add(FormationShape.becketCcw);
+    SavedSearchSpec spec() => SavedSearchSpec.fromPanelState(
+      CollectionPanelState(facets: facets),
+      today: DateTime.utc(2026, 1, 1),
+    ).value!;
+    final becket = await repos.savedSearches.create(
+      name: 'Becket',
+      spec: spec(),
+    );
+    // Its saved search is not stored, as a sync can bring it.
+    await repos.eventRules.writeFromSync(
+      const EventRule(
+        id: 'rule-gone',
+        savedSearchId: 'search-gone',
+        quantifierName: 'atMost',
+        count: 1,
+        scopeName: 'wholeProgram',
+        nickname: 'Lost search',
+      ),
+    );
+    // A newer version of the app wrote it.
+    await repos.eventRules.writeFromSync(
+      EventRule(
+        id: 'rule-newer',
+        savedSearchId: becket.id,
+        quantifierName: 'mostly',
+        count: 1,
+        scopeName: 'wholeProgram',
+        nickname: 'From the future',
+      ),
+    );
+    const template = ProgramTemplate(
+      id: 't',
+      name: 'Family dance',
+      eventRuleIds: ['rule-gone', 'rule-newer', 'rule-late'],
+    );
+    await saveProgramTemplate(repos.settings, template);
+    settings.failSearchReads = true;
+    await _pump(
+      tester,
+      repos,
+      const ProgramTemplateEditorScreen(template: template),
+      enabled: true,
+    );
+    Finder attention(String id) =>
+        find.byKey(ValueKey('program-template-rule-$id-attention'));
+    Finder line(String id) => find.byKey(ValueKey('program-template-rule-$id'));
+    await pumpUntilFound(tester, line('rule-gone'));
+
+    expect(tester.widget<Text>(line('rule-gone')).data, 'Lost search');
+    // Not read is not gone: no rule is flagged for its search.
+    expect(attention('rule-gone'), findsNothing);
+    expect(attention('rule-newer'), findsOneWidget);
+
+    // The next change to the rules reads the names again.
+    settings.failSearchReads = false;
+    await repos.eventRules.create(
+      savedSearchId: becket.id,
+      quantifier: EventRuleQuantifier.none,
+      scope: EventRuleScope.beforeFirstBreak,
+    );
+    await pumpUntilFound(tester, attention('rule-gone'));
+    expect(attention('rule-newer'), findsOneWidget);
+
+    // A later failed read: a rule a sync brings with a new saved search is
+    // not flagged from the names last read, which lack that search.
+    final late = await repos.savedSearches.create(
+      name: 'Late search',
+      spec: spec(),
+    );
+    settings.failSearchReads = true;
+    await repos.eventRules.writeFromSync(
+      EventRule(
+        id: 'rule-late',
+        savedSearchId: late.id,
+        quantifierName: 'atMost',
+        count: 1,
+        scopeName: 'wholeProgram',
+        nickname: 'Late rule',
+      ),
+    );
+    await pumpUntilFound(tester, find.text('Late rule'));
+    expect(attention('rule-late'), findsNothing);
+    expect(attention('rule-gone'), findsNothing);
+    expect(attention('rule-newer'), findsOneWidget);
   });
 
   testWidgets('Duplicate keeps the rules, and Rename leaves them alone', (

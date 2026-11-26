@@ -50,22 +50,6 @@ Future<ValueNotifier<bool>> _pump(
   return on;
 }
 
-/// Settings whose saved search reads fail while [failSearchReads] is set, as
-/// a damaged or locked store would.
-class _FailingSearchReadsSettings extends SettingsRepository {
-  _FailingSearchReadsSettings(super.db);
-
-  bool failSearchReads = false;
-
-  @override
-  Future<List<String>> keysWithPrefix(String prefix) {
-    if (failSearchReads && prefix == savedSearchKeyPrefix) {
-      throw StateError('saved searches unreadable');
-    }
-    return super.keysWithPrefix(prefix);
-  }
-}
-
 void main() {
   testWidgets('the switch is off by default and only in Experimental; on, it '
       'saves event_rules_enabled and shows Manage rules', (tester) async {
@@ -172,7 +156,7 @@ void main() {
     tester,
   ) async {
     final db = openWidgetTestDatabase();
-    final settings = _FailingSearchReadsSettings(db);
+    final settings = FailingSavedSearchReadsSettings(db);
     final repos = CompendiumRepositories(
       db,
       contraTaxonomy,

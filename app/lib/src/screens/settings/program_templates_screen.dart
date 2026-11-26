@@ -643,13 +643,26 @@ class _ProgramTemplateEditorScreenState
   /// is loaded only when the picker opens.
   Map<String, String>? _danceTitles;
 
-  /// The names of the saved searches the slot rules can use (#2338), by id;
-  /// a rule whose id is not here names a saved search that is gone. `null`
-  /// until read.
+  /// The names of the saved searches the slot rules can use (#2338), by id,
+  /// as the last good read found them; a rule whose id is not here names a
+  /// saved search that was gone then. `null` until read. After a failed read
+  /// it may be stale ([_searchNamesFresh]).
   Map<String, String>? _savedSearchNames;
 
   /// Saved searches that are stored but cannot be read (Needs attention).
   Set<String> _unreadableSearchIds = const {};
+
+  /// Whether a read of the saved search names has finished, read or failed:
+  /// until then the Rules row lists no rule, so no sentence names its search
+  /// as unknown only because it is not read yet.
+  bool _searchNamesTried = false;
+
+  /// Whether the latest read of the saved search names succeeded. After a
+  /// failed one, [_savedSearchNames] is the last good read's (or null), which
+  /// may miss a search a sync has just brought or hold one deleted since, so
+  /// the Rules row flags no rule for its search until a read succeeds, as
+  /// Manage rules does.
+  bool _searchNamesFresh = false;
   bool _started = false;
   CollectionData? _collectionData;
   Future<CollectionData?>? _collectionDataLoad;
@@ -753,19 +766,22 @@ class _ProgramTemplateEditorScreenState
 
   /// Why live rule [id] is not checked ([eventRuleListAttention]), as Manage
   /// rules says it, or null. A removed rule is not added to new programs, so
-  /// it is never flagged.
+  /// it is never flagged. While the latest names read failed
+  /// ([_searchNamesFresh]), a rule is flagged only for what it says itself
+  /// (a newer version made it).
   EventRuleAttention? _ruleAttention(String id) {
     final rule = _rulesById?[id];
     if (rule == null || !_liveRuleIds.contains(id)) return null;
+    if (!_searchNamesFresh && rule.isReadable) return null;
     return eventRuleListAttention(rule, _savedSearchNames?[rule.savedSearchId]);
   }
 
   Widget _rulesRow(AppLocalizations l10n) {
     final theme = Theme.of(context);
-    // The rules and the saved search names both read: until then a sentence
-    // would name its search as unknown, and a rule whose search is only not
-    // read yet would look like one whose search is gone.
-    final known = _rulesById != null && _savedSearchNames != null;
+    // The rules read, and a read of the saved search names finished: until
+    // then a sentence would name its search as unknown only because it is
+    // not read yet. A failed read still lists the rules ([_searchNamesFresh]).
+    final known = _rulesById != null && _searchNamesTried;
     return ListTile(
       key: const ValueKey('program-template-rules'),
       leading: const Icon(Icons.rule),
@@ -805,8 +821,9 @@ class _ProgramTemplateEditorScreenState
                 ),
             ]
           else
-            // The rules or the saved search names are not read yet, or could
-            // not be: say how many the template lists rather than nothing.
+            // The rules or the saved search names are not read yet, or the
+            // rules could not be: say how many the template lists rather than
+            // nothing.
             Text(l10n.programsRulesButton(_eventRuleIds.length)),
           Text(l10n.programTemplateRulesHelp, style: theme.textTheme.bodySmall),
         ],
@@ -834,6 +851,8 @@ class _ProgramTemplateEditorScreenState
         setState(() {
           _savedSearchNames = names;
           _unreadableSearchIds = unreadable;
+          _searchNamesTried = true;
+          _searchNamesFresh = true;
         });
       }
       return names;
@@ -843,6 +862,12 @@ class _ProgramTemplateEditorScreenState
         stackTrace,
         source: 'program_templates_screen.saved_searches',
       );
+      if (mounted) {
+        setState(() {
+          _searchNamesTried = true;
+          _searchNamesFresh = false;
+        });
+      }
       return null;
     }
   }
@@ -1177,7 +1202,8 @@ class ProgramTemplateSlotsEditor extends StatefulWidget {
   final Map<String, String> danceTitles;
 
   /// Saved-search names by id, to say which search each slot rule uses; an id
-  /// missing from it is a search that is gone. `null` while unknown.
+  /// missing from it is a search that was gone when last read (which, after
+  /// a failed read, may be stale). `null` while unknown.
   final Map<String, String>? savedSearchNames;
 
   /// Saved searches that are stored but cannot be read, by id.

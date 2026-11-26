@@ -1,0 +1,9 @@
+{
+  "id": "template-rules-row-search-read-failure",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Event rules (Experimental): if your saved searches can't be read, a program template's Rules row still lists its rules instead of only counting them, and doesn't mark a rule Needs attention just because its saved search couldn't be read this time."
+    ]
+  }
+}
