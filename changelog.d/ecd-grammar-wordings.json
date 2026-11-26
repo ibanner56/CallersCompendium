@@ -1,0 +1,14 @@
+{
+  "id": "ecd-grammar-wordings",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "English free text, Caller's Companion English imports and Re-check unrecognized figures now read more callers' wordings as English figures: P and N for partner and neighbor, \"First corners trade by right\", \"Pass P by L\", \"All Partner Set\", \"Ones Partner right-hand turn 1.5\", \"Partner Set Right and Left advancing\", \"Lines of three go forward and back\" and \"1s cross and go below\". A detail a figure has no option for, such as \"forward\" in \"Turn single right forward\", is kept as the figure's note."
+    ]
+  },
+  "core": {
+    "added": [
+      "The ECD line grammar (`parseEcdFigureLine`) reads `trade`, `pass X by <side>`, a leading `all`/`everyone` or a couple's `partner` before the dancers, `set right and left`, `go forward and back`, `go below` after a cross, and P/N shorthand, reads a change of places' shoulder as its `hand` (the side passed), and keeps a turn single's `forward` and a cast's follower as the figure's note."
+    ]
+  }
+}

@@ -306,6 +306,10 @@ final Map<String, String> _dancerPhrases = {
   'your partner': 'partners',
   'ptnr': 'partners',
   'ptnrs': 'partners',
+  // `P` and `N` are callers' shorthand for partner and neighbour ("Pass P by
+  // L"), as the contra grammar reads them.
+  'p': 'partners',
+  'ps': 'partners',
   'neighbors': 'neighbors',
   'neighbor': 'neighbors',
   'neighbours': 'neighbors',
@@ -314,6 +318,8 @@ final Map<String, String> _dancerPhrases = {
   'your neighbour': 'neighbors',
   'nbr': 'neighbors',
   'nbrs': 'neighbors',
+  'n': 'neighbors',
+  'ns': 'neighbors',
   'corners': 'corners',
   'corner': 'corners',
   'your corner': 'corners',
@@ -327,9 +333,13 @@ final Map<String, String> _dancerPhrases = {
   '2nd corners': 'secondCorners',
   '2nd corner': 'secondCorners',
   'first diagonals': 'firstDiagonals',
+  'first diagonal': 'firstDiagonals',
   '1st diagonals': 'firstDiagonals',
+  '1st diagonal': 'firstDiagonals',
   'second diagonals': 'secondDiagonals',
+  'second diagonal': 'secondDiagonals',
   '2nd diagonals': 'secondDiagonals',
+  '2nd diagonal': 'secondDiagonals',
   'shadows': 'shadows',
   'shadow': 'shadows',
   'second shadows': 'secondShadows',
@@ -686,6 +696,8 @@ final List<_VerbPhrase> _verbPhrases = [
   _v('fall back', 'fall_back'),
   _v('forward and back', 'forward_and_back', {'goBack': true}),
   _v('forward', 'forward_and_back', {'where': 'forward'}),
+  _v('go forward and back', 'forward_and_back', {'goBack': true}),
+  _v('go forward', 'forward_and_back', {'where': 'forward'}),
   // `up` or `down` alone is a direction of travel (`robin up, lark down`),
   // so it names a forward and back only with its distance.
   for (final where in const ['up', 'down'])
@@ -700,6 +712,9 @@ final List<_VerbPhrase> _verbPhrases = [
   _v('sharp siding', 'siding', {'style': 'straight'}),
   _v('playford siding', 'siding', {'style': 'swirly'}),
   _v('pass through', 'pass_through'),
+  // `pass P by L`: dancers passing by a shoulder, as a pass through holds
+  // them (the side after `by` is the shoulder, [_rules]' `pass`).
+  _v('pass', 'pass'),
   _v('promenade', 'promenade'),
   _v('poussette', 'poussette'),
   _v('draw poussette', 'poussette', {'style': 'draw'}),
@@ -710,12 +725,17 @@ final List<_VerbPhrase> _verbPhrases = [
   _v('change places', 'change_places'),
   _v('change', 'change_places'),
   _v('trade places', 'change_places'),
+  _v('trade', 'change_places'),
   _v('pull by', 'pull_by'),
   _v('contra corners', 'contra_corners'),
   _v('turn contra corners', 'contra_corners'),
   _v('lead', 'lead'),
   _v('cast', 'cast'),
   _v('cast off', 'cast', {'where': 'off'}),
+  // "Cross and go below": down the outside past one couple, a cast down one
+  // place (the next couple moves up). Read only after a cross
+  // ([_Reader.readLine]).
+  _v('go below', 'cast', {'where': 'down', 'placeCount': 1}),
   _v('galop', 'galop'),
   _v('gallop', 'galop'),
   _v('chevron', 'chevron'),
@@ -938,11 +958,17 @@ final Map<String, _MoveRule> _rules = {
     // A turn single's side is the side turned to: `to the right` names it.
     final shoulder = _shoulder(b, toTheAllowed: true);
     if (cloverleaf && shoulder != null) return null;
-    return _params({
+    // `turn single right forward`: turning while moving forward. The movement
+    // has no place for where it travels, so the word is its note.
+    final where = _where(b, const ['forward']);
+    final params = _params({
       'who': _whoOf(b, objectIsWho: false),
       'shoulder': cloverleaf ? 'cloverleaf' : shoulder,
       'destination': _dest(b),
+      'where': where,
     });
+    if (params == null) return null;
+    return {...params..remove('where'), _noteSlot: ?where};
   }),
   'turn_alone': _MoveRule(
     'ecd_turn_alone',
@@ -1247,6 +1273,22 @@ final Map<String, _MoveRule> _rules = {
       'destination': _dest(b),
     }),
   ),
+  // `pass P by L`: a pass is by a shoulder, so the side after `by`, or a bare
+  // side, is the shoulder passed. A stated hand (`pass by the right hand`) is
+  // a pull by, not this, so it is not read.
+  'pass': _MoveRule('ecd_pass_through', (b, c) {
+    final viaBy = b.take<bool>('handBy') == true;
+    final hand = b.take<String>('hand');
+    if (hand != null && !viaBy) return null;
+    final shoulder = _shoulder(b);
+    if (hand != null && shoulder != null) return null;
+    return _params({
+      'who': _whoOf(b),
+      'where': _where(b, const ['along', 'across', 'diagonally', 'up', 'down']),
+      'shoulder': hand ?? shoulder,
+      'destination': _dest(b),
+    });
+  }),
   'promenade': _MoveRule('ecd_promenade', (b, c) {
     final singleFile = b.take<bool>('singleFile') == true;
     return _params({
@@ -1297,20 +1339,25 @@ final Map<String, _MoveRule> _rules = {
       'destination': _dest(b),
     });
   }),
-  'change_places': _MoveRule(
-    'ecd_change_places',
-    (b, c) => _params({
+  'change_places': _MoveRule('ecd_change_places', (b, c) {
+    // `trade by right shoulder`: the movement's `hand` names the side the
+    // dancers pass by, not a hand they give (the maintainer, 26 November
+    // 2026), so a shoulder is that side too.
+    final shoulder = _shoulder(b, sideIsShoulder: false);
+    final hand = _hand(
+      b,
+      // `change R`: the side is the hand, as for a turn.
+      allowed: const {'right', 'left', 'none'},
+    );
+    if (hand != null && shoulder != null && hand != shoulder) return null;
+    return _params({
       'who': _whoOf(b, objectIsWho: false),
       'whom': _whom(b, const {'with'}),
-      'hand': _hand(
-        b,
-        // `change R`: the side is the hand, as for a turn.
-        allowed: const {'right', 'left', 'none'},
-      ),
+      'hand': hand ?? shoulder,
       'where': _where(b, const ['along', 'across', 'diagonally', 'up', 'down']),
       'destination': _dest(b),
-    }),
-  ),
+    });
+  }),
   'pull_by': _MoveRule('ecd_pull_by', (b, c) {
     // Dancers named straight after the movement: no preposition reads as its
     // `whom`.
@@ -1383,13 +1430,18 @@ final Map<String, _MoveRule> _rules = {
         whom = via == 'around' ? single ?? _fail : _fail;
       }
     }
-    return _params({
+    // `second corners cast, partner follow`: who follows has no parameter,
+    // so the words are the note.
+    final follow = b.take<String>('follow');
+    final params = _params({
       'who': who,
       'direction': direction,
       'places': count ?? (where == 'off' && end == null ? 1 : null),
       'whom': whom,
       'destination': end,
     });
+    if (params == null) return null;
+    return {...params, _noteSlot: ?follow};
   }),
   'galop': _MoveRule(
     'ecd_galop',
@@ -1507,8 +1559,15 @@ class _Reader {
       if (back != null) {
         current.add(back);
       } else {
+        final start = pos;
         final step = readStep();
         if (step == null) return null;
+        // `go below` is a cast down one place only after a cross (`cross and
+        // go below`): after a lead down the middle, or a cast, it is not.
+        if (_goesBelow(start, pos) &&
+            (current.isEmpty || current.last.move != 'ecd_cross')) {
+          return null;
+        }
         // `, bending the line` makes the step before it a modifier.
         current.add(step);
       }
@@ -1532,6 +1591,14 @@ class _Reader {
       figures: [for (final f in figures) f!],
       beats: span,
     );
+  }
+
+  /// Whether the tokens from [start] to [end] read `go below`.
+  bool _goesBelow(int start, int end) {
+    for (var i = start; i < end - 1; i++) {
+      if (wordsAt(i, const ['go', 'below'])) return true;
+    }
+    return false;
   }
 
   /// A connector between steps, or null when there is none at [pos].
@@ -1596,7 +1663,7 @@ class _Reader {
   _Step? readStep() {
     final start = pos;
     final bag = _Bag();
-    final who = takeDancers(subject: true);
+    final who = takeSubject();
     if (who != null) {
       bag.put('who', who);
       // `Partner, 2 hand turn`: a comma may set the subject off.
@@ -1608,6 +1675,9 @@ class _Reader {
       // `balance and box the gnat` is the gnat's `balance` flag (§5.4), not
       // a balance step.
       if (takeFixed(bag)) continue;
+      // `pass right shoulder` before a movement is the shoulder it passes
+      // by, not the movement `pass`.
+      if (takePassingShoulder(bag)) continue;
       verb = verbAt(pos);
       if (verb != null) break;
       if (!takePreModifier(bag)) {
@@ -1640,6 +1710,8 @@ class _Reader {
         }
         break;
       }
+      // `set right and left`: the side set to first, then the other.
+      if (verb.rule == 'set' && takeSetSides(bag)) continue;
       if (_boundaryWords.contains(word)) break;
       if (!takePostModifier(bag)) {
         pos = start;
@@ -1676,6 +1748,48 @@ class _Reader {
   }
 
   // ---- Dancers.
+
+  /// A step's subject: [takeDancers], with the words that add no dancers
+  /// to it read as part of it.
+  ///
+  /// - A leading `all`/`everyone` before other dancers (`All Partner Set`,
+  ///   `Everyone P two-hand turn`): each partner pair is all the dancers, and
+  ///   `everyone` is never stored beside another selector (ADR-006 Q1b).
+  /// - `all` after the dancers (`Partners all 2-hand turn`), the same.
+  /// - A couple's `partner` (`Ones Partner Set`): a couple's partners are the
+  ///   couple's own two dancers, so it names no one else, and the subject is
+  ///   the couple. (A partner named after the movement, `Ones set to P`, is
+  ///   still read as `set`'s `whom`, as before.)
+  List<String>? takeSubject() {
+    var who = takeDancers(subject: true);
+    if (who == null) return null;
+    if (who.length == 1 && who.single == 'everyone') {
+      final start = pos;
+      final rest = takeDancers(subject: true);
+      if (rest != null && !rest.contains('everyone')) {
+        who = rest;
+      } else {
+        pos = start;
+      }
+    }
+    if (who.length == 1 && _coupleTokens.contains(who.single)) {
+      final partner = phraseAt(pos, _dancerPhrases);
+      if (partner != null &&
+          partner.$1 == 'partners' &&
+          at(pos + partner.$2) != 'and' &&
+          dancerAt(pos + partner.$2) == null) {
+        pos += partner.$2;
+      }
+    }
+    if (at(pos) == 'all' &&
+        !who.contains('everyone') &&
+        dancerAt(pos)?.$2 == 1 &&
+        phraseAt(pos, _destinationPhrases) == null &&
+        dancerAt(pos + 1) == null) {
+      pos++;
+    }
+    return who;
+  }
 
   /// One or more dancer phrases joined by `and` or a comma (`1s and 2s`,
   /// `1s, 2s and 3s`), or null when [pos] does not start one.
@@ -1798,6 +1912,7 @@ class _Reader {
       takeDistance(bag) ||
       takeWhom(bag) ||
       takeStyleWho(bag) ||
+      takeFollow(bag) ||
       takeStyle(bag) ||
       takeRingSize(bag) ||
       takeFixed(bag) ||
@@ -1897,6 +2012,7 @@ class _Reader {
       if (at(pos) == 'the') pos++;
     }
     String? hand;
+    var viaBy = false;
     final word = at(pos);
     if (word == 'rh') {
       hand = 'right';
@@ -1926,13 +2042,65 @@ class _Reader {
       } else if (noun == 'hand' || noun == 'hands') {
         hand = _sideWords[word];
         pos += 2;
-      } else if (start != pos) {
-        // `by the right`: the side after `by` is a hand.
+      } else if (start != pos && noun != 'shoulder' && noun != 'shoulders') {
+        // `by the right`: the side after `by` is a hand, except to a
+        // movement that passes by a shoulder (`pass P by L`), which reads
+        // `handBy`. `by the right shoulder` is [takeShoulder]'s.
         hand = _sideWords[word];
         pos++;
+        viaBy = true;
       }
     }
     if (hand == null || !bag.put('hand', hand)) return _undo(start);
+    if (viaBy && bag.put('handBy', true)) bag.drop('handBy');
+    return true;
+  }
+
+  /// `pass right shoulder` before a movement (`pass right shoulder cross`,
+  /// `pass right shoulder half hey for three`): the shoulder, rather than the
+  /// movement `pass`, when a movement follows it, past any words that may
+  /// come before a movement.
+  bool takePassingShoulder(_Bag bag) {
+    if (at(pos) != 'pass') return false;
+    final start = pos;
+    final scratch = _Bag();
+    var ok = takeShoulder(scratch);
+    while (ok && !atEnd && verbAt(pos) == null) {
+      if (!takePreModifier(scratch)) ok = false;
+    }
+    ok = ok && !atEnd && verbAt(pos) != null;
+    pos = start;
+    return ok && takeShoulder(bag);
+  }
+
+  /// `right and left`, `L & R` after a set: the side set to first.
+  bool takeSetSides(_Bag bag) {
+    final first = _sideWords[at(pos) ?? ''];
+    final second = _sideWords[at(pos + 2) ?? ''];
+    if (first == null || at(pos + 1) != 'and' || second == null) return false;
+    if (first == second) return false;
+    if (!bag.put('side', first)) return false;
+    pos += 3;
+    return true;
+  }
+
+  /// `partner follow`, `partners following`, `followed by partner`: who
+  /// follows a cast, which no parameter holds, as its words (a cast's note).
+  bool takeFollow(_Bag bag) {
+    final start = pos;
+    if (wordsAt(pos, const ['followed', 'by'])) {
+      pos += 2;
+      if (takeDancers() == null) return _undo(start);
+    } else {
+      if (takeDancers() == null) return _undo(start);
+      if (!const {'follow', 'follows', 'following'}.contains(at(pos))) {
+        return _undo(start);
+      }
+      pos++;
+    }
+    if (!bag.put('follow', tokens.sublist(start, pos).join(' '))) {
+      return _undo(start);
+    }
     return true;
   }
 
