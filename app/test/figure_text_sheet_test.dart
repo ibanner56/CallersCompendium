@@ -8,6 +8,7 @@ import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'figures_support.dart';
@@ -340,6 +341,17 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(field), findsNothing);
       expect(await _saveAndRead(tester, repos), existing);
+    });
+
+    testWidgets('Escape asks first too', (tester) async {
+      final repos = await _repos(freeText: false);
+      await _pumpEditor(tester, repos);
+      await _openSheet(tester);
+      await _enterSheetText(tester, _lines.join('\n'));
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('discard-confirm')), findsOneWidget);
+      expect(find.byKey(field), findsOneWidget);
     });
 
     testWidgets('a swipe down does not close it', (tester) async {

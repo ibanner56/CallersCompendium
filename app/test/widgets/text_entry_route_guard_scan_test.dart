@@ -4,26 +4,37 @@
 // or `DiscardChangesGuard` (an editor that asks first). Pre-release audit
 // finding F-02 found six surfaces added later without either.
 //
-// This scan reads every file under lib/ and fails on any route opener
-// (`showDialog`, `showModalBottomSheet` and the rest in [_openers]) whose
-// content holds a text field but no guard. "Content" is what the opener
-// builds, followed through the code that builds it:
+// This scan reads every file under lib/ (but the generated lib/l10n) and fails
+// on any route opener (`showDialog`, `showModalBottomSheet` and the rest in
+// [_openers]) whose content holds a text field but no guard. "Content" is
+// what the opener builds, followed through the code that builds it:
 //
 // - the opener's own arguments;
 // - every app class they name (a widget, and the `State` of a stateful one),
-//   and every class those name in turn;
-// - every method of the enclosing class, top-level function or local
-//   variable or function they call or read by name.
+//   and every class those name in turn, for the text field;
+// - every method of the enclosing class, top-level function or variable (of
+//   this file, or a public one of any file), or local variable or function
+//   they call or read by name.
 //
-// Comments and string literals are blanked before anything is read, and every
-// match allows whitespace and line breaks wherever Dart does, so a reformat
-// cannot hide a field. The arguments of a dialog opened from inside another
-// are left out of the outer one's content, so a guarded confirm dialog cannot
-// vouch for the editor that opens it. A sheet guarded by
-// `DiscardChangesGuard` must also turn dragging off: a swipe pops the route
-// directly, past the guard. And a route opener used other than by calling it
-// (`final open = showDialog;`) fails outright, since it could then be called
-// under a name this scan does not know.
+// The guard counts only where the dialog is built: in that code, or in a
+// widget the opener names directly and its `State`.
+//
+// An app function that passes its own `builder` parameter to a route opener
+// is treated as a route opener itself. Comments and string literals are
+// blanked before anything is read, and every match allows whitespace and
+// line breaks wherever Dart does, so a reformat cannot hide a field. The
+// arguments of a dialog opened from inside another, and of a page route, are
+// left out of the outer one's content, so a guarded confirm dialog cannot
+// vouch for the editor that opens it. A guarded sheet must also turn
+// dragging off: a swipe pops the route directly, past either guard. And a
+// route opener used other than by calling it (`final open = showDialog;`)
+// fails outright, since it could then be called under a name this scan does
+// not know.
+//
+// What it does not see: full-screen editors pushed as pages (each has its
+// own behaviour tests), content built by a callback read through a `.` (an
+// extension method, or `widget.builder(…)`), and whether the guard actually
+// wraps the field rather than sitting beside it.
 //
 // The scan has its own positive controls below ("the scan flags …"): each
 // shape it must catch is fed to it as a small source, so a scan that silently
@@ -60,12 +71,6 @@ const _exempt = <String, String>{
   'lib/src/screens/program_editor_screen.dart#_showDancePickerSheet':
       'the program editor dance picker for a slot: its text field searches '
       'the collection',
-  // Read-only previews: the scan reaches a text field through the dance
-  // detail screen's own editing dialogs, which are checked where they open.
-  'lib/src/screens/program_editor_screen.dart#_openSavedPreviewSheet':
-      'a read-only dance preview',
-  'lib/src/screens/program_editor_screen.dart#_openOnlinePreviewSheet':
-      'a read-only online dance preview',
   // Known gaps, not yet fixed: each loses typed text today.
   'lib/src/screens/perform_program_screen.dart#_openAdjustSheet':
       'KNOWN GAP: the Perform adjust sheet keeps its edits when dismissed, '
@@ -230,6 +235,59 @@ void open(BuildContext context) => showDialog<void>(
       expect(findings, isEmpty);
     });
 
+    test('a field built by a helper in another file', () {
+      final findings = _scan({
+        'lib/a.dart': '''
+Widget buildNoteField(BuildContext context) => const TextField();
+const noteField = TextField();
+''',
+        'lib/b.dart': '''
+void open(BuildContext context) => showDialog<void>(
+  context: context,
+  builder: (c) => AlertDialog(content: buildNoteField(c)),
+);
+void other(BuildContext context) => showDialog<void>(
+  context: context,
+  builder: (c) => const AlertDialog(content: noteField),
+);
+''',
+      });
+      expect(findings, [
+        'lib/b.dart#open: no guard',
+        'lib/b.dart#other: no guard',
+      ]);
+    });
+
+    test('a field passed to an app function that opens the route', () {
+      final findings = _scan({
+        'lib/a.dart': '''
+Future<T?> showAppSheet<T>(
+  BuildContext context, {
+  required WidgetBuilder builder,
+}) => showModalBottomSheet<T>(context: context, builder: builder);
+''',
+        'lib/b.dart': '''
+void open(BuildContext context) =>
+    showAppSheet<void>(context, builder: (_) => const TextField());
+''',
+      });
+      expect(findings, ['lib/b.dart#open: no guard']);
+    });
+
+    test('a sheet guarded by DirtyDialogGuard that can still be swiped', () {
+      final findings = _scan({
+        'lib/a.dart': '''
+void open(BuildContext context) => showModalBottomSheet<void>(
+  context: context,
+  builder: (_) => DirtyDialogGuard(child: TextField()),
+);
+''',
+      });
+      expect(findings, [
+        'lib/a.dart#open: a guarded sheet must set enableDrag: false',
+      ]);
+    });
+
     test('a guarded sheet that can still be swiped away', () {
       final findings = _scan({
         'lib/a.dart': '''
@@ -303,17 +361,20 @@ void open(BuildContext context) => showDialog<void>(
       for (final f in findings)
         if (_exempt.containsKey(f.split(':').first)) f.split(':').first,
     };
+    // Both at once, so neither failure hides the other.
     expect(
-      findings.where((f) => !_exempt.containsKey(f.split(':').first)),
-      isEmpty,
+      (
+        unguarded: [
+          for (final f in findings)
+            if (!_exempt.containsKey(f.split(':').first)) f,
+        ],
+        staleExemptions: _exempt.keys.toSet().difference(exempted),
+      ),
+      (unguarded: <String>[], staleExemptions: <String>{}),
       reason:
           'wrap the content in DirtyDialogGuard (a small input dialog) or '
-          'DiscardChangesGuard (an editor), as #2219 and #2236 did',
-    );
-    expect(
-      exempted,
-      _exempt.keys.toSet(),
-      reason: 'an exemption that no longer matches anything is stale',
+          'DiscardChangesGuard (an editor), as #2219 and #2236 did; and '
+          'remove an exemption that no longer matches anything',
     );
   });
 }
@@ -339,17 +400,15 @@ const _sheetOpeners = {
 };
 
 final _textEntry = RegExp(
-  r'\b(?:TextField|TextFormField|CupertinoTextField|EditableText)\b',
+  r'\b(?:TextField|TextFormField|CupertinoTextField|CupertinoTextFormFieldRow|'
+  r'CupertinoSearchTextField|EditableText|SearchBar|SearchAnchor|'
+  r'Autocomplete|RawAutocomplete)\b',
 );
 final _guard = RegExp(r'\b(?:DirtyDialogGuard|DiscardChangesGuard)\b');
-final _openerName = RegExp('\\b(?:${_openers.join('|')})\\b');
-
-/// Route openers, and the routes of full pages: what either builds is not
-/// part of a dialog that opens it.
-final _routeName = RegExp(
-  '\\b(?:${[..._openers, 'MaterialPageRoute', 'CupertinoPageRoute', 'PageRouteBuilder'].join('|')})\\b',
-);
 final _identifier = RegExp(r'[A-Za-z_$][\w$]*');
+
+RegExp _names(Iterable<String> names) =>
+    RegExp('\\b(?:${names.map(RegExp.escape).join('|')})\\b');
 
 /// Findings as `file#member: problem`, sorted.
 List<String> _scan(Map<String, String> sources) {
@@ -358,28 +417,70 @@ List<String> _scan(Map<String, String> sources) {
       key: _File(key, value),
   };
   final index = _Index(files.values);
+
+  // An app function that passes a `builder` parameter straight to a route
+  // opener is a route opener too: what its callers pass is the content.
+  // Found until none is left, so a wrapper of a wrapper counts.
+  final openers = {..._openers};
+  final sheets = {..._sheetOpeners};
+  for (var grew = true; grew;) {
+    grew = false;
+    final pattern = _names(openers);
+    for (final file in files.values) {
+      for (final m in pattern.allMatches(file.code)) {
+        final member = file.memberAt(m.start);
+        final open = file.callParen(m.end);
+        if (member == null || member.type || open == null) continue;
+        if (openers.contains(member.name)) continue;
+        final args = file.code.substring(open, file.closing(open));
+        final forwarded = RegExp(
+          r'\bbuilder\s*:\s*([A-Za-z_$][\w$]*)\s*[,)]',
+        ).firstMatch(args);
+        if (forwarded == null) continue;
+        if (index._resolve(file, forwarded[1]!, member).isNotEmpty) continue;
+        openers.add(member.name);
+        if (sheets.contains(m[0])) sheets.add(member.name);
+        grew = true;
+      }
+    }
+  }
+  final openerName = _names(openers);
+  final routeName = _names([
+    ...openers,
+    'MaterialPageRoute',
+    'CupertinoPageRoute',
+    'PageRouteBuilder',
+  ]);
+  for (final file in files.values) {
+    file.routeName = routeName;
+  }
+
   final findings = <String>{};
   for (final file in files.values) {
-    for (final m in _openerName.allMatches(file.code)) {
+    for (final m in openerName.allMatches(file.code)) {
       final member = file.memberAt(m.start);
       final where = '${file.path}#${member?.name ?? '(top level)'}';
       final open = file.callParen(m.end);
       if (open == null) {
-        if (!file.inDirective(m.start)) {
+        // A declaration of a wrapper is its name, not a use of it.
+        final declares = member != null && member.start == m.start;
+        if (!file.inDirective(m.start) && !declares) {
           findings.add('$where: ${m[0]} used other than called');
         }
         continue;
       }
+      // A wrapper's own declaration (`showAppSheet(BuildContext c, …) {`).
+      if (member != null && member.start == m.start) continue;
       final close = file.closing(open);
       final reach = index.reach(file, open + 1, close, member);
       if (!reach.text) continue;
       if (!reach.guard) {
         findings.add('$where: no guard');
-      } else if (_sheetOpeners.contains(m[0]) &&
-          reach.discardGuard &&
+      } else if (sheets.contains(m[0]) &&
           !RegExp(
             r'\benableDrag\s*:\s*false\b',
           ).hasMatch(file.code.substring(open, close))) {
+        // A swipe pops the route directly, past either guard.
         findings.add('$where: a guarded sheet must set enableDrag: false');
       }
     }
@@ -492,7 +593,10 @@ class _File {
   /// [start]..[end].
   List<_Decl> _membersIn(int start, int end, int depth, _Decl? parent) {
     final found = <_Decl>[];
-    final name = RegExp(r'\b([A-Za-z_$][\w$]*)\s*(?=[(=]|=>|\{|;|,)');
+    // A generic function's type parameters sit between its name and `(`.
+    final name = RegExp(
+      r'\b([A-Za-z_$][\w$]*)\s*(?:<(?:[^(){};=<>]|<[^(){};=<>]*>)*>\s*)?(?=[(=]|=>|\{|;|,)',
+    );
     for (final m in name.allMatches(code.substring(start, end))) {
       final at = start + m.start;
       if (_depth[at] != depth) continue;
@@ -617,10 +721,13 @@ class _File {
     return out.toString();
   }
 
+  /// Route openers and page routes, set by [_scan] before anything is read.
+  late final RegExp routeName;
+
   /// The argument list of every route opener call and page route, as (`(`,
   /// past `)`).
   late final List<(int, int)> openerArgs = [
-    for (final m in _routeName.allMatches(code))
+    for (final m in routeName.allMatches(code))
       if (callParen(m.end) case final open?) (open, closing(open)),
   ];
 
@@ -637,12 +744,14 @@ class _File {
   late final Map<String, List<_Decl>> locals = () {
     final byName = <String, List<_Decl>>{};
     final decl = RegExp(
-      r'\b([A-Za-z_$][\w$]*)\s*(?:=(?![=>])|\([^()]*\)\s*(?:async\s*)?(?:=>|\{))',
+      r'\b([A-Za-z_$][\w$]*)\s*(?:=(?![=>])|(?:<(?:[^(){};=<>]|<[^(){};=<>]*>)*>\s*)?\([^()]*\)'
+      r'\s*(?:async\s*)?(?:=>|\{))',
     );
     for (final m in decl.allMatches(code)) {
       final name = m[1]!;
       if (_notNames.contains(name)) continue;
-      final eq = code.indexOf(RegExp(r'=>|=|\{'), m.start + name.length);
+      // The match ends at the `=`, `=>` or `{` that starts the value or body.
+      final eq = m[0]!.endsWith('=>') ? m.end - 2 : m.end - 1;
       final end = code[eq] == '{' ? closing(eq) : _statementEnd(eq);
       (byName[name] ??= []).add(_Decl(this, name, m.start, end, local: true));
     }
@@ -660,11 +769,24 @@ class _Index {
             : type.name;
         (_types[key] ??= []).add(type);
       }
+      _allMembers.addAll(file.members);
     }
   }
 
   final _types = <String, List<_Decl>>{};
   final _nodes = <_Decl, _Node>{};
+
+  /// Public top-level functions, getters and variables of every file.
+  late final Map<String, List<_Decl>> _publicTopLevel = () {
+    final byName = <String, List<_Decl>>{};
+    for (final d in _allMembers) {
+      if (d.parent == null && !d.name.startsWith('_')) {
+        (byName[d.name] ??= []).add(d);
+      }
+    }
+    return byName;
+  }();
+  final _allMembers = <_Decl>[];
 
   /// What the text [start]..[end] of [file] reaches, from inside [context]:
   /// whether a text field, a guard, and a [DiscardChangesGuard] are in it.
@@ -753,6 +875,10 @@ class _Index {
           d.parent!.start <= context.start &&
           context.end <= d.parent!.end;
       if (ofType || d.parent == null) yield d;
+    }
+    // Public top-level declarations of other files.
+    for (final d in _publicTopLevel[name] ?? const <_Decl>[]) {
+      if (d.file != file) yield d;
     }
     // Locals declared inside the context.
     if (context == null) return;

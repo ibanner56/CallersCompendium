@@ -450,6 +450,10 @@ as draft programs.
   Repeating events are read only 30 days ahead, whatever you choose.
 - **Only events whose title contains** — for a calendar that also holds things
   other than gigs. Leave it empty for every event. It ignores capitals.
+
+The address and title dialogs stay open once you have changed their text, so a
+stray tap outside, **Esc** or **Back** doesn't lose a pasted address; use
+**Cancel** to close one on purpose.
 - **Import calendar when the app starts** (off) — reads your calendar once each
   time the app starts, and never at any other time: not in the background, not
   on a timer, not when you come back to the app. Like the automatic
@@ -738,7 +742,10 @@ Select **Program defaults** to open this group.
   **Duplicate** or **Delete** it (Delete offers Undo). Drag a template, or use
   its move up and move down buttons, to change the order **New program** lists
   them in. Dances that are no longer in your collection are skipped when a
-  program is made from a template.
+  program is made from a template. The template name dialog, and the slot
+  rule dialog below, stay open once you have typed in them, so a stray tap
+  outside, **Esc** or **Back** doesn't lose the name or label; use **Cancel**
+  to close one on purpose.
 - **Slot rules** (optional) — in a template, **Add slot rule** adds a slot
   that names a kind of dance instead of one dance: a label, such as "Easy
   family opener", and one of your [saved

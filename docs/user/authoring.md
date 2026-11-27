@@ -1119,8 +1119,10 @@ If you try to leave with unsaved changes, the app asks **Discard changes?** —
 The editors for [figure shorthands](#figure-shorthands), custom themes,
 [venues](./settings.md#venues) and [custom fields](./collection.md#make-your-own-fields)
 ask the same question when you leave one with changes: by Back, the back arrow,
-or a tap outside the venue or custom-field sheet. Those two sheets do not close
-when swiped down, and their **Cancel** button closes them without asking.
+or a tap outside the venue or custom-field sheet. So does the
+[Add figures from text](#add-several-figures-at-once) sheet while its box holds text.
+Those sheets do not close when swiped down, and their **Cancel** button closes
+them without asking.
 
 ### Save and delete
 

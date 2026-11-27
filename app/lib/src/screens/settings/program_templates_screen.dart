@@ -1478,14 +1478,15 @@ class _SlotRuleDialogState extends State<_SlotRuleDialog> {
   final _label = TextEditingController();
   String? _searchId;
 
-  /// The label and search as the dialog opened, for [_dirty].
+  /// The label as the dialog opened, for [_dirty].
   String _initialLabel = '';
-  String? _initialSearchId;
 
-  /// Whether the label or the chosen search differs from how the dialog
-  /// opened. While it does, a tap outside, Escape and Back do nothing.
-  bool get _dirty =>
-      _label.text != _initialLabel || _searchId != _initialSearchId;
+  /// Whether the label differs from how the dialog opened. While it does, a
+  /// tap outside, Escape and Back do nothing. Choosing a search alone does not
+  /// hold the dialog open, as choosing a field does not in the Collection's
+  /// batch dialogs;
+  /// choosing one fills an empty label, which does.
+  bool get _dirty => _label.text != _initialLabel;
 
   @override
   void initState() {
@@ -1500,7 +1501,6 @@ class _SlotRuleDialogState extends State<_SlotRuleDialog> {
       }
     }
     _initialLabel = _label.text;
-    _initialSearchId = _searchId;
     _label.addListener(() => setState(() {}));
   }
 
