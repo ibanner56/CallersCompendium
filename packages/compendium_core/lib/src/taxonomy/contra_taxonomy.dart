@@ -1232,9 +1232,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
       renderTemplate: '{who} {move} {whom}',
       // No bare `take` keyword: `canonicalizeMoveSearchText` would rewrite
       // every query containing the word (e.g. "take hands four") to
-      // "give & take …" and stop it matching the prose it was typed for. Any
-      // row whose canonical text holds "give & take" already holds the token
-      // `take`, so a bare query needs no rewrite to find it.
+      // "give & take …", so it would find every give & take too. The search
+      // still matches the words as typed, so the prose is found either way,
+      // and any row whose canonical text holds "give & take" already holds
+      // the token `take`, so a bare query needs no rewrite to find it.
       searchKeywords: ['give and take'],
       // ContraDB range is give -> 4-8, take-only -> 2-4. Issue #634's
       // real-render fixtures confirm take-only at BOTH ends of that range (2

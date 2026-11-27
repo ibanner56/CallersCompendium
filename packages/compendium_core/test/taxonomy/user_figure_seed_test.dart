@@ -72,6 +72,27 @@ void main() {
     expect(userFigureTemplateSlots(seed.template), contains('who'));
   });
 
+  test("a copy of a square right and left through labels its full turn as "
+      'the call words it (pre-release audit B-08)', () {
+    final seed = userFigureSeedFromMove(
+      shippedTaxonomies.forForm(DanceForm.square),
+      'sq_right_left_through',
+      paramLabel: (key) => 'humanized $key',
+    )!;
+    final fullTurn = seed.params.singleWhere((p) => p.key == 'fullTurn');
+    expect(fullTurn.label, 'with a full turn');
+    // A flag with no words of its own keeps the caller's label.
+    final chain = userFigureSeedFromMove(
+      shippedTaxonomies.forForm(DanceForm.square),
+      'sq_chain',
+      paramLabel: (key) => 'humanized $key',
+    )!;
+    expect(
+      chain.params.singleWhere((p) => p.key == 'four').label,
+      'humanized four',
+    );
+  });
+
   test('an unknown id seeds nothing', () {
     expect(userFigureSeedFromMove(contraTaxonomy, 'no_such_move'), isNull);
   });

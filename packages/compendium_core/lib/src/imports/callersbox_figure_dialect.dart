@@ -43,16 +43,19 @@ import 'while_container.dart';
 ///
 /// **Pre-recognizer ordering.** `_amountAlternativeAnnotation` is first: it
 /// writes a `(1 or 2)` line's first amount into the line and reads the result
-/// through every other entry. The next twenty-four entries (through
+/// through every other entry. The next twenty-five entries (through
 /// `_singleFileCircleRecognizer`) all anchor on a move keyword (or, for
-/// `_tcbNumberedRolePair` and `_asCouplesDoSiDo`, a fixed prefix in front of
-/// one), and all but one require a successful resolution to their own move,
-/// so in most cases order is not correctness-critical. The exception is
-/// `_tcbNumberedRolePair`, which returns whatever its re-read of the rest of
-/// the line finds; it claims only lines that open `N0`–`N4 role1s|role2s`,
-/// which no other entry anchors on. `_eighthHey` and `_hey` share the `hey`
-/// anchor: `_eighthHey` is listed first and claims only a `1/8` hey, which
-/// `_hey` declines. Four further overlapping anchor groups each resolve
+/// `_tcbNumberedRolePair`, `_tcbBracketedRolePair` and `_asCouplesDoSiDo`, a
+/// fixed prefix or suffix around one), and all but two require a successful
+/// resolution to their own move, so in most cases order is not
+/// correctness-critical. The exceptions are `_tcbNumberedRolePair` and
+/// `_tcbBracketedRolePair`, which return whatever their re-read of the rest
+/// of the line finds. The first claims only lines that open `N0`–`N4
+/// role1s|role2s`, which no other entry anchors on; the second only lines
+/// that open `role1s|role2s` and end in a lone `[with N0]`–`[with N4]`, which
+/// `_bracketAnnotation` would also claim, so it must stay before that one.
+/// `_eighthHey` and `_hey` share the `hey` anchor: `_eighthHey` is listed
+/// first and claims only a `1/8` hey, which `_hey` declines. Four further overlapping anchor groups each resolve
 /// safely:
 ///
 /// 1. `_balanceHandAnnotation` and `_balancePairHandAnnotation` share the
@@ -99,11 +102,16 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     // `N2 Men allemande left 3/4` is `next role1s allemande left 3/4`;
     // `N2 Men roll away neighbor` is `role1s` rolling away `nextNeighbors`;
     // anything else is read as `Men … [with N2]`. It reads the rest of the
-    // line through every other entry here.
+    // line through every other entry here except `_tcbBracketedRolePair`,
+    // which shares its reading.
     _tcbNumberedRolePair,
+    // `Men allemande left 3/4 [with N2]` is read as `N2 Men allemande left
+    // 3/4`. It must stay before `_bracketAnnotation`, which would otherwise
+    // keep the number as a note.
+    _tcbBracketedRolePair,
     _passTheOceanToWave,
     // `As couples, neighbor do si do` and `Partner Jersey twirl` read the rest
-    // of the line through every other entry here, like `_tcbNumberedRolePair`.
+    // of the line through every other entry here.
     _asCouplesDoSiDo,
     _jerseyTwirl,
     _circulate,
@@ -246,11 +254,15 @@ FigureMatch? _amountAlternativeAnnotation(String scrubbed) {
   return _withAnnotationNote(inner, hit.group(1)!.trim());
 }
 
-/// Reads [text] through every TCB pre-recognizer except [skip], then the
-/// shared grammar, as [_tcbCast] does for its remainder.
-FigureMatch? _tcbReadWithout(String text, FigureMatch? Function(String) skip) {
+/// Reads [text] through every TCB pre-recognizer except [skip] (and
+/// [alsoSkip]), then the shared grammar, as [_tcbCast] does for its remainder.
+FigureMatch? _tcbReadWithout(
+  String text,
+  FigureMatch? Function(String) skip, {
+  FigureMatch? Function(String)? alsoSkip,
+}) {
   for (final pre in tcbFigureFrontEnd.preRecognizers) {
-    if (identical(pre, skip)) continue;
+    if (identical(pre, skip) || identical(pre, alsoSkip)) continue;
     final m = pre(text);
     if (m != null) return m;
   }
@@ -1333,22 +1345,65 @@ FigureMatch? _tcbCast(String scrubbed) {
 /// line by `_amountAlternativeAnnotation`, which adds the choice to the note
 /// this entry returns. On the fallback reading the result must still carry
 /// the number as its note, or the line stays custom rather than losing it.
-/// *(Which numbers, declining annotated remainders, how a figure done with a
-/// neighbour is recognised, and falling back rather than going custom when
-/// neither reading applies: agent's call.)*
+/// *(User-ruled 2026-11-27: a bare `N2 Men roll away`, done with partners,
+/// keeps the note reading; a solo move such as `N2 Men turn alone` takes the
+/// role token; a counterpart's default counts, so a bare `N2 Men cross
+/// trails` is `who2: nextNeighbors`. Which numbers, declining annotated
+/// remainders, and falling back rather than going custom when neither
+/// reading applies: agent's call.)*
 FigureMatch? _tcbNumberedRolePair(String scrubbed) {
   final m = _numberedRolePairRe.firstMatch(scrubbed);
   if (m == null || scrubbed.contains('[') || scrubbed.contains('(')) {
     return null;
   }
-  final number = m[1]!.toUpperCase();
+  return _readNumberedRolePair(m[1]!, m[2]!, m[3]!.trim());
+}
+
+/// The Caller's Box's `Men allemande left 3/4 [with N2]`: the same line as
+/// `N2 Men allemande left 3/4`, so it is read exactly as
+/// [_tcbNumberedRolePair] reads that one (`who: nextRole1s`) *(user-ruled
+/// 2026-11-27)*. Only a role pair opens the line and only a lone `[with
+/// N0]`–`[with N4]` closes it; a line with any other `[`, or a `(…)`, is
+/// left to the other entries, as is any other subject (`Star right 3/4
+/// [with N2]`).
+FigureMatch? _tcbBracketedRolePair(String scrubbed) {
+  final m = _bracketedRolePairRe.firstMatch(scrubbed);
+  if (m == null) return null;
+  final rest = m[2]!.trim();
+  if (rest.contains('[') || rest.contains(']') || rest.contains('(')) {
+    return null;
+  }
+  return _readNumberedRolePair(m[3]!, m[1]!, rest);
+}
+
+/// `role1s … [with N2]`: the pair (group 1), the rest of the line (group 2)
+/// and the number (group 3).
+final RegExp _bracketedRolePairRe = RegExp(
+  r'^\s*(role1s|role2s)\s+(\S.{0,200}?)\s*\[\s*with\s+(n[0-4])\s*\]\s*$',
+  caseSensitive: false,
+);
+
+/// The shared reading of [_tcbNumberedRolePair] and [_tcbBracketedRolePair]:
+/// the neighbour [rawNumber] (`N2`) with the role [rawPair] and the rest of
+/// the line [rest]. Each re-read skips both entries, so the fallback's own
+/// bracket form never comes back here.
+FigureMatch? _readNumberedRolePair(
+  String rawNumber,
+  String rawPair,
+  String rest,
+) {
+  FigureMatch? read(String text) => _tcbReadWithout(
+    text,
+    _tcbNumberedRolePair,
+    alsoSkip: _tcbBracketedRolePair,
+  );
+  final number = rawNumber.toUpperCase();
   final numbered = resolveDancerSetPhrase(number);
   if (numbered == null) return null;
-  final pair = m[2]!.toLowerCase();
-  final rest = m[3]!.trim();
+  final pair = rawPair.toLowerCase();
   // The figure is done with a neighbour (`N2 Men roll away neighbor`): the
   // number names which neighbours, and the role stays the subject.
-  final withNeighbor = _tcbReadWithout('$pair $rest', _tcbNumberedRolePair);
+  final withNeighbor = read('$pair $rest');
   // An explicit `N1` (or `N`, `neighbor 1`) already names its neighbours, so
   // it is not rewritten.
   if (withNeighbor != null &&
@@ -1359,7 +1414,7 @@ FigureMatch? _tcbNumberedRolePair(String scrubbed) {
     if (numberedNeighbor != null) return numberedNeighbor;
   }
   if (_numberedRoleToken(numbered, pair) case (final ordinal, final token)) {
-    final inner = _tcbReadWithout('$ordinal $pair $rest', _tcbNumberedRolePair);
+    final inner = read('$ordinal $pair $rest');
     if (inner != null &&
         !inner.forceCustom &&
         inner.params['who'] == token &&
@@ -1367,8 +1422,7 @@ FigureMatch? _tcbNumberedRolePair(String scrubbed) {
       return inner;
     }
   }
-  final text = '${m[2]} $rest [with $number]';
-  final inner = _tcbReadWithout(text, _tcbNumberedRolePair);
+  final inner = read('$pair $rest [with $number]');
   if (inner == null || inner.forceCustom) return inner;
   // The number must survive as the note, canonical (`with nextNeighbors`) or
   // as written (`with N2`, which some readers keep verbatim).

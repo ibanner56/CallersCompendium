@@ -143,6 +143,15 @@ void main() {
       }
     });
 
+    test('a solo move takes the role token', () {
+      // User-ruled 2026-11-27: only the larks take part, so they are the
+      // next larks.
+      final f = _parse('N2 role1s turn alone');
+      expect(f.move, 'turn_alone');
+      expect(f.params['who'], 'nextRole1s');
+      expect(f.note, isNull);
+    });
+
     test('a promenade destination is not a neighbour the figure is with', () {
       final f = _parse('N2 role1s promenade to neighbor');
       expect(f.params['destination'], isNot('nextNeighbors'));
@@ -157,12 +166,13 @@ void main() {
       expect(f.note, 'with thirdNeighbors');
     });
 
-    test('matches the bracket form the importer already read', () {
-      final bracket = _parse('role2s allemande right 1 & 1/2 [with N1]');
-      final numbered = _parse('N1 role2s allemande right 1 & 1/2');
-      expect(numbered.move, bracket.move);
-      expect(numbered.params, bracket.params);
-      expect(numbered.note, bracket.note);
+    test('N1 keeps the role and notes the current neighbours', () {
+      // Pinned to literal values: the bracket form now shares this reading,
+      // so comparing the two would not catch a change to either.
+      final f = _parse('N1 role2s allemande right 1 & 1/2');
+      expect(f.move, 'allemande');
+      expect(f.params, {'who': 'role2s', 'hand': 'right', 'travel': 1.5});
+      expect(f.note, 'with neighbors');
     });
 
     test('robins too', () {
@@ -219,6 +229,66 @@ void main() {
 
     test('a number the notation does not name stays custom', () {
       expect(_parse('N7 role1s allemande left 3/4').isCustom, isTrue);
+    });
+  });
+
+  group('Men allemande … [with N2]: the bracket form of the same line', () {
+    // User-ruled 2026-11-27: the bracket form follows the same rules as the
+    // number in front.
+    // The two forms share one reading, so this guards that the bracket entry
+    // claims these lines (before `_bracketAnnotation` would keep the number
+    // as a note); the next tests pin the values themselves.
+    test('reads exactly as the number in front', () {
+      for (final (bracket, numbered) in [
+        ('role1s allemande left 3/4 [with N2]', 'N2 role1s allemande left 3/4'),
+        ('role2s allemande right 1 [With N0]', 'N0 role2s allemande right 1'),
+        ('role1s roll away neighbor [with N2]', 'N2 role1s roll away neighbor'),
+        ('role1s roll away [with N2]', 'N2 role1s roll away'),
+        ('role1s allemande left 3/4 [with N3]', 'N3 role1s allemande left 3/4'),
+      ]) {
+        final a = _parse(bracket);
+        final b = _parse(numbered);
+        expect(a.move, b.move, reason: bracket);
+        expect(a.params, b.params, reason: bracket);
+        expect(a.note, b.note, reason: bracket);
+      }
+    });
+
+    test('the role tokens and the neighbour set', () {
+      expect(
+        _parse('role1s allemande left 3/4 [with N2]').params['who'],
+        'nextRole1s',
+      );
+      expect(
+        _parse('role2s allemande right 1 [with N0]').params['who'],
+        'prevRole2s',
+      );
+      final roll = _parse('role1s roll away neighbor [with N2]');
+      expect(roll.params['who'], 'role1s');
+      expect(roll.params['whom'], 'nextNeighbors');
+      expect(roll.note, isNull);
+    });
+
+    test('the site\'s own role words, through the whole adapter', () async {
+      final f = await _import('(8) Men allemande left 3/4 [with N2]');
+      expect(f.move, 'allemande');
+      expect(f.params['who'], 'nextRole1s');
+      expect(f.note, isNull);
+    });
+
+    test('an amount choice keeps the choice as the note', () {
+      final f = _parse('role2s allemande right (1 or 2) [with N2]');
+      expect(f.params['who'], 'nextRole2s');
+      expect(f.note, '1 or 2');
+    });
+
+    test('another bracket or another subject is left as it was', () {
+      final shadow = _parse('role1s allemande left 3/4 [with shadow]');
+      expect(shadow.params['who'], 'role1s');
+      expect(shadow.note, 'with shadows');
+      final star = _parse('Star right 3/4 [with N2]');
+      expect(star.move, 'star');
+      expect(star.note, 'with nextNeighbors');
     });
   });
 
