@@ -29,7 +29,9 @@ import '../widgets/confirm_discard_changes.dart';
 /// case-insensitively against the local collection: an exact single match links
 /// to that dance; an unmatched or ambiguous (multi-match) line becomes a
 /// free-text note slot — the same note path announcements/breaks use — so
-/// nothing is dropped and ordering is preserved.
+/// nothing is dropped and ordering is preserved. An unmatched line that is one
+/// of the app's own break labels ([ParsedProgramLine.isBreak]) becomes the
+/// break instead, and is never looked up online.
 ///
 /// The "Resolve unmatched online" action tries The Caller's Box first (#313),
 /// then falls back to ContraDB (#943) for any title Caller's Box could not

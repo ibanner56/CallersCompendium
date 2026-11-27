@@ -147,8 +147,9 @@ preview before anything is saved:
 - **A line that is just the word for a break** — the one the app prints in a
   shared or printed set list, in any of its languages (“Break”, “Pause”,
   “Pauze”, “ブレイク”), in any capitalization — becomes a **break**, unless a
-  dance in your collection has that title. A set list you shared or printed
-  from the app pastes back with its break. Any other wording (“Tea break”,
+  dance in your collection has that title. The preview labels it as a break,
+  and it is never looked up online. A set list you shared or printed from the
+  app pastes back with its break. Any other wording (“Tea break”,
   “Pauses”) is treated like any other line.
 - **Blank lines are skipped**, so you can space your list out however you like.
 

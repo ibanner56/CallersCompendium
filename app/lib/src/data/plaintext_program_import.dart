@@ -106,7 +106,8 @@ class ParsedProgramLine {
 /// `DanceRepository.listIdsAndTitles`. Exactly one match links to that dance;
 /// more than one is [PlaintextLineResolution.ambiguous]; none is
 /// [PlaintextLineResolution.unmatched]. Ambiguous and unmatched lines both
-/// become note slots for this slice (#312).
+/// become note slots for this slice (#312), except an unmatched break label
+/// ([ParsedProgramLine.isBreak]), which [buildProgramSlots] makes a break.
 List<ParsedProgramLine> parsePlaintextProgram(
   String text, {
   required List<({String id, String title})> collection,

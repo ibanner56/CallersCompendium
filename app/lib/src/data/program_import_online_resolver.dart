@@ -10,7 +10,8 @@ import 'program_import_rollback.dart';
 /// sub-issue #313), then any [fallbacks] in order (issue #943, e.g. ContraDB) —
 /// stopping at the first source that resolves a line confidently.
 ///
-/// For each [PlaintextLineResolution.unmatched] line, each source in turn (see
+/// For each [PlaintextLineResolution.unmatched] line that is not a break (see
+/// below), each source in turn (see
 /// [_resolveLineAcrossSources]) is asked to [OnlineSearchService.search] by the
 /// line's title. A line is only auto-linked on a **confident match** — a
 /// UNIQUE exact-title hit: exactly one result whose
