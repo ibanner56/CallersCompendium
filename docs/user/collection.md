@@ -153,9 +153,10 @@ petronella in it, and **combination nice** still finds *The Nice Combination*.
 A word of three or more letters can be any part of a longer one, so **ron**
 finds *petronella*; a word of one or two letters finds the start of a word, so
 **pe** finds *petronella* and **et** does not. A figure or role name of several
-words, such as **do si do**, counts as one word (an English or square
-figure's names, such as **turn by the hand**, also find their words apart). A
-figure's other names find it too, and still find the words as you typed them:
+words, such as **do si do**, counts as one word (a figure name that only
+English or square dances use, such as **turn by the hand**, also finds its
+words apart). A figure's other names find it too, and still find the words as
+you typed them:
 **do si do** finds every dosido, and a line you typed as *Do si do your
 neighbor* as well.
 
