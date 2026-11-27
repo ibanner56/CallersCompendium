@@ -398,7 +398,9 @@ The file is the same wherever you are: the columns are always separated by
 commas, and the text is UTF-8, so accented and Japanese text shows correctly.
 The column headings are in the app's language. A title or note that starts
 like a spreadsheet formula (with `=`, `+`, `-` or `@`) gets an apostrophe in
-front, so the spreadsheet shows it as text instead of running it.
+front, so the spreadsheet shows it as text instead of running it; one that
+already starts with an apostrophe before one of those gets one more, so
+importing the file gives it back as it was.
 
 A CSV is a file you might send to anyone, so it follows the same privacy rules
 as a shared dance, with one exception: **it includes your star ratings**. See

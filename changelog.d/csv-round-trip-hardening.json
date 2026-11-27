@@ -1,0 +1,21 @@
+{
+  "id": "csv-round-trip-hardening",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A dances spreadsheet you exported comes back in with each formation's detail, and with each figure's note on its figure instead of as an extra figure.",
+      "A spreadsheet dance whose formation the app can't read now starts on the first formation its type offers, such as Duple minor for an English dance or Square for a square, instead of a contra's Improper.",
+      "A spreadsheet or text file with a very long run of brackets in its figures no longer freezes the import.",
+      "A title that starts with an apostrophe before =, +, - or @ keeps its apostrophe when you export it to a spreadsheet and import it again.",
+      "A new choice field made from a spreadsheet column no longer gets two options that differ only in case.",
+      "The first time a spreadsheet import creates a custom field, the app now shows the same notice it shows when you create your first custom field yourself."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The CSV import reads a formation's detail after ' — ', defaults a missing formation to its form's first offered shape, folds an indented line under a figure into that figure's note, keeps a figure line longer than maxFreeTextEntryLength as text unparsed, and folds new choice options by case.",
+      "The Caller's Box figure dialect blanks (…) and […] annotations in time linear in the line.",
+      "guardCsvFormula doubles a value's own leading apostrophe before a formula character, so unguardCsvFormula gives the value back."
+    ]
+  }
+}

@@ -304,7 +304,16 @@ column of figures, some notes — you can bring them in without retyping them.
 How the values come in:
 
 - **Figures** are read the way the app reads typed figures. A line it can't
-  read comes in as an unrecognized figure with your words, never dropped.
+  read comes in as an unrecognized figure with your words, never dropped, and
+  so does a line longer than 2,000 characters, which is not read at all. A line
+  indented further than the figure above it is that figure's note, as the
+  app's own export writes one.
+- **Formation** can carry a detail after a dash, as the app's own export
+  writes one: `Duple minor, improper — first corners cross` comes in as that
+  formation with the detail "first corners cross". A dance whose formation the
+  app can't read, or that has none, starts on the first formation its type
+  offers, as a new dance does: **Improper** for a contra, **Duple minor** for
+  an English dance, **Square** for a square.
 - **Authors** are matched to the authors you already have, or added.
   Several in one cell can be separated by commas or "and". To keep a comma
   inside one author's name, write `\,` (the app's own export does) and a
@@ -327,7 +336,14 @@ How the values come in:
   `0.500` (a leading 0 is never a thousands group), is read as a decimal.
 - A choice field takes the option you already have whatever case, surrounding
   space or accent form the cell uses (`café` typed as `e` plus an accent still
-  matches `café`). A cell with nothing visible in it adds no option.
+  matches `café`). A new choice field makes one option of values that differ
+  only in those ways, spelled as it first appears. A cell with nothing visible
+  in it adds no option.
+- New fields are shared like any other custom field, so if a column holds
+  private notes, turn off **Include in sharing** for that field in the custom
+  fields settings before you share. The first time an import creates a custom
+  field, the app shows the same notice it shows when you create your first
+  custom field yourself.
 - A value that doesn't fit its field — a formation or level the app doesn't
   know, or text in a number field — goes into the dance's **calling notes**,
   with a note on the review row, so nothing is lost.
