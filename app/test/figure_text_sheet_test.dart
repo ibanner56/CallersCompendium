@@ -6,6 +6,7 @@ import 'package:compendium_app/src/data/settings_keys.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
+import 'package:compendium_app/src/theme/app_spacing.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -367,6 +368,23 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(field), findsOneWidget);
       expect(sheetText(tester), _lines.join('\n'));
+    });
+
+    testWidgets('without a drag handle, the title keeps its space below the '
+        "sheet's top edge", (tester) async {
+      final repos = await _repos(freeText: false);
+      await _pumpEditor(tester, repos);
+      await _openSheet(tester);
+      final sheetTop = tester.getTopLeft(find.byType(BottomSheet)).dy;
+      final titleTop = tester
+          .getTopLeft(
+            find.descendant(
+              of: find.byType(BottomSheet),
+              matching: find.text('Add figures from text'),
+            ),
+          )
+          .dy;
+      expect(titleTop - sheetTop, greaterThanOrEqualTo(AppSpacing.lg));
     });
 
     testWidgets('an empty sheet still closes on a tap above it', (
