@@ -350,44 +350,57 @@ Map<String, Object?> _mergeDanceBodies(
   }
   // Left out of the choreography fingerprint (`dedupe.dart`): a build older
   // than schema v42 never sees them, so including them would split one dance
-  // into two fingerprints. The copies merged here may differ in them; the latest copy's wins. Each is omitted
-  // from a body when it holds its default, so a missing key is the default,
-  // not "keep the survivor's".
-  for (final key in const [
-    'meter',
-    'musicalKey',
-    'interpretedOn',
-    // The square fields (ADR-007 §8.1), kept for every form.
-    'squareKind',
-    'repeatOrder',
-    'repeatOrderText',
-    'newPartner',
-    'newPartnerText',
-    'singing',
-    'freeForm',
-  ]) {
-    if (latest.blob.body.containsKey(key)) {
-      body[key] = latest.blob.body[key];
+  // into two fingerprints. Each is omitted from a body when it holds its
+  // default, so in a copy a build that knows them wrote, a missing key is the
+  // default, not "keep the survivor's": the latest copy's value wins, or its
+  // clear. No build up to v0.10.0-beta writes any of them, and this build's
+  // copy that holds none is the same bytes as one of those, so a latest copy
+  // that holds none of them cannot say it cleared any: each is then taken
+  // from the most recent copy that holds it (sync-spec §6.7, pre-release
+  // audit finding MIG-05).
+  final speaksForNewFields = _holdsPostV010DanceField(latest.blob.body);
+  SyncMergeCandidate source(bool Function(Map<String, Object?> body) holds) {
+    if (speaksForNewFields) return latest;
+    return _mostRecentDanceCandidate(
+          candidates,
+          survivorId,
+          where: (candidate) => holds(candidate.blob.body),
+        ) ??
+        latest;
+  }
+
+  for (final key in _postV010DanceScalars) {
+    if (key == 'barnesReference') continue;
+    final from = source((b) => b.containsKey(key)).blob.body;
+    if (from.containsKey(key)) {
+      body[key] = from[key];
     } else {
       body.remove(key);
     }
   }
-  // The Barnes reference likewise, but only from a latest copy of the
-  // merged dance's own form: the merged body keeps the survivor's form, and
-  // only an ECD dance holds one (`formHasBarnesReference`), so a latest copy
-  // of another form says nothing about it and must not clear the survivor's.
-  if (latest.blob.body['form'] == body['form']) {
-    if (latest.blob.body.containsKey('barnesReference')) {
-      body['barnesReference'] = latest.blob.body['barnesReference'];
+  // The Barnes reference likewise, but only from a copy of the merged
+  // dance's own form: the merged body keeps the survivor's form, and only an
+  // ECD dance holds one (`formHasBarnesReference`), so a copy of another
+  // form says nothing about it and must not clear or set the survivor's.
+  final barnes = source(
+    (b) => b['form'] == body['form'] && b.containsKey('barnesReference'),
+  ).blob.body;
+  if (barnes['form'] == body['form']) {
+    if (barnes.containsKey('barnesReference')) {
+      body['barnesReference'] = barnes['barnesReference'];
     } else {
       body.remove('barnesReference');
     }
   }
-  final latestFormation = latest.blob.body['formation'];
+  final improperSource = source(
+    (b) =>
+        b['formation'] is Map && (b['formation']! as Map)['improper'] == true,
+  ).blob.body;
+  final improperFormation = improperSource['formation'];
   final survivorFormation = body['formation'];
-  if (latestFormation is Map && survivorFormation is Map) {
+  if (improperFormation is Map && survivorFormation is Map) {
     final formation = Map<String, Object?>.from(survivorFormation);
-    if (latestFormation['improper'] == true) {
+    if (improperFormation['improper'] == true) {
       formation['improper'] = true;
     } else {
       formation.remove('improper');
@@ -438,6 +451,51 @@ Map<String, Object?> _mergeDanceBodies(
         : canonicalJson(value),
   );
   return body;
+}
+
+/// The dance body keys no build up to v0.10.0-beta writes, which this build
+/// writes only when set (`archiveDanceToJson`); a merge takes each from one
+/// copy. With [_postV010DanceUnions] and `formation.improper` they are what
+/// tells a copy a newer build wrote from one that cannot know them.
+const List<String> _postV010DanceScalars = [
+  'meter',
+  'musicalKey',
+  'interpretedOn',
+  'barnesReference',
+  // The square fields (ADR-007 §8.1), kept for every form.
+  'squareKind',
+  'repeatOrder',
+  'repeatOrderText',
+  'newPartner',
+  'newPartnerText',
+  'singing',
+  'freeForm',
+];
+
+/// Like [_postV010DanceScalars], but unioned across copies by a merge.
+const List<String> _postV010DanceUnions = ['alternateTitles', 'interpreterIds'];
+
+/// Whether [body] holds a field only a build newer than v0.10.0-beta writes.
+/// Such a build knows them all, so what the body leaves out it cleared.
+bool _holdsPostV010DanceField(Map<String, Object?> body) {
+  if (_postV010DanceScalars.any(body.containsKey)) return true;
+  if (_postV010DanceUnions.any(body.containsKey)) return true;
+  final formation = body['formation'];
+  return formation is Map && formation.containsKey('improper');
+}
+
+/// The most recently edited of [candidates] that satisfies [where], ties
+/// going to [survivorId] as in [_latestDanceCandidate]; null when none does.
+SyncMergeCandidate? _mostRecentDanceCandidate(
+  List<SyncMergeCandidate> candidates,
+  String survivorId, {
+  required bool Function(SyncMergeCandidate candidate) where,
+}) {
+  final matching = [
+    for (final candidate in candidates)
+      if (where(candidate)) candidate,
+  ];
+  return matching.isEmpty ? null : _latestDanceCandidate(matching, survivorId);
 }
 
 SyncMergeCandidate _latestDanceCandidate(

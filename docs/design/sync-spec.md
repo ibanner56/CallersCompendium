@@ -4087,7 +4087,8 @@ content hash at once.
 reconciliation rewrites it, a dance naming a choreographer the receiver lacks
 is an unresolved reference, and a choreographer it names is held back from an
 inbound tombstone while a live dance cites it. A fresh-attach merge unions it
-as it does `authorIds` and takes `interpretedOn` from the latest copy; neither
+as it does `authorIds` and takes `interpretedOn` from the latest copy (but see
+*Which copy speaks for them* below); neither
 is part of the choreography fingerprint. **Limit:** a device on a build older
 than v42 keeps the key aside without knowing it cites anyone, so a deletion of
 a person credited only as interpreter there is not refused, and a merge of two
@@ -4096,19 +4097,51 @@ rewrites it through the alias.
 
 A fresh-attach merge also unions `alternateTitles`, every copy's other titles
 in order with repeats dropped, and takes `barnesReference` from the latest
-copy, as it takes `meter`, but only when that copy has the merged dance's
-form: only an ECD dance holds one, and a merge the person chose may join
+copy, as it takes `meter` (but see *Which copy speaks for them* below), and
+only from a copy that has the merged dance's form: only an ECD dance holds one, and a merge the person chose may join
 copies of different forms, so a newer copy of another form leaves the
 survivor's value alone. Neither is part of the choreography fingerprint,
 which a build older than v42 computes without them.
 
-The square fields are taken from the latest copy too, each one omitted when
+The square fields are taken from the latest copy too (but see *Which copy
+speaks for them* below), each one omitted when
 that copy leaves it at its default. They are kept for every form, so unlike
 `barnesReference` the latest copy's form does not matter. None is part of the
 choreography fingerprint. A value this build does not know (a newer build's)
 reads as the default, as an unknown `progression` or `status` does, so an
 edit here writes the default back. Each text depends on its value as well as its own
 column (`wire_mapping.dart`): a value moved off `other` drops the text.
+
+**Which copy speaks for them (amended 2026-11-27).** The latest copy speaks
+for all of these fields only when it holds at least one of them: `meter`,
+`musicalKey`, `interpretedOn`, `barnesReference`, a square field,
+`formation.improper`, `alternateTitles` or `interpreterIds`. A released build
+that writes one knows them all, so what such a copy leaves out it cleared, and the
+merged dance leaves it out too. A latest copy that holds none of them cannot
+say so: no build up to v0.10.0-beta writes any of them, and this build's copy
+that holds none is the same bytes as one of those. Each field is then taken
+from the most recent copy that holds it (for `barnesReference`, the most
+recent copy of the merged dance's form), or left out when none does. Ties
+go to the survivor, and between other copies to the smaller id, as for the
+latest copy. `alternateTitles` and
+`interpreterIds` are unioned either way.
+
+**Limit:** a newer build's latest copy in which the caller cleared every one
+of these fields reads as one that cannot speak for them, so a value another
+copy still holds comes back in the merged dance. The same holds for a newer
+build's copy that is not the latest: when the latest copy cannot speak, each
+field comes from the most recent copy that holds it, which can be older than a
+copy that cleared it. With two copies, the common case, only the first
+situation arises. Telling the two apart needs
+a marker every dance would carry, which changes every dance's body and
+content hash at once.
+
+> The maintainer chose this rule (the audit's decision sheet, question 37,
+> answer c, 2026-11-27), after pre-release audit finding MIG-05 showed a
+> v0.10.0-beta copy edited last clearing every one of these fields from the
+> merged dance. It was chosen over adding that marker, over always keeping
+> the most recent copy that holds a field (which undoes a clear this build
+> made), and over leaving the merge as it was with the limit documented.
 
 **A field the receiver does not sync is kept, not dropped and not applied.**
 Any part of an inbound body that the receiver does not classify `shareable` for
@@ -4713,7 +4746,8 @@ On silent merge the survivor is the lexicographically smaller UUID; id
 collections outside the choreography fingerprint are unioned;
 `program_slots.dance_id` MUST be rewired to the survivor; scalars outside the
 fingerprint (`walkthrough`, `rating`, `status`, `composedOn`, `revisedOn`)
-resolve by last-writer-wins. Dance merges write `id_aliases` entries.
+resolve by last-writer-wins. The dance fields added after v0.10.0-beta do too,
+from a copy that can speak for them (§6.7, *Which copy speaks for them*). Dance merges write `id_aliases` entries.
 
 Where `updatedAt` is **equal** and such a scalar differs, the survivor's value
 MUST be taken. This is the one place the survivor's values win, and it does not

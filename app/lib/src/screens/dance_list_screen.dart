@@ -1687,7 +1687,8 @@ class _DanceListScreenState extends State<DanceListScreen>
   /// mounted): a rename in Settings, or one
   /// synced from another device, shows in the ⋮ menu, and one deleted there is
   /// forgotten. A search whose stored form changed meanwhile (a merge in
-  /// Settings rewrote a tag, author or source it names, or an Update synced
+  /// Settings rewrote a tag, author or source it names, sync's reconciliation
+  /// rewrote one of those or a level or custom field, or an Update synced
   /// from another device) is loaded again, unless the panel has been changed
   /// from it here or online search is on, so the panel and the list show what
   /// is stored, and a later Update does not write the old form back.

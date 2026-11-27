@@ -279,13 +279,14 @@ class SavedSearchActions {
         SavedSearchLoad(search: written, baseline: panelForm, missing: missing);
   }
 
-  /// [spec] with each tag, author or source id that a merge on this device
-  /// moved read as the id that survived it, so a panel that still shows a
-  /// merged-away id (it was on screen when the merge ran) does not write that
-  /// id back over the merge's rewrite of the stored search
-  /// ([SavedSearchSpec.movingReferences], as the merge itself uses). The
-  /// baseline stays the panel's own form, which is what the panel is compared
-  /// with.
+  /// [spec] with each tag, author, source, level or custom-field id that a
+  /// merge on this device moved (a user's, or sync's reconciliation, which
+  /// also merges levels and custom fields) read as the id that survived it,
+  /// so a panel that still shows a merged-away id (it was on screen when the
+  /// merge ran) does not write that id back over the merge's rewrite of the
+  /// stored search ([SavedSearchSpec.movingReferences], as the merge itself
+  /// uses). The baseline stays the panel's own form, which is what the panel
+  /// is compared with.
   Future<SavedSearchSpec> _throughAliases(SavedSearchSpec spec) async {
     final aliases = await _repos.syncLocal.aliasMaps();
     var out = spec;
@@ -293,6 +294,8 @@ class SavedSearchActions {
       SyncRecordKind.tag,
       SyncRecordKind.choreographer,
       SyncRecordKind.publishedSource,
+      SyncRecordKind.difficultyLevel,
+      SyncRecordKind.customFieldDef,
     ]) {
       final losers = aliases[kind]?.keys ?? const <String>[];
       if (losers.isEmpty) continue;
