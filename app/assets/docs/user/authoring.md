@@ -290,6 +290,10 @@ fix. **Add figures** adds them all at the end of the figure list as one step,
 so a single Undo takes them out again. **Cancel** adds nothing. Nothing is
 saved until you save the dance.
 
+While the box holds text, **Back**, **Esc** or a tap outside the sheet asks
+**Discard changes?** first, so a stray tap doesn't lose what you typed or
+pasted. The sheet doesn't close when swiped down.
+
 The sheet reads up to 200 lines and 20,000 characters at a time, and up to
 2,000 characters on one line. Longer text is refused, and nothing from it is
 added: add it in parts.
@@ -1126,8 +1130,10 @@ If you try to leave with unsaved changes, the app asks **Discard changes?** —
 The editors for [figure shorthands](#figure-shorthands), custom themes,
 [venues](./settings.md#venues) and [custom fields](./collection.md#make-your-own-fields)
 ask the same question when you leave one with changes: by Back, the back arrow,
-or a tap outside the venue or custom-field sheet. Those two sheets do not close
-when swiped down, and their **Cancel** button closes them without asking.
+or a tap outside the venue or custom-field sheet. So does the
+[Add figures from text](#add-several-figures-at-once) sheet while its box holds text.
+Those sheets do not close when swiped down, and their **Cancel** button closes
+them without asking.
 
 ### Save and delete
 

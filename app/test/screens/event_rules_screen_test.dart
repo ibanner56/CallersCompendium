@@ -426,6 +426,110 @@ void main() {
     expect(await repos.savedSearches.get(search.id), isNotNull);
   });
 
+  group('leaving the rule editor (pre-release audit finding F-02)', () {
+    Future<void> openNew(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+    ) async {
+      await repos.savedSearches.create(name: 'Becket', spec: _spec());
+      await _pump(tester, repos, const EventRulesScreen(), enabled: true);
+      await tester.tap(find.byKey(const ValueKey('event-rules-new')));
+      await tester.pumpAndSettle();
+      await pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('event-rule-nickname')),
+      );
+    }
+
+    testWidgets('with a typed nickname, Close asks first; Keep editing keeps '
+        'it, and Discard leaves saving nothing', (tester) async {
+      final repos = openTestRepositories();
+      await openNew(tester, repos);
+      final nickname = find.byKey(const ValueKey('event-rule-nickname'));
+      await tester.enterText(nickname, 'No Beckets twice');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(CloseButton));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('discard-confirm')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('discard-cancel')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(nickname).controller!.text,
+        'No Beckets twice',
+      );
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(EventRuleEditorScreen), findsNothing);
+      expect(await repos.eventRules.listAll(includeDeleted: true), isEmpty);
+    });
+
+    testWidgets('a changed choice asks first too', (tester) async {
+      final repos = openTestRepositories();
+      await openNew(tester, repos);
+      await tester.tap(
+        find.byKey(const ValueKey('event-rule-scope-neighbouring')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(CloseButton));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('discard-confirm')), findsOneWidget);
+    });
+
+    testWidgets('untouched, it leaves without asking', (tester) async {
+      final repos = openTestRepositories();
+      await openNew(tester, repos);
+      await tester.tap(find.byType(CloseButton));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('discard-confirm')), findsNothing);
+      expect(find.byType(EventRuleEditorScreen), findsNothing);
+    });
+
+    testWidgets('editing a rule whose saved search is gone, untouched, '
+        'leaves without asking', (tester) async {
+      final repos = openTestRepositories();
+      await repos.savedSearches.create(name: 'Becket', spec: _spec());
+      // A rule naming a saved search that is no longer there (deleted on a
+      // peer, say): the editor opens with no search chosen.
+      final rule = EventRule.of(
+        id: 'r1',
+        savedSearchId: 'gone',
+        quantifier: EventRuleQuantifier.atMost,
+        count: 1,
+        scope: EventRuleScope.wholeProgram,
+        position: 0,
+      );
+      await _pump(
+        tester,
+        repos,
+        Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                fullscreenDialog: true,
+                builder: (_) => EventRuleEditorScreen(rule: rule),
+              ),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('event-rule-nickname')),
+      );
+      await tester.tap(find.byType(CloseButton));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('discard-confirm')), findsNothing);
+      expect(find.byType(EventRuleEditorScreen), findsNothing);
+    });
+  });
+
   testWidgets('a saved search deleted while the editor is open: Save says '
       'so, adds no rule and clears the choice (#2529)', (tester) async {
     final repos = openTestRepositories();
