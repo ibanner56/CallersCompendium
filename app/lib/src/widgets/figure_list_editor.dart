@@ -2397,6 +2397,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       constraints,
                       beatsLabel,
                       beatsStyle,
+                      importGap: isImportGap,
                     );
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2625,7 +2626,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   static const double _minSentenceWidth = 96;
 
   /// Whether [label] fits at the end of the summary row in [constraints] and
-  /// leaves the sentence [_minSentenceWidth] (scaled with the text). If not,
+  /// leaves the sentence [_minSentenceWidth] (scaled with the text), past an
+  /// [ImportGapBadge] when the row has one ([importGap]). If not,
   /// it goes on a line of its own below the sentence, so a narrow screen with
   /// large text does not squeeze the sentence to nothing and overflow the row
   /// (pre-release audit finding B-12).
@@ -2633,10 +2635,13 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     BuildContext context,
     BoxConstraints constraints,
     String label,
-    TextStyle? style,
-  ) {
+    TextStyle? style, {
+    required bool importGap,
+  }) {
     if (!constraints.hasBoundedWidth) return true;
     final scaler = MediaQuery.textScalerOf(context);
+    // The badge's glyph grows with the text to 24, its tap target's width.
+    final badgeWidth = importGap ? _beatsGap + ImportGapBadge.minTapTarget : 0;
     final painter = TextPainter(
       text: TextSpan(text: label, style: style),
       textDirection: Directionality.of(context),
@@ -2645,7 +2650,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     )..layout();
     final labelWidth = painter.width;
     painter.dispose();
-    return constraints.maxWidth - _leadingWidth - _beatsGap - labelWidth >=
+    return constraints.maxWidth -
+            _leadingWidth -
+            badgeWidth -
+            _beatsGap -
+            labelWidth >=
         scaler.scale(_minSentenceWidth);
   }
 

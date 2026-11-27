@@ -5,14 +5,14 @@
     "fixed": [
       "Editing a square dialect previews square calls, such as a swing of corners and a promenade, so a wording you set for a square call shows in the preview; it used to show contra figures.",
       "Add figures from text leaves out a phrase label such as A1 at the start of a square dance's line, as it does for a contra dance, so a pasted square no longer reads \"A1 Heads forward and back\" under the app's own A1 heading.",
-      "Reading a Caller's Companion .USR file as English dances, a formation described only in the caller's own words is a square set when those words start with \"Square\" or name no other shape: \"Sicilian circle; square through to start\" now stays a Sicilian circle, keeping its words as the description.",
+      "Reading a Caller's Companion .USR file as English dances, a formation described only in the caller's own words is a square set when those words start with \"Square\" or name no other shape (a start such as \"improper\" is not a shape): \"Sicilian circle; square through to start\" now stays a Sicilian circle, keeping its words as the description.",
       "With a screen reader, each field of the phrase-structure rows says which row it is in, so rows such as 3*8*2 and 1*4*2 can be told apart.",
       "On a narrow phone with large text, the dance editor's figure list no longer runs off the edge: the beat count warning and the Add figure button wrap, and a figure's beats move below its text when they don't fit beside it."
     ]
   },
   "core": {
     "fixed": [
-      "The Caller's Companion mapping reads a `.USR` English dance's own formation description as a square set only when it starts with \"square\" or names no other shape; otherwise it keeps the shape it names, with the description as its detail."
+      "The Caller's Companion mapping reads a `.USR` English dance's own formation description as a square set only when it starts with \"square\" or names no shape besides a start word; otherwise it keeps the shape it names, with the description as its detail."
     ]
   }
 }

@@ -840,6 +840,23 @@ void main() {
           expect(formation.shape, formationOf(shapeFrom).shape, reason: own);
           expect(formation.detail, contains(own), reason: own);
         }
+        // A Becket's detail names the shape; the description's own words
+        // are kept beside it.
+        final becket = formationOf('Becket, square through to start');
+        expect(becket.shape, isNot(FormationShape.square));
+        expect(becket.detail, contains('Becket, square through to start'));
+        // A start word is not a shape: a square described with one is still
+        // a square set.
+        for (final own in const [
+          'Four couples in a square, improper',
+          'Four-couple square set, proper',
+        ]) {
+          expect(
+            formationOf(own),
+            Formation(FormationShape.square, detail: own),
+            reason: own,
+          );
+        }
         // A description that starts by naming a square set is still one,
         // whatever else it says.
         expect(

@@ -2847,7 +2847,12 @@ ECD dance.
   formation past the word "Square" stays as the detail (Newcastle's
   "Quadruplet; Four couples…", an unknown family such as "Hexagon", a
   `ContraForm` start and `Direction`, or a text "Square set"; a `.USR` with no
-  family and no start is read from its `FormationOther`, as #1972 reads it), so an unknown family is kept as its `cc_unmapped_formation`
+  family and no start is read from its `FormationOther`, as #1972 reads it;
+there the word "square" makes a square set only when the text starts with it
+or names no shape besides a start word, so "Sicilian circle; square through
+to start" stays a Sicilian circle with the text in its detail, while "Four
+couples in a square, improper" is a square set; the text export's single
+string still takes any "square"), so an unknown family is kept as its `cc_unmapped_formation`
   warning says, and a Square formation raises no such warning. A square in a
   big circle (`Circle` family) keeps the `circle` shape, which squares use for
   it (ADR-007 §8.1). A square keeps its SubType's repeat order and its

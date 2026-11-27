@@ -1575,10 +1575,13 @@ Formation _mapEcdFormation(
   final start = usr ? _sanitizeLine(record.contraForm) : null;
   final direction = usr ? _sanitizeLine(record.direction) : null;
   // A `.USR` with no family and no start is read from the caller's own
-  // description, as the text export's single string is (#1972). There the
-  // word "square" names the set only when the description starts with it or
-  // names no shape of its own: "Sicilian circle; square through to start" is
-  // a Sicilian circle (pre-release audit finding B-06).
+  // description (#1972). There the word "square" names the set only when the
+  // description starts with it or names no other shape: "Sicilian circle;
+  // square through to start" is a Sicilian circle, while "Four couples in a
+  // square, improper" is a square set, since a start word is not a shape
+  // (pre-release audit finding B-06). The text export's single string still
+  // takes any "square" (implementer's call, as the finding is about `.USR`
+  // own words only).
   final ownMentionsSquare =
       usr &&
       family.isEmpty &&
@@ -1587,15 +1590,16 @@ Formation _mapEcdFormation(
   final squareFamily = usr
       ? family.toLowerCase() == 'square' ||
             (ownMentionsSquare &&
-                (formation.shape == FormationShape.other ||
-                    _ccStartsWithSquare.hasMatch(own!)))
+                (!_namesShapeBesidesStart(own!) ||
+                    _ccStartsWithSquare.hasMatch(own)))
       : _ccSquareWord.hasMatch(text);
   if (!squareType && !squareFamily) {
     // A description that mentions a square but names another shape keeps its
-    // words as the detail, as it did while the word made it a square set.
-    return ownMentionsSquare && formation.detail == null
-        ? formation.copyWith(detail: own)
-        : formation;
+    // words in the detail, as it did while the word made it a square set.
+    if (!ownMentionsSquare) return formation;
+    final detail = formation.detail;
+    if (detail != null && detail.contains(own!)) return formation;
+    return formation.copyWith(detail: detail == null ? own : '$detail; $own');
   }
   // A square in a big circle keeps the circle, which squares use for it
   // (ADR-007 §8.1).
@@ -1626,6 +1630,19 @@ Formation _mapEcdFormation(
 
 /// A formation text that names a square ("Square", "Square set").
 final RegExp _ccSquareWord = RegExp(r'\bsquares?\b', caseSensitive: false);
+
+/// Whether [text] names a formation shape, not only a start: "Sicilian
+/// circle" or "longways" does, "improper" or "proper" alone does not.
+bool _namesShapeBesidesStart(String text) {
+  final shape = _mapFormation(text, <ImportIssue>[]).shape;
+  return switch (shape) {
+    FormationShape.other ||
+    FormationShape.dupleProper ||
+    FormationShape.dupleImproper ||
+    FormationShape.dupleIndecent => false,
+    _ => true,
+  };
+}
 
 /// A formation text that starts by naming a square ("Square of four couples,
 /// proper").
