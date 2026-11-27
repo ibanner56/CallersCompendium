@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "The screen shown when your data is too old to open no longer tells you, on Android, to install the older release that can update it: Android won't install it over this version, and uninstalling to make room deletes your data. It now says your data is still on the device and not to uninstall or reset the app. On iPhone and iPad, where the Releases page has no download, it points to TestFlight's earlier builds instead. Windows, macOS and Linux are unchanged."
+      "The screen shown when your data is too old to open no longer tells you, on Android, to install the older release that can update it: Android won't install it over this version, and uninstalling to make room deletes your data. It now says your data is still on the device and not to uninstall the app. On iPhone and iPad, where the Releases page has no download, it points to TestFlight's earlier builds instead. Windows, macOS and Linux are unchanged."
     ]
   }
 }

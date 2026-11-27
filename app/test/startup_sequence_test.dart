@@ -5,9 +5,12 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show LazyDatabase, driftRuntimeOptions;
 import 'package:drift/native.dart' show NativeDatabase;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show SystemChannels, rootBundle;
+import 'package:flutter/services.dart'
+    show MethodChannel, PlatformException, SystemChannels, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:sqlite3/sqlite3.dart' as sql;
 
 import 'package:compendium_app/l10n/app_localizations.dart';
@@ -2261,6 +2264,312 @@ void main() {
     },
   );
 
+  group(
+    'the share action on the recovery screen (pre-release audit finding F-01)',
+    () {
+      const error = DatabaseBelowFloorError(
+        fileVersion: 5,
+        minSupportedVersion: 11,
+        bridgeTag: 'v0.1.0-beta.6',
+      );
+
+      /// Shows the below-floor screen over [database], or over a small real
+      /// below-floor file made in [dir].
+      Future<void> pumpBelowFloorApp(
+        WidgetTester tester,
+        Directory dir, {
+        File? database,
+      }) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final dbFile = database ?? File(p.join(dir.path, 'compendium.sqlite'));
+        if (database == null) {
+          final fixture = sql.sqlite3.open(dbFile.path)
+            ..execute('CREATE TABLE t (id INTEGER PRIMARY KEY)')
+            ..execute('PRAGMA user_version = 5');
+          fixture.close();
+        }
+        final appData = openTestAppData();
+        await tester.pumpWidget(
+          CompendiumApp(
+            appData: appData,
+            windowService: NoopWindowService(appData.repositories.settings),
+            migrationPreflight: (_) async => throw error,
+            integrityCheck: () async => true,
+            databaseFileResolver: () async => dbFile,
+            databaseResetter: (_) async => const ResetComplete(),
+            appDataFactory: () => openTestAppData(),
+            windowServiceFactory: (settings) => NoopWindowService(settings),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      /// Routes `getTemporaryDirectory` into [dir] and records every share
+      /// request's file paths; [fail] makes the share sheet throw instead.
+      List<List<Object?>> fakeShareSheet(
+        WidgetTester tester,
+        Directory dir, {
+        bool fail = false,
+      }) {
+        final shareTemp = Directory(p.join(dir.path, 'tmp'))..createSync();
+        final originalPaths = PathProviderPlatform.instance;
+        PathProviderPlatform.instance = _TempPathProvider(shareTemp.path);
+        addTearDown(() => PathProviderPlatform.instance = originalPaths);
+        final sharedPaths = <List<Object?>>[];
+        const shareChannel = MethodChannel('dev.fluttercommunity.plus/share');
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          shareChannel,
+          (call) async {
+            if (call.method != 'share') return null;
+            if (fail) throw PlatformException(code: 'share-failed');
+            sharedPaths.add(
+              ((call.arguments as Map)['paths'] as List).cast<Object?>(),
+            );
+            return 'dev.fluttercommunity.plus/share/dismissed';
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            shareChannel,
+            null,
+          ),
+        );
+        return sharedPaths;
+      }
+
+      AppLocalizations l10nOf(WidgetTester tester) =>
+          AppLocalizations.of(tester.element(find.byType(AlertDialog)));
+
+      Finder shareButton() =>
+          find.byKey(const ValueKey('bootstrap-share-recovery-copy'));
+
+      testWidgets(
+        'Share a copy of your data shares a scrubbed copy of the library',
+        (tester) async {
+          final dir = Directory.systemTemp.createTempSync('below-floor-screen');
+          addTearDown(() => dir.deleteSync(recursive: true));
+          final sharedPaths = fakeShareSheet(tester, dir);
+          await pumpBelowFloorApp(tester, dir);
+
+          await tester.tap(shareButton());
+          await pumpUntil(
+            tester,
+            () => sharedPaths.isNotEmpty,
+            description: 'the share sheet was asked for',
+          );
+          await tester.pumpAndSettle();
+          expect(
+            p.basename(sharedPaths.single.single! as String),
+            'compendium-recovery-copy.sqlite',
+          );
+          expect(find.byType(AlertDialog), findsNothing);
+        },
+        variant: TargetPlatformVariant.only(TargetPlatform.android),
+      );
+
+      testWidgets('a copy that cannot be made says so, and nothing is shared', (
+        tester,
+      ) async {
+        final dir = Directory.systemTemp.createTempSync('below-floor-nocopy');
+        addTearDown(() => dir.deleteSync(recursive: true));
+        final sharedPaths = fakeShareSheet(tester, dir);
+        final garbage = File(p.join(dir.path, 'compendium.sqlite'))
+          ..writeAsStringSync('this is not a database');
+        await pumpBelowFloorApp(tester, dir, database: garbage);
+
+        await tester.tap(shareButton());
+        await pumpUntilFound(tester, find.byType(AlertDialog));
+        await tester.pumpAndSettle();
+        final l10n = l10nOf(tester);
+        expect(
+          find.text(l10n.migrationBelowFloorShareCopyFailedTitle),
+          findsOneWidget,
+        );
+        expect(sharedPaths, isEmpty);
+      }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+      testWidgets(
+        'a share sheet that fails says the copy was made but not shared',
+        (tester) async {
+          final dir = Directory.systemTemp.createTempSync(
+            'below-floor-noshare',
+          );
+          addTearDown(() => dir.deleteSync(recursive: true));
+          fakeShareSheet(tester, dir, fail: true);
+          await pumpBelowFloorApp(tester, dir);
+
+          await tester.tap(shareButton());
+          await pumpUntilFound(tester, find.byType(AlertDialog));
+          await tester.pumpAndSettle();
+          final l10n = l10nOf(tester);
+          expect(
+            find.text(l10n.migrationBelowFloorShareSheetFailedTitle),
+            findsOneWidget,
+          );
+          expect(
+            find.text(l10n.migrationBelowFloorShareCopyFailedTitle),
+            findsNothing,
+          );
+        },
+        variant: TargetPlatformVariant.only(TargetPlatform.android),
+      );
+    },
+  );
+
+  group(
+    'the Back up + reset confirmation (pre-release audit finding F-01)',
+    () {
+      const error = DatabaseBelowFloorError(
+        fileVersion: 5,
+        minSupportedVersion: 11,
+        bridgeTag: 'v0.1.0-beta.6',
+      );
+
+      /// Opens the confirmation over a real below-floor file in [dir].
+      Future<void> openConfirmation(WidgetTester tester, Directory dir) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+        final fixture = sql.sqlite3.open(dbFile.path)
+          ..execute('CREATE TABLE t (id INTEGER PRIMARY KEY)')
+          ..execute('PRAGMA user_version = 5');
+        fixture.close();
+        final appData = openTestAppData();
+        await tester.pumpWidget(
+          CompendiumApp(
+            appData: appData,
+            windowService: NoopWindowService(appData.repositories.settings),
+            migrationPreflight: (_) async => throw error,
+            integrityCheck: () async => true,
+            databaseFileResolver: () async => dbFile,
+            databaseResetter: (_) async => const ResetComplete(),
+            appDataFactory: () => openTestAppData(),
+            windowServiceFactory: (settings) => NoopWindowService(settings),
+          ),
+        );
+        await tester.pumpAndSettle();
+        // The snapshot is real file I/O, which FakeAsync would never complete.
+        await tester.tap(find.text('Back up + reset'));
+        await pumpUntilFound(tester, find.text('Reset app data?'));
+        await tester.pumpAndSettle();
+      }
+
+      AppLocalizations l10nOf(WidgetTester tester) =>
+          AppLocalizations.of(tester.element(find.byType(AlertDialog)));
+
+      testWidgets(
+        'on a phone or tablet: no private path, and Share a copy shares the '
+        'scrubbed copy of the backup',
+        (tester) async {
+          final dir = Directory.systemTemp.createTempSync('below-floor-share');
+          addTearDown(() => dir.deleteSync(recursive: true));
+          final shareTemp = Directory(p.join(dir.path, 'tmp'))..createSync();
+          final originalPaths = PathProviderPlatform.instance;
+          PathProviderPlatform.instance = _TempPathProvider(shareTemp.path);
+          addTearDown(() => PathProviderPlatform.instance = originalPaths);
+          final sharedPaths = <List<Object?>>[];
+          const shareChannel = MethodChannel('dev.fluttercommunity.plus/share');
+          tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            shareChannel,
+            (call) async {
+              if (call.method == 'share') {
+                sharedPaths.add(
+                  ((call.arguments as Map)['paths'] as List).cast<Object?>(),
+                );
+              }
+              return 'dev.fluttercommunity.plus/share/dismissed';
+            },
+          );
+          addTearDown(
+            () => tester.binding.defaultBinaryMessenger
+                .setMockMethodCallHandler(shareChannel, null),
+          );
+
+          await openConfirmation(tester, dir);
+          final l10n = l10nOf(tester);
+          final dialog = find.byType(AlertDialog);
+          expect(
+            find.descendant(
+              of: dialog,
+              matching: find.textContaining(
+                l10n.migrationBelowFloorBackupKeptInApp,
+              ),
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(
+              of: dialog,
+              matching: find.textContaining(dir.path),
+            ),
+            findsNothing,
+          );
+          final share = find.byKey(const ValueKey('below-floor-share-backup'));
+          expect(
+            find.descendant(
+              of: share,
+              matching: find.text(l10n.migrationBelowFloorShareBackup),
+            ),
+            findsOneWidget,
+          );
+
+          await tester.tap(share);
+          await pumpUntil(
+            tester,
+            () => sharedPaths.isNotEmpty,
+            description: 'the share sheet was asked for',
+          );
+          await tester.pumpAndSettle();
+          expect(sharedPaths.single, hasLength(1));
+          expect(
+            p.basename(sharedPaths.single.single! as String),
+            'compendium-recovery-copy.sqlite',
+          );
+          // The confirmation stays open: sharing is not resetting.
+          expect(find.text('Reset app data?'), findsOneWidget);
+        },
+        variant: const TargetPlatformVariant({
+          TargetPlatform.android,
+          TargetPlatform.iOS,
+        }),
+      );
+
+      testWidgets(
+        'on desktop: the path the backup was saved to, and no share',
+        (tester) async {
+          final dir = Directory.systemTemp.createTempSync('below-floor-path');
+          addTearDown(() => dir.deleteSync(recursive: true));
+
+          await openConfirmation(tester, dir);
+          final l10n = l10nOf(tester);
+          final dialog = find.byType(AlertDialog);
+          expect(
+            find.descendant(
+              of: dialog,
+              matching: find.textContaining(dir.path),
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(
+              of: dialog,
+              matching: find.textContaining(
+                l10n.migrationBelowFloorBackupKeptInApp,
+              ),
+            ),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const ValueKey('below-floor-share-backup')),
+            findsNothing,
+          );
+        },
+        variant: TargetPlatformVariant.desktop(),
+      );
+    },
+  );
+
   testWidgets(
     'a successful below-floor reset reopens the app without relaunch',
     (tester) async {
@@ -3575,4 +3884,17 @@ final class _GatedSyncNetwork implements SyncNetworkClassifier {
     if (gate != null) await gate.future;
     return SyncNetworkKind.unmetered;
   }
+}
+
+/// Points `getTemporaryDirectory` at a test folder, for the share sheet's
+/// file copy.
+class _TempPathProvider extends Fake
+    with MockPlatformInterfaceMixin
+    implements PathProviderPlatform {
+  _TempPathProvider(this.temp);
+
+  final String temp;
+
+  @override
+  Future<String?> getTemporaryPath() async => temp;
 }

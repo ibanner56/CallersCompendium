@@ -1023,7 +1023,8 @@ void main() {
   });
 
   test('fresh attach merges copies that differ only in meter, key or '
-      'improper, and the latest copy\'s values win', () {
+      'improper; a newest copy that speaks for them wins, and one that '
+      'cannot keeps the survivor\'s', () {
     final survivor = _danceCandidate(
       'a-survivor',
       'Shared',
@@ -1031,16 +1032,36 @@ void main() {
       extra: const {'meter': '3/2', 'musicalKey': 'G'},
       formationExtra: const {'improper': true},
     );
-    final newest = _danceCandidate('m-newest', 'Shared', updatedSeconds: 2);
 
-    final plan = planFreshAttachDedupe([survivor, newest]);
-
+    // The newest copy holds none of the fields added after v0.10.0-beta:
+    // byte for byte what that build publishes, so its silence says nothing.
+    final plan = planFreshAttachDedupe([
+      survivor,
+      _danceCandidate('m-newest', 'Shared', updatedSeconds: 2),
+    ]);
     expect(plan.ambiguities, isEmpty);
-    final body = plan.merges.single.winner.blob.body;
     expect(plan.merges.single.winner.blob.id, 'a-survivor');
-    expect(body.keys, isNot(contains('meter')));
-    expect(body.keys, isNot(contains('musicalKey')));
-    expect((body['formation']! as Map).keys, isNot(contains('improper')));
+    final kept = plan.merges.single.winner.blob.body;
+    expect(kept['meter'], '3/2');
+    expect(kept['musicalKey'], 'G');
+    expect((kept['formation']! as Map)['improper'], isTrue);
+
+    // A newest copy that holds one of them was written by a build that
+    // knows them all, so what it leaves out it cleared.
+    final cleared = planFreshAttachDedupe([
+      survivor,
+      _danceCandidate(
+        'm-newest',
+        'Shared',
+        updatedSeconds: 2,
+        extra: const {
+          'alternateTitles': ['Other'],
+        },
+      ),
+    ]).merges.single.winner.blob.body;
+    expect(cleared.keys, isNot(contains('meter')));
+    expect(cleared.keys, isNot(contains('musicalKey')));
+    expect((cleared['formation']! as Map).keys, isNot(contains('improper')));
 
     final reversed = planFreshAttachDedupe([
       _danceCandidate('a-survivor', 'Shared', updatedSeconds: 1),
@@ -1211,6 +1232,152 @@ void main() {
       isNot(contains('interpretedOn')),
       reason: 'the newest copy has no date, so the merged dance has none',
     );
+  });
+
+  group('a newest copy that holds no field added after v0.10.0-beta '
+      '(pre-release audit finding MIG-05)', () {
+    // Every field this build writes only when set, which no build up to
+    // v0.10.0-beta writes at all (sync-spec §6.7). `alternateTitles` and
+    // `interpreterIds` are evidence only: they are unioned, never taken
+    // from one copy.
+    const scalars = <String, Object?>{
+      'meter': '3/2',
+      'musicalKey': 'G',
+      'interpretedOn': '1985',
+      'barnesReference': 'BIII p. 92',
+      'squareKind': 'break',
+      'repeatOrder': 'other',
+      'repeatOrderText': 'Heads once',
+      'newPartner': 'other',
+      'newPartnerText': 'Your opposite',
+      'singing': true,
+      'freeForm': true,
+    };
+    const ecd = {'form': 'ecd'};
+
+    test('keeps each field from the most recent copy that has it', () {
+      final body = mergeDanceCandidates([
+        _danceCandidate(
+          'a-survivor',
+          'Shared',
+          updatedSeconds: 1,
+          extra: const {...ecd, ...scalars},
+          formationExtra: const {'improper': true},
+        ),
+        _danceCandidate(
+          'm-middle',
+          'Shared',
+          updatedSeconds: 2,
+          extra: const {...ecd, 'meter': '6/8', 'singing': true},
+        ),
+        _danceCandidate('z-newest', 'Shared', updatedSeconds: 3, extra: ecd),
+      ]).winner.blob.body;
+      expect(body['meter'], '6/8', reason: 'the middle copy is more recent');
+      for (final MapEntry(:key, :value) in scalars.entries) {
+        if (key == 'meter') continue;
+        expect(body[key], value, reason: key);
+      }
+      expect((body['formation']! as Map)['improper'], isTrue);
+    });
+
+    test('takes a Barnes reference only from a copy of the merged form', () {
+      final body = mergeDanceCandidates([
+        _danceCandidate(
+          'a-survivor',
+          'Shared',
+          updatedSeconds: 1,
+          extra: const {...ecd, 'barnesReference': 'BIII p. 92'},
+        ),
+        _danceCandidate(
+          'm-middle',
+          'Shared',
+          updatedSeconds: 2,
+          extra: const {'barnesReference': 'from a contra copy'},
+        ),
+        _danceCandidate('z-newest', 'Shared', updatedSeconds: 3, extra: ecd),
+      ]).winner.blob.body;
+      expect(body['barnesReference'], 'BIII p. 92');
+    });
+
+    test('skips a copy of another form when looking for a Barnes '
+        'reference', () {
+      final body = mergeDanceCandidates([
+        _danceCandidate(
+          'a-survivor',
+          'Shared',
+          updatedSeconds: 1,
+          extra: const {...ecd, 'barnesReference': 'A'},
+        ),
+        _danceCandidate(
+          'b-ecd',
+          'Shared',
+          updatedSeconds: 2,
+          extra: const {...ecd, 'barnesReference': 'B'},
+        ),
+        _danceCandidate(
+          'c-contra',
+          'Shared',
+          updatedSeconds: 3,
+          extra: const {'barnesReference': 'C'},
+        ),
+        _danceCandidate('d-newest', 'Shared', updatedSeconds: 4, extra: ecd),
+      ]).winner.blob.body;
+      expect(body['barnesReference'], 'B');
+    });
+
+    test('any one such field in the newest copy makes it speak for all of '
+        'them, so what it leaves out is cleared', () {
+      final evidence = <String, Map<String, Object?>>{
+        for (final MapEntry(:key, :value) in scalars.entries)
+          key: {...ecd, key: value},
+        'alternateTitles': const {
+          ...ecd,
+          'alternateTitles': ['Other'],
+        },
+        'interpreterIds': const {
+          ...ecd,
+          'interpreterIds': ['p1'],
+        },
+        'formation.improper': ecd,
+      };
+      for (final MapEntry(key: held, value: extra) in evidence.entries) {
+        final body = mergeDanceCandidates([
+          _danceCandidate(
+            'a-survivor',
+            'Shared',
+            updatedSeconds: 1,
+            extra: const {...ecd, ...scalars},
+            formationExtra: held == 'formation.improper'
+                ? const {}
+                : const {'improper': true},
+          ),
+          _danceCandidate(
+            'z-newest',
+            'Shared',
+            updatedSeconds: 2,
+            extra: extra,
+            formationExtra: held == 'formation.improper'
+                ? const {'improper': true}
+                : const {},
+          ),
+        ]).winner.blob.body;
+        for (final key in scalars.keys) {
+          if (key == held) continue;
+          expect(
+            body.keys,
+            isNot(contains(key)),
+            reason: 'the newest copy holds $held, so it cleared $key',
+          );
+        }
+        if (held != 'formation.improper') {
+          expect(
+            (body['formation']! as Map).keys,
+            isNot(contains('improper')),
+            reason: 'the newest copy holds $held, so it cleared improper',
+          );
+        }
+      }
+    });
   });
 
   test(

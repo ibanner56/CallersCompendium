@@ -50,8 +50,9 @@ List<Object?> choreographyFingerprint(Map<String, Object?> body) => [
 /// fingerprint for the same record, and a build older than schema v42 never
 /// sees `formation.improper`: it keeps it aside for a newer version. So it is
 /// left out here, as `meter` and `musicalKey` are left out of
-/// [_choreographyFields], and a merge takes them from the latest copy
-/// (`sync_merge.dart`). Two copies that differ only in them are one dance.
+/// [_choreographyFields], and a merge takes them from the latest copy that
+/// can speak for them (`sync_merge.dart`, sync-spec §6.7). Two copies that
+/// differ only in them are one dance.
 Object? _formationFingerprint(Object? formation) => formation is Map
     ? {
         for (final entry in formation.entries)
