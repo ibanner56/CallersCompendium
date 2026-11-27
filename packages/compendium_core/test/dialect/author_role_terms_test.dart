@@ -177,7 +177,7 @@ void main() {
       moveWordingBranches: const {
         'promenade': {
           'ordinary': '{who} {move} with the gents',
-          'other': '{who} {move} along',
+          'singleFile': '{who} {move} along in file',
         },
       },
     );
@@ -217,9 +217,28 @@ void main() {
         'balance': 'dann geht man vor',
       });
       expect(shown.moveWordingBranches, {
-        'promenade': {'other': '{who} {move} along'},
+        'promenade': {'singleFile': '{who} {move} along in file'},
       });
     });
+
+    test(
+      'with gendered role terms too: lark and robin, and no gendered move',
+      () {
+        final genderedChain = gendered.copyWith(
+          moves: const {'chain': 'ladies chain', 'do_si_do': 'dosido'},
+        );
+        final shown = dialectForDance(
+          genderedChain,
+          title: 'x',
+          authorNames: const ['Rae Fifer'],
+        );
+        expect(shown.roles['role2'], const RoleTerm('robin'));
+        expect(shown.moves, {'do_si_do': 'dosido'});
+        final text = renderer.render(chain, shown).toLowerCase();
+        expect(text, isNot(contains('lad')));
+        expect(text, contains('robins'));
+      },
+    );
 
     test('the stored dialect is not changed', () {
       forDance(const ['Rachel Fifer']);
