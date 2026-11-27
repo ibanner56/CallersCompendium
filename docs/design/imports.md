@@ -1557,8 +1557,15 @@ the app's labels for forms, formations, progressions, statuses and yes/no in the
 UI language and in English; core knows only the enum names. A header names a
 target when it matches the export's own column heading (#2332) or the editor's
 label in either language, a phrase label (`A1`), or a custom field's label.
-There is no target for an author's email or location (third-party,
-`deviceLocal`).
+A built-in name takes the column before a custom field's label does. Every
+column the dances export writes is read back: composed, interpreters,
+interpreted, mixed level, rating and Barnes reference have targets of their own
+(added with the maintainer's approval, pre-release audit E1-04), and the
+columns with no field to go back into (a square's kind, repeat order, new
+partner and singing call, and the published sources; `csvNotesOnlyHeaders`)
+start on `CsvColumnMapping.labelledNotes`, kept in the calling notes as
+`Column: value`. There is no target for an author's email or location
+(third-party, `deviceLocal`).
 
 #### Nothing is written before commit
 
@@ -1566,7 +1573,13 @@ The plan carries placeholder ids: `csv-tag:<name>` for tags and
 `csv-field:<column>` for a new custom field. `CsvImporter.commit` resolves tags
 by name (creating the missing ones), creates each new field once under a key
 derived from its label (a choice field takes its choices from the committed
-values), rewrites the placeholders, and only then calls `ImportPipeline.commit`.
+values, one option for values that differ only by `csvFold` over
+`normalizeShareableText`, spelled as first met, and an existing field of that
+name gains only the options it lacks by that comparison), rewrites the
+placeholders, and only then calls `ImportPipeline.commit`. The first commit that
+creates a field shows the custom fields screen's one-time notice that custom
+fields travel with the collection (`showCustomFieldSharingNoticeOnce`,
+pre-release audit PRIV-04).
 A failed commit removes what it created; Undo reverts the dances and removes the
 created tags and fields nothing else uses. As with `.USR` user fields, a
 placeholder that reaches a repository is refused, so a path that skips the
@@ -1587,7 +1600,16 @@ re-imported file's dances surface as possible matches defaulting to **Skip**.
 
 Figures go through `parseFigureLinesFanOut`, one line at a time: a cell's lines,
 or its `;`-parts when it has no line break, or each phrase column in phrase
-order; two columns for one phrase are read one after the other. A leading
+order; two columns for one phrase are read one after the other. A line indented
+further than the figure line above it is that figure's note, as the export
+writes one; lines indented alike are each a figure. A line longer than
+`maxFreeTextEntryLength` is kept as an unrecognized figure without being parsed
+(pre-release audit SEC-04: the parser's cost grows faster than the line, and the
+cap bounds every line at once; the Caller's Box dialect's `(…)` and `[…]` strip
+is also linear, `bracket_blank.dart`). A formation cell is a shape, or an
+English shape marked improper, optionally followed by ` — ` and a detail, as
+`commonFormationWithDetail` writes one in every language; a row with no
+readable formation gets `offeredFormationShapes(form).first`. A leading
 phrase label, a leading `(8)` count, and the export's own trailing
 `(16 beats) ¶` or `(1½ bars) ¶` are read off first. A trailing bracket is read
 off only when its unit is a beat or bar word (`CsvValueVocabulary.beatWords`
@@ -1595,7 +1617,7 @@ and `barWords`, in the export's languages and English), so `(3 places)` stays
 in the figure; a count in bars is left to the figure's default. A Level cell
 resolves through `CsvValueVocabulary.levels`, the caller's configured levels by
 their own and localized label, into `difficultyLevelId`. Authors go through
-`splitAuthorNames(backslashEscapes: true)`, which skips a `\,` in its comma pass (suffix protection and the word and symbol delimiters are unchanged) and unescapes `\,` and `\\` in each name afterwards; the option is the CSV import's alone, every other importer reads a backslash literally, and a cell with no backslash splits as it did. The escape protects the comma only, so an author named with `and`, `with`, `&`, `/`, `+` or `;` still splits. The export writes the authors and interpreters columns through `joinNameList` too, though the import has no interpreters target, so that column is not read back; the escape keeps the list columns in one format. Suffix protection still applies after an unescaped comma, so separate authors `Doe` and `Sr` export as `Doe, Sr` and read back as one. A field cut at the 500-character cap can end in a lone backslash, kept literally. Tags and tunes split on commas (tunes also on semicolons and line breaks) through `splitNameList` (`csv/csv_name_list.dart`), which reads `\,` as a comma and `\\` as a backslash in a name, as the dances export writes them (`joinNameList`); any other backslash stays literal. A sheet written before the escape reads the same unless a name held a backslash beside a comma or another backslash. Only the comma is escapable, so a tune name with `;` or a line break still splits. A value that does not fit
+`splitAuthorNames(backslashEscapes: true)`, which skips a `\,` in its comma pass (suffix protection and the word and symbol delimiters are unchanged) and unescapes `\,` and `\\` in each name afterwards; the option is the CSV import's alone, every other importer reads a backslash literally, and a cell with no backslash splits as it did. The escape protects the comma only, so an author named with `and`, `with`, `&`, `/`, `+` or `;` still splits. The interpreters column is read the same way, into `StructuredDraft.interpreterNames`, which the pipeline resolves as it does authors. Composed and interpreted are read by `PartialDate.parse`, mixed level as a yes or no, rating as a whole number 1 to 5; a Barnes reference is kept in the notes when the row's form has none or the dance would cut it short. Suffix protection still applies after an unescaped comma, so separate authors `Doe` and `Sr` export as `Doe, Sr` and read back as one. A field cut at the 500-character cap can end in a lone backslash, kept literally. Tags and tunes split on commas (tunes also on semicolons and line breaks) through `splitNameList` (`csv/csv_name_list.dart`), which reads `\,` as a comma and `\\` as a backslash in a name, as the dances export writes them (`joinNameList`); any other backslash stays literal. A sheet written before the escape reads the same unless a name held a backslash beside a comma or another backslash. Only the comma is escapable, so a tune name with `;` or a line break still splits. A value that does not fit
 its field, and a second column for a single-valued field (everything but
 figures, authors, tags, tunes and notes) once an earlier column's value has
 filled it, is appended to the calling notes as

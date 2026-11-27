@@ -284,11 +284,14 @@ column of figures, some notes — you can bring them in without retyping them.
 4. **Map the columns.** The app shows each column with a few of its values and
    asks what it holds:
    - Title (needed: **Continue** waits until one column is the title);
-   - Authors, Type, Formation, Progression, Level, Status, Mixer, Tags, Tunes,
-     Meter, Key, Hook, Calling notes or Walkthrough;
+   - Authors, Composed, Interpreted by, Interpreted in, Type, Formation,
+     Progression, Level, Mixed level, Status, Mixer, Rating, Tags, Tunes,
+     Meter, Key, Barnes reference, Hook, Calling notes or Walkthrough;
    - **Figures**, either one column with one figure per line (or several
      separated by `;`), or one column per phrase (**Figures, A1**, **Figures,
      A2** and so on);
+   - **Calling notes, with the label**, which keeps each value in the calling
+     notes with the column's name in front (`Kind of square: Main part`);
    - one of your [custom fields](./glossary.md#custom-field), or a **new custom
      field** of the type you choose, named after the column;
    - **Ignore**, to leave the column out.
@@ -319,6 +322,12 @@ How the values come in:
   inside one author's name, write `\,` (the app's own export does) and a
   backslash `\\`; a backslash before anything else is read as it is. A name
   that itself holds "and", "with", `&`, `/`, `+` or `;` is still split there.
+- **Interpreted by** is read the same way as authors.
+- **Composed** and **Interpreted in** are dates written as a year, year-month
+  or year-month-day (`1951`, `1951-03` or `1951-03-14`), as the app's own
+  export writes them. **Mixed level** is a yes or no, and **Rating** a whole
+  number of stars from 1 to 5. A **Barnes reference** is kept on an English
+  dance; on another type of dance it goes into the calling notes.
 - **Tags** are separated by commas, matched to your tags by name, and added
   when new. Your **Import defaults** tags are added too. To keep a comma inside
   a tag, write `\,` (the app's own export does); a backslash is written `\\`,
@@ -358,7 +367,10 @@ How the values come in:
 
 A spreadsheet the app exported (see
 [Export dances as a spreadsheet](./sharing.md#export-dances-as-a-spreadsheet-csv))
-comes back in with its columns already chosen.
+comes back in with its columns already chosen. Every column goes back into its
+own field except a square's kind, repeat order, new partner and singing call,
+and the published sources: those come back into the calling notes with their
+column names in front (`Kind of square: Main part`).
 
 If the file can't be read, the app says why and nothing is imported: it isn't
 saved as UTF-8 (save it again as **CSV UTF-8**), it is too large, it has more

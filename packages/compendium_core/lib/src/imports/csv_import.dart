@@ -40,7 +40,9 @@ class CsvImportSession {
 ///   caller's own or one an earlier column created; otherwise it is created
 ///   once, under a key derived from its label and kept distinct from the
 ///   caller's own keys. A choice field takes, or gains, its choices from the
-///   values the committed rows carry.
+///   values the committed rows carry; values that differ only by case,
+///   surrounding space or Unicode form are one option, spelled as first met
+///   (or as the field already spells it).
 ///
 /// If the commit fails, what it created is removed before the error is
 /// rethrown. [undo] reverts the dances, then removes the created tags and

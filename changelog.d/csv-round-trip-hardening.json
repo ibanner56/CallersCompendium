@@ -2,6 +2,9 @@
   "id": "csv-round-trip-hardening",
   "user_visible": true,
   "app": {
+    "added": [
+      "A dances spreadsheet you exported now comes back in with its composed and interpreted dates, interpreters, mixed level, star rating and Barnes reference in their own fields, and a square's kind, repeat order, new partner and singing call and the published sources in the calling notes, under their column names."
+    ],
     "fixed": [
       "A dances spreadsheet you exported comes back in with each formation's detail, and with each figure's note on its figure instead of as an extra figure.",
       "A spreadsheet dance whose formation the app can't read now starts on the first formation its type offers, such as Duple minor for an English dance or Square for a square, instead of a contra's Improper.",
@@ -12,6 +15,9 @@
     ]
   },
   "core": {
+    "added": [
+      "CsvColumnTarget gains composed, interpreters, interpreted, mixedLevel, rating and barnesReference; the CSV import reads them into the draft (interpreters into StructuredDraft.interpreterNames)."
+    ],
     "fixed": [
       "The CSV import reads a formation's detail after ' — ', defaults a missing formation to its form's first offered shape, folds an indented line under a figure into that figure's note, keeps a figure line longer than maxFreeTextEntryLength as text unparsed, and folds new choice options by case.",
       "The Caller's Box figure dialect blanks (…) and […] annotations in time linear in the line.",

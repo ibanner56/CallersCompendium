@@ -387,8 +387,10 @@ own field). Authors, interpreters, tags and tunes are each listed in one cell, s
 by a comma and a space; a comma inside a name is written `\,` and a backslash
 `\\`, so importing the file keeps a name with a comma whole. (A tune name with
 a semicolon or a line break in it is still split in two on import, and so is an
-author whose name holds "and", "with", `&`, `/`, `+` or `;`. The import has no
-interpreters column, so the interpreters are not read back.) Dates are written
+author whose name holds "and", "with", `&`, `/`, `+` or `;`. A square's kind,
+repeat order, new partner and singing call, and the published sources, come
+back into the calling notes, under their column names, not into their own
+fields.) Dates are written
 as a year, year-month or year-month-day, as precisely as you know them (for
 example `1951`, `1951-03` or `1951-03-14`). The figures are in one cell, one
 per line with their phrase labels, worded in your active
