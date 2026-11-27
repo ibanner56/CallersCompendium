@@ -441,11 +441,14 @@ as draft programs.
 
 - **Calendar address** — your calendar's iCal address (`https://…` or
   `webcal://…`). One address per device. The setting shows only **Set** or
-  **Not set**, and the address itself appears only when you edit it, because a
-  private calendar's address contains a secret: it is never
-  synced to your other devices, never put in a [backup](./backup-portability.md)
+  **Not set**, because a private calendar's address contains a secret; the
+  address itself appears when you edit the setting, and in the address box at
+  the top of the calendar import screen each time it opens. It is never synced
+  to your other devices, never put in a [backup file](./backup-portability.md)
   (enter it again after a restore), and removed from
-  [diagnostics](#diagnostics).
+  [diagnostics](#diagnostics). Your device's own backup is different: it copies
+  the app's data, address included. See
+  [Your device's own backup](./backup-portability.md#your-devices-own-backup).
 - **Which events** — how far ahead to look: 3, 6 (the default) or 12 months.
   Repeating events are read only 30 days ahead, whatever you choose.
 - **Only events whose title contains** — for a calendar that also holds things
@@ -969,8 +972,11 @@ you use the app is ever sent.
 
 When something goes wrong, the app writes a short technical note to a log on your
 own device — not just outright crashes, but also errors you see reported on
-screen (like a failed import). **It is never sent anywhere — there is no
-telemetry.** The **Diagnostics** section is where you read that log, hand a
+screen (like a failed import). **The app never sends it anywhere — there is no
+telemetry.** Your device's own backup can copy it along with the rest of the
+app's data; see
+[Your device's own backup](./backup-portability.md#your-devices-own-backup).
+The **Diagnostics** section is where you read that log, hand a
 copy to a bug report, or wipe it.
 
 ### Recent entries
@@ -1724,8 +1730,10 @@ Sync is off and open while it is on.
   meter, key or improper mark alone doesn't hold it back: an older device
   keeps those and passes them on unchanged.
 - These settings belong to this device. They are not synced to your other
-  devices, and they are not included in a backup, so restoring a backup never
-  turns sync on.
+  devices, and they are not included in a backup file, so restoring a backup
+  file never turns sync on. A device set up from your
+  [device's own backup](./backup-portability.md#your-devices-own-backup) is
+  different: it keeps them, so sync stays on there if it was on.
 - A few other settings depend on the screen they are used on, so they stay on
   each device too: **App language**, **Reduce motion**, **Auto-size Perform
   cards**, and Perform's stage theme and text size. Unlike the sync settings

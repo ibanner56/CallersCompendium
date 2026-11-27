@@ -1097,8 +1097,10 @@ last saved version.
 
 The draft is written about half a second after you stop typing, and at once
 when you switch away from the app on a phone or tablet, or close it on a
-computer, so even the last few keystrokes are kept. Drafts stay on your device; they are never uploaded, shared,
-or included in exports.
+computer, so even the last few keystrokes are kept. Drafts stay on your device:
+the app never uploads or shares them or puts them in an export, though your
+[device's own backup](./backup-portability.md#your-devices-own-backup) can copy
+them with the rest of the app's data.
 
 If the app cannot write the draft — the device is out of storage space, for
 example — a small cloud-with-a-slash icon appears in the top bar of the dance
