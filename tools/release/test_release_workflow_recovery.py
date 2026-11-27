@@ -303,9 +303,15 @@ def main() -> None:
     safe_expansion = '${codename_define[@]+"${codename_define[@]}"}'
     # `set -u`, `set -Eeuo pipefail`, `set -e -u`, `set -o nounset`, ...
     nounset = re.compile(r"^\s*set\b[^\n#]*?(?:\s-[A-Za-z]*u|-o\s+nounset)", re.MULTILINE)
-    # A workflow-wide `shell:` that turns nounset on applies to every step.
-    workflow_nounset = bool(
-        re.search(r"^    shell: [^\n]*(?:\s-[A-Za-z]*u|-o\s+nounset)", text, re.MULTILINE)
+    # A `shell:` that turns nounset on, at the workflow's or the build job's
+    # `defaults.run`, or on the step itself.
+    shell_nounset = re.compile(
+        r"^\s+shell:[^\n]*(?:\s-[A-Za-z]*u|-o\s+nounset)", re.MULTILINE
+    )
+    workflow_defaults = text[: text.index("\njobs:\n")]
+    job_defaults = build_job[: build_job.index("\n    steps:\n")]
+    inherited_nounset = bool(
+        shell_nounset.search(workflow_defaults) or shell_nounset.search(job_defaults)
     )
     nounset_steps = []
     for step_name in re.findall(r"^      - name: (.+)$", build_job, re.MULTILINE):
@@ -315,7 +321,9 @@ def main() -> None:
             continue
         if "codename_define" not in script:
             continue
-        if workflow_nounset or nounset.search(script):
+        marker = f"      - name: {step_name}\n"
+        step_keys = build_job[build_job.index(marker) :].split("        run: |\n", 1)[0]
+        if inherited_nounset or shell_nounset.search(step_keys) or nounset.search(script):
             nounset_steps.append(step_name)
             assert bare_expansion not in script.replace(safe_expansion, ""), (
                 f"{step_name!r} runs under set -u and expands codename_define "
