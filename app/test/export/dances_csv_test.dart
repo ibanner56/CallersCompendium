@@ -272,6 +272,133 @@ void main() {
     });
   });
 
+  // Pre-release audit finding E1-04: the app's own export, read back through
+  // the mapping the app chooses, in every language the app speaks.
+  group('an exported library comes back whole', () {
+    final library = [
+      Dance(
+        id: 'd-contra',
+        title: 'Becket Reel',
+        formation: const Formation(
+          FormationShape.becketCw,
+          detail: 'slide left to start',
+        ),
+        figures: [
+          Figure(
+            move: 'allemande',
+            params: const {'who': 'role1s', 'beats': 8},
+          ),
+          Figure(
+            move: 'swing',
+            params: const {'who': 'partners', 'beats': 16},
+            progression: true,
+            note: 'end facing down',
+          ),
+        ],
+        createdAt: now,
+        updatedAt: now,
+      ),
+      Dance(
+        id: 'd-ecd',
+        title: 'Hole in the Wall',
+        form: DanceForm.ecd,
+        formation: const Formation(
+          FormationShape.dupleMinor,
+          improper: true,
+          detail: 'first corners cross',
+        ),
+        createdAt: now,
+        updatedAt: now,
+      ),
+      Dance(
+        id: 'd-square',
+        title: "'=quoted at start",
+        form: DanceForm.square,
+        formation: const Formation(FormationShape.square),
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ];
+
+    for (final locale in AppLocalizations.supportedLocales) {
+      test('in ${locale.toLanguageTag()}', () async {
+        final l10n = lookupAppLocalizations(locale);
+        final languages = [l10n, en];
+        final csv = buildDancesCsv(
+          library,
+          l10n: l10n,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
+          renderer: plainRenderer,
+        );
+        final rows = readCsv(csv);
+        final header = rows.first;
+        final adapter = CsvAdapter();
+        final found = await adapter.discover(
+          ImportRequest(
+            payload: csv,
+            options: {
+              CsvAdapter.mappingOption: CsvImportMapping(
+                separator: ',',
+                hasHeader: true,
+                columns: autoMapCsvColumns(
+                  header,
+                  header.length,
+                  languages,
+                  const [],
+                ),
+                vocabulary: csvValueVocabulary(languages),
+              ),
+            },
+          ),
+        );
+        final back = {
+          for (final record in found)
+            for (final draft in [adapter.parse(await adapter.fetch(record))])
+              draft.dance.title: draft.dance,
+        };
+        expect(back.keys, unorderedEquals([for (final d in library) d.title]));
+        for (final original in library) {
+          final dance = back[original.title]!;
+          expect(dance.form, original.form, reason: original.title);
+          expect(
+            (
+              dance.formation.shape,
+              dance.formation.improper,
+              dance.formation.detail,
+            ),
+            (
+              original.formation.shape,
+              original.formation.improper,
+              original.formation.detail,
+            ),
+            reason: original.title,
+          );
+          final figures = (dance.figuresSource as DecodedFigures).figures;
+          expect(
+            [for (final f in figures) (f.move, f.progression, f.note)],
+            [
+              for (final f
+                  in (original.figuresSource as DecodedFigures).figures)
+                (f.move, f.progression, f.note),
+            ],
+            reason: original.title,
+          );
+        }
+      });
+    }
+
+    test("every language writes a formation's detail after ' — ', which "
+        'the import reads it by', () {
+      for (final locale in AppLocalizations.supportedLocales) {
+        expect(
+          lookupAppLocalizations(locale).commonFormationWithDetail('A', 'B'),
+          'A — B',
+          reason: locale.toLanguageTag(),
+        );
+      }
+    });
+  });
+
   group('custom field headers', () {
     CustomFieldDef field(String id, String label, {bool shareable = true}) =>
         CustomFieldDef(
