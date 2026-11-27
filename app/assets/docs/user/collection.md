@@ -156,9 +156,8 @@ finds *petronella*; a word of one or two letters finds the start of a word, so
 words, such as **do si do**, counts as one word (a figure name that only
 English or square dances use, such as **turn by the hand**, also finds its
 words apart). A figure's other names find it too, and still find the words as
-you typed them:
-**do si do** finds every dosido, and a line you typed as *Do si do your
-neighbor* as well.
+you typed them: **do si do** finds every dosido, and a line you typed as *Do si
+do your neighbor* as well.
 
 Search understands your [dialect](./glossary.md#dialect) wording. If you saved or
 imported a dance in one set of words and search in another, the app still finds
