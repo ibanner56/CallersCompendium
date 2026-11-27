@@ -1036,4 +1036,270 @@ void main() {
       );
     });
   });
+
+  // Pre-release audit findings E1-04, SEC-04, TESTS-07 and E1-12.
+  group('round trip and hardening (pre-release audit)', () {
+    CsvImportMapping m(
+      List<CsvColumnMapping> cols, {
+      CsvValueVocabulary vocab = const CsvValueVocabulary(),
+    }) => CsvImportMapping(
+      separator: ',',
+      hasHeader: true,
+      columns: cols,
+      vocabulary: vocab,
+    );
+
+    List<Figure> figuresOf(ImportRecordPlan plan) =>
+        (plan.draft.dance.figuresSource as DecodedFigures).figures;
+
+    test(
+      'a formation with a detail reads back as its shape and detail',
+      () async {
+        final batch = await plan(
+          'Title,Form,Formation\r\n'
+          'Hole in the Wall,ecd,"Duple minor, improper — first corners cross"\r\n'
+          'Becket Reel,contra,Becket — slide left to start\r\n',
+          m(
+            const [
+              CsvColumnMapping(CsvColumnTarget.title),
+              CsvColumnMapping(CsvColumnTarget.form),
+              CsvColumnMapping(CsvColumnTarget.formation),
+            ],
+            vocab: const CsvValueVocabulary(
+              formations: {'becket': FormationShape.becketCw},
+              improperFormations: {
+                'duple minor, improper': FormationShape.dupleMinor,
+              },
+            ),
+          ),
+        );
+        final [ecd, becket] = [for (final r in batch.records) r.draft.dance];
+        expect(ecd.formation.shape, FormationShape.dupleMinor);
+        expect(ecd.formation.improper, isTrue);
+        expect(ecd.formation.detail, 'first corners cross');
+        expect(ecd.callingNotes, isEmpty);
+        expect(becket.formation.shape, FormationShape.becketCw);
+        expect(becket.formation.detail, 'slide left to start');
+        expect(becket.callingNotes, isEmpty);
+      },
+    );
+
+    test('a row with no readable formation gets the first shape its form '
+        'offers, whichever column comes first', () async {
+      final batch = await plan(
+        'Title,Formation,Form\r\n'
+        'Hole in the Wall,,ecd\r\n'
+        'Texas Star,,square\r\n'
+        'Chorus Jig,,contra\r\n'
+        'Odd Set,Hexagon,ecd\r\n',
+        m(const [
+          CsvColumnMapping(CsvColumnTarget.title),
+          CsvColumnMapping(CsvColumnTarget.formation),
+          CsvColumnMapping(CsvColumnTarget.form),
+        ]),
+      );
+      final got = {
+        for (final r in batch.records)
+          r.draft.dance.title: r.draft.dance.formation.shape,
+      };
+      expect(got, {
+        'Hole in the Wall': FormationShape.dupleMinor,
+        'Texas Star': FormationShape.square,
+        'Chorus Jig': FormationShape.dupleImproper,
+        'Odd Set': FormationShape.dupleMinor,
+      });
+      for (final r in batch.records) {
+        final d = r.draft.dance;
+        expect(
+          d.formation.shape,
+          offeredFormationShapes(d.form).first,
+          reason: d.title,
+        );
+      }
+      expect(batch.records.last.draft.dance.callingNotes, 'Formation: Hexagon');
+    });
+
+    test("an indented line under a figure is that figure's note, in a "
+        'figures cell and in a phrase column', () async {
+      final batch = await plan(
+        'Title,Figures,A1\r\n'
+        '"Export","A1  neighbors balance and swing (16 beats)\n'
+        '    end facing down\n'
+        'A2  partners swing (16 beats) ¶",\r\n'
+        '"Phrases",,"neighbors balance and swing\n  end facing down"\r\n',
+        m(const [
+          CsvColumnMapping(CsvColumnTarget.title),
+          CsvColumnMapping(CsvColumnTarget.figures),
+          CsvColumnMapping.phrase('A1'),
+        ]),
+      );
+      final exported = figuresOf(batch.records[0]);
+      expect([for (final f in exported) f.move], ['swing', 'swing']);
+      expect(exported.first.note, 'end facing down');
+      expect(exported.last.note, isNull);
+      expect(exported.last.progression, isTrue);
+      final phrase = figuresOf(batch.records[1]);
+      expect([for (final f in phrase) f.move], ['swing']);
+      expect(phrase.single.note, 'end facing down');
+    });
+
+    test('lines all indented alike are each a figure', () async {
+      final batch = await plan(
+        'Title,Figures\r\n'
+        '"Typed","  neighbors balance and swing\n  partners swing"\r\n',
+        m(const [
+          CsvColumnMapping(CsvColumnTarget.title),
+          CsvColumnMapping(CsvColumnTarget.figures),
+        ]),
+      );
+      final figures = figuresOf(batch.records.single);
+      expect([for (final f in figures) f.move], ['swing', 'swing']);
+      expect([for (final f in figures) f.note], [null, null]);
+    });
+
+    test('a figure line longer than typed entry allows is kept as its text '
+        'without being parsed', () async {
+      // The parser reads this line as a swing at any length, so only a line
+      // that never reaches it comes back as text.
+      String line(int length) =>
+          'partners${' ' * (length - 'partners'.length - 'swing'.length)}'
+          'swing';
+      final batch = await plan(
+        'Title,Figures\r\n'
+        'At the cap,${line(maxFreeTextEntryLength)}\r\n'
+        'Past the cap,${line(maxFreeTextEntryLength + 1)}\r\n',
+        m(const [
+          CsvColumnMapping(CsvColumnTarget.title),
+          CsvColumnMapping(CsvColumnTarget.figures),
+        ]),
+      );
+      expect(figuresOf(batch.records[0]).single.move, 'swing');
+      final kept = figuresOf(batch.records[1]).single;
+      expect(kept.isCustom, isTrue);
+      expect(kept.params['text'], line(maxFreeTextEntryLength + 1));
+      expect(kept.customOrigin, CustomOrigin.importGap);
+    });
+
+    test(
+      'Progression, Status and Mixer import the value in the cell',
+      () async {
+        final batch = await plan(
+          'Title,Progression,Status,Mixer\r\n'
+          'A,none,deprecated,yes\r\n'
+          'B,double,broken,no\r\n'
+          'C,Triple,draft,Ja\r\n'
+          'D,quadruple,variation,Nej\r\n'
+          'E,other,Aktiv,x\r\n'
+          'F,Einfach,active,0\r\n',
+          m(
+            const [
+              CsvColumnMapping(CsvColumnTarget.title),
+              CsvColumnMapping(CsvColumnTarget.progression),
+              CsvColumnMapping(CsvColumnTarget.status),
+              CsvColumnMapping(CsvColumnTarget.mixer),
+            ],
+            vocab: const CsvValueVocabulary(
+              progressions: {'einfach': Progression.single},
+              statuses: {'aktiv': DanceStatus.active},
+              yes: {'ja'},
+              no: {'nej'},
+            ),
+          ),
+        );
+        expect(batch.errors, isEmpty);
+        expect(
+          [
+            for (final r in batch.records)
+              (
+                r.draft.dance.progression,
+                r.draft.dance.status,
+                r.draft.dance.mixer,
+              ),
+          ],
+          [
+            (Progression.none, DanceStatus.deprecated, true),
+            (Progression.double, DanceStatus.broken, false),
+            (Progression.triple, DanceStatus.draft, true),
+            (Progression.quadruple, DanceStatus.variation, false),
+            (Progression.other, DanceStatus.active, true),
+            (Progression.single, DanceStatus.active, false),
+          ],
+        );
+        for (final r in batch.records) {
+          expect(
+            r.draft.dance.callingNotes,
+            isEmpty,
+            reason: r.draft.dance.title,
+          );
+        }
+      },
+    );
+
+    test('a cell that really begins with an apostrophe before a formula '
+        'character reads back as written', () {
+      for (final value in [
+        "'=quoted at start",
+        "''=two apostrophes",
+        "'''@three",
+        "'-dash",
+        "'tis",
+        "'+1",
+        '=SUM(A1:A9)',
+        '-3.5',
+        "'",
+        '',
+      ]) {
+        expect(unguardCsvFormula(guardCsvFormula(value)), value, reason: value);
+      }
+    });
+
+    test('a new choice field makes one option of values that differ only by '
+        'case, spelled as first met', () async {
+      const cols = [
+        CsvColumnMapping(CsvColumnTarget.title),
+        CsvColumnMapping.newCustomField('Energy', CustomFieldType.choice),
+      ];
+      final batch = await plan(
+        'Title,Energy\r\nA,High\r\nB,high\r\nC, HIGH \r\nD,Low\r\n',
+        m(cols),
+      );
+      await importer.commit(batch, mapping: m(cols), now: now, newId: _ids());
+      final field = (await fields.listAll()).single;
+      expect(field.choices, ['High', 'Low']);
+      expect(
+        {
+          for (final d in await dances.listAll())
+            d.title: d.customFields.single.value,
+        },
+        {'A': 'High', 'B': 'High', 'C': 'High', 'D': 'Low'},
+      );
+    });
+
+    test('a new choice column adds no option an existing field of that name '
+        'has in another case', () async {
+      await fields.upsert(
+        CustomFieldDef(
+          id: 'f-energy',
+          key: 'energy',
+          label: 'Energy',
+          type: CustomFieldType.choice,
+          choices: const ['High'],
+        ),
+      );
+      const cols = [
+        CsvColumnMapping(CsvColumnTarget.title),
+        CsvColumnMapping.newCustomField('Energy', CustomFieldType.choice),
+      ];
+      final batch = await plan('Title,Energy\r\nA,high\r\nB,Low\r\n', m(cols));
+      await importer.commit(batch, mapping: m(cols), now: now, newId: _ids());
+      expect((await fields.listAll()).single.choices, ['High', 'Low']);
+      expect(
+        {
+          for (final d in await dances.listAll())
+            d.title: d.customFields.single.value,
+        },
+        {'A': 'High', 'B': 'Low'},
+      );
+    });
+  });
 }
