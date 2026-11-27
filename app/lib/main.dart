@@ -54,6 +54,7 @@ import 'src/data/incoming_file_channel.dart';
 import 'src/data/locale_scope.dart';
 import 'src/data/migration_error_labels.dart';
 import 'src/data/migration_guard.dart';
+import 'src/data/recovery_copy.dart' show shareRecoveryCopy;
 import 'src/data/online_search.dart';
 import 'src/data/persisted_preference.dart';
 import 'src/data/colour_dance_theme_scope.dart';
@@ -2643,21 +2644,32 @@ class _CompendiumAppState extends State<CompendiumApp>
       return; // Snapshot failed: do NOT wipe.
     }
 
-    // Snapshot written — confirm then wipe, showing where the files were saved.
+    // Snapshot written — confirm then wipe. On desktop the dialog shows where
+    // the files were saved. On Android, iPhone and iPad that folder is private
+    // to the app, so the dialog says so and offers to share a scrubbed copy of
+    // the backup instead (pre-release audit finding F-01).
     if (!context.mounted) return;
     final ready = result as BackUpReady;
+    final onPhoneOrTablet =
+        belowFloorRouteFor(defaultTargetPlatform) != BelowFloorRoute.desktop;
     final pathLines = StringBuffer(l10n.migrationBelowFloorResetConfirmBody);
-    pathLines
-      ..write('\n\n')
-      ..write(l10n.migrationBelowFloorBackupSavedAt(ready.snapshotFile.path));
-    if (ready.diagnosticLogFile != null) {
+    if (onPhoneOrTablet) {
       pathLines
-        ..write('\n')
-        ..write(
-          l10n.migrationBelowFloorDiagnosticLogSavedAt(
-            ready.diagnosticLogFile!.path,
-          ),
-        );
+        ..write('\n\n')
+        ..write(l10n.migrationBelowFloorBackupKeptInApp);
+    } else {
+      pathLines
+        ..write('\n\n')
+        ..write(l10n.migrationBelowFloorBackupSavedAt(ready.snapshotFile.path));
+      if (ready.diagnosticLogFile != null) {
+        pathLines
+          ..write('\n')
+          ..write(
+            l10n.migrationBelowFloorDiagnosticLogSavedAt(
+              ready.diagnosticLogFile!.path,
+            ),
+          );
+      }
     }
     final confirmed = await showDialog<bool>(
       context: context,
@@ -2674,6 +2686,17 @@ class _CompendiumAppState extends State<CompendiumApp>
               onPressed: () => Navigator.of(ctx).pop(false),
               child: Text(l10n.commonCancel),
             ),
+            if (onPhoneOrTablet)
+              Builder(
+                builder: (buttonContext) => TextButton(
+                  key: const ValueKey('below-floor-share-backup'),
+                  onPressed: () => _shareRecoveryCopy(
+                    ready.snapshotFile,
+                    _shareOriginOf(buttonContext),
+                  ),
+                  child: Text(l10n.migrationBelowFloorShareBackup),
+                ),
+              ),
             FilledButton(
               style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
               onPressed: () => Navigator.of(ctx).pop(true),
@@ -2687,6 +2710,55 @@ class _CompendiumAppState extends State<CompendiumApp>
     if (confirmed != true) return;
 
     await _doReset(dbFile, l10n);
+  }
+
+  /// "Share a copy of your data" on the below-floor recovery screen (Android,
+  /// iPhone and iPad): shares a scrubbed copy of the live database.
+  Future<void> _shareRecoveryCopyOfLibrary(
+    DatabaseBelowFloorError error,
+    Rect? origin,
+  ) async {
+    final dbFile = await widget.databaseFileResolver();
+    await _shareRecoveryCopy(dbFile, origin);
+  }
+
+  /// Shares a scrubbed recovery copy of [source] (`recovery_copy.dart`): the
+  /// live database from the recovery screen, or the snapshot "Back up + reset"
+  /// just wrote, from its confirmation dialog. If the copy cannot be made,
+  /// nothing is shared and a dialog says so; the source is never changed.
+  Future<void> _shareRecoveryCopy(File source, Rect? origin) async {
+    try {
+      await shareRecoveryCopy(source: source, origin: origin);
+    } on Object catch (e, st) {
+      logCaughtErrorTypeOnly(e, st, source: 'main.shareRecoveryCopy');
+      final context = _navigatorKey.currentContext;
+      if (context == null || !context.mounted) return;
+      final l10n = AppLocalizations.of(context);
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.warning_amber_outlined),
+          title: Text(l10n.migrationBelowFloorShareCopyFailedTitle),
+          content: Text(l10n.migrationBelowFloorShareCopyFailedBody),
+          actions: [
+            TextButton(
+              autofocus: true,
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.commonOk),
+            ),
+          ],
+        ),
+        animationStyle: AppMotion.styleFor(context),
+      );
+    }
+  }
+
+  /// The on-screen rectangle of the widget [context] belongs to, which the
+  /// iPad share sheet anchors to; `null` before layout.
+  static Rect? _shareOriginOf(BuildContext context) {
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
   }
 
   /// Reset only action for the below-floor recovery screen (issue #841).
@@ -3465,6 +3537,7 @@ class _CompendiumAppState extends State<CompendiumApp>
               onRetry: _retry,
               onBackUpAndReset: _backUpAndReset,
               onResetOnly: _resetOnly,
+              onShareRecoveryCopy: _shareRecoveryCopyOfLibrary,
               builder: _buildReadyApp,
               rebuildProgress: _derivedRebuildProgress,
             ),

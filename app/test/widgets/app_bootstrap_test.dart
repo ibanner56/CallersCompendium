@@ -19,6 +19,9 @@ import '../support/l10n_harness.dart';
 /// No-op reset callbacks for tests that don't exercise the below-floor screen.
 Future<void> _noopReset(DatabaseBelowFloorError _) async {}
 
+/// No-op share callback for tests that don't exercise the share action.
+Future<void> _noopShare(DatabaseBelowFloorError _, Rect? _) async {}
+
 void main() {
   testWidgets('shows a loading screen until the startup future completes', (
     tester,
@@ -33,6 +36,7 @@ void main() {
           onRetry: () {},
           onBackUpAndReset: _noopReset,
           onResetOnly: _noopReset,
+          onShareRecoveryCopy: _noopShare,
           builder: (_) => const Text('Collection ready'),
         ),
       ),
@@ -64,6 +68,7 @@ void main() {
           onRetry: () => retried = true,
           onBackUpAndReset: _noopReset,
           onResetOnly: _noopReset,
+          onShareRecoveryCopy: _noopShare,
           builder: (_) => const Text('Collection ready'),
         ),
       ),
@@ -114,6 +119,7 @@ void main() {
           onRetry: () {},
           onBackUpAndReset: _noopReset,
           onResetOnly: _noopReset,
+          onShareRecoveryCopy: _noopShare,
           builder: (_) => const Text('Collection ready'),
         ),
       ),
@@ -150,6 +156,7 @@ void main() {
           onRetry: () {},
           onBackUpAndReset: _noopReset,
           onResetOnly: _noopReset,
+          onShareRecoveryCopy: _noopShare,
           builder: (_) => const Text('Collection ready'),
         ),
       ),
@@ -193,6 +200,7 @@ void main() {
             onRetry: () {},
             onBackUpAndReset: (_) async => backUpAndResetCalled = true,
             onResetOnly: (_) async => resetOnlyCalled = true,
+            onShareRecoveryCopy: _noopShare,
             builder: (_) => const Text('Collection ready'),
           ),
         ),
@@ -268,7 +276,10 @@ void main() {
       bridgeTag: 'v0.10.0-beta',
     );
 
-    Future<FakeUrlLauncher> pumpBelowFloor(WidgetTester tester) async {
+    Future<FakeUrlLauncher> pumpBelowFloor(
+      WidgetTester tester, {
+      List<Rect?>? shares,
+    }) async {
       final launcher = installFakeUrlLauncher();
       final completer = Completer<void>();
       await tester.pumpWidget(
@@ -280,6 +291,10 @@ void main() {
             onRetry: () {},
             onBackUpAndReset: _noopReset,
             onResetOnly: _noopReset,
+            onShareRecoveryCopy: (e, origin) async {
+              expect(e, same(error));
+              shares?.add(origin);
+            },
             builder: (_) => const Text('Collection ready'),
           ),
         ),
@@ -309,6 +324,59 @@ void main() {
       );
     }
 
+    /// On Android, iPhone and iPad: the only filled (primary) action shares a
+    /// scrubbed copy, handing the share sheet the button's rectangle, and the
+    /// link under it opens the user guide's computer route. Nothing opens the
+    /// release page.
+    Future<void> expectShareAndGuideNotReleasePage(
+      WidgetTester tester,
+      FakeUrlLauncher launcher,
+      List<Rect?> shares,
+    ) async {
+      final l10n = l10nOf(tester);
+      expect(find.byKey(const ValueKey('bootstrap-get-bridge')), findsNothing);
+      expect(
+        find.text(l10n.migrationBelowFloorGetBridge('v0.10.0-beta')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('bootstrap-releases-link')),
+        findsNothing,
+      );
+      final share = find.byKey(const ValueKey('bootstrap-share-recovery-copy'));
+      expect(find.bySubtype<FilledButton>(), findsOneWidget);
+      expect(tester.widget(share), isA<FilledButton>());
+      expect(
+        find.descendant(
+          of: share,
+          matching: find.text(l10n.migrationBelowFloorShareCopy),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(share);
+      await tester.pumpAndSettle();
+      expect(shares, hasLength(1));
+      expect(shares.single, tester.getRect(share));
+
+      final guide = find.byKey(const ValueKey('bootstrap-recovery-guide'));
+      expect(
+        find.descendant(
+          of: guide,
+          matching: find.text(l10n.migrationBelowFloorComputerGuide),
+        ),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(guide);
+      await tester.tap(guide);
+      await tester.pumpAndSettle();
+      expect(launcher.launchedUrls, [kBelowFloorRecoveryGuideUrl]);
+      expect(
+        launcher.launchedUrls.where((u) => u.startsWith(kReleasesPageUrl)),
+        isEmpty,
+      );
+    }
+
     testWidgets(
       'desktop: install the bridge, open it once, install this version again',
       (tester) async {
@@ -320,6 +388,15 @@ void main() {
         );
         final getBridge = find.byKey(const ValueKey('bootstrap-get-bridge'));
         expect(tester.widget(getBridge), isA<FilledButton>());
+        // Desktop callers can reach their data folder; no share action.
+        expect(
+          find.byKey(const ValueKey('bootstrap-share-recovery-copy')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('bootstrap-recovery-guide')),
+          findsNothing,
+        );
         await tester.tap(getBridge);
         await tester.pumpAndSettle();
         expect(launcher.launchedUrls, ['$kReleasesPageUrl/tag/v0.10.0-beta']);
@@ -329,10 +406,11 @@ void main() {
     );
 
     testWidgets(
-      'Android: says not to uninstall, and nothing sends the caller to the '
-      'release page',
+      'Android: says not to uninstall, and the primary action shares a copy '
+      'instead of sending the caller to the release page',
       (tester) async {
-        final launcher = await pumpBelowFloor(tester);
+        final shares = <Rect?>[];
+        final launcher = await pumpBelowFloor(tester, shares: shares);
         final l10n = l10nOf(tester);
         expect(
           find.text(l10n.migrationBelowFloorBodyAndroid('v0.10.0-beta')),
@@ -343,32 +421,19 @@ void main() {
           findsNothing,
         );
         // Android will not install the older bridge over this version, and
-        // uninstalling to make room deletes the library: no button offers it,
-        // and there is no filled (primary) action at all.
-        expect(
-          find.byKey(const ValueKey('bootstrap-get-bridge')),
-          findsNothing,
-        );
-        expect(
-          find.text(l10n.migrationBelowFloorGetBridge('v0.10.0-beta')),
-          findsNothing,
-        );
-        expect(find.bySubtype<FilledButton>(), findsNothing);
-        expect(
-          find.byKey(const ValueKey('bootstrap-releases-link')),
-          findsNothing,
-        );
-        expect(launcher.launchedUrls, isEmpty);
+        // uninstalling to make room deletes the library: no button offers it.
+        await expectShareAndGuideNotReleasePage(tester, launcher, shares);
         expectResetsAndCopyDetailsKept();
       },
       variant: TargetPlatformVariant.only(TargetPlatform.android),
     );
 
     testWidgets(
-      'iPhone and iPad: points to TestFlight previous builds, not the release '
-      'page',
+      'iPhone and iPad: points to TestFlight previous builds and offers the '
+      'same share, not the release page',
       (tester) async {
-        final launcher = await pumpBelowFloor(tester);
+        final shares = <Rect?>[];
+        final launcher = await pumpBelowFloor(tester, shares: shares);
         final l10n = l10nOf(tester);
         // TestFlight lists the bridge by its version number, not its tag.
         expect(
@@ -380,20 +445,34 @@ void main() {
           findsNothing,
         );
         // The release page has no iOS download.
-        expect(
-          find.byKey(const ValueKey('bootstrap-get-bridge')),
-          findsNothing,
-        );
-        expect(find.bySubtype<FilledButton>(), findsNothing);
-        expect(
-          find.byKey(const ValueKey('bootstrap-releases-link')),
-          findsNothing,
-        );
-        expect(launcher.launchedUrls, isEmpty);
+        await expectShareAndGuideNotReleasePage(tester, launcher, shares);
         expectResetsAndCopyDetailsKept();
       },
       variant: TargetPlatformVariant.only(TargetPlatform.iOS),
     );
+
+    test('the guide link points at a heading the user guide has', () {
+      final anchor = Uri.parse(kBelowFloorRecoveryGuideUrl).fragment;
+      expect(anchor, isNotEmpty);
+      expect(
+        kBelowFloorRecoveryGuideUrl,
+        startsWith(
+          'https://github.com/ibanner56/CallersCompendium/blob/main/'
+          'docs/user/faq.md#',
+        ),
+      );
+      // GitHub's anchor for a heading: lower case, punctuation other than
+      // hyphens dropped, spaces turned into hyphens.
+      String anchorOf(String heading) => heading
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^\w\- ]', unicode: true), '')
+          .replaceAll(' ', '-');
+      final headings = [
+        for (final line in File('assets/docs/user/faq.md').readAsLinesSync())
+          if (line.startsWith('#')) line.replaceFirst(RegExp(r'^#+\s*'), ''),
+      ];
+      expect(headings.map(anchorOf), contains(anchor));
+    });
   });
 
   testWidgets(
@@ -418,6 +497,7 @@ void main() {
               await actionCompleter.future;
             },
             onResetOnly: _noopReset,
+            onShareRecoveryCopy: _noopShare,
             builder: (_) => const Text('Collection ready'),
           ),
         ),
@@ -496,6 +576,7 @@ void main() {
           onRetry: () {},
           onBackUpAndReset: _noopReset,
           onResetOnly: _noopReset,
+          onShareRecoveryCopy: _noopShare,
           builder: (_) => const Text('Collection ready'),
           rebuildProgress: progress,
         ),
@@ -544,6 +625,7 @@ void main() {
           onRetry: () {},
           onBackUpAndReset: _noopReset,
           onResetOnly: _noopReset,
+          onShareRecoveryCopy: _noopShare,
           builder: (_) => const Text('Collection ready'),
           rebuildProgress: progress,
         ),
@@ -667,6 +749,7 @@ void main() {
                 onRetry: () {},
                 onBackUpAndReset: _noopReset,
                 onResetOnly: _noopReset,
+                onShareRecoveryCopy: _noopShare,
                 builder: (_) => const Text('Collection ready'),
               ),
             ),
@@ -742,6 +825,7 @@ void main() {
             onRetry: () {},
             onBackUpAndReset: _noopReset,
             onResetOnly: _noopReset,
+            onShareRecoveryCopy: _noopShare,
             builder: (_) => const Text('Collection ready'),
           ),
         ),
@@ -777,6 +861,7 @@ void main() {
               onRetry: () {},
               onBackUpAndReset: _noopReset,
               onResetOnly: _noopReset,
+              onShareRecoveryCopy: _noopShare,
               builder: (_) => const Text('Collection ready'),
             ),
           ),

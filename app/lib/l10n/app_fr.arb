@@ -224,13 +224,37 @@
   "@migrationBelowFloorBody": {
     "x-sourceSha256": "6855c6b21e03dea3850d71a05c79c42f710923c44dfb9f02f392e81939616c9d"
   },
-  "migrationBelowFloorBodyAndroid": "Vos données sont toujours sur cet appareil, mais cette version ne peut pas les mettre à jour. Ne désinstallez pas l’application : cela supprimerait vos données, et Android n’installera de toute façon pas {bridgeTag} par-dessus cette version. Pour garder vos données, laissez l’application installée, ne la réinitialisez pas et choisissez « Copier les détails » lorsque vous demandez de l’aide.\n\nSi vous préférez repartir de zéro, utilisez les options ci-dessous — vos données actuelles seront perdues.",
+  "migrationBelowFloorBodyAndroid": "Vos données sont toujours sur cet appareil, mais cette version ne peut pas les mettre à jour ici. Ne désinstallez pas l’application : cela supprimerait vos données, et Android n’installera de toute façon pas {bridgeTag} par-dessus cette version. Pour garder vos données, choisissez « Partager une copie de vos données » et enregistrez le fichier en dehors de l’application, par exemple sur un ordinateur ou dans un stockage en ligne. Un ordinateur équipé de {bridgeTag} peut les mettre à jour, puis cette application peut les restaurer : voir « Comment les mettre à jour sur un ordinateur ».\n\nSi vous préférez repartir de zéro, utilisez les options ci-dessous — vos données actuelles seront perdues.",
   "@migrationBelowFloorBodyAndroid": {
-    "x-sourceSha256": "d7d6e28193c75cf55eaae8bffed52d211d90c33dac693e4b9c5d5012ce926478"
+    "x-sourceSha256": "8e961b255e303fcb519305e8dc89c42e53c004b130b9eaa9b2efbb060c1dbe89"
   },
-  "migrationBelowFloorBodyIos": "Vos données sont toujours sur cet appareil. Ne supprimez pas l’application : cela supprimerait vos données. Dans TestFlight, ouvrez Caller’s Compendium et cherchez la version {bridgeVersion} sous « Builds précédents ». Si elle y figure, installez-la, ouvrez l’application une fois pour qu’elle mette à jour vos données, puis réinstallez le build le plus récent. Si elle n’y figure pas, laissez l’application telle quelle et choisissez « Copier les détails » lorsque vous demandez de l’aide.\n\nSi vous préférez repartir de zéro, utilisez les options ci-dessous — vos données actuelles seront perdues.",
+  "migrationBelowFloorBodyIos": "Vos données sont toujours sur cet appareil. Ne supprimez pas l’application : cela supprimerait vos données. Dans TestFlight, ouvrez Caller’s Compendium et cherchez la version {bridgeVersion} sous « Builds précédents ». Si elle y figure, installez-la, ouvrez l’application une fois pour qu’elle mette à jour vos données, puis réinstallez le build le plus récent. Si elle n’y figure pas, choisissez « Partager une copie de vos données » et mettez-les plutôt à jour sur un ordinateur : voir « Comment les mettre à jour sur un ordinateur ».\n\nSi vous préférez repartir de zéro, utilisez les options ci-dessous — vos données actuelles seront perdues.",
   "@migrationBelowFloorBodyIos": {
-    "x-sourceSha256": "2b82ea98abe02624920609317078caab270884491449eb4bfa75691348b8fe53"
+    "x-sourceSha256": "bed41858683d7fdf0ef8dcf24b2f20910a8a349e98a575f57c98e4838cce53f8"
+  },
+  "migrationBelowFloorShareCopy": "Partager une copie de vos données",
+  "@migrationBelowFloorShareCopy": {
+    "x-sourceSha256": "cf15b2a0da12933726c959f817de9f5936ae245ef59215b0580ece82b10a4d49"
+  },
+  "migrationBelowFloorShareBackup": "Partager une copie",
+  "@migrationBelowFloorShareBackup": {
+    "x-sourceSha256": "7a9e4b2ad71050489076afd11dc463167a30d6dfb17def2bc229acbf6f5347c3"
+  },
+  "migrationBelowFloorBackupKeptInApp": "La sauvegarde est conservée dans l’application, où vous ne pouvez pas l’ouvrir. Pour garder une copie utilisable sur un ordinateur, choisissez « Partager une copie » avant de réinitialiser.",
+  "@migrationBelowFloorBackupKeptInApp": {
+    "x-sourceSha256": "f6e9407c09f9c9b7c2222f787b46e1d48e20c520eca2413cd09abf87c569b24c"
+  },
+  "migrationBelowFloorShareCopyFailedTitle": "Impossible de créer une copie",
+  "@migrationBelowFloorShareCopyFailedTitle": {
+    "x-sourceSha256": "ebf6ba6d006d7823c6c67d39a2c183021ffce38b9e925f02326db41f7329cafa"
+  },
+  "migrationBelowFloorShareCopyFailedBody": "Rien n’a été partagé et vos données n’ont pas été modifiées. Libérez de l’espace, puis réessayez.",
+  "@migrationBelowFloorShareCopyFailedBody": {
+    "x-sourceSha256": "224c0a203ab2f682ba768ed759b2af916149eeb4cce43ca7bc050fd18a5d0650"
+  },
+  "migrationBelowFloorComputerGuide": "Comment les mettre à jour sur un ordinateur",
+  "@migrationBelowFloorComputerGuide": {
+    "x-sourceSha256": "62ededb674b675c3575e7a0b4afb0403adc1a07125d739092eedf332acb53d24"
   },
   "migrationBelowFloorGetBridge": "Obtenir {bridgeTag}",
   "@migrationBelowFloorGetBridge": {

@@ -228,13 +228,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String migrationBelowFloorBodyAndroid(String bridgeTag) {
-    return 'Your data is still on this device, but this version can\'t update it. Don\'t uninstall the app: that deletes your data, and Android won\'t install $bridgeTag over this version anyway. To keep your data, leave the app installed and don\'t reset it, and choose Copy details when you ask for help.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.';
+    return 'Your data is still on this device, but this version can\'t update it here. Don\'t uninstall the app: that deletes your data, and Android won\'t install $bridgeTag over this version anyway. To keep your data, choose Share a copy of your data and save the file outside the app, for example on a computer or a cloud drive. A computer with $bridgeTag can update it, and this app can then restore it: see How to update it on a computer.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.';
   }
 
   @override
   String migrationBelowFloorBodyIos(String bridgeVersion) {
-    return 'Your data is still on this device. Don\'t delete the app: that deletes your data. In TestFlight, open Caller\'s Compendium and look under Previous Builds for version $bridgeVersion. If it\'s listed, install it, open the app once to let it update your data, then install the newest build again. If it isn\'t listed, keep the app as it is and choose Copy details when you ask for help.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.';
+    return 'Your data is still on this device. Don\'t delete the app: that deletes your data. In TestFlight, open Caller\'s Compendium and look under Previous Builds for version $bridgeVersion. If it\'s listed, install it, open the app once to let it update your data, then install the newest build again. If it isn\'t listed, choose Share a copy of your data and update it on a computer instead: see How to update it on a computer.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.';
   }
+
+  @override
+  String get migrationBelowFloorShareCopy => 'Share a copy of your data';
+
+  @override
+  String get migrationBelowFloorShareBackup => 'Share a copy';
+
+  @override
+  String get migrationBelowFloorBackupKeptInApp =>
+      'The backup is kept inside the app, where you can\'t open it. To keep a copy you can use on a computer, choose Share a copy before you reset.';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedTitle => 'Couldn\'t make a copy';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedBody =>
+      'Nothing was shared, and your data hasn\'t been changed. Free up some space, then try again.';
+
+  @override
+  String get migrationBelowFloorComputerGuide =>
+      'How to update it on a computer';
 
   @override
   String migrationBelowFloorGetBridge(String bridgeTag) {

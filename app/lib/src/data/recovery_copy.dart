@@ -1,7 +1,11 @@
 import 'dart:io';
+import 'dart:ui' show Rect;
 
 import 'package:compendium_core/compendium_core.dart'
     show EgressClass, classifySettingsKey, fieldClassifications;
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:sqlite3/sqlite3.dart' as sql;
 
 import 'backup_service.dart' show isBackupEligibleSettingKey;
@@ -51,13 +55,13 @@ Future<File> writeRecoveryCopy({
     try {
       src.execute('VACUUM INTO ?', [destination.path]);
     } finally {
-      src.dispose();
+      src.close();
     }
     final db = sql.sqlite3.open(destination.path);
     try {
       _scrub(db);
     } finally {
-      db.dispose();
+      db.close();
     }
     return destination;
   } on Object {
@@ -65,6 +69,42 @@ Future<File> writeRecoveryCopy({
     _deleteCopy(destination);
     rethrow;
   }
+}
+
+/// The name the shared recovery copy carries. The user guide's computer route
+/// has the caller rename it `compendium.sqlite`; a different name here keeps a
+/// copy saved to a shared folder from being mistaken for a live library.
+const String kRecoveryCopyFileName = 'compendium-recovery-copy.sqlite';
+
+/// Writes a recovery copy of [source] into [workDir] (by default a folder in
+/// the app's temporary directory, private to the app) and hands it to the
+/// system share sheet ([shareInvoker], by default `share_plus`), anchored at
+/// [origin] on iPad. A later share overwrites the copy.
+///
+/// The copy is written in full, and scrubbed, before the sheet opens: a
+/// failure throws before anything is shared. Whether the caller then saved or
+/// sent the file is the share sheet's business, so nothing here reports that
+/// it was kept.
+Future<void> shareRecoveryCopy({
+  required File source,
+  required Rect? origin,
+  Directory? workDir,
+  Future<void> Function(ShareParams params)? shareInvoker,
+}) async {
+  final dir =
+      workDir ??
+      Directory(p.join((await getTemporaryDirectory()).path, 'recovery_copy'));
+  final copy = await writeRecoveryCopy(
+    source: source,
+    destination: File(p.join(dir.path, kRecoveryCopyFileName)),
+  );
+  await (shareInvoker ?? SharePlus.instance.share)(
+    ShareParams(
+      files: [XFile(copy.path, mimeType: 'application/vnd.sqlite3')],
+      fileNameOverrides: const [kRecoveryCopyFileName],
+      sharePositionOrigin: origin,
+    ),
+  );
 }
 
 /// Whether a settings row with [key] stays in a recovery copy. See

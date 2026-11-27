@@ -130,7 +130,7 @@ void main() {
       putSetting(seeded, 'reduce_motion', 'true'); // deviceLocal, backed up
       putSetting(seeded, 'saved_search:kept', '{}'); // shareable prefix
     } finally {
-      seeded.dispose();
+      seeded.close();
     }
     expect(
       emptied,
@@ -192,7 +192,7 @@ void main() {
         expect(keepSettingInRecoveryCopy(key), isTrue, reason: key);
       }
     } finally {
-      db.dispose();
+      db.close();
     }
 
     // VACUUM left no deleted row in a free page.

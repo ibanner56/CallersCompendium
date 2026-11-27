@@ -221,13 +221,33 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String migrationBelowFloorBodyAndroid(String bridgeTag) {
-    return 'データはまだこのデバイスにありますが、このバージョンでは更新できません。アプリをアンインストールしないでください。アンインストールするとデータが削除されます。また、Androidではこのバージョンの上に$bridgeTagをインストールすることもできません。データを残すには、アプリはインストールしたままにし、リセットもしないでください。サポートを求めるときは「詳細をコピー」を選んでください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。';
+    return 'データはまだこのデバイスにありますが、このバージョンではここで更新できません。アプリをアンインストールしないでください。アンインストールするとデータが削除されます。また、Androidではこのバージョンの上に$bridgeTagをインストールすることもできません。データを残すには、「データのコピーを共有」を選んで、ファイルをアプリの外（コンピューターやクラウドストレージなど）に保存してください。$bridgeTagを入れたコンピューターでデータを更新でき、その後このアプリで復元できます。詳しくは「コンピューターで更新する方法」をご覧ください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。';
   }
 
   @override
   String migrationBelowFloorBodyIos(String bridgeVersion) {
-    return 'データはまだこのデバイスにあります。アプリを削除しないでください。削除するとデータも削除されます。TestFlightでCaller’s Compendiumを開き、「以前のビルド」でバージョン$bridgeVersionを探してください。表示されている場合は、それをインストールし、データを更新するためにアプリを一度開いてから、最新のビルドを再度インストールしてください。表示されていない場合は、アプリをそのままにして、サポートを求めるときは「詳細をコピー」を選んでください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。';
+    return 'データはまだこのデバイスにあります。アプリを削除しないでください。削除するとデータも削除されます。TestFlightでCaller’s Compendiumを開き、「以前のビルド」でバージョン$bridgeVersionを探してください。表示されている場合は、それをインストールし、データを更新するためにアプリを一度開いてから、最新のビルドを再度インストールしてください。表示されていない場合は、「データのコピーを共有」を選んで、代わりにコンピューターで更新してください。詳しくは「コンピューターで更新する方法」をご覧ください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。';
   }
+
+  @override
+  String get migrationBelowFloorShareCopy => 'データのコピーを共有';
+
+  @override
+  String get migrationBelowFloorShareBackup => 'コピーを共有';
+
+  @override
+  String get migrationBelowFloorBackupKeptInApp =>
+      'バックアップはアプリの中に保存されていて、開くことはできません。コンピューターで使えるコピーを残すには、リセットする前に「コピーを共有」を選んでください。';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedTitle => 'コピーを作成できませんでした';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedBody =>
+      '何も共有されておらず、データも変更されていません。空き容量を増やしてから、もう一度お試しください。';
+
+  @override
+  String get migrationBelowFloorComputerGuide => 'コンピューターで更新する方法';
 
   @override
   String migrationBelowFloorGetBridge(String bridgeTag) {

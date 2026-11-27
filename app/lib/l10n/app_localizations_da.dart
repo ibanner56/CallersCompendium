@@ -231,13 +231,35 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String migrationBelowFloorBodyAndroid(String bridgeTag) {
-    return 'Dine data er stadig på denne enhed, men denne version kan ikke opdatere dem. Afinstaller ikke appen: Det sletter dine data, og Android vil alligevel ikke installere $bridgeTag oven på denne version. For at beholde dine data skal du lade appen være installeret og ikke nulstille den, og vælge »Kopiér detaljer«, når du beder om hjælp.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.';
+    return 'Dine data er stadig på denne enhed, men denne version kan ikke opdatere dem her. Afinstaller ikke appen: Det sletter dine data, og Android vil alligevel ikke installere $bridgeTag oven på denne version. For at beholde dine data skal du vælge »Del en kopi af dine data« og gemme filen uden for appen, for eksempel på en computer eller i et cloudlager. En computer med $bridgeTag kan opdatere dem, og derefter kan denne app gendanne dem: se »Sådan opdaterer du dem på en computer«.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.';
   }
 
   @override
   String migrationBelowFloorBodyIos(String bridgeVersion) {
-    return 'Dine data er stadig på denne enhed. Slet ikke appen: Det sletter dine data. Åbn Caller’s Compendium i TestFlight, og kig under »Tidligere builds« efter version $bridgeVersion. Hvis den står der, så installer den, åbn appen én gang for at lade den opdatere dine data, og installer derefter det nyeste build igen. Hvis den ikke står der, så lad appen være, som den er, og vælg »Kopiér detaljer«, når du beder om hjælp.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.';
+    return 'Dine data er stadig på denne enhed. Slet ikke appen: Det sletter dine data. Åbn Caller’s Compendium i TestFlight, og kig under »Tidligere builds« efter version $bridgeVersion. Hvis den står der, så installer den, åbn appen én gang for at lade den opdatere dine data, og installer derefter det nyeste build igen. Hvis den ikke står der, så vælg »Del en kopi af dine data«, og opdater dem i stedet på en computer: se »Sådan opdaterer du dem på en computer«.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.';
   }
+
+  @override
+  String get migrationBelowFloorShareCopy => 'Del en kopi af dine data';
+
+  @override
+  String get migrationBelowFloorShareBackup => 'Del en kopi';
+
+  @override
+  String get migrationBelowFloorBackupKeptInApp =>
+      'Sikkerhedskopien ligger i appen, hvor du ikke kan åbne den. Hvis du vil beholde en kopi, du kan bruge på en computer, så vælg »Del en kopi«, før du nulstiller.';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedTitle =>
+      'Kunne ikke lave en kopi';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedBody =>
+      'Intet blev delt, og dine data er ikke ændret. Frigør noget plads, og prøv så igen.';
+
+  @override
+  String get migrationBelowFloorComputerGuide =>
+      'Sådan opdaterer du dem på en computer';
 
   @override
   String migrationBelowFloorGetBridge(String bridgeTag) {

@@ -230,13 +230,35 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String migrationBelowFloorBodyAndroid(String bridgeTag) {
-    return 'Deine Daten sind noch auf diesem Gerät, aber diese Version kann sie nicht aktualisieren. Deinstalliere die App nicht: Dabei werden deine Daten gelöscht, und Android installiert $bridgeTag ohnehin nicht über diese Version. Damit deine Daten erhalten bleiben, lass die App installiert, setze sie nicht zurück und wähle „Details kopieren“, wenn du um Hilfe bittest.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.';
+    return 'Deine Daten sind noch auf diesem Gerät, aber diese Version kann sie hier nicht aktualisieren. Deinstalliere die App nicht: Dabei werden deine Daten gelöscht, und Android installiert $bridgeTag ohnehin nicht über diese Version. Damit deine Daten erhalten bleiben, wähle „Eine Kopie deiner Daten teilen“ und speichere die Datei außerhalb der App, zum Beispiel auf einem Computer oder in einem Cloud-Speicher. Ein Computer mit $bridgeTag kann sie aktualisieren, und diese App kann sie dann wiederherstellen: siehe „So aktualisierst du sie auf einem Computer“.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.';
   }
 
   @override
   String migrationBelowFloorBodyIos(String bridgeVersion) {
-    return 'Deine Daten sind noch auf diesem Gerät. Lösche die App nicht: Dabei werden deine Daten gelöscht. Öffne in TestFlight Caller’s Compendium und suche unter „Frühere Builds“ nach Version $bridgeVersion. Wenn sie dort steht, installiere sie, öffne die App einmal, damit sie deine Daten aktualisiert, und installiere dann wieder den neuesten Build. Wenn sie nicht dort steht, lass die App, wie sie ist, und wähle „Details kopieren“, wenn du um Hilfe bittest.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.';
+    return 'Deine Daten sind noch auf diesem Gerät. Lösche die App nicht: Dabei werden deine Daten gelöscht. Öffne in TestFlight Caller’s Compendium und suche unter „Frühere Builds“ nach Version $bridgeVersion. Wenn sie dort steht, installiere sie, öffne die App einmal, damit sie deine Daten aktualisiert, und installiere dann wieder den neuesten Build. Wenn sie nicht dort steht, wähle „Eine Kopie deiner Daten teilen“ und aktualisiere sie stattdessen auf einem Computer: siehe „So aktualisierst du sie auf einem Computer“.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.';
   }
+
+  @override
+  String get migrationBelowFloorShareCopy => 'Eine Kopie deiner Daten teilen';
+
+  @override
+  String get migrationBelowFloorShareBackup => 'Kopie teilen';
+
+  @override
+  String get migrationBelowFloorBackupKeptInApp =>
+      'Die Sicherung liegt in der App, wo du sie nicht öffnen kannst. Wenn du eine Kopie behalten willst, die du auf einem Computer nutzen kannst, wähle vor dem Zurücksetzen „Kopie teilen“.';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedTitle =>
+      'Kopie konnte nicht erstellt werden';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedBody =>
+      'Es wurde nichts geteilt, und deine Daten wurden nicht geändert. Gib etwas Speicherplatz frei und versuche es dann erneut.';
+
+  @override
+  String get migrationBelowFloorComputerGuide =>
+      'So aktualisierst du sie auf einem Computer';
 
   @override
   String migrationBelowFloorGetBridge(String bridgeTag) {

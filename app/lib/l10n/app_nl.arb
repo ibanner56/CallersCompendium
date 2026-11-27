@@ -224,13 +224,37 @@
   "@migrationBelowFloorBody": {
     "x-sourceSha256": "6855c6b21e03dea3850d71a05c79c42f710923c44dfb9f02f392e81939616c9d"
   },
-  "migrationBelowFloorBodyAndroid": "Je gegevens staan nog op dit apparaat, maar deze versie kan ze niet bijwerken. Verwijder de app niet: daarmee worden je gegevens gewist, en Android installeert {bridgeTag} sowieso niet over deze versie heen. Wil je je gegevens houden, laat de app dan geïnstalleerd, reset haar niet en kies ‘Details kopiëren’ als je om hulp vraagt.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.",
+  "migrationBelowFloorBodyAndroid": "Je gegevens staan nog op dit apparaat, maar deze versie kan ze hier niet bijwerken. Verwijder de app niet: daarmee worden je gegevens gewist, en Android installeert {bridgeTag} sowieso niet over deze versie heen. Wil je je gegevens houden, kies dan ‘Een kopie van je gegevens delen’ en bewaar het bestand buiten de app, bijvoorbeeld op een computer of in cloudopslag. Een computer met {bridgeTag} kan ze bijwerken, en daarna kan deze app ze terugzetten: zie ‘Zo werk je ze bij op een computer’.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.",
   "@migrationBelowFloorBodyAndroid": {
-    "x-sourceSha256": "d7d6e28193c75cf55eaae8bffed52d211d90c33dac693e4b9c5d5012ce926478"
+    "x-sourceSha256": "8e961b255e303fcb519305e8dc89c42e53c004b130b9eaa9b2efbb060c1dbe89"
   },
-  "migrationBelowFloorBodyIos": "Je gegevens staan nog op dit apparaat. Verwijder de app niet: daarmee worden je gegevens gewist. Open in TestFlight Caller’s Compendium en zoek onder ‘Vorige builds’ naar versie {bridgeVersion}. Staat die erbij, installeer haar dan, open de app één keer zodat je gegevens worden bijgewerkt en installeer daarna weer de nieuwste build. Staat die er niet bij, laat de app dan zoals ze is en kies ‘Details kopiëren’ als je om hulp vraagt.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.",
+  "migrationBelowFloorBodyIos": "Je gegevens staan nog op dit apparaat. Verwijder de app niet: daarmee worden je gegevens gewist. Open in TestFlight Caller’s Compendium en zoek onder ‘Vorige builds’ naar versie {bridgeVersion}. Staat die erbij, installeer haar dan, open de app één keer zodat je gegevens worden bijgewerkt en installeer daarna weer de nieuwste build. Staat die er niet bij, kies dan ‘Een kopie van je gegevens delen’ en werk ze in plaats daarvan bij op een computer: zie ‘Zo werk je ze bij op een computer’.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.",
   "@migrationBelowFloorBodyIos": {
-    "x-sourceSha256": "2b82ea98abe02624920609317078caab270884491449eb4bfa75691348b8fe53"
+    "x-sourceSha256": "bed41858683d7fdf0ef8dcf24b2f20910a8a349e98a575f57c98e4838cce53f8"
+  },
+  "migrationBelowFloorShareCopy": "Een kopie van je gegevens delen",
+  "@migrationBelowFloorShareCopy": {
+    "x-sourceSha256": "cf15b2a0da12933726c959f817de9f5936ae245ef59215b0580ece82b10a4d49"
+  },
+  "migrationBelowFloorShareBackup": "Kopie delen",
+  "@migrationBelowFloorShareBackup": {
+    "x-sourceSha256": "7a9e4b2ad71050489076afd11dc463167a30d6dfb17def2bc229acbf6f5347c3"
+  },
+  "migrationBelowFloorBackupKeptInApp": "De back-up staat in de app, waar je hem niet kunt openen. Wil je een kopie houden die je op een computer kunt gebruiken, kies dan ‘Kopie delen’ voordat je reset.",
+  "@migrationBelowFloorBackupKeptInApp": {
+    "x-sourceSha256": "f6e9407c09f9c9b7c2222f787b46e1d48e20c520eca2413cd09abf87c569b24c"
+  },
+  "migrationBelowFloorShareCopyFailedTitle": "Kan geen kopie maken",
+  "@migrationBelowFloorShareCopyFailedTitle": {
+    "x-sourceSha256": "ebf6ba6d006d7823c6c67d39a2c183021ffce38b9e925f02326db41f7329cafa"
+  },
+  "migrationBelowFloorShareCopyFailedBody": "Er is niets gedeeld en je gegevens zijn niet gewijzigd. Maak wat ruimte vrij en probeer het dan opnieuw.",
+  "@migrationBelowFloorShareCopyFailedBody": {
+    "x-sourceSha256": "224c0a203ab2f682ba768ed759b2af916149eeb4cce43ca7bc050fd18a5d0650"
+  },
+  "migrationBelowFloorComputerGuide": "Zo werk je ze bij op een computer",
+  "@migrationBelowFloorComputerGuide": {
+    "x-sourceSha256": "62ededb674b675c3575e7a0b4afb0403adc1a07125d739092eedf332acb53d24"
   },
   "migrationBelowFloorGetBridge": "{bridgeTag} ophalen",
   "@migrationBelowFloorGetBridge": {

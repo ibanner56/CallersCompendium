@@ -446,17 +446,53 @@ abstract class AppLocalizations {
   /// **'Your data can be recovered. Install {bridgeTag}, open the app once to let it update your data, then install this version again.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.'**
   String migrationBelowFloorBody(String bridgeTag);
 
-  /// Body of the below-floor recovery screen on Android, in place of migrationBelowFloorBody. Android refuses to install an older release over a newer one, and uninstalling deletes the app's data, so the desktop route (install the older release, then this one again) would lose the library there. 'Copy details' is the label of the button below (appBootstrapCopyDetails). {bridgeTag} is the release tag of the migration-bridge release.
+  /// Body of the below-floor recovery screen on Android, in place of migrationBelowFloorBody. Android refuses to install an older release over a newer one, and uninstalling deletes the app's data, so the desktop route (install the older release, then this one again) would lose the library there. 'Share a copy of your data' is the label of the button below it (migrationBelowFloorShareCopy) and 'How to update it on a computer' the label of the link below that (migrationBelowFloorComputerGuide). {bridgeTag} is the release tag of the migration-bridge release.
   ///
   /// In en, this message translates to:
-  /// **'Your data is still on this device, but this version can\'t update it. Don\'t uninstall the app: that deletes your data, and Android won\'t install {bridgeTag} over this version anyway. To keep your data, leave the app installed and don\'t reset it, and choose Copy details when you ask for help.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.'**
+  /// **'Your data is still on this device, but this version can\'t update it here. Don\'t uninstall the app: that deletes your data, and Android won\'t install {bridgeTag} over this version anyway. To keep your data, choose Share a copy of your data and save the file outside the app, for example on a computer or a cloud drive. A computer with {bridgeTag} can update it, and this app can then restore it: see How to update it on a computer.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.'**
   String migrationBelowFloorBodyAndroid(String bridgeTag);
 
-  /// Body of the below-floor recovery screen on iPhone and iPad, in place of migrationBelowFloorBody. The iOS app comes only from TestFlight, whose 'Previous Builds' list (use TestFlight's own label in your language) may still offer the older release that can update the data. 'Copy details' is the label of the button below (appBootstrapCopyDetails). {bridgeVersion} is that release's version number as TestFlight shows it.
+  /// Body of the below-floor recovery screen on iPhone and iPad, in place of migrationBelowFloorBody. The iOS app comes only from TestFlight, whose 'Previous Builds' list (use TestFlight's own label in your language) may still offer the older release that can update the data. 'Share a copy of your data' is the label of the button below it (migrationBelowFloorShareCopy) and 'How to update it on a computer' the label of the link below that (migrationBelowFloorComputerGuide). {bridgeVersion} is that release's version number as TestFlight shows it.
   ///
   /// In en, this message translates to:
-  /// **'Your data is still on this device. Don\'t delete the app: that deletes your data. In TestFlight, open Caller\'s Compendium and look under Previous Builds for version {bridgeVersion}. If it\'s listed, install it, open the app once to let it update your data, then install the newest build again. If it isn\'t listed, keep the app as it is and choose Copy details when you ask for help.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.'**
+  /// **'Your data is still on this device. Don\'t delete the app: that deletes your data. In TestFlight, open Caller\'s Compendium and look under Previous Builds for version {bridgeVersion}. If it\'s listed, install it, open the app once to let it update your data, then install the newest build again. If it isn\'t listed, choose Share a copy of your data and update it on a computer instead: see How to update it on a computer.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.'**
   String migrationBelowFloorBodyIos(String bridgeVersion);
+
+  /// Primary button on the below-floor recovery screen on Android, iPhone and iPad. It makes a copy of the library that leaves out what must stay on this device (unsaved edits, Device Sync settings) and opens the system share sheet with it, so the caller can save it outside the app before anything is reset or uninstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a copy of your data'**
+  String get migrationBelowFloorShareCopy;
+
+  /// Button in the 'Reset app data?' dialog on Android, iPhone and iPad, after 'Back up + reset' has saved a backup inside the app. It shares a copy of that backup through the system share sheet, the same copy as migrationBelowFloorShareCopy. Keep it short: it sits beside Cancel and Reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a copy'**
+  String get migrationBelowFloorShareBackup;
+
+  /// Shown on Android, iPhone and iPad in the 'Reset app data?' dialog in place of the folder the backup was saved to, which is private to the app there. 'Share a copy' is the label of migrationBelowFloorShareBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'The backup is kept inside the app, where you can\'t open it. To keep a copy you can use on a computer, choose Share a copy before you reset.'**
+  String get migrationBelowFloorBackupKeptInApp;
+
+  /// Title of the dialog shown when the copy for migrationBelowFloorShareCopy or migrationBelowFloorShareBackup could not be made. Nothing was shared.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t make a copy'**
+  String get migrationBelowFloorShareCopyFailedTitle;
+
+  /// Body of the dialog titled migrationBelowFloorShareCopyFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was shared, and your data hasn\'t been changed. Free up some space, then try again.'**
+  String get migrationBelowFloorShareCopyFailedBody;
+
+  /// Link on the below-floor recovery screen on Android, iPhone and iPad. It opens the user guide's steps for updating a shared copy of the data with the older release on a computer and restoring it on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'How to update it on a computer'**
+  String get migrationBelowFloorComputerGuide;
 
   /// Primary button on the below-floor recovery screen on Windows, macOS and Linux that opens the release page for the version that can update the old data. Not shown on Android or iOS. {bridgeTag} is that release's tag.
   ///

@@ -214,24 +214,61 @@ below it under **Start fresh instead**. Fix the cause, then close and reopen the
 app; there is no button to check again.
 
 On a phone or tablet, the data-too-old screen has no **Get** button, because
-installing that release works differently there:
-
-- **Android:** don't uninstall the app, and don't reset it. Your data is still
-  on the device, but uninstalling deletes it, and Android won't install an older
-  release over a newer one (nor the GitHub `.apk` over the Play Store build), so
-  the desktop route of installing the older release first doesn't work there.
-  Keep the app installed and choose **Copy details** when you ask for help.
-- **iPhone and iPad:** don't delete the app; that deletes your data too. In
-  TestFlight, open Caller's Compendium and look under **Previous Builds** for the
-  version the screen names. If it's listed, install it, open the app once to
-  let it update your data, then install the newest build again. TestFlight
-  offers earlier builds only for a limited time, so it may not be listed; if it
-  isn't, keep the app as it is and choose **Copy details** when you ask for
-  help.
+installing that release works differently there. It offers **Share a copy of
+your data** instead; see
+[My data is too old to open on my phone or tablet](#my-data-is-too-old-to-open-on-my-phone-or-tablet).
 
 On Linux the database lives in the app's support folder whether or not your
 machine has a `Documents` folder (for example, one without `xdg-user-dirs`); see
 [Where is my data stored?](#where-is-my-data-stored).
+
+### My data is too old to open on my phone or tablet
+
+If you last opened your library with version 0.7.0 or earlier, this version
+can't update it, and the app opens on a screen saying the data is too old to
+open. On a computer you can install the older release that updates it. On a
+phone or tablet you usually can't, so you take a copy to a computer instead.
+
+**Don't uninstall or delete the app.** On Android, iPhone and iPad that deletes
+your data. Android also won't install an older release over a newer one, nor
+the GitHub `.apk` over the Play Store build.
+
+On iPhone and iPad, try TestFlight first. Open Caller's Compendium in
+TestFlight and look under **Previous Builds** for the version the screen names.
+If it's listed, install it, open the app once to let it update your data, then
+install the newest build again. TestFlight offers earlier builds only for a
+limited time, so it may not be there; if it isn't, follow the steps below.
+
+To update your data on a computer:
+
+1. On the phone or tablet, choose **Share a copy of your data** and save the
+   file somewhere you can reach from a computer, such as a cloud drive or an
+   email to yourself. It's named `compendium-recovery-copy.sqlite`. It holds
+   your whole library, venue contacts included, so keep it private. It leaves
+   out what has to stay on the device: unsaved edits, Device Sync settings and
+   the app's own bookkeeping, and also any setting this version doesn't
+   recognize, so you may have to choose a few settings again at the end. If you
+   chose **Back up + reset**, its confirmation offers **Share a copy** too.
+2. On a Windows, Mac or Linux computer, install the release the screen names
+   (for example 0.10.0) from the
+   [Releases page](https://github.com/ibanner56/CallersCompendium/releases).
+   If that computer already has a Caller's Compendium library you want to
+   keep, export a backup of it first.
+3. Find the folder where that release keeps its data (see
+   [Where is my data stored?](#where-is-my-data-stored)); if it isn't there
+   yet, open the release once and close it. Move `compendium.sqlite`, and any
+   `compendium.sqlite-wal` and `compendium.sqlite-shm` files beside it, out of
+   that folder. Put the file from step 1 in their place and rename it
+   `compendium.sqlite`.
+4. Open the release. It updates your data. Check that your dances are there,
+   then export a backup (**Settings ▸ General ▸ Export a backup**) and get the
+   backup file to your phone or tablet.
+5. On the phone or tablet, choose **Reset only** under **Start fresh
+   instead**. The app opens on an empty library. Restore the backup from step 4
+   (**Settings ▸ General ▸ Restore from a backup**); see
+   [Restore from a backup](./backup-portability.md#restore-from-a-backup).
+6. On the computer, put back anything you moved in step 3 and install the
+   current version again.
 
 ### Why can't I find a dance I imported?
 
