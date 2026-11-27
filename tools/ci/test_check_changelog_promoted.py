@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -290,6 +291,7 @@ def main() -> int:
               invalid_beta.stderr)
 
     patch_release_end_to_end()
+    release_prep_end_to_end()
 
     if FAILURES:
         for failure in FAILURES:
@@ -375,6 +377,141 @@ def patch_release_end_to_end() -> None:
         write(repo, Path("app/CHANGELOG.md"), notes("0.3.1", 31, 32))
         first = run("--version", "0.3.1-beta", cwd=repo)
         check("with no previous tag the rule does not apply", first.returncode == 0, first.stderr)
+
+
+
+def release_prep_end_to_end() -> None:
+    """``--release-prep``: the tag-time gate, run on the release-preparation PR.
+
+    The tag-time run in release.yml is the first place a missing Data /
+    Migrations line used to show up (pre-release audit finding H-01): after the
+    tag existed. CI runs this mode on every changelog PR. It reads the version
+    and the previous tag itself, and judges the tree when no fragment is
+    pending or the app version differs from that tag's (the states a
+    release-preparation PR leaves); otherwise it passes.
+    """
+    print("--release-prep, end to end:")
+    with tempfile.TemporaryDirectory() as temp:
+        repo = Path(temp)
+        git = lambda *args: subprocess.run(["git", *args], cwd=repo, check=True)  # noqa: E731
+
+        def tag(name: str, day: int) -> None:
+            # Dated explicitly: tags made in the same second tie on creatordate.
+            stamp = f"{1_700_000_000 + day * 86_400} +0000"
+            subprocess.run(["git", "tag", "-a", name, "-m", name], cwd=repo, check=True,
+                           env={**os.environ, "GIT_COMMITTER_DATE": stamp})
+        git("init", "-q", "-b", "main")
+        git("config", "user.email", "test@example.invalid")
+        git("config", "user.name", "Test")
+        (repo / "changelog.d").mkdir()
+        write(repo, Path("changelog.d/README.md"), "Fragments go here.\n")
+        pubspec = Path("app/pubspec.yaml")
+
+        def notes(core: str, migrations: str = "") -> str:
+            body = f"### Data / Migrations\n\n{migrations}" if migrations else "### Added\n\n- Something.\n"
+            return f"## [Unreleased]\n\n## [{core}] - 2026-08-07\n\n{body}"
+
+        write(repo, DATABASE, database(31))
+        write(repo, TAXONOMY, taxonomy(39))
+        write(repo, pubspec, "name: app\nversion: 0.3.0+7\n")
+        write(repo, Path("app/CHANGELOG.md"), notes("0.3.0"))
+        git("add", ".")
+        git("commit", "-qm", "v0.3.0-beta")
+
+        # No tag yet. Whether the tree is a release-preparation one depends on
+        # the previous tag, so without tags it is unanswerable -- unless the
+        # caller (preflight in a shallow clone) opts into skipping.
+        write(repo, Path("changelog.d/pending.json"), "{}")
+        pending_untagged = run("--release-prep", cwd=repo)
+        check("no v* tag with a fragment pending is unanswerable", pending_untagged.returncode == 2,
+              pending_untagged.stderr)
+        (repo / "changelog.d/pending.json").unlink()
+
+        untagged = run("--release-prep", cwd=repo)
+        check("no v* tag is unanswerable, not a pass", untagged.returncode == 2, untagged.stderr)
+        check("no v* tag says to fetch tags", "tags" in untagged.stderr, untagged.stderr)
+        allowed = run("--release-prep", "--allow-missing-tags", cwd=repo)
+        check("--allow-missing-tags skips without tags", allowed.returncode == 0, allowed.stderr)
+        check("the skip is said, not silent", "skipped" in allowed.stdout and "tags" in allowed.stdout,
+              allowed.stdout)
+
+        tag("v0.3.0-beta", 1)
+
+        # Fragments pending while the app version still matches the tag: an
+        # ordinary PR, so nothing is judged.
+        write(repo, Path("changelog.d/pending.json"), "{}")
+        skipped = run("--release-prep", cwd=repo)
+        check("a pending fragment skips the gate", skipped.returncode == 0, skipped.stderr)
+        check("the skip says why", "pending" in skipped.stdout, skipped.stdout)
+        (repo / "changelog.d/pending.json").unlink()
+
+        # The H-01 shape: the taxonomy moved since the tag, the fragments were
+        # compiled into ## [0.4.0], and no taxonomy line reached it.
+        write(repo, TAXONOMY, taxonomy(40))
+        write(repo, pubspec, "name: app\nversion: 0.4.0+12\n")
+        write(repo, Path("app/CHANGELOG.md"), notes("0.4.0"))
+        missing = run("--release-prep", cwd=repo)
+        check("a release-prep tree without the taxonomy line fails", missing.returncode == 1, missing.stderr)
+        check("the failure names the taxonomy range",
+              "taxonomy changed (39 -> 40)" in missing.stderr and "## [0.4.0]" in missing.stderr,
+              missing.stderr)
+        check("the failure names the previous tag it read", "v0.3.0-beta" in missing.stdout, missing.stdout)
+
+        write(repo, Path("app/CHANGELOG.md"),
+              notes("0.4.0", "- Taxonomy 39 → 40: something is matched differently.\n"))
+        present = run("--release-prep", cwd=repo)
+        check("the same tree with the taxonomy line passes", present.returncode == 0, present.stderr)
+
+        # A fragment that reached the PR's merge ref from main after the branch
+        # drained changelog.d: the app version has moved past the tag, so this is
+        # still a release-preparation tree, and the tag would fail on both counts.
+        write(repo, Path("app/CHANGELOG.md"), notes("0.4.0"))
+        write(repo, Path("changelog.d/late.json"), "{}")
+        late = run("--release-prep", cwd=repo)
+        check("a moved app version is judged despite a pending fragment", late.returncode == 1, late.stderr)
+        check("both the stray fragment and the range are named",
+              "late.json" in late.stderr and "taxonomy changed" in late.stderr, late.stderr)
+        (repo / "changelog.d/late.json").unlink()
+        write(repo, Path("app/CHANGELOG.md"),
+              notes("0.4.0", "- Taxonomy 39 → 40: something is matched differently.\n"))
+
+        # The newest tag is the reference, not an older one: after v0.4.0-beta
+        # ships, an unchanged taxonomy owes no line again.
+        git("add", ".")
+        git("commit", "-qm", "v0.4.0-beta")
+        tag("v0.4.0-beta", 2)
+        write(repo, Path("app/CHANGELOG.md"), notes("0.4.0"))
+        newest = run("--release-prep", cwd=repo)
+        check("the newest merged tag is the previous ref", newest.returncode == 0 and "v0.4.0-beta" in newest.stdout,
+              f"{newest.stdout}{newest.stderr}")
+
+        # Right after a release changelog.d is empty, so an ordinary PR is judged
+        # too; one that moved the taxonomy without a fragment is told the fix.
+        write(repo, TAXONOMY, taxonomy(41))
+        unnoted = run("--release-prep", cwd=repo)
+        check("a post-release move with no fragment fails", unnoted.returncode == 1, unnoted.stderr)
+        check("the failure says a non-release PR needs a fragment",
+              "not a release-preparation PR" in unnoted.stderr and "changelog.d" in unnoted.stderr,
+              unnoted.stderr)
+        write(repo, TAXONOMY, taxonomy(40))
+
+        # A tag on a commit HEAD does not contain is not this tree's previous release.
+        git("commit", "-qam", "after v0.4.0-beta")
+        git("checkout", "-q", "-b", "side", "HEAD~1")
+        git("commit", "-q", "--allow-empty", "-m", "unrelated")
+        tag("v9.0.0-beta", 3)  # newest, but not merged
+        git("checkout", "-q", "main")
+        unmerged = run("--release-prep", cwd=repo)
+        check("a tag not merged into HEAD is ignored", unmerged.returncode == 0 and "v0.4.0-beta" in unmerged.stdout,
+              f"{unmerged.stdout}{unmerged.stderr}")
+
+        write(repo, pubspec, "name: app\n")
+        unversioned = run("--release-prep", cwd=repo)
+        check("an unreadable pubspec version is unanswerable",
+              unversioned.returncode == 2 and "app/pubspec.yaml" in unversioned.stderr, unversioned.stderr)
+
+        without = run(cwd=repo)
+        check("--version is still required without --release-prep", without.returncode == 2, without.stderr)
 
 
 if __name__ == "__main__":

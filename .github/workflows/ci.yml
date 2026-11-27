@@ -141,6 +141,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the release tags, for the release-preparation step below
       - name: Test the changelog structure gate
         run: python3 tools/ci/test_check_changelog_structure.py
       - name: Test the changelog fragment compiler
@@ -149,6 +151,17 @@ jobs:
         run: python3 tools/release/compile_changelog_fragments.py --check
       - name: Guard CHANGELOG structure (version order, no repeated category)
         run: python3 tools/ci/check_changelog_structure.py
+      # The tag-time notes gate, run before the tag. release.yml's meta job runs
+      # check_changelog_promoted.py only once the tag exists, so a release whose
+      # notes lack a schema or taxonomy range, or a one-time repair's note,
+      # failed after the tag was pushed (pre-release audit finding H-01). With
+      # --release-prep it judges the tree when changelog.d holds no pending
+      # fragment or app/pubspec.yaml's version differs from the newest merged v*
+      # tag's (the states a release-preparation PR leaves, and in the second a
+      # pending fragment fails); otherwise it passes. It needs the tags, hence
+      # fetch-depth: 0.
+      - name: Guard release notes as the tag will (release-preparation trees only)
+        run: python3 tools/ci/check_changelog_promoted.py --release-prep
 
   build:
     name: Build (${{ matrix.target }})
@@ -427,17 +440,18 @@ jobs:
       # declarations, 40.7 KiB and 19.4 KiB of history that every reader of
       # those files paid for to reach a one-line constant; moving them to
       # docs/design/ is only safe if a later bump cannot quietly append its
-      # entry nowhere. The sync wire version and the ECD taxonomy version are
-      # logged and gated the same way. See tools/ci/check_version_history.py.
+      # entry nowhere. The sync wire, ECD taxonomy and square taxonomy versions
+      # are logged and gated the same way. See tools/ci/check_version_history.py.
       - name: Guard version bumps append their design-doc history entry
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: python3 tools/ci/check_version_history.py "$BASE_SHA"
       # Same base ref again, for the opposite mistake: a PR that bumps a
       # versioned format when main already carries an unreleased vNext should
-      # have amended it. Compares the latest release tag, base and head, so it
-      # needs the tags this checkout's fetch-depth: 0 brings. See
-      # tools/ci/check_version_bump_policy.py.
+      # have amended it. It watches the same five constants as the step above
+      # (CONTRIBUTING.md's versioned-formats table). Compares the latest release
+      # tag, base and head, so it needs the tags this checkout's fetch-depth: 0
+      # brings. See tools/ci/check_version_bump_policy.py.
       - name: Guard version bumps do not stack on an unreleased vNext
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}

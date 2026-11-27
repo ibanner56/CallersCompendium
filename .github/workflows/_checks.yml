@@ -239,8 +239,8 @@ jobs:
       # schema version ledgers out of their Dart declarations and into
       # docs/design/: without it a later bump can append its entry nowhere and
       # the history stops recording, which is the one failure mode the move
-      # introduced. The sync wire and ECD taxonomy ledgers are gated the same
-      # way. See tools/ci/check_version_history.py.
+      # introduced. The sync wire, ECD taxonomy and square taxonomy ledgers are
+      # gated the same way. See tools/ci/check_version_history.py.
       - name: Test the version-history gate
         run: python3 tools/ci/test_check_version_history.py
       # PR-only in ci.yml as well (it needs the base ref and the release tags).
