@@ -126,15 +126,20 @@ final class SavedSearchSpec {
 
   /// This spec with every [kind] reference named in [moves] (losing id →
   /// surviving id) rewritten to the survivor, or null when it names none of
-  /// them or the result would not be readable. Used by a merge of tags,
-  /// authors or sources.
+  /// them or the result would not be readable. Used by a user's merge of
+  /// tags, authors or sources, and by sync's natural-key reconciliation,
+  /// which also merges levels and custom fields (sync-spec §6.6).
   ///
-  /// Only the id leaves change: the Filters **Tags**, **Authors** and
-  /// **Sources** selections, and the Advanced tag rows (which carry tag ids
-  /// only). An id set stays sorted and without duplicates, so the bytes
-  /// still depend only on the search; a second row for the same tag is kept.
-  /// Nothing else is touched, so a search that names no moved id comes back
-  /// as null and is never rewritten.
+  /// Only the id leaves change: the Filters **Tags**, **Authors**,
+  /// **Sources** and **Level** selections, the custom-field filters (keyed by
+  /// field id), and the Advanced tag rows (which carry tag ids only). An id
+  /// set stays sorted and without duplicates, and the custom-field filters
+  /// stay in key order, so the bytes still depend only on the search; a
+  /// second row for the same tag is kept. A custom-field filter on both a
+  /// loser and its survivor becomes what reading the loser through the alias
+  /// gives: the choices of both, and for a single value the one later in
+  /// stored order. Nothing else is touched, so a search that names no moved
+  /// id comes back as null and is never rewritten.
   ///
   /// A null for a search that does name a moved id (not expected: a rewrite
   /// only replaces ids) leaves the search as it was; until the merge's alias
@@ -147,9 +152,11 @@ final class SavedSearchSpec {
       SyncRecordKind.tag => 'tagIds',
       SyncRecordKind.choreographer => 'authorIds',
       SyncRecordKind.publishedSource => 'sourceIds',
+      SyncRecordKind.difficultyLevel => 'levels',
       _ => null,
     };
-    if (facetKey == null || moves.isEmpty) return null;
+    if (moves.isEmpty) return null;
+    if (facetKey == null && kind != SyncRecordKind.customFieldDef) return null;
     var changed = false;
     String move(String id) {
       final to = moves[id];
@@ -180,12 +187,42 @@ final class SavedSearchSpec {
 
     final next = <String, Object?>{..._json};
     final facets = _json['facets'];
-    if (facets is Map && facets[facetKey] is List) {
+    if (facets is Map && facetKey != null && facets[facetKey] is List) {
       final ids = {
         for (final x in facets[facetKey] as List)
           if (x is String) move(x),
       }.toList()..sort();
       if (changed) next['facets'] = {...facets, facetKey: ids};
+    }
+    if (facets is Map && kind == SyncRecordKind.customFieldDef) {
+      // Read in stored order, as `_readFacets` reads them through an alias:
+      // a choice filter's values are unioned, any other filter's later entry
+      // replaces an earlier one.
+      final moved = <String, Object?>{...facets.cast<String, Object?>()};
+      for (final key in const [
+        'choiceValues',
+        'booleanValues',
+        'textValues',
+        'numberValues',
+      ]) {
+        final byField = facets[key];
+        if (byField is! Map) continue;
+        final wasChanged = changed;
+        changed = false;
+        final out = <String, Object?>{};
+        for (final MapEntry(key: id, :value) in byField.entries) {
+          final to = move('$id');
+          final held = out[to];
+          out[to] = key == 'choiceValues' && held is List && value is List
+              ? ({...held, ...value}.cast<String>().toList()..sort())
+              : value;
+        }
+        if (changed) {
+          moved[key] = {for (final k in out.keys.toList()..sort()) k: out[k]};
+        }
+        changed = changed || wasChanged;
+      }
+      if (changed) next['facets'] = moved;
     }
     if (kind == SyncRecordKind.tag && _json.containsKey('advanced')) {
       final facetsChanged = changed;
