@@ -5742,7 +5742,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           AppDropdownEntry<String?>(
             key: const ValueKey('program-dialect-unavailable'),
             value: stored,
-            label: l10n.programsDialectUnavailable(shownDialectName(stored)),
+            label: l10n.programsDialectUnavailable(stored),
           ),
       ],
       onChanged: (name) {

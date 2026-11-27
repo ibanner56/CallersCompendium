@@ -70,9 +70,10 @@ and the sections it changed are:
 - **The proper/improper checkbox and the new formation shapes are for ECD
   only.** Contra's shapes don't change. ECD has no Becket circle. It had no
   Sicilian circle either, until a later answer added one (§9.2, point 5).
-- **Gendered role terms are never shown**, not even as a choice (§2, §4,
-  §8.3). Where a quoted source uses one, this document gives the default
-  dialect's term in square brackets instead (§3).
+- **Gendered role terms are never offered**, not as a preset or as a
+  choice, and not stored (§2, §4, §8.3); a caller's own dialect may use
+  them (§9.1, point 7). Where a quoted source uses one, this document gives
+  the default dialect's term in square brackets instead (§3).
 - **`set_and_link` takes no parameters**: no `who`, because everyone
   dances it at once, and no `tandem` flag, because everyone does the thing
   all the time (§7.1, §9.1 point 4).
@@ -381,7 +382,7 @@ released. They have not been re-derived for this document.
 | **Alias** | Source wording that maps to a movement, sometimes fixing a parameter. "RH turn" maps to `hand_turn` with `hand=right`. "Arm left" maps to `arm_turn` with `hand=left`. An alias whose fixed parameters set it apart is shown and searchable under its own name, as "swat the flea" is (§7.2). Aliases that fix the same values, such as "RH turn" and "turn by the right", can't be told apart once stored, so how such a figure reads is a dialect choice. |
 | **Discouraged term** | A word the app recognizes in imported or typed text but never offers, such as "gypsy". The [dialect system](../design/dialect.md) stores it as its canonical meaning and flags it in the editor. |
 | **Selector** | A token naming dancers: `partners`, `neighbors`, `ones`, `firstCorners`, `role1s`, ... |
-| **Role-neutral** | Stored dances use `role1`/`role2`. Role terms such as larks/robins or leads/follows, or positional terms, are applied only when the dance is displayed. Gendered role terms are never shown, not even as a choice (§9.1). |
+| **Role-neutral** | Stored dances use `role1`/`role2`. Role terms such as larks/robins or leads/follows, or positional terms, are applied only when the dance is displayed. Gendered role terms are never stored or offered as a choice; a caller's own dialect may use them (§9.1, point 7). |
 | **Unspecified** | "The source did not say." A real stored value, different from any concrete default. |
 | **Destination** | Where dancers end, when the source or the person entering the dance states it (§6.4). |
 | **Defined** / **Open** | A defined movement has parameters and a draft display. Before acceptance, an open movement had neither and was listed in §7.6. Acceptance settled all of them: each was defined or split, except `line`, which was found not to be a movement (§7.6). |
@@ -865,7 +866,7 @@ transcriptions (§3). Each count is of captions, not of performances.
 | `siding` | `who`, `shoulder`, `where`, `style` | `{who} {shoulder}-shoulder [{style}] siding [{where}]` | The parameters of `back_to_back` except `travel`, plus `style` (`straight` or `swirly`, Q13a). "Sharp siding" is an alias for `style = straight` and "Playford siding" for `style = swirly` (Q13a). That pairing was this ADR's understanding when it was put to the maintainer. An unstated style is `unspecified`. Captioned "Left Siding" (*Alexander's Birth Day*), and "Right/Left shoulder siding" in later passes of the *Double Jubilee* video. |
 | `pass_through` | `who`, `where`, `shoulder` | `[{who}] pass through {shoulder} shoulders {where}` | |
 | `promenade` | `who`, `where`, `direction`, `fraction`, `places`, `singleFile` | `{who} [single file] promenade {fraction \| N places} {direction} {where}` | `fraction` when in couples, `places` when single file. Evidence: "promenade half round the minor set", "promenade across the set back to original places". The second is `destination = originalPlaces` (§6.4). |
-| `poussette` | `who`, `whom`, `fraction`, `direction`, `style`, `switchPush` | *as contra*, adding "first" after the pushers when `switchPush` is set | An unstated extent or rotation stays `unspecified`. Contra's half, clockwise is not assumed (§5.3, Q8). `who` names the dancers who push, or push first. `switchPush` is a yes/no flag: the pushers change partway through, as in a source's "... push first" (Q8). The flag's name is this ADR's. Storage is role-neutral, and gendered role terms are never shown (§4, §9.1). Evidence: 3 captions in 2 dances, all half, all naming who pushes, none stating a rotation. Heywood's *The Parson's Cap* is the one source we know that states both extent and rotation (half, counter-clockwise). `style` is `push` or `draw` ("[robins] draw partners halfway"), added from a caller's notes (§9.3). `who` names the dancers who push or draw, and an unstated style reads as push, which is what Q8 has `who` name. |
+| `poussette` | `who`, `whom`, `fraction`, `direction`, `style`, `switchPush` | *as contra*, adding "first" after the pushers when `switchPush` is set | An unstated extent or rotation stays `unspecified`. Contra's half, clockwise is not assumed (§5.3, Q8). `who` names the dancers who push, or push first. `switchPush` is a yes/no flag: the pushers change partway through, as in a source's "... push first" (Q8). The flag's name is this ADR's. Storage is role-neutral, and gendered role terms are never offered (§4, §9.1). Evidence: 3 captions in 2 dances, all half, all naming who pushes, none stating a rotation. Heywood's *The Parson's Cap* is the one source we know that states both extent and rotation (half, counter-clockwise). `style` is `push` or `draw` ("[robins] draw partners halfway"), added from a caller's notes (§9.3). `who` names the dancers who push or draw, and an unstated style reads as push, which is what Q8 has `who` name. |
 | `arch` | `who` | `{who} arch` | "Arch and dive through" is not defined. |
 | `rollaway` | `who`, `whom`, `where`, `halfSashay` | `{who} roll away {whom} {where} [with a half sashay]` | Contra's ID is `roll_away`. `halfSashay` is a yes/no *style*, not "half a rollaway". |
 | `change_places` | `who`, `whom`, `hand`, `where` | `{who} change places [with {whom}] [{hand}]` | A movement of its own, distinct from `cross` (Q6). `hand` is `right`, `left`, `none` ("without hands") or `unspecified`. A link danced on its own is a `modifier` with `change_places` as the core and `turn_single` as the modifier (§5.4). Evidence: "change" is a standalone figure in 4 captions in 3 dances ("Change with partner (all home)", "[Robin 1]+[Lark 2] change", "[Larks] change"). None of those dances also uses "cross". |
@@ -1200,11 +1201,20 @@ document still had to make a call to apply an answer, it says so.
    hall" (§6.2).
 7. **Gendered role terms** (Q8). Does the Q8 note also rule out gendered
    role terms as a choice for display? Answer: "Don't. show. gendered.
-   role. terms. They're discouraged, explicitly." They are never shown: not
-   in stored data, not as a dialect's role terms or as a choice offered,
-   and not in this document (§3, §4). A custom dialect no longer takes
-   gendered role terms, for contra or ECD, and one saved earlier is
-   repaired on read ([dialect.md](../design/dialect.md)). Still open: with
+   role. terms. They're discouraged, explicitly." They are not in stored
+   data, not in the app's preset dialects or as a choice it offers, and not
+   in this document (§3, §4). A caller's own dialect is the caller's: on
+   27 November 2026 the maintainer ruled, "If the user explicitly adds a
+   gendered dialect, that's their prerogative, unfortunately, and we should
+   not force them to a gender-free dialect without their permission. That
+   does not mean ask for their permission, either - that just means don't
+   overwrite a user's dialect." So a custom dialect, for any form, takes the
+   words its caller types, gendered ones included, and shows them as
+   written, with no prompt or warning; one already stored is never rewritten
+   or renamed when it is read ([dialect.md](../design/dialect.md)). This
+   replaces an implementer's reading, recorded here earlier, that a custom
+   dialect refuses gendered role terms and that one saved earlier is
+   repaired on read. Still open: with
    **Auto-convert all discouraged terms** turned off, a discouraged term in
    free text is shown as typed.
 8. **Pothooks** (Q10d). Is it another name for chevron, or a separate
@@ -1489,6 +1499,11 @@ an all-English evening.
   record was built (§9.2) added a Sicilian circle and a two-couple set to
   the ECD list, stored the shapes as new values of the existing formation
   shape, and stored the checkbox as a yes/no "improper", proper by default.
+  *Amended 27 November 2026 (the maintainer):* the ECD list also offers
+  contra's existing `longways` shape, a longways set of no set number of
+  couples, and an English dance given a contra Becket shape becomes
+  `longways` with "Becket" as its formation detail; ECD still has no Becket
+  shape.
 - **F3. Meter and key.** A dance gains optional meter and key text fields,
   shown on the dance and the program sheet, and searchable. Phrase
   structure still records beats per bar (§5.5).

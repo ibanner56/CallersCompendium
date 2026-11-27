@@ -10,10 +10,27 @@ import '../model/formation.dart';
 /// - A triplet is a three-couple set and a quadruplet a four-couple set,
 ///   which ECD stores as three- and four-couple longways (§9.2 point 6).
 ///
+/// - A Becket is a longways set (ECD has no Becket shape) with "Becket" as
+///   its detail, "Becket CCW" for a counterclockwise one, before any detail
+///   it had (the maintainer, 27 November 2026).
+///
 /// Every other shape is kept as it is, its description included: an
 /// unclear mapping would change what the source states (R2). The mapping is
 /// the implementer's reading of those answers; it is not itself one of them.
 Formation ecdFormationFromContra(Formation formation) {
+  final becket = switch (formation.shape) {
+    FormationShape.becketCw => 'Becket',
+    FormationShape.becketCcw => 'Becket CCW',
+    _ => null,
+  };
+  if (becket != null) {
+    final detail = formation.detail;
+    return Formation(
+      FormationShape.longways,
+      detail: detail == null || detail.isEmpty ? becket : '$becket; $detail',
+      improper: formation.improper,
+    );
+  }
   final mapped = switch (formation.shape) {
     FormationShape.dupleProper => (FormationShape.dupleMinor, false),
     FormationShape.dupleImproper => (FormationShape.dupleMinor, true),

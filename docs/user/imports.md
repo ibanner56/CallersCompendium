@@ -712,7 +712,8 @@ keeping what Caller's Companion said of its formation as the formation's
 description and the repeat order its SubType names; a square in a big circle
 stays a circle. A dance typed Circle Mixer becomes a circle marked as a mixer,
 and one typed Scatter Mixer a formation described as "Scatter mixer", marked
-as a mixer.
+as a mixer. A dance typed Longways becomes a longways set, and a Becket one a
+longways set described as "Becket" ("Becket CCW" for counterclockwise).
 A dance typed English is read the same way whichever you answer, so one with a
 Square formation is an English dance in a square set. Choose **No, read their
 types** and each dance comes across by its Type, as above. Closing the question reads nothing, and choosing the file
@@ -941,8 +942,9 @@ in it:
   [Re-check unrecognized figures](./authoring.md#fix-figures-an-import-could-not-read)
   does. An unrecognized figure you chose to write as text is not changed.
 - **English formation**: a duple proper or improper dance becomes a duple
-  minor, proper or improper, and a triplet or quadruplet becomes a three- or
-  four-couple longways set.
+  minor, proper or improper, a triplet or quadruplet becomes a three- or
+  four-couple longways set, and a Becket becomes a longways set described as
+  "Becket" ("Becket CCW" for counterclockwise).
 
 Every dance starts ticked. Untick the ones you want to leave alone, choose
 **Convert**, and confirm. A move with no clear English meaning, such as a

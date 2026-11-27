@@ -1,0 +1,20 @@
+{
+  "id": "dialect-kept-as-written",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Settings ▸ Dialect has Duplicate from another type…, which copies one of your own dialects from another type of dance, such as your contra dialect into English, keeping its name and every word you set in it."
+    ],
+    "changed": [
+      "After this update, English and square dances start in Larks/Robins until you choose a dialect for them in Settings ▸ Dialect or copy one of yours across with Duplicate from another type…. Your contra dialect is unchanged."
+    ],
+    "fixed": [
+      "The dance editor no longer marks your own dialect's role words as discouraged, even when they are on that dialect's list of discouraged terms (a copy of a built-in dialect starts with that list)."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`canonicalize` does not report a dialect's own role words, or their possessives, as discouraged."
+    ]
+  }
+}

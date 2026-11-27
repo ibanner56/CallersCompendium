@@ -59,7 +59,23 @@ Substitutor? _discouragedFor(Dialect dialect) =>
     ? null
     : Substitutor({
         for (final t in dialect.discouragedTerms) t: t,
+        // Matched so that the longest match wins ("lady birds" for a role
+        // "Lady Bird" over "lady"), then dropped by [_ownRoleWordForms].
+        for (final form in _ownRoleWordForms(dialect)) form: form,
       }, caseInsensitive: true);
+
+/// [dialect]'s own role words, lowercase, each with the possessive forms the
+/// discouraged-term table's keys take (`'`, `'s`, `’s`). The caller chose
+/// them, so they are never flagged as discouraged: a caller's dialect is
+/// shown as written, with no warning (the maintainer's ruling of 2026-11-27,
+/// ADR-006 §9.1, point 7), as the renderer already shows them as written.
+Set<String> _ownRoleWordForms(Dialect dialect) => {
+  for (final role in dialect.roles.values)
+    for (final word in {role.singular, role.plural})
+      if (word.trim().isNotEmpty)
+        for (final form in [word, "$word'", "$word's", '$word’s'])
+          form.toLowerCase(),
+};
 
 /// The canonicalization chokepoint (dialect design §"Canonicalization on
 /// input"); user-glossary text has its own variant,
@@ -89,9 +105,14 @@ CanonicalizationResult canonicalize(
   final discouraged = identical(dialect, Dialect.canonical)
       ? _canonicalDiscouraged
       : _discouragedFor(dialect);
+  final ownRoleWords = _ownRoleWordForms(dialect);
   return CanonicalizationResult(
     _rolesFor(dialect, extraRoleSynonyms).canonicalize(text),
-    discouraged?.matches(text) ?? const <({String text, int start})>[],
+    [
+      for (final match
+          in discouraged?.matches(text) ?? const <({String text, int start})>[])
+        if (!ownRoleWords.contains(match.text.toLowerCase())) match,
+    ],
   );
 }
 

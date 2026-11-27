@@ -834,7 +834,7 @@ void main() {
       expect(await ctx.repos.settings.get(kActiveDialectRefKey), isNull);
     });
 
-    testWidgets('a dialect name with a gendered word is refused', (
+    testWidgets('a dialect name with a gendered word is kept as typed', (
       tester,
     ) async {
       final ctx = await _pumpSettings(tester);
@@ -847,15 +847,66 @@ void main() {
         'Gents & Ladies',
       );
       await tester.pumpAndSettle();
-
-      expect(
-        find.text(AppLocalizationsEn().validationGenderedRoleTerm('gents')),
-        findsOneWidget,
-      );
       await tester.tap(find.byKey(const ValueKey('dialect-name-confirm')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('dialect-editor-save')), findsNothing);
-      expect(ctx.dialectLibrary.customDialects, isEmpty);
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      expect(ctx.dialectLibrary.customDialects.map((d) => d.name), [
+        'Gents & Ladies',
+      ]);
+    });
+
+    testWidgets('Duplicate from another type copies a contra dialect', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      final mine = Dialect(
+        name: 'Positional',
+        roles: const {'role1': RoleTerm('Left'), 'role2': RoleTerm('Right')},
+        moves: const {'swing': 'twirl'},
+      );
+      await ctx.dialectLibrary.upsert(mine);
+      await openDialect(tester);
+
+      final english = find.byKey(const ValueKey('dialect-form-ecd'));
+      await tester.ensureVisible(english);
+      await tester.tap(english);
+      await tester.pumpAndSettle();
+      final button = find.byKey(const ValueKey('duplicate-dialect-other-form'));
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      // Only the other types' own dialects are offered: the presets are the
+      // same for every type, and "Duplicate from…" offers them already.
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith(
+                'dialect-duplicate-other-source-',
+              ),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey('dialect-duplicate-other-source-contra-Positional'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final ecd = ctx.dialectLibraries.forForm(DanceForm.ecd);
+      // Copied under its own name, so a program that names it applies it to
+      // English dances too; contra keeps its own.
+      expect(ecd.customByName('Positional'), mine);
+      expect(ctx.dialectLibrary.customByName('Positional'), mine);
+      expect(
+        find.byKey(const ValueKey('dialect-tile-Positional')),
+        findsOneWidget,
+      );
+      // A copy does not change the active dialect.
+      expect(ecd.active, Dialect.larksRobins);
     });
 
     testWidgets('a canceled New dialect leaves nothing behind', (tester) async {
@@ -1049,7 +1100,7 @@ void main() {
       expect(saved.name, equals('Mine'));
     });
 
-    testWidgets('the editor will not save a gendered role term', (
+    testWidgets('the editor saves a gendered role term as typed', (
       tester,
     ) async {
       final ctx = await _pumpSettings(tester);
@@ -1069,14 +1120,37 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
       await tester.pumpAndSettle();
 
+      expect(find.byKey(const ValueKey('dialect-editor-save')), findsNothing);
       expect(
-        find.textContaining(
-          AppLocalizationsEn().validationGenderedRoleTerm('gent'),
-        ),
-        findsWidgets,
+        ctx.dialectLibrary.customByName('Mine')!.roles['role1']!.singular,
+        'Gent',
       );
-      expect(ctx.dialectLibrary.customByName('Mine')!.roles['role1'], isNull);
     });
+
+    testWidgets(
+      'Duplicate from another type says when there is nothing to copy',
+      (tester) async {
+        final ctx = await _pumpSettings(tester);
+        await openDialect(tester);
+
+        final button = find.byKey(
+          const ValueKey('duplicate-dialect-other-form'),
+        );
+        await tester.ensureVisible(button);
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(
+            AppLocalizationsEn().settingsDialectDuplicateFromOtherFormEmpty,
+          ),
+          findsOneWidget,
+        );
+        await tester.tapAt(Offset.zero);
+        await tester.pumpAndSettle();
+        expect(ctx.dialectLibrary.customDialects, isEmpty);
+      },
+    );
 
     Future<void> openEditorWithEdit(WidgetTester tester, String name) async {
       await tester.tap(find.byKey(ValueKey('dialect-menu-$name')));

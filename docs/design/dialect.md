@@ -97,25 +97,32 @@ wording, saved unchanged, reads as the default line. Imported
   single-file template. Branch templates are display-only and share the
   512-code-unit/256-entry limits, and may hold conditions too.
 - Shipped presets are **role-neutral only**: **Larks/Robins (default)** and
-  Leads/Follows (plus Canonical). No dialect may show a gendered role word
-  (`genderedRoleWords`: gent(s), gentleman/men, man/men, lady/ladies,
-  woman/women; Hudson's rule, 2026-11-18). "man" and "men" count only as a
-  role term or a dancer substitution: in a wording, move substitution or
-  dialect name they are
-  also the impersonal pronoun of shipped locales (German and Danish "man",
-  Dutch "men"), so they are not refused or dropped there (implementer's call;
-  refusing them everywhere would delete those users' wordings). `Dialect.validate` reports
-  `gendered_role_term` for one in a role term, a move or dancer substitution, a
-  move wording or a branch entry, and the Settings name dialog refuses a
-  dialect name holding one. Data that already holds one (an older build, a
-  backup, another device) is repaired on read rather than rejected:
-  `Dialect.fromJson` puts the Larks/Robins term in place of a gendered role term
-  and drops gendered substitutions and wordings, and
-  `DialectLibraryController.load` renames a custom dialect whose name holds one
-  to a fresh `Dialect.customName`, carrying the new name to programs like any
-  rename. Until then, the sync conflict review shows such a dialect as the
-  app reads it (`Dialect.fromJson`) and masks its name (`shownDialectName`),
-  as does the program editor's "unavailable" dialect item. Everything a dialect can set is editable in Settings → Dialect:
+  Leads/Follows (plus Canonical). The app never offers a gendered role term
+  as a choice (Hudson's rule, 2026-11-18, ADR-006 §9.1, point 7, as the
+  ruling below limits it).
+  **A caller's own dialect is kept as they wrote it**, gendered role words
+  included. The maintainer's ruling, 2026-11-27: "If the user explicitly adds
+  a gendered dialect, that's their prerogative, unfortunately, and we should
+  not force them to a gender-free dialect without their permission. That does
+  not mean ask for their permission, either - that just means don't overwrite
+  a user's dialect." So `Dialect.validate` does not judge the words in a role
+  term, substitution, wording or name; the Settings name dialog and the
+  dialect editor take what is typed; `Dialect.fromJson` reads every entry as
+  stored and `DialectLibraryController.load` keeps every name, so a dialect
+  read and written again is unchanged; and the sync conflict review and the
+  program editor show a dialect's name and words as written, with no prompt
+  or warning. (This replaces an implementer's reading, under which a custom
+  dialect refused gendered role terms and one saved earlier was repaired on
+  read and renamed on load.) No gendered-word check runs on a
+  dialect any more, so the maintainer's answer on "man" and "men" (2026-11-27:
+  exempt them only in text marked as Danish, German or Dutch) has nothing to
+  apply to here. The separate **Auto-convert all discouraged terms** setting
+  is unchanged; it shows a role word of the active dialect as written (see
+  [Canonicalization on input](#canonicalization-on-input-single-chokepoint)),
+  and the entry editor does not flag one as discouraged, even when the
+  dialect's own discouraged list (a preset copy keeps the default one) holds
+  that word (`canonicalize`; the implementer's call, following the ruling).
+  Everything a dialect can set is editable in Settings → Dialect:
   role terms, per-move substitutions, dancer-term substitutions, and the
   discouraged-terms list. Users may
   keep a custom dialect and switch instantly (e.g. per-gig) — this generalizes
@@ -129,6 +136,16 @@ wording, saved unchanged, reads as the default line. Imported
   blob); English country dance and square use `custom_dialects_ecd` /
   `active_dialect_ref_ecd` and `custom_dialects_square` /
   `active_dialect_ref_square`. The presets are the same for every form.
+  After the update that added them, the English and square libraries start
+  empty, so those dances read in Larks/Robins until the caller chooses a
+  dialect for that type or copies one: **Duplicate from another type…** in
+  Settings → Dialect lists the other forms' custom dialects and copies the
+  chosen one into the form shown, under its own name when that form has none
+  of that name (so a program that names it applies it there too) and with
+  every entry as written. That is the maintainer's ruling of 2026-11-26 on the
+  pre-release audit, which rejected seeding the new libraries from contra's;
+  listing only custom dialects, keeping the name and copying every entry are
+  the implementer's calls.
   `DialectLibraries` holds one `DialectLibraryController` per form, and
   `DialectsByForm` carries the active dialect of each form; a dance renders in
   `DialectsByForm.forDance(dance)`. All the custom-dialect keys are
@@ -207,8 +224,7 @@ wording, saved unchanged, reads as the default line. Imported
   programs only while no other form still has a dialect of the old name;
   otherwise programs keep the old name, which that other form still answers
   to (implementer's call; recording the form beside the name was rejected as
-  a persisted-format change). A name the app picks itself, such as the
-  rename of a gendered name on load, avoids every form's names. Delete never
+  a persisted-format change). Delete never
   writes to programs.
   Rename does (amended 2026-10-29, @ibanner56's ruling on PRES-11/LIFE-11):
   `DialectLibraryController.rename` saves the library, then
@@ -236,7 +252,10 @@ wording, saved unchanged, reads as the default line. Imported
   returns a copy with `lark`/`robin` role terms. It also
   drops the reader's single-dancer substitutions (`onesRole1` …, which usually
   spell a role) and stops flagging lark and robin as discouraged. Move
-  substitutions and wordings stay the reader's. A dance requires it when any
+  substitutions and wordings stay the reader's, even one that holds a
+  gendered word, which a caller's own dialect may now do (ADR-006 §9.1,
+  point 7; whether her dances should drop those too is open for the
+  maintainer, and keeping them as written is the implementer's call). A dance requires it when any
   author's name has Rachel or Rae as its first word and Fifer as its last.
   "Renewed Joy" and "If I Was Dead and It Wouldn't Go To Waste" also require it
   when no author is named (none, or only Unknown/Traditional), so a dance

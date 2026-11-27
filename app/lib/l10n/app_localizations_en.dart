@@ -2093,6 +2093,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDialectDuplicateFrom => 'Duplicate from…';
 
   @override
+  String get settingsDialectDuplicateFromOtherForm =>
+      'Duplicate from another type…';
+
+  @override
+  String get settingsDialectDuplicateFromOtherFormEmpty =>
+      'No other dance type has a dialect of your own yet.';
+
+  @override
   String get settingsDialectRenameTitle => 'Rename dialect';
 
   @override
@@ -9482,11 +9490,6 @@ class AppLocalizationsEn extends AppLocalizations {
     String substitution,
   ) {
     return '\"$source\" and \"$existing\" both map to \"$substitution\" — reversal would be ambiguous.';
-  }
-
-  @override
-  String validationGenderedRoleTerm(String word) {
-    return '\"$word\" is a gendered role word, which the app never shows. Use a role-neutral word instead.';
   }
 
   @override

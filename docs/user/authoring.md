@@ -858,14 +858,15 @@ another where there is not.
   it here for any one dance.
 - **Formation** and **Formation detail** — the shape the dance is danced in, plus
   anything worth adding in words. An English dance offers English formations,
-  such as duple minor, triple minor and three-couple longways, with a
+  such as duple minor, triple minor, three-couple longways and longways (a
+  longways set of no set number of couples), with a
   **Starts improper** chip under them: tap it on for a dance that starts
   improper, and leave it off for one that starts proper. A square offers **Square**, **Circle** for a big-circle dance such
   as a running set, and **Other**. Changing the type to one whose list
   doesn't have the dance's formation starts the formation over: on **Duple
   minor** for English, **Improper** for contra, and **Square** for a square.
-  A formation both lists have, such as triple minor between contra and
-  English or circle between English and square, is kept. Undo brings the
+  A formation both lists have, such as triple minor or longways between contra
+  and English or circle between English and square, is kept. Undo brings the
   old formation back.
 - **Progression** — how the dance progresses, such as **Single**. It sits
   beside **Type** and **Formation** where there is room.
