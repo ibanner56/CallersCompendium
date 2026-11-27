@@ -254,7 +254,10 @@ From it you can:
 An inserted dance and an ad-hoc note both land right after the current slot, so
 "play this next" is one action away. Your changes are kept however you close
 the sheet — **Done**, swiping it down, tapping outside it, or **Back** — so a
-hurried swipe doesn't throw away a reorder or a performed mark. Everything you
+hurried swipe doesn't throw away a reorder or a performed mark. A note you typed
+but didn't add yet isn't added, but it isn't lost either: it is back in the note
+box the next time you open the sheet, until you add it or clear the box, for as
+long as you stay in Perform. Everything you
 change between opening the sheet and closing it is one change: it offers
 **Undo**, and for a saved program it is saved right away. The
 Undo is still offered for a moment after you leave Perform (for as long as you

@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import '../utils/slot_display_text.dart';
 import 'online_search.dart';
 
 /// How a single pasted line resolved against the local collection.
@@ -85,6 +86,12 @@ class ParsedProgramLine {
   /// screen a review step could resolve it instead of leaving it a note.
   final List<OnlineSearchResultRow> onlineCandidates;
 
+  /// Whether this line becomes a break: it matched no dance and is the break
+  /// token or one of the app's own translated break labels
+  /// ([isAppBreakLabel]). Such a line is never looked up online.
+  bool get isBreak =>
+      resolution == PlaintextLineResolution.unmatched && isAppBreakLabel(text);
+
   /// Whether this line will become a free-text note slot (unmatched or
   /// ambiguous) rather than a dance-linked slot.
   bool get isNote => resolution != PlaintextLineResolution.matched;
@@ -99,7 +106,8 @@ class ParsedProgramLine {
 /// `DanceRepository.listIdsAndTitles`. Exactly one match links to that dance;
 /// more than one is [PlaintextLineResolution.ambiguous]; none is
 /// [PlaintextLineResolution.unmatched]. Ambiguous and unmatched lines both
-/// become note slots for this slice (#312).
+/// become note slots for this slice (#312), except an unmatched break label
+/// ([ParsedProgramLine.isBreak]), which [buildProgramSlots] makes a break.
 List<ParsedProgramLine> parsePlaintextProgram(
   String text, {
   required List<({String id, String title})> collection,
@@ -148,7 +156,10 @@ List<ParsedProgramLine> parsePlaintextProgram(
 /// Builds ordered [ProgramSlot]s from parsed [lines]. Matched lines produce a
 /// dance-linked slot; note lines (unmatched/ambiguous) produce a free-text slot
 /// carrying the original line text — the same note-style slot path that
-/// announcements and breaks use. Positions are numbered `0..n-1` in input
+/// announcements and breaks use. An unmatched line that is the break token or
+/// one of the app's own translated break labels ([isAppBreakLabel]), such as
+/// "Pause" from a German set list the app shared, becomes a break, stored as
+/// the token [Program.breakSlotText]. Positions are numbered `0..n-1` in input
 /// order. [newSlotId] mints a fresh id per slot.
 List<ProgramSlot> buildProgramSlots(
   List<ParsedProgramLine> lines, {
@@ -162,7 +173,11 @@ List<ProgramSlot> buildProgramSlots(
         id: newSlotId(),
         position: i,
         danceId: line.isNote ? null : line.danceId,
-        text: line.isNote ? line.text : null,
+        text: !line.isNote
+            ? null
+            : line.isBreak
+            ? Program.breakSlotText
+            : line.text,
       ),
     );
   }

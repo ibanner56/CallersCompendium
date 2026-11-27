@@ -10,7 +10,8 @@ import 'program_import_rollback.dart';
 /// sub-issue #313), then any [fallbacks] in order (issue #943, e.g. ContraDB) —
 /// stopping at the first source that resolves a line confidently.
 ///
-/// For each [PlaintextLineResolution.unmatched] line, each source in turn (see
+/// For each [PlaintextLineResolution.unmatched] line that is not a break (see
+/// below), each source in turn (see
 /// [_resolveLineAcrossSources]) is asked to [OnlineSearchService.search] by the
 /// line's title. A line is only auto-linked on a **confident match** — a
 /// UNIQUE exact-title hit: exactly one result whose
@@ -37,6 +38,10 @@ import 'program_import_rollback.dart';
 ///
 /// Non-`unmatched` lines (local `matched` / `ambiguous`) pass through untouched:
 /// online resolution only fills the gap where the local collection had nothing.
+/// So does a break line ([ParsedProgramLine.isBreak]): a pasted break label is
+/// the break, not a title, and a dance online that shares its name must not
+/// take its place (an implementer's call alongside the maintainer's answer to
+/// question 44 of the pre-release audit's decision sheet).
 ///
 /// Only a single search fetch per title *per source* and a single JSON fetch
 /// per confident import are performed — no crawling (import fidelity rule).
@@ -54,7 +59,7 @@ import 'program_import_rollback.dart';
 /// [isCancelled] is checked before each title and each source; once it
 /// returns true the pass stops the same way and sets
 /// [ProgramOnlineResolution.cancelled]. [onProgress] reports `(done, total)`
-/// over the unmatched lines.
+/// over the unmatched lines that are not breaks ([ParsedProgramLine.isBreak]).
 ///
 /// **Undo.** Every dance this pass writes is recorded in [rollback] when one
 /// is supplied, so the program import can take it back out on Undo or when
@@ -73,6 +78,7 @@ Future<ProgramOnlineResolution> resolveUnmatchedOnline(
   final services = [service, ...fallbacks];
   final total = lines
       .where((l) => l.resolution == PlaintextLineResolution.unmatched)
+      .where((l) => !l.isBreak)
       .length;
   var done = 0;
   var stopped = false;
@@ -81,6 +87,7 @@ Future<ProgramOnlineResolution> resolveUnmatchedOnline(
   final resolved = <ParsedProgramLine>[];
   for (final line in lines) {
     if (line.resolution != PlaintextLineResolution.unmatched ||
+        line.isBreak ||
         stopped ||
         cancelled) {
       resolved.add(line);

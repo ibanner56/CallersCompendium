@@ -29,7 +29,9 @@ import '../widgets/confirm_discard_changes.dart';
 /// case-insensitively against the local collection: an exact single match links
 /// to that dance; an unmatched or ambiguous (multi-match) line becomes a
 /// free-text note slot — the same note path announcements/breaks use — so
-/// nothing is dropped and ordering is preserved.
+/// nothing is dropped and ordering is preserved. An unmatched line that is one
+/// of the app's own break labels ([ParsedProgramLine.isBreak]) becomes the
+/// break instead, and is never looked up online.
 ///
 /// The "Resolve unmatched online" action tries The Caller's Box first (#313),
 /// then falls back to ContraDB (#943) for any title Caller's Box could not
@@ -104,8 +106,8 @@ class _PlaintextProgramImportScreenState
   /// Whether an online resolution pass is currently running.
   bool _resolving = false;
 
-  /// The running pass's `(done, total)` over the unmatched lines, or null
-  /// before its first report.
+  /// The running pass's `(done, total)` over the unmatched lines that are not
+  /// breaks ([ParsedProgramLine.isBreak]), or null before its first report.
   (int, int)? _resolveProgress;
 
   /// Whether the user asked the running pass to stop.
@@ -209,9 +211,10 @@ class _PlaintextProgramImportScreenState
   List<ParsedProgramLine> get _effectiveLines =>
       _resolvedOverride ?? _parsedLines;
 
-  /// Whether any line still lacks a resolution the online step could fill.
+  /// Whether any line still lacks a resolution the online step could fill. A
+  /// break line ([ParsedProgramLine.isBreak]) needs none.
   bool get _hasUnresolved => _effectiveLines.any(
-    (l) => l.resolution == PlaintextLineResolution.unmatched,
+    (l) => l.resolution == PlaintextLineResolution.unmatched && !l.isBreak,
   );
 
   bool get _canCommit =>
@@ -224,7 +227,9 @@ class _PlaintextProgramImportScreenState
   Future<void> _resolveOnline() async {
     if (_resolving || _committing) return;
     final before = _effectiveLines;
-    if (!before.any((l) => l.resolution == PlaintextLineResolution.unmatched)) {
+    if (!before.any(
+      (l) => l.resolution == PlaintextLineResolution.unmatched && !l.isBreak,
+    )) {
       return;
     }
     setState(() {
@@ -313,7 +318,10 @@ class _PlaintextProgramImportScreenState
     final l10n = AppLocalizations.of(context);
     final linked = resolved.where((l) => l.importedOnline).length;
     final remaining = resolved
-        .where((l) => l.resolution == PlaintextLineResolution.unmatched)
+        .where(
+          (l) =>
+              l.resolution == PlaintextLineResolution.unmatched && !l.isBreak,
+        )
         .length;
     // Newly imported dances now live in the local collection. Refresh the cached
     // listing so a later paste edit (which clears the override and re-parses
@@ -701,6 +709,12 @@ class _PlaintextProgramImportScreenState
         Icons.help_outline,
         scheme.tertiary,
         l10n.importPlaintextAmbiguous,
+      ),
+      // A pasted break label becomes the break, and is labelled as one.
+      PlaintextLineResolution.unmatched when line.isBreak => (
+        Icons.free_breakfast_outlined,
+        scheme.onSurfaceVariant,
+        l10n.programsBreakSlotLabel,
       ),
       PlaintextLineResolution.unmatched => (
         Icons.sticky_note_2_outlined,
