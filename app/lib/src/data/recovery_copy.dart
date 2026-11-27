@@ -21,8 +21,9 @@ import 'backup_service.dart' show isBackupEligibleSettingKey;
 /// ([EgressClass.deviceScoped]: unsaved editor drafts, Device Sync state,
 /// per-installation markers) or may travel only to the sync store
 /// ([EgressClass.protocolIdentifier], [EgressClass.storeAddress]). The copy
-/// keeps what a backup file may carry and nothing else (maintainer decision,
-/// 2026-11-27, decision-sheet question 39):
+/// leaves those out, and the derived indexes the registry says are never
+/// transmitted (maintainer decision, 2026-11-27, decision-sheet question 39;
+/// recorded on [EgressClass.deviceLocal]):
 ///
 /// - a settings row survives only if the registry classifies its key
 ///   [EgressClass.shareable], or [EgressClass.deviceLocal] and a backup carries
