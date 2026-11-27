@@ -86,7 +86,10 @@ class FigureTextLines {
 /// only a phrase label (`A1`) is skipped. With [dropPhraseLabels] (contra
 /// dances), a leading `A1`…`C2` label is dropped so the parser sees the line
 /// without it. English dances keep the label, because the parser reads one in
-/// front of a bar range (`A1 1-8 lead up`).
+/// front of a bar range (`A1 1-8 lead up`). A `C1` or `C2` followed by
+/// `corner` or `corners` is a corner dancer, as The Caller's Box writes one
+/// (`C2 corner allemande left 1`), not a label, so it is kept and the line is
+/// read as the Move box reads it.
 ///
 /// The text is untrusted input, as an import is: text over
 /// [maxFigureTextLength] characters, with more than [maxFigureTextLines]
@@ -108,7 +111,8 @@ FigureTextLines splitFigureTextLines(
     // figure, in any form.
     final (label, rest) = splitPhraseLabel(trimmed);
     if (label != null && rest.isEmpty) continue;
-    final line = dropPhraseLabels && label != null
+    final line =
+        dropPhraseLabels && label != null && !_cornerCode.hasMatch(trimmed)
         ? FigureTextLine(text: rest, label: label)
         : FigureTextLine(text: trimmed);
     if (line.text.length > maxFreeTextEntryLength) {
@@ -121,6 +125,10 @@ FigureTextLines splitFigureTextLines(
   }
   return FigureTextLines._(lines, null);
 }
+
+/// `C1 corner …` or `C2 corners …`: a corner dancer's code, which is also a
+/// phrase label's spelling.
+final RegExp _cornerCode = RegExp(r'^c[12]\s+corners?\b', caseSensitive: false);
 
 /// A line break of any platform: `\r\n`, `\n`, a lone `\r`, and the Unicode
 /// line and paragraph separators some apps put in copied text.

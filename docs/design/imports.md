@@ -334,7 +334,9 @@ exceptions: it keeps the dance's **rating** whenever the incoming record
 carries none (*B19 follow-up*, maintainer decision of 2026-10-30, "Keep my
 rating"), and likewise its interpreters, interpretation date, other titles and
 Barnes reference (implementer's call, extending the rating rule to fields most
-sources never carry; the maintainer kept it on 23 November 2026). Its square
+sources never carry; the maintainer kept it on 23 November 2026), and its meter
+and key (an agent's call in the pre-release audit, finding A1-04, to match the
+re-import, which already keeps them). Its square
 fields (ADR-007 §8.1) are kept the same way, each while the record leaves it
 at its default (this implementer's call, extending the same rule). A value the
 record does carry replaces the existing one. The record's form still applies,

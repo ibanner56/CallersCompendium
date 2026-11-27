@@ -783,6 +783,34 @@ void main() {
       expect(_one('circle six left half way').params['places'], 3);
     });
 
+    test('a leading number of dancers is not read as beats', () {
+      for (final line in [
+        '3 couples circle left',
+        '2 couples right hands across',
+        '2 men turn single',
+        '3 men hey for three',
+        '1 man cast',
+        '2 ladies set',
+        '4 hands across',
+      ]) {
+        final f = _one(line);
+        expect(f.isCustom, isTrue, reason: line);
+        // The number counts dancers, so the line states no beats.
+        expect(f.beats, 0, reason: line);
+      }
+      // After a bar range, the bars count and the line is kept as typed.
+      final ranged = parseFreeTextFigureEntry(
+        '1-4 3 couples circle left',
+        taxonomy: _ecd,
+        meter: '3/2',
+      ).single;
+      expect(ranged.isCustom, isTrue);
+      expect(ranged.params['text'], '1-4 3 couples circle left');
+      expect(ranged.params['beats'], 12);
+      // Control: a bare count before a figure is still its beats.
+      expect(_one('8 circle left').params['beats'], 8);
+    });
+
     test('`to the right` is a way to travel, never a hand', () {
       expect(_one('turn to the right').isCustom, isTrue);
       expect(_one('star to the left').isCustom, isTrue);

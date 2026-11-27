@@ -23,6 +23,16 @@ void main() {
         '  RACHEL   FIFER ',
         'Rachel (Rae) Fifer',
         'Rae "Rachel" Fifer',
+        // Family name first, a year, or one credit naming two people
+        // (pre-release audit finding A1-03).
+        'Fifer, Rachel',
+        'Fifer, Rae',
+        'Rachel Fifer (2019)',
+        'Rae Fifer, 2019',
+        'Rae Fifer and Bob Smith',
+        'Bob Smith & Rae Fifer',
+        'Bob Smith / Rachel Fifer',
+        'Rachel Smith, Rae Fifer',
       ]) {
         expect(requires('Any Dance At All', [name]), isTrue, reason: name);
       }
@@ -39,6 +49,10 @@ void main() {
         'Fifer',
         'Rae',
         'Rachel Fiferson',
+        // Her names split across two people's credits.
+        'Bob Fifer & Rachel Smith',
+        'Rachel Smith and Bob Fifer',
+        'Rachel Smith, Bob Fifer',
       ]) {
         expect(requires('Any Dance At All', [name]), isFalse, reason: name);
       }
