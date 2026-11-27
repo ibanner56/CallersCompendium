@@ -764,8 +764,10 @@ class FacetPanel extends StatelessWidget {
 
     // A selection on a custom field that was deleted, or whose type changed,
     // since a saved search naming it was saved: no section above shows it
-    // (each is built from a live field of its own type), the search leaves it
-    // out, and the saved search's notice asks the user to remove it. So each
+    // (each is built from a live field of its own type), and the saved
+    // search's notice asks the user to remove it. (The search leaves out a
+    // filter on a deleted field; one on a field whose type changed may not
+    // match as it was saved.) So each
     // gets a chip here, as a deleted tag or level does, and tapping it removes
     // just that selection.
     final liveFieldsById = {for (final d in allCustomFields) d.id: d};

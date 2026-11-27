@@ -46,6 +46,7 @@ Future<void> _pump(
   Locale locale = const Locale('en'),
   Size size = const Size(390, 844),
   int extraDances = 0,
+  bool disableAnimations = false,
 }) async {
   await setScreenSize(tester, size);
   final repos = openTestRepositories();
@@ -79,9 +80,10 @@ Future<void> _pump(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(textScale),
+          disableAnimations: disableAnimations,
+        ),
         child: RepositoriesScope(
           repositories: repos,
           child: AppThemeScope(
@@ -322,6 +324,27 @@ void main() {
         expect(content.hitTestable(), findsOneWidget);
         // The row itself stayed where it was.
         expect(tester.getRect(find.byKey(ValueKey(tool))), toolsRect);
+      });
+    }
+
+    for (final reduceMotion in [false, true]) {
+      testWidgets('opening a tool while scrolled '
+          '${reduceMotion ? 'jumps, under Reduce motion' : 'animates'}', (
+        tester,
+      ) async {
+        await _pump(tester, extraDances: 60, disableAnimations: reduceMotion);
+        await scrollFar(tester);
+        await tester.tap(find.byKey(const ValueKey('filters-panel')));
+        // The frame that builds the panel, then the one after its post-frame
+        // scroll: a jump is done by then, an animation has barely begun.
+        await tester.pump();
+        await tester.pump();
+        expect(
+          find.text('Contra').hitTestable(),
+          reduceMotion ? findsOneWidget : findsNothing,
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Contra').hitTestable(), findsOneWidget);
       });
     }
 

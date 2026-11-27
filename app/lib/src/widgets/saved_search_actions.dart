@@ -51,7 +51,7 @@ class SavedSearchLoad {
   Map<String, String> get deletedCustomFieldNames => {
     for (final m in missing)
       if (m.reference.kind == MissingReferenceKind.customField)
-        if (m.name case final name?) m.reference.id: name,
+        m.reference.id: ?m.name,
   };
 
   SavedSearchLoad copyWith({
@@ -161,8 +161,14 @@ class SavedSearchActions {
   }
 
   /// Shows [search] in the host and runs it. Returns what the host now holds,
-  /// or null when it could not be read (a message says so).
-  Future<SavedSearchLoad?> load(SavedSearch search) async {
+  /// or null when it could not be read (a message says so), or when
+  /// [stillWanted], asked once everything is read and just before the panel
+  /// is replaced, says the host no longer wants it (a load the host started
+  /// in the background, overtaken by what the user did meanwhile).
+  Future<SavedSearchLoad?> load(
+    SavedSearch search, {
+    bool Function()? stillWanted,
+  }) async {
     final text = _text();
     final repos = _repos;
     try {
@@ -180,7 +186,7 @@ class SavedSearchActions {
           );
           missing = await describeSavedSearchMissing(repos, refs, ctx);
       }
-      if (!context.mounted) return null;
+      if (!context.mounted || !(stillWanted?.call() ?? true)) return null;
       apply!(state);
       final baseline = _currentForm() ?? search.spec.toJson();
       return SavedSearchLoad(
@@ -216,11 +222,12 @@ class SavedSearchActions {
     );
     if (name == null || !context.mounted) return null;
     try {
-      final saved = await repos.savedSearches.create(
-        name: name,
-        spec: await _throughAliases(spec),
-      );
+      final written = await _throughAliases(spec);
+      final saved = await repos.savedSearches.create(name: name, spec: written);
       _snack(l10n.savedSearchSavedSnack(saved.name));
+      if (!sameSavedSearchSpec(written, spec)) {
+        return await _showWritten(saved, spec);
+      }
       return SavedSearchLoad(search: saved, baseline: spec.toJson());
     } on SavedSearchLimitReached {
       // diagnostics: silent — an expected refusal, told to the user in full.
@@ -237,6 +244,22 @@ class SavedSearchActions {
       _showFailed();
     }
     return null;
+  }
+
+  /// Shows [written] in the host as it was just stored, when that differs
+  /// from the panel (a merged-away id written as its survivor), so the panel
+  /// and the list are on the survivor too, and the next change compares with
+  /// what is stored. It was stored either way: if it cannot be shown, the
+  /// host still holds it, with the panel's own form ([panel]) as the
+  /// baseline.
+  Future<SavedSearchLoad> _showWritten(
+    SavedSearch written,
+    SavedSearchSpec panel,
+  ) async {
+    final shown = apply == null || readContext == null || !context.mounted
+        ? null
+        : await load(written);
+    return shown ?? SavedSearchLoad(search: written, baseline: panel.toJson());
   }
 
   /// [spec] with each tag, author or source id that a merge on this device
@@ -310,13 +333,17 @@ class SavedSearchActions {
         onGone,
       );
       if (stored == null) return null;
+      final written = await _throughAliases(spec);
       final updated = SavedSearch(
         id: stored.id,
         name: stored.name,
-        spec: await _throughAliases(spec),
+        spec: written,
       );
       await repos.savedSearches.save(updated);
       _snack(l10n.savedSearchUpdatedSnack(updated.name));
+      if (!sameSavedSearchSpec(written, spec)) {
+        return await _showWritten(updated, spec);
+      }
       return loaded.copyWith(search: updated, baseline: spec.toJson());
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'saved_search_actions.update');
@@ -927,6 +954,10 @@ class _CodeUnitLimitFormatter extends TextInputFormatter {
   ) {
     final next = newValue.text;
     if (next.length <= maxLength) return newValue;
+    // An input method may pass the limit while it composes; cut once it has
+    // committed, as Flutter's own length limiter does, so it is not broken
+    // off mid-word.
+    if (newValue.composing.isValid) return newValue;
     final old = oldValue.text;
     // What the edit inserted: next less the longest common prefix and suffix
     // it shares with the old text.
@@ -942,6 +973,12 @@ class _CodeUnitLimitFormatter extends TextInputFormatter {
             next.codeUnitAt(next.length - 1 - suffix)) {
       suffix++;
     }
+    // Matched by code unit, either can end inside a surrogate pair: keep
+    // pairs whole by giving the split half back to the insertion.
+    bool isHigh(int unit) => unit >= 0xD800 && unit <= 0xDBFF;
+    bool isLow(int unit) => unit >= 0xDC00 && unit <= 0xDFFF;
+    if (prefix > 0 && isHigh(next.codeUnitAt(prefix - 1))) prefix--;
+    if (suffix > 0 && isLow(next.codeUnitAt(next.length - suffix))) suffix--;
     final room = maxLength - prefix - suffix;
     if (room < 0) {
       final text = truncateOnRuneBoundary(next, maxLength);

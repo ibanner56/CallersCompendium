@@ -6,7 +6,7 @@
       "With the Collection scrolled down, tapping Filters, By phrase or Advanced in the row that stays at the top now scrolls back to show the tool you opened, instead of opening it out of sight above the list.",
       "Opening a Repertoire number in the Collection no longer leaves the saved search you had loaded in use, so Update can no longer save the Repertoire's search over it.",
       "A saved search that filters on a custom field you have since deleted, or whose type you changed, now shows each such filter as a chip under Deleted or changed custom fields in Filters, so you can remove it as the notice asks without clearing your other filters.",
-      "If you merge a tag, author or source while a saved search that uses it is loaded in the Collection, the search now shows the merged one when you come back to the Collection, and Save and Update no longer write the merged-away one back into it.",
+      "If you merge a tag, author or source while a saved search that uses it is loaded in the Collection, the search now shows the merged one when you come back to the Collection (unless you had changed the search there), and Save and Update save the merged one, not the merged-away one, and show it.",
       "A saved search limited to a venue that has no counted call now names the venue, instead of calling it Unnamed venue.",
       "The name box for a saved search now stops at the length the app can save, so a long name made of emoji is no longer refused with \"That name can't be used\".",
       "Settings ▸ Collection now says when your saved searches couldn't be loaded, with Try again, instead of saying you have none."

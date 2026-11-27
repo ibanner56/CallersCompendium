@@ -443,7 +443,10 @@ void main() {
       tester,
     ) async {
       final facets = FacetSelections()
-        ..textValues['cf3'] = const TextFacetState(op: CustomFieldOp.contains, value: 'slow');
+        ..textValues['cf3'] = const TextFacetState(
+          op: CustomFieldOp.contains,
+          value: 'slow',
+        );
       var changes = 0;
       await _pump(tester, facets, onChanged: () => changes++);
       await _expectRemovableChip(
@@ -457,7 +460,10 @@ void main() {
 
     testWidgets('a number filter on a deleted field', (tester) async {
       final facets = FacetSelections()
-        ..numberValues['cf4'] = const NumberFacetState(op: CustomFieldOp.eq, lo: 3);
+        ..numberValues['cf4'] = const NumberFacetState(
+          op: CustomFieldOp.eq,
+          lo: 3,
+        );
       var changes = 0;
       await _pump(
         tester,
@@ -486,7 +492,10 @@ void main() {
       );
       final facets = FacetSelections()
         ..booleanValues['cf2'] = true
-        ..textValues['cf2'] = const TextFacetState(op: CustomFieldOp.contains, value: 'calm');
+        ..textValues['cf2'] = const TextFacetState(
+          op: CustomFieldOp.contains,
+          value: 'calm',
+        );
       var changes = 0;
       await _pump(
         tester,

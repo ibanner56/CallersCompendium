@@ -1065,9 +1065,12 @@ resolver reports the missing tag.
 
 A Collection that has the search loaded when the merge runs still shows the
 loser. Two things keep it from undoing the rewrite: **Save** and **Update**
-write the panel's ids through the same aliases (`movingReferences`), and when
-the Collection is shown again a loaded search whose stored form changed
-meanwhile is loaded again, unless the panel was changed from it there.
+write the panel's ids through the same aliases (`movingReferences`), then load
+what they wrote when that differs, so the panel is on the survivor too; and
+when the Collection is shown again a loaded search whose stored form changed
+meanwhile is loaded again, unless the panel was changed from it there or
+Online search is on, and unless the user changes, clears or replaces the
+search, or turns Online search on, before that load has read what it needs.
 
 Moves and sections are not references to records, and are not reported here: a
 move id the taxonomy does not know, or a By phrase section the dance form has no

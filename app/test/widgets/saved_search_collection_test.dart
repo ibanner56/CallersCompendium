@@ -502,6 +502,7 @@ void main() {
       tester,
     ) async {
       final repos = await _library();
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'cf1',
@@ -1048,6 +1049,82 @@ void main() {
       final stored = (await repos.savedSearches.get(search.id))!;
       expect(storedTagIds(stored), ['t0']);
       expect(stored.spec.toJson()['text'], 'petronella');
+      // The panel is on the survivor too, so the list shows what was saved,
+      // and Update is off: nothing differs from it.
+      expect(_shows('Petronella'), isTrue);
+      await _openMore(tester);
+      expect(_enabled(tester, 'saved-search-update'), isFalse);
+    });
+
+    testWidgets('Save as a new search, from a panel still on a tag merged '
+        'away meanwhile, saves the surviving tag and shows it', (tester) async {
+      final (repos, search) = await mergedTagSearch();
+      await _pump(tester, repos);
+      await _load(tester, search);
+      // Merged while the Collection is showing (as sync can): nothing has
+      // reloaded the panel.
+      await merge(repos);
+      await tester.pumpAndSettle();
+      await _type(tester, 'petronella');
+      await _tapOff(tester);
+
+      await _saveAs(tester, 'Copy');
+
+      final copy = (await _readable(
+        repos,
+      )).singleWhere((s) => s.name == 'Copy');
+      expect(storedTagIds(copy), ['t0']);
+      expect(_shows('Petronella'), isTrue);
+    });
+
+    testWidgets('a loaded search changed elsewhere is not loaded again over '
+        'Online search', (tester) async {
+      final repos = await _library();
+      // Searched by title, which online search keeps as it is, so the panel
+      // still reads as the loaded search while online.
+      final search = await _seed(
+        repos,
+        'Pet',
+        CollectionPanelState(text: 'Petronella', scope: FullTextScope.title),
+      );
+      final isActive = ValueNotifier(true);
+      addTearDown(isActive.dispose);
+      await _pump(
+        tester,
+        repos,
+        isActive: isActive,
+        contraDbOnline: ContraDbOnline(
+          searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}',
+        ),
+      );
+      await _load(tester, search);
+      await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('online-source-selector')),
+        findsOneWidget,
+      );
+
+      isActive.value = false;
+      await tester.pumpAndSettle();
+      // Updated on another device, and synced.
+      await repos.savedSearches.save(
+        SavedSearch(
+          id: search.id,
+          name: 'Pet',
+          spec: SavedSearchSpec.fromPanelState(
+            CollectionPanelState(text: 'Chorus', scope: FullTextScope.title),
+            today: _day,
+          ).value!,
+        ),
+      );
+      isActive.value = true;
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('online-source-selector')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('when the Collection is shown again, an Update made '
@@ -1515,6 +1592,24 @@ void main() {
         find.byKey(const ValueKey('saved-search-name-field')),
       );
       expect(field.controller!.text, '😀' * 50);
+      // An edit past the limit never leaves half of a surrogate pair: the
+      // old text's last emoji and the new one share their second unit.
+      await tester.enterText(
+        find.byKey(const ValueKey('saved-search-name-field')),
+        '${'a' * 98}😀',
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('saved-search-name-field')),
+        '${'a' * 98}X\u{1F200}',
+      );
+      await tester.pumpAndSettle();
+      expect(field.controller!.text, '${'a' * 98}X');
+      await tester.enterText(
+        find.byKey(const ValueKey('saved-search-name-field')),
+        '😀' * 50,
+      );
+      await tester.pumpAndSettle();
       // At the limit, an insertion is refused; what was there stays.
       await tester.enterText(
         find.byKey(const ValueKey('saved-search-name-field')),

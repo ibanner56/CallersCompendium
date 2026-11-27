@@ -1689,9 +1689,9 @@ class _DanceListScreenState extends State<DanceListScreen>
   /// forgotten. A search whose stored form changed meanwhile (a merge in
   /// Settings rewrote a tag, author or source it names, or an Update synced
   /// from another device) is loaded again, unless the panel has been changed
-  /// from it here, so the panel and the list show what is stored, and a later
-  /// Update does not write the old form back. Otherwise what the panel shows,
-  /// and its baseline, are unchanged.
+  /// from it here or online search is on, so the panel and the list show what
+  /// is stored, and a later Update does not write the old form back.
+  /// Otherwise what the panel shows, and its baseline, are unchanged.
   Future<void> _refreshLoadedSearch() async {
     final loaded = _loadedSearch;
     if (loaded == null) return;
@@ -1701,8 +1701,21 @@ class _DanceListScreenState extends State<DanceListScreen>
       if (stored == null) {
         _forgetDeletedSavedSearch();
       } else if (!sameSavedSearchSpec(stored.spec, loaded.search.spec) &&
+          !_onlineEnabled &&
           !_savedSearchActions().changed(loaded)) {
-        await _loadSavedSearch(stored);
+        // Asked again once the load has read what it needs: if the user has
+        // changed the search, cleared it, loaded another or gone online
+        // meanwhile, theirs stands.
+        bool stillWanted() =>
+            mounted &&
+            identical(_loadedSearch, loaded) &&
+            !_onlineEnabled &&
+            !_savedSearchActions().changed(loaded);
+        final load = await _savedSearchActions().load(
+          stored,
+          stillWanted: stillWanted,
+        );
+        if (load != null) _onSavedSearchLoaded(load);
       } else if (stored.name != loaded.search.name) {
         _onSavedSearchLoaded(loaded.copyWith(search: stored));
       }

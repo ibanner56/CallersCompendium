@@ -179,16 +179,12 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
       final position = Scrollable.maybeOf(panelContext)?.position;
       final viewport = RenderAbstractViewport.maybeOf(box);
       if (position == null || viewport == null) return;
-      // What is pinned over the start of the sliver holding the content (the
-      // row of toggles), which the content's top must clear.
-      RenderObject? sliver = box.parent;
-      while (sliver != null && sliver is! RenderSliver) {
-        sliver = sliver.parent;
-      }
-      final overlap = sliver is RenderSliver ? sliver.constraints.overlap : 0.0;
+      // The offset that puts the content's top just below what is pinned
+      // ahead of it (the row of toggles): the viewport counts pinned slivers'
+      // obstruction in.
       final target = math.max(
         position.minScrollExtent,
-        viewport.getOffsetToReveal(box, 0).offset - overlap,
+        viewport.getOffsetToReveal(box, 0).offset,
       );
       if (position.pixels <= target) return;
       if (reduceMotion) {
