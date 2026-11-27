@@ -4034,6 +4034,64 @@ FROM seq
       });
     });
 
+    // The square calls add meanings to a search over every form; they take
+    // none away. Over the same library, every dance contra's taxonomy alone
+    // finds, a search over every form finds too, including a query where a
+    // square call's name crosses a contra phrase ("allemande right" and
+    // "right hands across").
+    test('finds every dance a contra-only search finds', () async {
+      await everyForm.create(
+        _dance(
+          id: 'structured',
+          title: 'Structured',
+          figures: [
+            Figure(
+              move: 'allemande',
+              params: const {'who': 'neighbors', 'hand': 'right'},
+            ),
+            Figure(move: 'star', params: const {'hand': 'right'}),
+          ],
+        ),
+      );
+      await everyForm.create(
+        _dance(
+          id: 'typed-u-turn',
+          title: 'Typed',
+          callingNotes: 'U turn back to place and back up.',
+        ),
+      );
+      final contraOnly = DanceRepository(db, contraTaxonomy);
+      for (final q in [
+        'allemande right hands across',
+        'u turn back to back',
+        'turn by the hand',
+        'right and left thru',
+        'pass thru',
+        'about face',
+        'docey doe',
+        'do si do',
+        'balance in the ring',
+      ]) {
+        for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+          final before = await contraOnly.search(
+            FullTextFilter(q, scope: scope),
+          );
+          final now = await everyForm.search(FullTextFilter(q, scope: scope));
+          expect(now, containsAll(before), reason: '"$q" (${scope.name})');
+        }
+      }
+      // The crossing query above is the one that finds a structured line.
+      expect(
+        await everyForm.search(
+          const FullTextFilter(
+            'allemande right hands across',
+            scope: FullTextScope.figure,
+          ),
+        ),
+        contains('structured'),
+      );
+    });
+
     test('searchText finds the words as typed', () async {
       expect(await everyForm.searchText('docey doe'), ['english-typed']);
       expect(await everyForm.searchText('balance in the ring'), ['square']);

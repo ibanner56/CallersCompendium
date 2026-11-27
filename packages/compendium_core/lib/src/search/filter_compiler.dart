@@ -47,17 +47,23 @@ const _rawTextColumns = 'title authors sources custom_values hook notes';
 /// query, not only the first.
 String _rawColumnsMatch(String query) => '{$_rawTextColumns} : ($query)';
 
-/// The spans of [text] that a name or keyword of [taxonomy]'s moves and
-/// aliases other than the square calls covers, as [moveKeywordSpans] finds
-/// them: how a search over every form kept a phrase whole before the square
-/// calls were registered (`FilterCompiler._searchWords`).
-List<({String text, int start})> _nonSquareKeywordSpans(
-  String text,
-  Taxonomy taxonomy,
-) {
+/// Whether a phrase that a name or keyword of the move [id] covers was kept
+/// whole by a search over every form before the square calls were
+/// registered: a contra or English move's (the audit lead's call on
+/// pre-release audit B-04). A phrase only a square call names is also read
+/// word by word ([FilterCompiler._searchWords]).
+bool _keptWholeBeforeSquares(String id) =>
+    id != customMoveId && !id.startsWith(squareMovePrefix);
+
+/// Matches the names and keywords of [taxonomy]'s moves and aliases that
+/// [_keptWholeBeforeSquares] admits, as [moveKeywordSpans] matches all of
+/// them, or `null` when it admits none. Built once per taxonomy.
+Substitutor? _keptWholeBeforeSquaresMatcher(Taxonomy taxonomy) {
+  final cached = _keptWholeMatchers[taxonomy];
+  if (cached != null) return cached.matcher;
   final keywords = <String, String>{};
   void add(String id, String name, List<String> searchKeywords) {
-    if (id == customMoveId || id.startsWith(squareMovePrefix)) return;
+    if (!_keptWholeBeforeSquares(id)) return;
     for (final word in [name, ...searchKeywords]) {
       if (word.isNotEmpty) keywords[word.toLowerCase()] = id;
     }
@@ -69,9 +75,16 @@ List<({String text, int start})> _nonSquareKeywordSpans(
   for (final alias in taxonomy.aliases.values) {
     add(alias.id, alias.displayName, alias.searchKeywords);
   }
-  if (keywords.isEmpty) return const [];
-  return Substitutor(keywords, caseInsensitive: true).matches(text);
+  final matcher = keywords.isEmpty
+      ? null
+      : Substitutor(keywords, caseInsensitive: true);
+  _keptWholeMatchers[taxonomy] = (matcher: matcher);
+  return matcher;
 }
+
+final _keptWholeMatchers = Expando<({Substitutor? matcher})>(
+  'keptWholeBeforeSquares',
+);
 
 /// One word of a free-text query, as typed and in canonical form
 /// (`FilterCompiler._searchWords`). `alternates` are the other canonical
@@ -81,15 +94,13 @@ List<({String text, int start})> _nonSquareKeywordSpans(
 /// tokens).
 typedef _WordForms = ({String raw, String canonical, List<String> alternates});
 
-/// A [_WordForms] word, and `apart`: the words it splits into where only a
-/// square call's name or keyword keeps it whole, which the word also matches
-/// when they all match, each on its own (empty for any other word).
-typedef _SearchWord = ({
-  String raw,
-  String canonical,
-  List<String> alternates,
-  List<_WordForms> apart,
-});
+/// One term of a free-text query, which [FilterCompiler._compileFullText]
+/// ANDs with the others: its `whole` words, which must all match, **or** its
+/// `apart` words, which must all match. `apart` is how a search over every
+/// form split the same stretch of the query before the square calls were
+/// registered, set only where a square call's name or keyword made the split
+/// differ; it is empty otherwise, and `whole` is then one word.
+typedef _SearchTerm = ({List<_WordForms> whole, List<_WordForms> apart});
 
 /// A run of whitespace, where a free-text query splits into words.
 final _whitespace = RegExp(r'\s+');
@@ -592,7 +603,7 @@ class FilterCompiler {
       return _compileFullTextWord(scope, '', const [''], binds);
     }
     final predicates = [
-      for (final word in words) _compileWordForms(scope, word, binds),
+      for (final term in words) _compileSearchTerm(scope, term, binds),
     ];
     return predicates.length == 1
         ? predicates.single
@@ -618,7 +629,7 @@ class FilterCompiler {
   /// without the dialect's move names, and one with only its role words made
   /// tokens and no move name or keyword rewritten, since text a caller typed
   /// is stored as written (pre-release audit B-04).
-  List<_SearchWord> _searchWords(String query) {
+  List<_SearchTerm> _searchWords(String query) {
     final text = query.trim();
     if (text.isEmpty) return const [];
     final roles = analyzeRoleTerms(
@@ -649,7 +660,9 @@ class FilterCompiler {
       for (final m in moveKeywordSpans(text, t)) {
         keep(m.start, m.start + m.text.length);
       }
-      for (final m in _nonSquareKeywordSpans(text, t)) {
+      for (final m
+          in _keptWholeBeforeSquaresMatcher(t)?.matches(text) ??
+              const <({String text, int start})>[]) {
         keptApart.fillRange(m.start, m.start + m.text.length, true);
       }
     }
@@ -703,39 +716,22 @@ class FilterCompiler {
       return moveCanonical.replaceAll(_whitespace, ' ');
     }
 
-    // The words of [start, end) split at the whitespace [whole] does not
-    // keep, each with its forms. A word of one or two characters with no
-    // letter or digit ("&", "-") has no token for the prefix index, so it
-    // would match no row and empty the whole AND; it constrains nothing, so
-    // it is dropped.
-    List<({int start, int end, _WordForms forms})> split(
-      List<bool> whole,
-      int start,
-      int end,
-    ) {
-      final out = <({int start, int end, _WordForms forms})>[];
+    // The ranges of the words of the query split at the whitespace [whole]
+    // does not keep. A word of one or two characters with no letter or digit
+    // ("&", "-") has no token for the prefix index, so it would match no row
+    // and empty the whole AND; it constrains nothing, so it is dropped.
+    List<({int start, int end})> split(List<bool> whole) {
+      final out = <({int start, int end})>[];
       int? wordStart;
-      for (var i = start; i <= end; i++) {
-        final breaks = i == end || (!whole[i] && _whitespace.hasMatch(text[i]));
+      for (var i = 0; i <= text.length; i++) {
+        final breaks =
+            i == text.length || (!whole[i] && _whitespace.hasMatch(text[i]));
         if (!breaks) {
           wordStart ??= i;
         } else if (wordStart != null) {
           final raw = text.substring(wordStart, i);
           if (ftsQueryScalarLength(raw) > 2 || _letterOrDigit.hasMatch(raw)) {
-            final mapped = canonical(wordStart, i);
-            final alternates = <String>{
-              canonical(wordStart, i, dialectNames: false),
-              canonical(wordStart, i, dialectNames: false, moveNames: false),
-            }..remove(mapped);
-            out.add((
-              start: wordStart,
-              end: i,
-              forms: (
-                raw: raw,
-                canonical: mapped,
-                alternates: alternates.toList(),
-              ),
-            ));
+            out.add((start: wordStart, end: i));
           }
           wordStart = null;
         }
@@ -743,25 +739,61 @@ class FilterCompiler {
       return out;
     }
 
-    final words = <_SearchWord>[];
-    for (final word in split(kept, 0, text.length)) {
-      final apart = split(keptApart, word.start, word.end);
-      final whole =
-          apart.length == 1 &&
-          apart.single.start == word.start &&
-          apart.single.end == word.end;
+    _WordForms forms(({int start, int end}) word) {
+      final (:start, :end) = word;
+      final mapped = canonical(start, end);
+      final alternates = <String>{
+        canonical(start, end, dialectNames: false),
+        canonical(start, end, dialectNames: false, moveNames: false),
+      }..remove(mapped);
+      return (
+        raw: text.substring(start, end),
+        canonical: mapped,
+        alternates: alternates.toList(),
+      );
+    }
+
+    // The two splits grouped into the shortest stretches that both end at
+    // the same place, so a phrase of the one that crosses a word of the
+    // other is in one term with it.
+    final wholeWords = split(kept);
+    final apartWords = split(keptApart);
+    final words = <_SearchTerm>[];
+    var w = 0;
+    var a = 0;
+    while (w < wholeWords.length || a < apartWords.length) {
+      final wholeStart = w;
+      final apartStart = a;
+      var end = -1;
+      do {
+        if (w < wholeWords.length && (end < 0 || wholeWords[w].start < end)) {
+          if (wholeWords[w].end > end) end = wholeWords[w].end;
+          w++;
+        } else if (a < apartWords.length &&
+            (end < 0 || apartWords[a].start < end)) {
+          if (apartWords[a].end > end) end = apartWords[a].end;
+          a++;
+        } else {
+          break;
+        }
+      } while (true);
+      final whole = wholeWords.sublist(wholeStart, w);
+      final apart = apartWords.sublist(apartStart, a);
+      final same =
+          whole.length == apart.length &&
+          [
+            for (var k = 0; k < whole.length; k++) whole[k] == apart[k],
+          ].every((e) => e);
       words.add((
-        raw: word.forms.raw,
-        canonical: word.forms.canonical,
-        alternates: word.forms.alternates,
-        apart: whole ? const [] : [for (final w in apart) w.forms],
+        whole: [for (final word in whole) forms(word)],
+        apart: same ? const [] : [for (final word in apart) forms(word)],
       ));
     }
     return words;
   }
 
   /// A [word] matches its canonical form **or** any of its alternate forms
-  /// ([_SearchWord]):
+  /// ([_WordForms]):
   /// - without the dialect's move names, so a dialect that calls the balance
   ///   the ring "balance" still finds a plain balance by "balance" (FIND-4
   ///   adds the dialect's meaning; it takes none away);
@@ -772,31 +804,35 @@ class FilterCompiler {
   ///   keyword adds the move's meaning; it takes none of the words away.
   ///
   /// Title and Author read only the typed word, so they compile it once.
-  ///
-  /// A word kept whole only by a square call's name or keyword ("turn by the
-  /// hand") also matches when its words ([_SearchWord]'s `apart`) all match,
-  /// each on its own, as they did before the square calls were registered,
-  /// so "turn by the hand" still finds a line typed "Turn by the right hand".
-  /// A name or keyword contra or English dances already had ("do si do")
-  /// stays one word (the audit lead's call on pre-release audit B-04).
   String _compileWordForms(
     FullTextScope scope,
-    _SearchWord word,
+    _WordForms word,
+    List<Object?> binds,
+  ) => _compileFullTextWord(scope, word.raw, [
+    word.canonical,
+    ...word.alternates,
+  ], binds);
+
+  /// A [term] matches when its `whole` words all match **or** its `apart`
+  /// words all match ([_SearchTerm]). A phrase kept whole only by a square
+  /// call's name or keyword ("turn by the hand") is read word by word too,
+  /// as a search over every form read it before the square calls were
+  /// registered, so "turn by the hand" still finds a line typed "Turn by the
+  /// right hand"; a contra or English move's name or keyword ("do si do")
+  /// stays one word (the audit lead's call on pre-release audit B-04).
+  String _compileSearchTerm(
+    FullTextScope scope,
+    _SearchTerm term,
     List<Object?> binds,
   ) {
-    final whole = _compileFullTextWord(scope, word.raw, [
-      word.canonical,
-      ...word.alternates,
-    ], binds);
-    if (word.apart.isEmpty) return whole;
-    final apart = [
-      for (final w in word.apart)
-        _compileFullTextWord(scope, w.raw, [
-          w.canonical,
-          ...w.alternates,
-        ], binds),
-    ];
-    return '($whole OR (${apart.join(' AND ')}))';
+    String all(List<_WordForms> words) {
+      final each = [for (final w in words) _compileWordForms(scope, w, binds)];
+      return each.length == 1 ? each.single : '(${each.join(' AND ')})';
+    }
+
+    final whole = all(term.whole);
+    if (term.apart.isEmpty) return whole;
+    return '($whole OR ${all(term.apart)})';
   }
 
   /// One word of a free-text search ([_compileFullText]): [raw] as typed and
