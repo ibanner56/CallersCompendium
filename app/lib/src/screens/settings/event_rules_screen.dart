@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/repositories_scope.dart';
 import '../../diagnostics/error_log.dart';
+import '../../search/event_rule_check.dart' show EventRuleSearchGone;
 import '../../theme/app_spacing.dart';
 import '../../utils/confirm_delete.dart';
 import '../../utils/undo_snack_bar.dart';
@@ -335,6 +336,17 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
   }
 
   late String? _searchId = widget.rule?.savedSearchId;
+
+  /// The edited rule's own saved search while it can't be offered (gone, or
+  /// stored but unreadable, or the searches could not be read), and no other
+  /// is chosen: kept, so the rule can still be renamed, renumbered or moved
+  /// and saved. The repository allows an edit that keeps the search
+  /// ([EventRuleRepository.save]); a search newly chosen must be stored.
+  String? _keptSearchId;
+
+  /// Whether the saved searches could not be read, so none can be offered.
+  bool _searchesUnreadable = false;
+
   late EventRuleQuantifier _quantifier =
       widget.rule?.quantifier ?? EventRuleQuantifier.atMost;
   late EventRuleScope _scope =
@@ -382,12 +394,29 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
   }
 
   Future<void> _read() async {
-    final names = await _savedSearchNames(RepositoriesScope.of(context));
+    Map<String, String>? names;
+    try {
+      names = await _savedSearchNames(RepositoriesScope.of(context));
+    } catch (error, stackTrace) {
+      // A failed read still opens the editor, rather than a spinner for as
+      // long as it is open (#2548 for Manage rules): it offers no search,
+      // says why, and keeps the rule's own.
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'event_rule_editor.search_names',
+      );
+    }
     if (!mounted) return;
     final first = _searches == null;
     setState(() {
-      _searches = names;
-      if (_searchId != null && !names.containsKey(_searchId)) {
+      _searchesUnreadable = names == null;
+      // After a failed read the names last read stand (none at first).
+      final offered = _searches = names ?? _searches ?? const {};
+      if (_searchId != null && !offered.containsKey(_searchId)) {
+        if (first && _searchId == widget.rule?.savedSearchId) {
+          _keptSearchId = _searchId;
+        }
         _searchId = null;
       }
       // Nothing can be edited until the first read is in, so a search found
@@ -395,6 +424,10 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
       if (first) _initialSearchId = _searchId;
     });
   }
+
+  /// The saved search the rule is saved with: the one chosen, or, while
+  /// none is, the rule's own kept one ([_keptSearchId]).
+  String? get _savingSearchId => _searchId ?? _keptSearchId;
 
   @override
   void dispose() {
@@ -425,11 +458,12 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
     if (value != null && value > _countLimit) _count.text = '$_countLimit';
   }
 
-  bool get _canSave => !_saving && _searchId != null && _countValue != null;
+  bool get _canSave =>
+      !_saving && _savingSearchId != null && _countValue != null;
 
   EventRule _draft(String id, int position) => EventRule.of(
     id: id,
-    savedSearchId: _searchId!,
+    savedSearchId: _savingSearchId!,
     quantifier: _quantifier,
     count: _countValue!,
     scope: _scope,
@@ -447,7 +481,7 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
       final EventRule saved;
       if (existing == null) {
         saved = await repos.eventRules.create(
-          savedSearchId: _searchId!,
+          savedSearchId: _savingSearchId!,
           quantifier: _quantifier,
           count: _countValue!,
           scope: _scope,
@@ -472,14 +506,40 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
       setState(() {
         _saving = false;
         // Cleared now, not only once the list is read again, so a second tap
-        // cannot try the same search.
+        // cannot try the same search. A kept search goes too: refused, it is
+        // no longer the stored rule's (a sync changed it meanwhile).
         _searchId = null;
+        _keptSearchId = null;
       });
       await _read();
+    } on EventRuleInvalid catch (error, stackTrace) {
+      // At the limit, or a rule the repository refuses: the editor says why
+      // and stays open.
+      logCaughtError(error, stackTrace, source: 'event_rule_editor._save');
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      _saveFailed(
+        error.field == 'limit'
+            ? l10n.eventRuleSaveLimit(maxEventRules)
+            : l10n.eventRuleSaveFailed,
+      );
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'event_rule_editor._save');
-      if (mounted) setState(() => _saving = false);
+      if (!mounted) return;
+      _saveFailed(AppLocalizations.of(context).eventRuleSaveFailed);
     }
+  }
+
+  /// A save failed for [message]'s reason: says so, and lets Save be tried
+  /// again.
+  void _saveFailed(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const ValueKey('event-rule-save-failed'),
+        content: Text(message),
+      ),
+    );
+    setState(() => _saving = false);
   }
 
   @override
@@ -492,12 +552,12 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
               ? l10n.eventRuleCountOnlyOne
               : l10n.eventRuleCountInvalid(_countLimit))
         : null;
-    final preview = _searchId == null || _countValue == null
+    final preview = _savingSearchId == null || _countValue == null
         ? null
         : eventRuleSentence(
             l10n,
             _draft(widget.rule?.id ?? 'new', 0),
-            searches?[_searchId],
+            searches?[_savingSearchId],
           );
     // The text fields are read through their controllers; the other fields
     // change by setState, which rebuilds this too.
@@ -536,7 +596,12 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                   ],
-                  if (searches.isEmpty)
+                  if (_searchesUnreadable && searches.isEmpty)
+                    Text(
+                      l10n.eventRuleSearchesUnreadable,
+                      key: const ValueKey('event-rule-searches-unreadable'),
+                    )
+                  else if (searches.isEmpty)
                     Text(
                       l10n.eventRuleNoSavedSearches,
                       key: const ValueKey('event-rule-no-searches'),
@@ -560,6 +625,18 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
                       ],
                       onChanged: (id) => setState(() => _searchId = id),
                     ),
+                  // The rule's own search, kept, can't be offered: say why
+                  // it is not checked, as Manage rules does. Not while the
+                  // searches can't be read: not read is not gone.
+                  if (_searchId == null &&
+                      _keptSearchId != null &&
+                      !_searchesUnreadable) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    const EventRuleAttentionNote(
+                      key: ValueKey('event-rule-search-gone'),
+                      attention: EventRuleSearchGone(),
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.md),
                   Text(
                     l10n.eventRuleQuantifierLabel,

@@ -15031,6 +15031,18 @@ class AppLocalizationsDa extends AppLocalizations {
       'Den gemte søgning blev netop slettet, så reglen blev ikke gemt. Vælg en anden.';
 
   @override
+  String get eventRuleSaveFailed => 'Kunne ikke gemme reglen. Prøv igen.';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'Denne enhed har $max regler, det højeste antal. Slet en for at tilføje en anden.';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable =>
+      'Dine gemte søgninger kan ikke læses lige nu, så ingen kan vælges her.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Hvor mange';
 
   @override
@@ -15387,7 +15399,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programTemplateRuleRemovedUnknown =>
-      'Fjernet: en regel, der ikke er på denne enhed';
+      'En regel, der ikke er på denne enhed';
 
   @override
   String get programTemplateRulesPickerTitle => 'Regler for denne skabelon';
@@ -15411,6 +15423,14 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       'Tilføjet på en anden enhed og stadig på vej, eller væk for altid. Fjern tager dem af dette program.';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      'Tilføjet på en anden enhed og stadig på vej, eller væk for altid. Fjern tager dem af denne skabelon.';
+
+  @override
+  String get programsRulesPickerUnreadable =>
+      'Dine regler kan ikke læses lige nu.';
 
   @override
   String get programsRulesChangeFailed =>

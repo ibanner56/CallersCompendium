@@ -14370,6 +14370,18 @@
   "@eventRuleSavedSearchGone": {
     "x-sourceSha256": "feec3c2b76bd8ac9a0924b28c9bae1e77a2eb88f8fe4ceeeafff4337baff3d5b"
   },
+  "eventRuleSaveFailed": "Die Regel konnte nicht gespeichert werden. Versuche es noch einmal.",
+  "@eventRuleSaveFailed": {
+    "x-sourceSha256": "8a574e43f69bcc8cbf1c9e1c07a031561df7828e1cb97d0f89696b1f8f285807"
+  },
+  "eventRuleSaveLimit": "Dieses Gerät hat {max} Regeln, mehr geht nicht. Lösche eine, um eine andere hinzuzufügen.",
+  "@eventRuleSaveLimit": {
+    "x-sourceSha256": "90d039f15588eb30cef22ed24a6a6f18b7db7fb9a5255cc523d079d48287cde9"
+  },
+  "eventRuleSearchesUnreadable": "Deine gespeicherten Suchen können gerade nicht gelesen werden, daher kann hier keine gewählt werden.",
+  "@eventRuleSearchesUnreadable": {
+    "x-sourceSha256": "8feb7b13d1cf2b52930b22b8f0ed5e48fd65978b0155e6161d90dca0c7ca9baf"
+  },
   "eventRuleQuantifierLabel": "Wie viele",
   "@eventRuleQuantifierLabel": {
     "x-sourceSha256": "e2a6ff2c78fdb163d02c7b5c66431cab9b1b418470219eb4e342b0324dfab14f"
@@ -14626,9 +14638,9 @@
   "@programTemplateRuleRemoved": {
     "x-sourceSha256": "9d5df0a088d8b8460775e6b44026d42f231f247934827c011a7ef143ae12ea1e"
   },
-  "programTemplateRuleRemovedUnknown": "Entfernt: eine Regel, die nicht auf diesem Gerät ist",
+  "programTemplateRuleRemovedUnknown": "Eine Regel, die nicht auf diesem Gerät ist",
   "@programTemplateRuleRemovedUnknown": {
-    "x-sourceSha256": "c1c09c9abcef4143bb960f232a083639dd0de19bf45eb0542206522fabadee1c"
+    "x-sourceSha256": "b5f15fcea141a41c4b1fc76f7ba8639805b2c939e3cdc6391c79e90872b57421"
   },
   "programTemplateRulesPickerTitle": "Regeln für diese Vorlage",
   "@programTemplateRulesPickerTitle": {
@@ -14645,6 +14657,14 @@
   "programsRulesPickerNotHereHelp": "Auf einem anderen Gerät hinzugefügt und noch unterwegs, oder endgültig weg. Entfernen nimmt sie aus diesem Programm.",
   "@programsRulesPickerNotHereHelp": {
     "x-sourceSha256": "d712197bddacd3cb51a680b3db35e0f4eb3804b7975780c6faa3eeb40d6c5cd0"
+  },
+  "programTemplateRulesPickerNotHereHelp": "Auf einem anderen Gerät hinzugefügt und noch unterwegs, oder endgültig weg. Entfernen nimmt sie aus dieser Vorlage.",
+  "@programTemplateRulesPickerNotHereHelp": {
+    "x-sourceSha256": "82acc6e74c26a3aa39171937f4021563afffba4cbe73fcdea53c7b48b1da5dcd"
+  },
+  "programsRulesPickerUnreadable": "Deine Regeln können gerade nicht gelesen werden.",
+  "@programsRulesPickerUnreadable": {
+    "x-sourceSha256": "d077f46371174d7678bb7663d4738aba68552c07fb9bd0c6eefc6063cb5733ce"
   },
   "programsRulesChangeFailed": "Die Regeln dieses Programms konnten nicht geändert werden. Versuche es noch einmal.",
   "@programsRulesChangeFailed": {
