@@ -1071,12 +1071,15 @@ as the survivor.
 **Merges rewrite, aliases cover the rest.** Merging tags, authors or sources
 rewrites each readable saved search that names a loser to name the survivor, in
 the merge's own transaction, and an Undo puts it back only while it is still as
-the merge left it (`tags-and-people.md`, Merge step 8). That is a user's merge:
-one sync's reconciliation applies does not rewrite saved searches. The alias is
-the safety net, not the mechanism: it covers a readable saved search a peer
-edited before it saw the merge, or one a reconciliation left naming the loser,
-until the alias is retired (once no peer lists the loser), after which a value
-naming the loser reports it as missing, which is safe. It cannot help a saved
+the merge left it (`tags-and-people.md`, Merge step 8). A merge that sync's own
+reconciliation applies (two devices each created a tag, author, level or custom
+field of the same name) rewrites them the same way, levels and custom fields
+included, and so does a saved search that arrives from a peer still naming a
+loser this device holds an alias for (`sync-spec.md` §6.6, "The remap"). The
+alias is the safety net, not the mechanism: it covers a readable saved search
+that comes to name the loser some other way, until the alias is retired (once no
+peer lists the loser), after which a value naming the loser reports it as
+missing, which is safe. It cannot help a saved
 search this build cannot read (one in a newer format, left untouched by the
 merge): the alias is applied only to a value that decodes, so only a build that
 reads that format can use it, and only until it is retired. A host builds the
@@ -1086,7 +1089,9 @@ resolver reports the missing tag.
 
 A Collection that has the search loaded when the merge runs still shows the
 loser. Two things keep it from undoing the rewrite: **Save** and **Update**
-write the panel's ids through the same aliases (`movingReferences`), then load
+write the panel's tag, author and source ids through the same aliases
+(`movingReferences`; not yet its level and custom-field ids, which only a
+reconciliation merges, so those are still read through the alias), then load
 what they wrote when that differs, so the panel is on the survivor too; and
 when the Collection is shown again a loaded search whose stored form changed
 meanwhile is loaded again, unless the panel was changed from it there or
