@@ -3731,6 +3731,28 @@ returns against a device that kept no tombstone.
 Rewriting a reference changes a dance's serialised content without touching its
 row, so it MUST bump that record's `updated_at` and re-upload it (I1).
 
+A saved search (§6.15, `savedSearches.v1`) names tags, authors, levels and
+custom fields by id, so it is a local reference too. Every live saved search
+this build can read that names the losing id is rewritten to name the
+survivor, as a user's merge rewrites it, and so is an inbound saved search
+that names a losing id `id_aliases` holds, whichever merge recorded it. Each
+rewrite is an edit of that search's own settings value, stamped one tick past
+its own `updated_at` or now, whichever is later, and uploaded. Two devices that
+each rewrite one search write the same value, so whichever stamp wins, there is
+nothing for the user to choose between (§6.3). A saved search this build cannot
+read is left as it is, and only the alias reads it.
+
+> **Amended 2026-11-27.** Until this amendment reconciliation rewrote no saved
+> search. One on a losing id was read as the survivor only through the alias,
+> and once the alias was retired it reported as deleted a record nobody had
+> deleted (pre-release audit finding D3-05). The maintainer chose to fix that
+> in sync for this release. The stamp rule and the remap of inbound saved
+> searches are the implementing branch's own choices, not maintainer
+> decisions: it rejected keeping the search's stamp, which ties with a peer's
+> unrewritten copy and queues a choice that differs only in an id, and
+> leaving inbound searches to the sending device's own rewrite, which leaves
+> them naming the loser on this device until that rewrite arrives.
+
 Reconciliation runs inside the apply transaction, before any record that
 references the reconciled row, and is re-evaluated against every current peer
 manifest each pass.

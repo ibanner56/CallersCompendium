@@ -265,10 +265,11 @@ The steps run in one transaction:
    rows) is rewritten to name the survivor, as an ordinary edit of its own
    settings value (`SavedSearchRepository.moveReferences`, called from
    `ReferenceEditRepository.merge` after the per-loser steps 2 to 6, so the
-   tag manager, the reference manager and the author flow all get it). This
-   is a **user's** merge only: a merge that sync's own reconciliation applies
-   (§6.6) rewrites the dances' joins but not this device's saved searches, so
-   such a search is read through the alias until it is retired.
+   tag manager, the reference manager and the author flow all get it). A
+   merge that sync's own reconciliation applies (sync-spec §6.6, "The remap")
+   rewrites this device's saved searches too, and a saved search a peer sends
+   still naming a loser, each stamped past the search's own stamp and
+   published.
    - A concurrent edit of the same saved search on a peer (a rename, say)
      meets the rewrite by the usual per-key stamp rule: the later write wins
      the whole value.
