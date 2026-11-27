@@ -144,6 +144,15 @@ preview before anything is saved:
   the app can't tell which you meant — is kept as a **free-text note slot**, the
   same kind of slot used for breaks and announcements. Nothing is dropped, and
   the order you pasted is preserved exactly.
+- **A line that is just the word for a break** — the one the app prints in a
+  shared or printed set list, in any of its languages (“Break”, “Pause”,
+  “Pauze”, “ブレイク”), in any capitalization — becomes a **break**, unless a
+  dance in your collection has that title. The preview labels it as a break,
+  and it is never looked up online. So a break in a set list you shared or
+  printed from the app pastes back as a break, as long as nothing else is on
+  its line: a break printed with its minutes or a guest caller, such as
+  “Pause (15 Min.)”, or as an alternate (“ALT: Break”), is treated like any
+  other line, as is any other wording (“Tea break”, “Pauses”).
 - **Blank lines are skipped**, so you can space your list out however you like.
 
 Press **Import** to create the program; an **Undo** option appears in case you
