@@ -280,6 +280,37 @@ void main() {
     expect(resolved.single.importedOnline, isTrue);
   });
 
+  // A pasted break label is the break (question 44 of the pre-release audit's
+  // decision sheet), not a title to look up: a dance online called "Pause"
+  // must not take its place.
+  test('a pasted break label is never searched online', () async {
+    final repos = openTestRepositories();
+    final service = _FakeOnlineService(
+      rowsByTitle: {
+        'pause': [_row('Pause', id: '1')],
+        'break': [_row('Break', id: '2')],
+        'money musk': [_row('Money Musk', id: '10600')],
+      },
+    );
+    final progress = <(int, int)>[];
+
+    final resolved = (await resolveUnmatchedOnline(
+      [_unmatched('Pause'), _unmatched(' BREAK '), _unmatched('Money Musk')],
+      service: service,
+      repos: repos,
+      onProgress: (done, total) => progress.add((done, total)),
+    )).lines;
+
+    expect(service.searchedTitles, ['Money Musk']);
+    expect(progress.last, (1, 1));
+    expect(resolved.take(2).map((l) => l.resolution), [
+      PlaintextLineResolution.unmatched,
+      PlaintextLineResolution.unmatched,
+    ]);
+    expect(resolved.take(2).map((l) => l.isBreak), everyElement(isTrue));
+    expect(resolved.last.importedOnline, isTrue);
+  });
+
   test('no results keeps the note-slot fallback', () async {
     final repos = openTestRepositories();
     final service = _FakeOnlineService(rowsByTitle: const {});

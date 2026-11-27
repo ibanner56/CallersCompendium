@@ -207,6 +207,14 @@ void main() {
       }
     });
 
+    test('a parsed line knows it is a break only when unmatched', () {
+      final lines = parsePlaintextProgram(
+        'Pause\nPauses\nBreak',
+        collection: const [(id: 'd9', title: 'Break')],
+      );
+      expect(lines.map((l) => l.isBreak), [true, false, false]);
+    });
+
     test('a near-miss word stays a note', () {
       const nearMisses = ['Pauses', 'Breaks', 'Pause!', 'Pause café', 'Pauzes'];
       final slots = paste(nearMisses.join('\n'));

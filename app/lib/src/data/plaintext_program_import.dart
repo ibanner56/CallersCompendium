@@ -86,6 +86,12 @@ class ParsedProgramLine {
   /// screen a review step could resolve it instead of leaving it a note.
   final List<OnlineSearchResultRow> onlineCandidates;
 
+  /// Whether this line becomes a break: it matched no dance and is the break
+  /// token or one of the app's own translated break labels
+  /// ([isAppBreakLabel]). Such a line is never looked up online.
+  bool get isBreak =>
+      resolution == PlaintextLineResolution.unmatched && isAppBreakLabel(text);
+
   /// Whether this line will become a free-text note slot (unmatched or
   /// ambiguous) rather than a dance-linked slot.
   bool get isNote => resolution != PlaintextLineResolution.matched;
@@ -168,8 +174,7 @@ List<ProgramSlot> buildProgramSlots(
         danceId: line.isNote ? null : line.danceId,
         text: !line.isNote
             ? null
-            : line.resolution == PlaintextLineResolution.unmatched &&
-                  isAppBreakLabel(line.text)
+            : line.isBreak
             ? Program.breakSlotText
             : line.text,
       ),
