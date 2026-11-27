@@ -3882,4 +3882,288 @@ FROM seq
       expect(await inSection('sq_promenade', 'A1'), isEmpty);
     });
   });
+
+  // A move keyword rewrites the query to the move's name, so a search finds
+  // the structured move. The text a caller typed (a custom line, an
+  // unrecognized imported line) is stored as written, so the words as typed
+  // must still find it, in a dance of any form: the square calls' keywords
+  // ("right and left thru", "docey doe") reach a search over every form, as
+  // the app runs it (pre-release audit B-04, B-03).
+  group('a move keyword still finds the words as typed', () {
+    late DanceRepository everyForm;
+
+    setUp(() async {
+      everyForm = DanceRepository(db, shippedTaxonomies.anyForm);
+      await everyForm.create(
+        _dance(
+          id: 'contra-typed',
+          title: 'Contra with typed lines',
+          figures: [
+            Figure(
+              move: 'custom',
+              params: const {'text': 'Right and left thru with a twist'},
+            ),
+            Figure(
+              move: 'custom',
+              params: const {'text': 'Turn by the hand you were given'},
+            ),
+          ],
+        ),
+      );
+      await everyForm.create(
+        _dance(
+          id: 'english-typed',
+          title: 'English with typed lines',
+          form: DanceForm.ecd,
+          figures: [
+            Figure(
+              move: 'custom',
+              params: const {'text': 'Docey doe your corner, u turn back'},
+            ),
+          ],
+        ),
+      );
+      await everyForm.create(
+        _dance(
+          id: 'square',
+          title: 'Square',
+          form: DanceForm.square,
+          figures: [
+            Figure(
+              move: 'sq_balance',
+              params: const {'who': 'everyone', 'where': 'inTheRing'},
+            ),
+            Figure(
+              move: 'sq_right_left_through',
+              params: const {'who': 'heads'},
+            ),
+          ],
+        ),
+      );
+      await everyForm.create(_dance(id: 'other', title: 'Other'));
+    });
+
+    for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+      test('typed contra and English lines (${scope.name})', () async {
+        Future<List<String>> find(String q) async =>
+            (await everyForm.search(FullTextFilter(q, scope: scope)))..sort();
+        expect(await find('turn by the hand'), ['contra-typed']);
+        expect(await find('docey doe'), ['english-typed']);
+        expect(await find('u turn back'), ['english-typed']);
+        // The keyword still finds the structured call as well.
+        expect(await find('right and left thru'), ['contra-typed', 'square']);
+      });
+
+      test("a square's balance in the ring, by its own words "
+          '(${scope.name})', () async {
+        Future<List<String>> find(String q) =>
+            everyForm.search(FullTextFilter(q, scope: scope));
+        expect(await find('in the ring'), ['square']);
+        expect(await find('balance in the ring'), ['square']);
+      });
+    }
+
+    // A phrase kept whole only by an English or square move's name or
+    // keyword still matches word by word, as v0.10.0-beta (contra's taxonomy
+    // alone) read it; a contra move's name or keyword stays one phrase.
+    group('an English or square phrase of several words', () {
+      setUp(() async {
+        await everyForm.create(
+          _dance(
+            id: 'apart',
+            title: 'Words apart',
+            figures: [
+              Figure(
+                move: 'custom',
+                params: const {'text': 'Turn by the right hand'},
+              ),
+            ],
+          ),
+        );
+        await everyForm.create(
+          _dance(
+            id: 'spread',
+            title: 'Spread out',
+            callingNotes: 'Turn as a couple.',
+            figures: [
+              Figure(
+                move: 'custom',
+                params: const {'text': 'Pull by the left hand'},
+              ),
+            ],
+          ),
+        );
+        await everyForm.create(
+          _dance(
+            id: 'neighbors-turn',
+            title: 'Neighbors turn',
+            figures: [
+              Figure(
+                move: 'custom',
+                params: const {'text': 'Neighbors turn by the right hand'},
+              ),
+            ],
+          ),
+        );
+        await everyForm.create(
+          _dance(
+            id: 'cast-aside',
+            title: 'Aside',
+            figures: [
+              Figure(
+                move: 'custom',
+                params: const {'text': 'Hand them back, then cast'},
+              ),
+            ],
+          ),
+        );
+        await everyForm.create(
+          _dance(
+            id: 'do-a-si',
+            title: 'Steps',
+            figures: [
+              Figure(
+                move: 'custom',
+                params: const {'text': 'Do a si step and stop'},
+              ),
+            ],
+          ),
+        );
+      });
+
+      Future<List<String>> find(String q, FullTextScope scope) async =>
+          (await everyForm.search(FullTextFilter(q, scope: scope)))..sort();
+
+      test('matches its words apart in the figures', () async {
+        for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+          expect(await find('turn by the hand', scope), [
+            'apart',
+            'contra-typed',
+            'neighbors-turn',
+            if (scope == FullTextScope.omni) 'spread',
+          ], reason: scope.name);
+        }
+      });
+
+      test('matches its words spread across notes and figures', () async {
+        expect(
+          await find('turn by the hand', FullTextScope.omni),
+          contains('spread'),
+        );
+      });
+
+      test('"hand turn", a name only English and square moves have, finds '
+          'its words apart', () async {
+        for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+          expect(
+            await find('hand turn', scope),
+            contains('neighbors-turn'),
+            reason: scope.name,
+          );
+        }
+      });
+
+      test('"hand cast", a contra name added since v0.10.0-beta, still '
+          'counts as one phrase', () async {
+        for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+          expect(
+            await find('hand cast', scope),
+            isNot(contains('cast-aside')),
+            reason: scope.name,
+          );
+        }
+      });
+
+      test('"do si do", a contra keyword, still counts as one word', () async {
+        for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+          expect(await find('do si do', scope), isEmpty, reason: scope.name);
+        }
+      });
+    });
+
+    // The English and square moves add meanings to a search over every form;
+    // they take none away. Over the same library, every dance contra's
+    // taxonomy alone finds (as v0.10.0-beta searched), a search over every
+    // form finds too.
+    test('finds every dance a contra-only search finds', () async {
+      await everyForm.create(
+        _dance(
+          id: 'typed-u-turn',
+          title: 'Typed',
+          callingNotes: 'U turn back to place and back up.',
+        ),
+      );
+      final contraOnly = DanceRepository(db, contraTaxonomy);
+      for (final q in [
+        'u turn back to back',
+        'turn by the hand',
+        'right and left thru',
+        'docey doe',
+        'balance in the ring',
+        'hand turn',
+        'turn by the right hand',
+        'back to back',
+      ]) {
+        for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+          final before = await contraOnly.search(
+            FullTextFilter(q, scope: scope),
+          );
+          // Each query finds something with contra alone, so the check
+          // below can fail.
+          if (scope == FullTextScope.omni) {
+            expect(before, isNotEmpty, reason: '"$q" with contra alone');
+          }
+          final now = await everyForm.search(FullTextFilter(q, scope: scope));
+          expect(now, containsAll(before), reason: '"$q" (${scope.name})');
+        }
+      }
+    });
+
+    // "allemande right" is a square call's name and "right left through" is
+    // contra's, so they cross. The stretch matches as it reads now or as
+    // contra alone split it ("allemande", "right left through"), and no
+    // looser: a line with all four words but neither phrase, which contra
+    // alone does not find, matches neither.
+    test('a square name that crosses a contra phrase matches either split, '
+        'and no looser', () async {
+      await everyForm.create(
+        _dance(
+          id: 'crossing',
+          title: 'Crossing',
+          figures: [
+            Figure(
+              move: 'custom',
+              params: const {'text': 'Allemande left, then right left through'},
+            ),
+          ],
+        ),
+      );
+      await everyForm.create(
+        _dance(
+          id: 'neither',
+          title: 'Neither',
+          figures: [
+            Figure(
+              move: 'custom',
+              params: const {'text': 'Allemande left, go right, then through'},
+            ),
+          ],
+        ),
+      );
+      for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+        expect(
+          await everyForm.search(
+            FullTextFilter('allemande right left through', scope: scope),
+          ),
+          ['crossing'],
+          reason: scope.name,
+        );
+      }
+    });
+
+    test('searchText finds the words as typed', () async {
+      expect(await everyForm.searchText('docey doe'), ['english-typed']);
+      expect(await everyForm.searchText('balance in the ring'), ['square']);
+    });
+  });
 }
