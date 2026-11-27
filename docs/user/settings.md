@@ -1356,6 +1356,9 @@ A rule has:
   [search for it](./programs.md#check-your-program-against-your-rules). Clear
   it to show the sentence alone again.
 
+If you close the rule editor with changes you haven't saved, it asks
+**Discard changes?** first.
+
 Also shown while it is on, **Rule order** chooses how a program's rule picker
 lists your rules:
 
