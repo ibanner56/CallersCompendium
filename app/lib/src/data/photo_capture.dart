@@ -11,7 +11,10 @@ import 'package:path_provider/path_provider.dart';
 /// Taking a photo with the system camera (#2328), shared by every feature
 /// that reads one: **Take a photo** in the figure-text sheet, and the QR
 /// scanner (#2336). The photo is read once and its file deleted at once, so
-/// no photo outlives the call.
+/// no photo outlives the call. On iPhone and iPad the same plugin's photo
+/// picker ([pickLibraryPhoto]) also supplies the picture for **From an
+/// image…** and **Dance code from a picture…**, and its copy is deleted the
+/// same way.
 
 /// Longest side of a captured photo, in pixels. The camera plugin redraws
 /// and re-encodes the photo (JPEG) to at most this before handing it over;
@@ -150,6 +153,28 @@ class SystemCameraPhotoCapture implements PhotoCaptureService {
   }
 }
 
+/// Opens the system photo picker for one photo, through `image_picker`: on
+/// iPhone and iPad, PHPicker, which runs outside the app and needs no
+/// photo-library permission, so no prompt is shown and the app receives only
+/// the photo chosen. Null when cancelled. The plugin hands over a copy, an
+/// `image_picker_…` file in the app's tmp folder; the caller deletes it once
+/// read with [deleteCapturedPhoto]. Used on iOS only (see
+/// `openRecognitionPicture`); another platform's copies would need their own
+/// matcher first.
+///
+/// The copy is at most [kCapturedPhotoMaxSide] on its longer side, as a
+/// photo from the camera is: the plugin re-encodes a HEIC photo as JPEG at
+/// full quality, so a full-size copy of a large photo could be far larger
+/// than the photo in the library, and over the readers' byte caps.
+Future<XFile?> pickLibraryPhoto() => ImagePicker().pickImage(
+  source: ImageSource.gallery,
+  maxWidth: kCapturedPhotoMaxSide,
+  maxHeight: kCapturedPhotoMaxSide,
+  // Full metadata means a photo-library lookup, which needs access the app
+  // does not ask for; the photo is read for its pixels only.
+  requestFullMetadata: false,
+);
+
 /// The folder the camera plugin writes its photos to on [platform]: the
 /// app's tmp folder on iOS, its cache folder on Android.
 Future<Directory> _pluginFolder(TargetPlatform platform) async =>
@@ -173,9 +198,10 @@ bool _isPluginPhotoName(String name, TargetPlatform platform) =>
 /// Deletes [path] when it is one of the camera plugin's own photo files,
 /// directly in [temporaryDirectory] (the folder the plugin writes to), links
 /// resolved on both sides. On iOS that is an `image_picker_…` file in the
-/// app's tmp folder; on Android ([platform]) a `<uuid><digits>.jpg` or
-/// `scaled_…` file in its cache folder. Any other path is left alone.
-@visibleForTesting
+/// app's tmp folder, which is also where the plugin's photo picker
+/// ([pickLibraryPhoto]) puts its copy of a chosen photo; on Android
+/// ([platform]) a `<uuid><digits>.jpg` or `scaled_…` file in its cache
+/// folder. Any other path is left alone.
 Future<void> deleteCapturedPhoto(
   String path, {
   required Directory temporaryDirectory,

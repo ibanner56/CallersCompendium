@@ -7686,6 +7686,10 @@
   "@fileDialogTypeMacosUpdate": {
     "x-sourceSha256": "d102e2c62eb82c1d9834753a6a16aceda0e147365178ce73a0fbb9a8ef588383"
   },
+  "fileDialogTypeImages": "画像",
+  "@fileDialogTypeImages": {
+    "x-sourceSha256": "be7e2f20129365c2899b2c11bfc465541e61b1858f45bf0248cf99b9271bc707"
+  },
   "importSourceLabelCallersBox": "The Caller's Box",
   "@importSourceLabelCallersBox": {
     "x-sourceSha256": "52a6f5b480c85e35842e31ea1aab9ce4757bfc481544038af1de31453a966e4b"

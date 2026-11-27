@@ -7873,6 +7873,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fileDialogTypeMacosUpdate => 'Mise à jour de Caller’s Compendium';
 
   @override
+  String get fileDialogTypeImages => 'Images';
+
+  @override
   String get importSourceLabelCallersBox => 'The Caller\'s Box';
 
   @override

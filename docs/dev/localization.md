@@ -92,8 +92,8 @@ knowingly and visibly exempted.
 The native open/save dialogs are opened from `data/`, which has no
 `BuildContext` and is reached through zero-argument test seams, so the filter
 names (`backupJsonTypeGroup`, `importJsonTypeGroup`, `importUsrTypeGroup`,
-`crashLogTypeGroup`, `macosUpdateTypeGroup`) cannot be resolved where they are
-built. The root `MaterialApp.builder` binds the active `AppLocalizations` to
+`crashLogTypeGroup`, `macosUpdateTypeGroup`, `recognitionImageTypeGroup`)
+cannot be resolved where they are built. The root `MaterialApp.builder` binds the active `AppLocalizations` to
 `FileDialogLabels` on every build; until one is bound (unit tests) the English
 strings are used. The `fileDialogType*` keys are ordinary ARB keys. The JSON
 bundle filter's `JSON` label and the upper-cased extension label are format
