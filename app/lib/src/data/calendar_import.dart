@@ -1,9 +1,63 @@
+import 'dart:convert';
+import 'dart:math' as math;
+
 import 'package:compendium_core/compendium_core.dart';
+import 'package:crypto/crypto.dart';
 
 import '../diagnostics/error_log.dart';
 import 'calendar_import_settings.dart';
 import 'display_defaults.dart';
+import 'import_io.dart' show calendarFeedFetchUrl;
 import 'program_templates.dart';
+
+/// Which calendar a program came from (pre-release audit finding E1-01),
+/// without the calendar's address: what [Program.calendarFeedDigest] holds.
+///
+/// The address is a secret (a private calendar's holds an access token), so
+/// it is never stored on a program. Each draft instead gets a digest: a
+/// 128-bit salt drawn at random for that program, then the first 128 bits of
+/// HMAC-SHA256 keyed with the salt over the address as fetched
+/// ([calendarFeedFetchUrl]: `webcal://` read as `https://`), both as lower-case
+/// hex, 64 digits in all. [matches] recomputes it with the program's own salt
+/// over the address being read. Because every program's salt differs, two
+/// programs from one calendar, or two libraries with the same calendar, hold
+/// unrelated values; someone holding a digest who guesses the exact address
+/// can confirm it, which is what the privacy registry's
+/// `programs.calendar_feed_digest` note records.
+class CalendarFeedSource {
+  /// [random] is a test seam; it defaults to [math.Random.secure].
+  CalendarFeedSource(String url, {math.Random? random})
+    : _address = utf8.encode(calendarFeedFetchUrl(url)),
+      _random = random ?? math.Random.secure();
+
+  final List<int> _address;
+  final math.Random _random;
+
+  static final _digestPattern = RegExp(r'^[0-9a-f]{64}$');
+
+  /// A new digest of this address, with a fresh salt: one per draft.
+  String newDigest() {
+    final salt = List<int>.generate(16, (_) => _random.nextInt(256));
+    return '${_hex(salt)}${_mac(salt)}';
+  }
+
+  /// Whether [digest] was made from this address. False for null and for
+  /// anything not in [newDigest]'s shape.
+  bool matches(String? digest) {
+    if (digest == null || !_digestPattern.hasMatch(digest)) return false;
+    final salt = [
+      for (var i = 0; i < 32; i += 2)
+        int.parse(digest.substring(i, i + 2), radix: 16),
+    ];
+    return _mac(salt) == digest.substring(32);
+  }
+
+  String _mac(List<int> salt) =>
+      _hex(Hmac(sha256, salt).convert(_address).bytes.sublist(0, 16));
+
+  static String _hex(List<int> bytes) =>
+      [for (final b in bytes) b.toRadixString(16).padLeft(2, '0')].join();
+}
 
 /// How one calendar event stands against the collection (#2352).
 enum CalendarEntryState {
@@ -29,10 +83,15 @@ class CalendarImportEntry {
     required this.candidate,
     required this.state,
     this.venueId,
+    this.feedDigest,
   });
 
   final CalendarImportCandidate candidate;
   final CalendarEntryState state;
+
+  /// The [Program.calendarFeedDigest] its draft gets: which calendar it came
+  /// from ([CalendarFeedSource.newDigest]). Set on every offered entry.
+  final String? feedDigest;
 
   /// The saved venue record whose name matches the event's location, when
   /// exactly one does.
@@ -97,16 +156,21 @@ class CalendarImportPreview {
 
 /// Parses [body] (a fetched feed) and compares it with the collection.
 ///
+/// [feedUrl] is the address [body] was fetched from: each draft records which
+/// calendar it came from ([CalendarFeedSource]).
 /// [today] is the local date ([clock] in the caller); [toLocal] converts a
 /// UTC instant to local time. Both are parameters so tests can inject them.
 /// Throws [NotACalendarException] for a body that is not a calendar.
 Future<CalendarImportPreview> buildCalendarImportPreview(
   CompendiumRepositories repos, {
   required String body,
+  required String feedUrl,
   required CalendarImportSettings settings,
   required DateTime today,
   DateTime Function(DateTime utc)? toLocal,
+  math.Random? random,
 }) async {
+  final source = CalendarFeedSource(feedUrl, random: random);
   final plan = planCalendarImport(
     parseICalFeed(body),
     today: today,
@@ -152,11 +216,15 @@ Future<CalendarImportPreview> buildCalendarImportPreview(
         true => CalendarEntryState.deleted,
       };
     }
+    final offered =
+        state == CalendarEntryState.fresh ||
+        state == CalendarEntryState.deleted;
     entries.add(
       CalendarImportEntry(
         candidate: c,
         state: state,
         venueId: venueIdFor(c.venueLabel),
+        feedDigest: offered ? source.newDigest() : null,
       ),
     );
   }
@@ -497,11 +565,11 @@ Future<void> clearCalendarFlag(
 ///
 /// Each draft has the event's title ([untitledTitle] when it has none), its
 /// date, its start and end times when the event is timed (#2423), its venue
-/// label (and linked venue record when one matched), status
-/// Draft, the **Default template**'s slots (#2337, [defaultProgramTemplate];
-/// none for Blank program) and its live event rules while Event rules is on
-/// (#2342, [newProgramEventRuleIds]), the default caller and band, and the
-/// event's key.
+/// label (and linked venue record when one matched), status Draft, the
+/// **Default template**'s slots (#2337, [defaultProgramTemplate]; none for
+/// Blank program) and its live event rules while Event rules is on (#2342,
+/// [newProgramEventRuleIds]), the default caller and band, the event's key,
+/// and the calendar it came from ([CalendarImportEntry.feedDigest]).
 /// Nothing from `DESCRIPTION`, `ORGANIZER`, `ATTENDEE` or `URL`: the parser
 /// never reads them.
 ///
@@ -547,6 +615,7 @@ Future<List<String>> commitCalendarImport(
           eventRuleIds: eventRuleIds,
           calendarEventKey: c.eventKey,
           calendarEventFingerprint: c.fingerprint,
+          calendarFeedDigest: entry.feedDigest,
           calendarWrittenAt: stamp,
           createdAt: stamp,
           updatedAt: stamp,

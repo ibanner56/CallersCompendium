@@ -1060,6 +1060,15 @@ class Programs extends Table with TableInfo {
     $customConstraints: 'NOT NULL DEFAULT \'[]\'',
     defaultValue: const CustomExpression('\'[]\''),
   );
+  late final GeneratedColumn<String> calendarFeedDigest =
+      GeneratedColumn<String>(
+        'calendar_feed_digest',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        $customConstraints: 'NULL',
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1090,6 +1099,7 @@ class Programs extends Table with TableInfo {
     calendarWrittenAt,
     calendarFlag,
     eventRuleIds,
+    calendarFeedDigest,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;

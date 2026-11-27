@@ -47,6 +47,9 @@ final _leakyFeed = _cal([
   ],
 ]);
 
+/// The address every feed in this file is read from.
+const _feedUrl = 'https://calendar.example/gigs.ics';
+
 Future<CalendarImportPreview> _preview(
   CompendiumRepositories repos,
   String body, {
@@ -55,6 +58,7 @@ Future<CalendarImportPreview> _preview(
 }) => buildCalendarImportPreview(
   repos,
   body: body,
+  feedUrl: _feedUrl,
   settings: settings,
   today: today ?? _today,
   toLocal: (u) => u,

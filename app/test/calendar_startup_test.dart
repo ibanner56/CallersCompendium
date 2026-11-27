@@ -130,6 +130,7 @@ void main() {
         final preview = await buildCalendarImportPreview(
           repos,
           body: _feed,
+          feedUrl: _url,
           settings: const CalendarImportSettings(),
           today: _today,
           toLocal: (u) => u,
@@ -421,6 +422,7 @@ void main() {
     final preview = await buildCalendarImportPreview(
       repos,
       body: _feed,
+      feedUrl: _url,
       settings: const CalendarImportSettings(),
       today: _today,
       toLocal: (u) => u,

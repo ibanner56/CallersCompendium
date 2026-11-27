@@ -998,6 +998,7 @@ Program _programFromJson(Map<String, Object?> m) => Program(
   calendarEventFingerprint: _boundedStringOrNull(m, 'calendarEventFingerprint'),
   calendarWrittenAt: _dtOrNull(m, 'calendarWrittenAt'),
   calendarFlag: _boundedStringOrNull(m, 'calendarFlag'),
+  calendarFeedDigest: _calendarFeedDigestOrNull(m),
   eventRuleIds: _eventRuleIdsFromJson(m['eventRuleIds']),
 );
 
@@ -1025,6 +1026,17 @@ String? _boundedStringOrNull(Map<String, Object?> m, String key) {
 /// the event again, so losing a malformed one costs at most a repeat offer.
 String? _calendarEventKeyOrNull(Map<String, Object?> m) {
   final v = m['calendarEventKey'];
+  if (v is! String || !_calendarEventKeyPattern.hasMatch(v)) return null;
+  return v;
+}
+
+/// Which calendar a program came from (pre-release audit finding E1-01): 64
+/// lower-case hex digits, a salt and a digest, as the app's
+/// `CalendarFeedSource` writes them. Anything else is dropped rather than
+/// refusing the program: a program with no digest is never compared with a
+/// calendar, so losing a malformed one only stops the import labelling it.
+String? _calendarFeedDigestOrNull(Map<String, Object?> m) {
+  final v = m['calendarFeedDigest'];
   if (v is! String || !_calendarEventKeyPattern.hasMatch(v)) return null;
   return v;
 }

@@ -24,6 +24,9 @@ final _t0 = DateTime.utc(2030, 6, 15, 12);
 final _t1 = DateTime.utc(2030, 6, 16, 12);
 final _t2 = DateTime.utc(2030, 6, 17, 12);
 
+/// The address every feed in this file is read from.
+const _feedUrl = 'https://calendar.example/gigs.ics';
+
 Future<CalendarImportPreview> _preview(
   CompendiumRepositories repos,
   String body, {
@@ -32,6 +35,7 @@ Future<CalendarImportPreview> _preview(
 }) => buildCalendarImportPreview(
   repos,
   body: body,
+  feedUrl: _feedUrl,
   settings: settings,
   today: today ?? _today,
   toLocal: (u) => u,
@@ -552,6 +556,7 @@ void main() {
         ) => buildCalendarImportPreview(
           repos,
           body: body,
+          feedUrl: _feedUrl,
           settings: const CalendarImportSettings(),
           today: _today,
           toLocal: toLocal,

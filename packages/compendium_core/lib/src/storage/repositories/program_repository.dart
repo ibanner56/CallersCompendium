@@ -1076,6 +1076,9 @@ class ProgramRepository {
               calendarFlag: Value(
                 normalizeShareableTextOrNull(program.calendarFlag),
               ),
+              calendarFeedDigest: Value(
+                normalizeShareableTextOrNull(program.calendarFeedDigest),
+              ),
               eventRuleIds: Value(encodeEventRuleIds(program.eventRuleIds)),
             ),
           );
@@ -2587,6 +2590,7 @@ class ProgramRepository {
       row.calendarEventFingerprint == null &&
       row.calendarWrittenAt == null &&
       row.calendarFlag == null &&
+      row.calendarFeedDigest == null &&
       decodeEventRuleIds(row.eventRuleIds).isEmpty &&
       await (_db.selectOnly(_db.programSlots)
                 ..addColumns([_db.programSlots.id])
@@ -2647,6 +2651,7 @@ class ProgramRepository {
         calendarEventFingerprint: Value(normalizeShareableTextOrNull(null)),
         calendarWrittenAt: const Value(null),
         calendarFlag: Value(normalizeShareableTextOrNull(null)),
+        calendarFeedDigest: Value(normalizeShareableTextOrNull(null)),
         eventRuleIds: Value(encodeEventRuleIds(const [])),
         updatedAt: Value(
           nextStoredTimestamp(
@@ -2691,6 +2696,7 @@ class ProgramRepository {
     calendarEventFingerprint: row.calendarEventFingerprint,
     calendarWrittenAt: asUtcOrNull(row.calendarWrittenAt),
     calendarFlag: row.calendarFlag,
+    calendarFeedDigest: row.calendarFeedDigest,
     eventRuleIds: decodeEventRuleIds(row.eventRuleIds),
     provenance: provenance,
   );
