@@ -41,8 +41,8 @@ const Set<String> _larksRobinsTitles = {
 
 /// The gendered role words a dance [requiresLarksRobins] leaves out of the
 /// reader's move names and wordings, lowercase. The app's own former list of
-/// gendered role words, restored from the file #2570 removed
-/// (`gendered_terms.dart`'s `genderedRoleWords`) for this one use: its words
+/// gendered role words, restored for this one use from gendered_terms.dart,
+/// the file #2570 removed: its words
 /// are the gendered ones `legacyRoleSynonyms` and the discouraged-term table
 /// read as a role, plus "gentleman" and "gentlemen".
 const Set<String> _genderedRoleWords = {
@@ -125,7 +125,8 @@ bool requiresLarksRobins({
 }
 
 /// Whether [dialect]'s role terms already read lark and robin (in any case),
-/// so [dialectForDance] has nothing to change.
+/// so [dialectForDance] leaves its role terms, and its single-dancer and
+/// discouraged words, as they are.
 bool _hasLarksRobinsRoles(Dialect dialect) {
   for (final MapEntry(:key, :value) in _larksRobinsRoles.entries) {
     final term = dialect.roles[key];
@@ -155,20 +156,23 @@ bool overridesRoleTerms(
 ///
 /// Returns [dialect] itself unless the dance [requiresLarksRobins] and
 /// [dialect] either [overridesRoleTerms] or has a move name or wording that
-/// holds a gendered role word. Otherwise returns a copy, under the same name,
-/// that:
+/// holds a gendered role word. Otherwise returns a copy, under the same name.
+/// When it [overridesRoleTerms], the copy:
 /// - calls the roles lark and robin;
 /// - drops the reader's own words for single dancers (`onesRole1` …), which
 ///   usually spell a role ("first gent"), so they read "first lark";
-/// - drops each of the reader's move names ([Dialect.moves]), move wordings
-///   ([Dialect.moveWordings]) and wording branches
-///   ([Dialect.moveWordingBranches]) that holds a gendered role word, so that
-///   move reads in the app's default wording ("ladies chain" reads as the
-///   default chain); the maintainer's answer to question 35 of the
-///   pre-release audit's decision sheet, 2026-11-27;
 /// - stops flagging lark and robin as discouraged terms.
 ///
-/// The other move names and wordings and the other dancer words are the
+/// Either way, the copy drops each of the reader's move names
+/// ([Dialect.moves]), move wordings ([Dialect.moveWordings]) and wording
+/// branches ([Dialect.moveWordingBranches]) that holds a gendered role word,
+/// so that move reads in the app's default wording ("ladies chain" reads as
+/// the default chain): the maintainer's answer to question 35 of the
+/// pre-release audit's decision sheet, 2026-11-27.
+///
+/// So a returned copy does not by itself mean the role terms were set aside:
+/// ask [overridesRoleTerms] for that. The other move names and wordings and
+/// the other dancer words are the
 /// reader's. Only what is shown changes: [dialect] itself, the caller's
 /// stored dialect, is never changed.
 @useResult

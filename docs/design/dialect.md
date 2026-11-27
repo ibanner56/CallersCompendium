@@ -248,8 +248,9 @@ wording, saved unchanged, reads as the default line. Imported
   the role terms "larks" and "robins". This is the one place the reader's
   dialect does not win. `dialectForDance` (`dialect/author_role_terms.dart`)
   takes the reader's dialect for the dance's form (`DialectsByForm.forDance`)
-  and the dance's title and author names, and when `requiresLarksRobins`
-  returns a copy with `lark`/`robin` role terms. It also
+  and the dance's title and author names, and when `requiresLarksRobins` and
+  the reader's role terms are not already lark and robin (`overridesRoleTerms`)
+  returns a copy with `lark`/`robin` role terms. That copy also
   drops the reader's single-dancer substitutions (`onesRole1` …, which usually
   spell a role) and stops flagging lark and robin as discouraged. A caller's
   own dialect may hold a gendered word (ADR-006 §9.1, point 7), so on her
@@ -267,7 +268,17 @@ wording, saved unchanged, reads as the default line. Imported
   not the maintainer's. The cost of that rule: an English wording whose only
   role word is "man" or "men" is kept. Even when the reader's role terms
   already say lark and robin, so the roles need no change, these wordings
-  are still dropped. A dance requires it when any
+  are still dropped, in a copy that changes nothing else; so a copy alone does
+  not mean the role terms were set aside, and the dance page asks
+  `overridesRoleTerms` before it shows its note. Two limits, the implementer's
+  calls: it covers dialect entries only, so a figure of the caller's own whose
+  dropped dialect name or wording falls back to that figure's own definition
+  shows the definition's words, gendered or not; and the dance editor parses
+  typed figures through the same dialect, so on her dances a caller's own
+  gendered move name that no built-in alias covers is not recognised when
+  typed and stays unparsed text (giving the parser the reader's unfiltered
+  dialect would mean threading a second dialect through the editor form).
+  A dance requires it when any
   author's name has Rachel or Rae as its first word and Fifer as its last.
   "Renewed Joy" and "If I Was Dead and It Wouldn't Go To Waste" also require it
   when no author is named (none, or only Unknown/Traditional), so a dance

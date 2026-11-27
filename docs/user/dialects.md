@@ -488,7 +488,8 @@ both recognize, then flip back to your own.
   print and share with larks and robins whatever your dialect calls the roles.
   The rest of your dialect (your move names and wordings) still applies,
   except a move name or wording that uses a gendered role word such as
-  "ladies" or "gents": on her dances that move reads in the app's own wording
+  "ladies" or "gents" (but not "man" or "men", which are everyday words in
+  German, Danish and Dutch): on her dances that move reads in the app's own wording
   instead (a "ladies chain" reads as the app's chain). Your dialect itself is
   not changed, and her dances are the only ones affected. When
   this sets your role terms aside, the dance's page says so under the
