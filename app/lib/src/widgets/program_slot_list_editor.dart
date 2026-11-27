@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/display_defaults.dart' show isProgramTemplateBreakText;
 import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../search/facet_labels.dart';
@@ -10,6 +11,7 @@ import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
+import '../utils/slot_display_text.dart';
 import 'dirty_dialog_guard.dart';
 import 'empty_state.dart';
 import 'event_rule_text.dart' show EventRuleName;
@@ -501,6 +503,7 @@ String programSlotTitle(
     final title = danceTitles(danceId);
     return title ?? l10n.programsDeletedDanceFallback;
   }
+  if (slot.isBreak) return l10n.programsBreakSlotLabel;
   final text = slot.text;
   if (text == null || text.trim().isEmpty) {
     return l10n.programsSlotNoteFallback;
@@ -1060,8 +1063,13 @@ class _SlotEditDialog extends StatefulWidget {
 }
 
 class _SlotEditDialogState extends State<_SlotEditDialog> {
+  // A break opens showing its translated label; [_save] keeps the stored
+  // token while the label is left as it was.
+  late final String _initialNote = widget.slot.isBreak
+      ? AppLocalizations.of(context).programsBreakSlotLabel
+      : widget.slot.text ?? '';
   late final TextEditingController _note = TextEditingController(
-    text: widget.slot.text ?? '',
+    text: _initialNote,
   );
   late final TextEditingController _guest = TextEditingController(
     text: widget.slot.guestCaller ?? '',
@@ -1088,7 +1096,7 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   /// as typed (not trimmed), so adding a space still counts as an edit.
   bool _isDirty() {
     final s = widget.slot;
-    return _note.text != (s.text ?? '') ||
+    return _note.text != _initialNote ||
         _guest.text != (s.guestCaller ?? '') ||
         _walkthroughMinutes.text != (s.walkthroughMinutes?.toString() ?? '') ||
         _danceMinutes.text != (s.danceMinutes?.toString() ?? '') ||
@@ -1098,7 +1106,13 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
 
   bool get _isBreakNote =>
       !_isDanceSlot &&
-      _note.text.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
+      isProgramTemplateBreakText(
+        storedSlotText(
+          AppLocalizations.of(context),
+          stored: widget.slot.text,
+          shown: _note.text,
+        ),
+      );
 
   @override
   void dispose() {
@@ -1135,7 +1149,11 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
 
   void _save() {
     final l10n = AppLocalizations.of(context);
-    final noteText = _note.text.trim();
+    final noteText = storedSlotText(
+      l10n,
+      stored: widget.slot.text,
+      shown: _note.text.trim(),
+    );
     final guestText = _guest.text.trim();
     final walkthroughMinutesText = _walkthroughMinutes.text.trim();
     final danceMinutesText = _danceMinutes.text.trim();

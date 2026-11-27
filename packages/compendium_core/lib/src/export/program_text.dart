@@ -321,9 +321,11 @@ String programSlotLine(
     }
   } else {
     // Purge captions are lossless; ordinary text-only slots are display prose.
-    final text = slot.text!.trim();
+    // A break reads as its label, not the stored token.
+    final text = slot.isBreak ? labels.breakLabel : slot.text!.trim();
     buffer.write(
-      slot.isPurgedDance != false ||
+      slot.isBreak ||
+              slot.isPurgedDance != false ||
               !canonicalizeDiscouragedTerms ||
               renderer == null ||
               dialect == null

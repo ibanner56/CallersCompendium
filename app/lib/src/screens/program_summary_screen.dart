@@ -46,6 +46,7 @@ import 'dance_detail_screen.dart';
 import 'dance_reimport_flow.dart';
 import '../widgets/command_palette.dart';
 import '../utils/slot_dance_title.dart';
+import '../utils/slot_display_text.dart';
 import 'perform_program_screen.dart';
 import 'recently_deleted_screen.dart';
 import 'program_editor_screen.dart';
@@ -1989,8 +1990,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     }
 
     // Free-text slot (break / waltz / announcement): non-interactive text.
-    final text = (slot.text ?? '').trim();
-    final displayText = slot.isPurgedDance != false
+    final text = (slotDisplayText(l10n, slot) ?? '').trim();
+    final displayText = slot.isPurgedDance != false || slot.isBreak
         ? text
         : _displayProse(text);
     return Padding(
