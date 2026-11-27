@@ -47,20 +47,26 @@
 #     title and description are fetched once, without comments, into
 #     .claude-review/context/pr-description.json.
 #
-# What "not allowed" rests on: `--allowedTools` below is a strict list only
-# because `claude_args` also passes `--permission-mode default`. Since 1.0.273
-# the action starts a session like this one (a `prompt`, no
-# allowed_non_write_users, allowed_bots, custom base URL or settings input) in
-# auto mode, where a safety review may pass a tool call no rule allows
-# (`defaultsToAutoMode` in src/modes/permission-mode.ts, prepended by
-# src/modes/agent/index.ts; the action's docs/security.md, "Auto mode is a
-# review, not a boundary"). The action puts the workflow's claude_args last, so
+# What "not allowed" rests on: `--allowedTools` below (plus any allow rule in
+# the base branch's .claude/settings.json, which the action loads) is a strict
+# list only because `claude_args` also passes `--permission-mode default`.
+# Since 1.0.273 the action starts its sessions in auto mode, where a safety
+# review may pass a tool call no rule allows, unless an input keeps the earlier
+# default (allowed_non_write_users, allowed_bots, a custom ANTHROPIC_BASE_URL,
+# path_to_claude_code_executable, or a settings input that is a file path or
+# picks another mode); this workflow sets none of them. See
+# `defaultsToAutoMode` in the action's src/modes/permission-mode.ts, its use in
+# src/modes/agent/index.ts, and its docs/security.md, "Auto mode is a review,
+# not a boundary". The action puts the workflow's claude_args after its own, so
 # this mode wins; with no one to approve, a call outside the list is denied.
 #
-# The action also replaces AGENTS.md (and CLAUDE.md, .claude/ and the other
-# paths in its restore-config.ts) in the checkout with the base branch's copy
-# on every pull request, from 1.0.277, and keeps the PR's copies under
-# .claude-pr/. The rubric is read from .claude-review/base/ regardless.
+# On every pull request the action also replaces a set of config paths in the
+# checkout (`SENSITIVE_PATHS` in its src/github/operations/restore-config.ts:
+# .claude/, CLAUDE.md and others, and AGENTS.md from 1.0.277) with the base
+# branch's copy, deleting any the base lacks (for an author not confirmed to
+# have write access it may use the default branch instead), and keeps the
+# PR's copies under .claude-pr/. The rubric is read from .claude-review/base/
+# regardless.
 #
 # The prompt asks for two tiers of result and a Coverage section; their shape is
 # defined by SKILL.md, which this prompt defers to. The job cannot run tests,
@@ -328,9 +334,12 @@ jobs:
             other change, but keep judging it by the base copy. Everything else
             (callers, tests, docs) you read from the normal checkout, which is
             the PR merged into its base, with one exception: the action puts
-            the base branch's `AGENTS.md`, `CLAUDE.md` and `.claude/` in the
-            checkout and keeps the PR's copies under `.claude-pr/`, so read
-            the PR's edit of those files from `.claude-pr/` or from the diff.
+            the base branch's copies of `AGENTS.md`, `CLAUDE.md`,
+            `CLAUDE.local.md`, `.claude/`, `.claude.json`, `.mcp.json`,
+            `.gitmodules`, `.ripgreprc` and `.husky/` in the checkout
+            (removing any the base lacks) and keeps the PR's copies under
+            `.claude-pr/`, so read the PR's edit of those paths from
+            `.claude-pr/` or from the diff.
             `.claude-review/` and `.claude-pr/` duplicate files in the
             checkout: leave them out of your repository searches.
 
