@@ -231,6 +231,13 @@ and produces no Android artifact.
    Review the generated diff. Do not hand-edit it: the compiler deterministically
    orders fragment IDs, prevents duplicate category headings, and `check_changelog_promoted.py`
    rejects a tagged commit with pending fragments or a duplicate app heading.
+   PR CI runs that same check on this PR (`--release-prep`, in the
+   `CHANGELOG validation` job): once no fragment is pending it takes the
+   version from `app/pubspec.yaml` and judges the notes against the newest
+   `v*` tag merged into the branch, so notes that would fail the tag fail
+   here instead. It does not see whether that tag's GitHub release was
+   published, which the tag-time run does, so after an unpublished tag the two
+   can compare against different releases.
    The empty `## [Unreleased]` sections remain compatibility anchors only.
 
    - The heading version is the bare `x.y.z` (no `v`, no prerelease suffix) —
@@ -275,7 +282,8 @@ and produces no Android artifact.
      not move at all, so a release with no version range can still owe this
      section.
 
-     `tools/ci/check_changelog_promoted.py` enforces the ranges, that a patch
+     `tools/ci/check_changelog_promoted.py` (on the tag, and on the
+     preparation PR as above) enforces the ranges, that a patch
      release did not raise the schema (and no release lowered it), and, for a new
      `'__…_done__'` marker since the previous tag, that a non-empty Data /
      Migrations section exists. It cannot judge whether the prose describes

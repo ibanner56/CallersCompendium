@@ -60,12 +60,15 @@ class Constant:
 
 # The rows of CONTRIBUTING.md's versioned-formats table. Adding a constant here
 # extends the vNext policy, which is the maintainer's call, not a tooling one
-# (ecdTaxonomyVersion was added on the maintainer's go-ahead, #2254).
+# (ecdTaxonomyVersion was added on the maintainer's go-ahead, #2254;
+# squareTaxonomyVersion on the maintainer's approval of pre-release audit
+# finding H-06). The same five are the ledgers check_version_history.py gates.
 CONSTANTS = (
     Constant("kCompendiumSchemaVersion", f"{CORE_LIB}/storage/database.dart"),
     Constant("contraTaxonomyVersion", f"{CORE_LIB}/taxonomy/contra_taxonomy.dart"),
     Constant("syncWireVersion", f"{CORE_LIB}/sync/sync_codec.dart"),
     Constant("ecdTaxonomyVersion", f"{CORE_LIB}/taxonomy/ecd_taxonomy.dart"),
+    Constant("squareTaxonomyVersion", f"{CORE_LIB}/taxonomy/square_taxonomy.dart"),
 )
 
 OK, FAIL, UNANSWERABLE = 0, 1, 2
