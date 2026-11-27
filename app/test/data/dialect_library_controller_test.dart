@@ -373,6 +373,79 @@ void main() {
       libraries.dispose();
     });
 
+    group('a dialect the caller wrote with gendered words', () {
+      // The maintainer's ruling of 2026-11-27: "don't overwrite a user's
+      // dialect" (ADR-006 §9.1, point 7).
+      Map<String, Object?> stored() => Dialect(
+        name: 'Gents and Ladies',
+        roles: const {
+          'role1': RoleTerm('Gent', plural: 'Gents'),
+          'role2': RoleTerm('Lady', plural: 'Ladies'),
+        },
+        moves: const {'chain': 'ladies chain'},
+        dancers: const {'onesRole1': 'first man'},
+      ).toJson();
+
+      test(
+        'loads as written, keeps its name, and its programs keep it',
+        () async {
+          final repos = openTestRepositories();
+          await repos.ensureMigrated();
+          final t0 = DateTime.utc(2026, 1, 1);
+          await repos.settings.set(kCustomDialectsEcdKey, [stored()]);
+          await repos.settings.set(kActiveDialectRefEcdKey, 'Gents and Ladies');
+          await repos.programs.create(
+            Program(
+              id: 'p',
+              title: 'p',
+              createdAt: t0,
+              updatedAt: t0,
+              dialectName: 'Gents and Ladies',
+            ),
+          );
+          final libraries = DialectLibraries(
+            repos.settings,
+            programs: repos.programs,
+          );
+          addTearDown(libraries.dispose);
+
+          await libraries.load();
+
+          final ecd = libraries.forForm(DanceForm.ecd);
+          expect(ecd.activeName, 'Gents and Ladies');
+          expect(ecd.active, Dialect.fromJson(stored()));
+          expect(ecd.active.roles['role1'], const RoleTerm('Gent'));
+          expect(ecd.active.moves, {'chain': 'ladies chain'});
+          expect(ecd.active.dancers, {'onesRole1': 'first man'});
+          expect(await repos.settings.get(kCustomDialectsEcdKey), [stored()]);
+          expect(
+            await repos.settings.get(kActiveDialectRefEcdKey),
+            'Gents and Ladies',
+          );
+          expect(
+            (await repos.programs.getById('p'))!.dialectName,
+            'Gents and Ladies',
+          );
+        },
+      );
+
+      test('another write to the library stores it unchanged', () async {
+        final repos = openTestRepositories();
+        await repos.ensureMigrated();
+        await repos.settings.set(kCustomDialectsKey, [stored()]);
+        final libraries = DialectLibraries(repos.settings);
+        addTearDown(libraries.dispose);
+        await libraries.load();
+
+        await libraries.contra.upsert(_custom('Other'));
+
+        expect(await repos.settings.get(kCustomDialectsKey), [
+          stored(),
+          _custom('Other').toJson(),
+        ]);
+      });
+    });
+
     test(
       'renames a dialect whose name is gendered, and its programs follow',
       () async {

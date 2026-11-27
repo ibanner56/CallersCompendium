@@ -858,6 +858,79 @@ void main() {
       expect(ctx.dialectLibrary.customDialects, isEmpty);
     });
 
+    testWidgets('a dialect name with a gendered word is kept as typed', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await openDialect(tester);
+
+      await tester.tap(find.byKey(const ValueKey('new-dialect')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-name-field')),
+        'Gents & Ladies',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dialect-name-confirm')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      expect(ctx.dialectLibrary.customDialects.map((d) => d.name), [
+        'Gents & Ladies',
+      ]);
+    });
+
+    testWidgets('Duplicate from another type copies a contra dialect', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      final mine = Dialect(
+        name: 'Positional',
+        roles: const {'role1': RoleTerm('Left'), 'role2': RoleTerm('Right')},
+        moves: const {'swing': 'twirl'},
+      );
+      await ctx.dialectLibrary.upsert(mine);
+      await openDialect(tester);
+
+      final english = find.byKey(const ValueKey('dialect-form-ecd'));
+      await tester.ensureVisible(english);
+      await tester.tap(english);
+      await tester.pumpAndSettle();
+      final button = find.byKey(const ValueKey('duplicate-dialect-other-form'));
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      // Only the other types' own dialects are offered: the presets are the
+      // same for every type, and English has none of its own yet.
+      expect(
+        find.byKey(
+          ValueKey(
+            'dialect-duplicate-other-source-ecd-${Dialect.leadsFollows.name}',
+          ),
+        ),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey('dialect-duplicate-other-source-contra-Positional'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final ecd = ctx.dialectLibraries.forForm(DanceForm.ecd);
+      // Copied under its own name, so a program that names it applies it to
+      // English dances too; contra keeps its own.
+      expect(ecd.customByName('Positional'), mine);
+      expect(ctx.dialectLibrary.customByName('Positional'), mine);
+      expect(
+        find.byKey(const ValueKey('dialect-tile-Positional')),
+        findsOneWidget,
+      );
+      // A copy does not change the active dialect.
+      expect(ecd.active, Dialect.larksRobins);
+    });
+
     testWidgets('a canceled New dialect leaves nothing behind', (tester) async {
       final ctx = await _pumpSettings(tester);
       await openDialect(tester);
@@ -1076,6 +1149,33 @@ void main() {
         findsWidgets,
       );
       expect(ctx.dialectLibrary.customByName('Mine')!.roles['role1'], isNull);
+    });
+
+    testWidgets('the editor saves a gendered role term as typed', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Mine'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Mine')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit terms'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-role1-singular')),
+        'Gent',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('dialect-editor-save')), findsNothing);
+      expect(
+        ctx.dialectLibrary.customByName('Mine')!.roles['role1']!.singular,
+        'Gent',
+      );
     });
 
     Future<void> openEditorWithEdit(WidgetTester tester, String name) async {
