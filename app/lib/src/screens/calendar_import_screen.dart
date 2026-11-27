@@ -14,6 +14,7 @@ import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../export/export_labels_l10n.dart';
 import '../theme/app_spacing.dart';
+import '../utils/l10n_joins.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_bar_text_action.dart';
 import '../widgets/calendar_flag_label.dart';
@@ -278,7 +279,9 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
       if (created > 0) l10n.calendarImportCommitted(created),
       if (updated > 0) l10n.calendarImportUpdated(updated),
     ];
-    return parts.isEmpty ? l10n.calendarImportReviewed : parts.join(' ');
+    return parts.isEmpty
+        ? l10n.calendarImportReviewed
+        : joinSentences(l10n, parts);
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
@@ -62,8 +63,9 @@ Dance _dance(String id, String title) =>
 Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos,
-  Widget home,
-) async {
+  Widget home, {
+  Locale? locale,
+}) async {
   await tester.binding.setSurfaceSize(const Size(900, 1600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final confirm = ValueNotifier<bool>(false);
@@ -72,6 +74,7 @@ Future<void> _pump(
   addTearDown(dialect.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      locale: locale,
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
@@ -1014,6 +1017,70 @@ void main() {
             .onPressed,
         isNull,
       );
+    });
+
+    testWidgets('a break entry reads as the translated label', (tester) async {
+      final repos = openTestRepositories();
+      const template = ProgramTemplate(
+        id: 'a',
+        name: 'Abend',
+        entries: [
+          ProgramTemplateEntry(text: 'Walzer'),
+          ProgramTemplateEntry(text: Program.breakSlotText),
+        ],
+      );
+      await _seed(repos, [template]);
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+        locale: const Locale('de'),
+      );
+      final de = lookupAppLocalizations(const Locale('de'));
+      expect(find.text(de.programsBreakSlotLabel), findsOneWidget);
+      expect(find.text(Program.breakSlotText), findsNothing);
+      // Shown, not stored: the template keeps the token.
+      expect(
+        (await _stored(repos)).byId('a')!.entries.last.text,
+        Program.breakSlotText,
+      );
+    });
+
+    testWidgets('the rule dialog lists saved searches with accents folded', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final zany = await saveSearch(repos, 'Zany');
+      final ecole = await saveSearch(repos, 'École');
+      final fiddle = await saveSearch(repos, 'Fiddle');
+      final template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [
+          ProgramTemplateEntry.rule(savedSearchId: zany.id, label: 'Opener'),
+        ],
+      );
+      await _seed(repos, [template]);
+      await _pump(
+        tester,
+        repos,
+        ProgramTemplateEditorScreen(template: template),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-edit-0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-search')),
+      );
+      await tester.pumpAndSettle();
+      double y(SavedSearch s) => tester
+          .getTopLeft(
+            find.byKey(ValueKey('program-template-rule-search-${s.id}')).last,
+          )
+          .dy;
+      expect(y(ecole), lessThan(y(fiddle)));
+      expect(y(fiddle), lessThan(y(zany)));
     });
 
     testWidgets('Edit of a rule whose saved search is gone starts with no '

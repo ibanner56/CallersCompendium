@@ -1,0 +1,9 @@
+{
+  "id": "audit-dropdown-arrow-name",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "With a screen reader on, the arrow beside a drop-down you can type in to narrow (a long list, or one you add to: your dialects, tags, difficulty levels, custom fields and their options, figures) is now read as \"Show menu\" instead of as an unnamed button."
+    ]
+  }
+}

@@ -177,6 +177,7 @@ Future<CompendiumRepositories> _pump(
   Size size = const Size(400, 900),
   Future<void> Function(CompendiumRepositories repos)? seed,
   DialectsByForm? dialects,
+  Locale? locale,
 }) async {
   final repos = openTestRepositories();
   final figures = UserFiguresController(repos.userGlossary);
@@ -195,6 +196,7 @@ Future<CompendiumRepositories> _pump(
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
+      locale: locale,
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) {
@@ -1762,6 +1764,38 @@ void main() {
       expect(find.text('Chorus Jig'), findsNWidgets(2));
       expect(find.text('Rory'), findsOneWidget);
       expect(find.text('The same dances, in a different order.'), findsNothing);
+    });
+
+    testWidgets('a break only on one device reads as the translated label', (
+      tester,
+    ) async {
+      final repos = await _pump(tester, locale: const Locale('de'));
+      await tester.runAsync(() async {
+        await repos.dances.create(_dance('a', title: 'Chorus Jig'));
+        await repos.programs.create(
+          _program(
+            slots: [
+              ProgramSlot(id: 's0', position: 0, danceId: 'a'),
+              ProgramSlot(id: 's1', position: 1, text: Program.breakSlotText),
+            ],
+          ),
+        );
+        await _queueRecordTie(
+          repos,
+          SyncRecordKind.program,
+          'p1',
+          (body) => {
+            ...body,
+            'slots': [_slot(0, danceId: 'a')],
+          },
+        );
+      });
+      await _open(tester);
+
+      final de = lookupAppLocalizations(const Locale('de'));
+      expect(find.text(de.syncConflictOnlyHereHeader), findsOneWidget);
+      expect(find.text(de.programsBreakSlotLabel), findsOneWidget);
+      expect(find.text(Program.breakSlotText), findsNothing);
     });
 
     testWidgets('a timing change is not reported as a reorder', (tester) async {

@@ -20,6 +20,7 @@ import '../../search/event_rule_check.dart' show EventRuleAttention;
 import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
 import '../../utils/confirm_delete.dart';
+import '../../utils/slot_display_text.dart';
 import '../../utils/undo_snack_bar.dart';
 import '../../widgets/adaptive_fab.dart';
 import '../../widgets/app_dropdown_field.dart';
@@ -1334,7 +1335,9 @@ class _ProgramTemplateSlotsEditorState
                       : null,
                   title: Text(
                     entry.danceId == null
-                        ? entry.text ?? ''
+                        // A break reads as its label; the entry keeps the
+                        // stored token.
+                        ? templateEntryDisplayText(l10n, entry.text) ?? ''
                         : widget.danceTitles[entry.danceId] ??
                               l10n.settingsDefaultsStartingProgramUnavailableDance,
                   ),
@@ -1532,7 +1535,10 @@ class _SlotRuleDialogState extends State<_SlotRuleDialog> {
     final l10n = AppLocalizations.of(context);
     final searches = widget.savedSearches.entries.toList()
       ..sort((a, b) {
-        final byName = a.value.toLowerCase().compareTo(b.value.toLowerCase());
+        // Accents folded, as the Collection sorts, so École files with E.
+        final byName = foldForTitleMatch(
+          a.value,
+        ).compareTo(foldForTitleMatch(b.value));
         return byName != 0 ? byName : a.key.compareTo(b.key);
       });
     // Adding needs a saved search to choose; editing still lets the label

@@ -1,3 +1,4 @@
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
@@ -177,6 +178,82 @@ void main() {
     expect(changes, hasLength(1));
     expect(changes.single.danceId, 'd2');
     expect(changes.single.text, isNull);
+  });
+
+  group('a break in German', () {
+    final de = lookupAppLocalizations(const Locale('de'));
+
+    Future<List<ProgramSlot>> editBreak(
+      WidgetTester tester,
+      Future<void> Function() edit,
+    ) async {
+      final changes = <ProgramSlot>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('de'),
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: ProgramSlotListEditor(
+              slots: [
+                ProgramSlot(
+                  id: 'break',
+                  position: 0,
+                  text: Program.breakSlotText,
+                ),
+              ],
+              danceTitles: (id) => 'Dance $id',
+              formationFor: (_) => null,
+              mixerFor: (_) => false,
+              onReorder: (_, _) {},
+              onSlotChanged: (_, updated) => changes.add(updated),
+              onPromoteAlternate: (_, _) {},
+              onRemove: (_) {},
+              onCreateDance: (_) {},
+            ),
+          ),
+        ),
+      );
+      expect(find.text(de.programsBreakSlotLabel), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(de.programsEditSlotMenu));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('slot-edit-note')))
+            .controller!
+            .text,
+        de.programsBreakSlotLabel,
+      );
+      await edit();
+      await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+      await tester.pumpAndSettle();
+      return changes;
+    }
+
+    testWidgets('saving another field keeps the stored token', (tester) async {
+      final changes = await editBreak(tester, () async {
+        await tester.enterText(
+          find.byKey(const ValueKey('slot-edit-guest')),
+          'Kim',
+        );
+      });
+      expect(changes.single.text, Program.breakSlotText);
+      expect(changes.single.isBreak, isTrue);
+      expect(changes.single.guestCaller, 'Kim');
+    });
+
+    testWidgets('rewriting the label stores what was typed', (tester) async {
+      final changes = await editBreak(tester, () async {
+        await tester.enterText(
+          find.byKey(const ValueKey('slot-edit-note')),
+          'Teepause',
+        );
+      });
+      expect(changes.single.text, 'Teepause');
+      expect(changes.single.isBreak, isFalse);
+    });
   });
 
   testWidgets('break slots do not offer dance replacement', (tester) async {

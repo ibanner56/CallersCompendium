@@ -64,6 +64,7 @@ ProgramExportLabels programExportLabels(AppLocalizations l10n) =>
       timeRange: l10n.exportTimeRange,
       endsAt: l10n.exportEndsAt,
       nextDay: l10n.exportNextDay,
+      breakLabel: l10n.programsBreakSlotLabel,
     );
 
 ProgramMatrixExportLabels programMatrixExportLabels(AppLocalizations l10n) =>

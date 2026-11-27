@@ -1010,6 +1010,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSyncNoticeListSeparator => ', ';
 
   @override
+  String get commonListSeparator => ', ';
+
+  @override
+  String get commonClauseSeparator => '; ';
+
+  @override
+  String commonSentencePair(String first, String second) {
+    return '$first $second';
+  }
+
+  @override
   String settingsSyncNoticeRecordNamed(String kind, String name) {
     return '$kind \"$name\"';
   }
@@ -5791,6 +5802,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsInsertBreakButton => 'Insert break';
+
+  @override
+  String get programsBreakSlotLabel => 'Break';
 
   @override
   String get programsAddADanceSheetTitle => 'Add a dance';

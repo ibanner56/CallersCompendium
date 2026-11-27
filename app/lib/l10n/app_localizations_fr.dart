@@ -32,7 +32,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsMeanwhileSubtitle =>
-      'Figures de côté utilisées lors de l\'ajout d\'un conteneur meanwhile. Videz la liste pour obtenir deux côtés vides ; un côté configuré reçoit un côté vide supplémentaire. Vous pouvez modifier le conteneur après son insertion.';
+      'Figures de côté utilisées lors de l’ajout d’un conteneur meanwhile. Videz la liste pour obtenir deux côtés vides ; un côté configuré reçoit un côté vide supplémentaire. Vous pouvez modifier le conteneur après son insertion.';
 
   @override
   String get settingsDefaultsModifierTitle =>
@@ -185,12 +185,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
-    return 'Caller’s Compendium n\'a pas démarré car une sauvegarde automatique n\'a pas pu être créée avant la modification de vos données enregistrées. ${cause}Libérez de l\'espace (ou réparez le dossier de sauvegardes), puis rouvrez l\'application — ou rouvrez-la et choisissez de continuer sans sauvegarde.';
+    return 'Caller’s Compendium n’a pas démarré car une sauvegarde automatique n’a pas pu être créée avant la modification de vos données enregistrées. ${cause}Libérez de l’espace (ou réparez le dossier de sauvegardes), puis rouvrez l’application — ou rouvrez-la et choisissez de continuer sans sauvegarde.';
   }
 
   @override
   String get migrationSnapshotCauseDiskFull =>
-      'Votre appareil semble manquer d\'espace de stockage.';
+      'Votre appareil semble manquer d’espace de stockage.';
 
   @override
   String get migrationSnapshotCauseUnwritableBackupsDir =>
@@ -206,7 +206,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get migrationSnapshotInUseAbortedMessage =>
-      'Caller’s Compendium n\'a pas démarré car une autre application a ouvert votre bibliothèque : la sauvegarde automatique faite avant la modification de vos données enregistrées ne contiendrait pas vos dernières modifications. Fermez toute autre application qui a ouvert votre bibliothèque, puis rouvrez Caller’s Compendium — ou rouvrez-le et choisissez de continuer sans sauvegarde.';
+      'Caller’s Compendium n’a pas démarré car une autre application a ouvert votre bibliothèque : la sauvegarde automatique faite avant la modification de vos données enregistrées ne contiendrait pas vos dernières modifications. Fermez toute autre application qui a ouvert votre bibliothèque, puis rouvrez Caller’s Compendium — ou rouvrez-le et choisissez de continuer sans sauvegarde.';
 
   @override
   String get migrationSnapshotConsentTitle =>
@@ -214,7 +214,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String migrationSnapshotConsentBody(String cause) {
-    return 'Avant de modifier vos données enregistrées, Caller’s Compendium crée une sauvegarde automatique afin que les modifications puissent être annulées en cas de problème. Cette sauvegarde n\'a pas pu être créée cette fois.$cause\n\nSi vous continuez sans sauvegarde et que les modifications sont interrompues, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, libérer de l\'espace (ou réparer le dossier de sauvegardes) et rouvrir l\'application pour réessayer.';
+    return 'Avant de modifier vos données enregistrées, Caller’s Compendium crée une sauvegarde automatique afin que les modifications puissent être annulées en cas de problème. Cette sauvegarde n’a pas pu être créée cette fois.$cause\n\nSi vous continuez sans sauvegarde et que les modifications sont interrompues, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, libérer de l’espace (ou réparer le dossier de sauvegardes) et rouvrir l’application pour réessayer.';
   }
 
   @override
@@ -441,7 +441,8 @@ class AppLocalizationsFr extends AppLocalizations {
       'Sélectionnez une figure pour voir sa définition.';
 
   @override
-  String get glossaryCopyAsOwnFigure => 'Copier dans vos figures';
+  String get glossaryCopyAsOwnFigure =>
+      'Copier dans les figures personnalisées';
 
   @override
   String glossaryCustomCopiedFrom(String name) {
@@ -453,23 +454,23 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importCcTermsIntro =>
-      'Votre fichier Caller\'s Companion contient ses propres termes. Choisissez ceux à ajouter à votre glossaire comme termes. Chaque description reprend d\'abord la définition : modifiez un terme pour changer l\'une, l\'autre ou son nom.';
+      'Votre fichier Caller\'s Companion contient ses propres termes. Choisissez ceux à ajouter à votre glossaire comme termes. Chaque description reprend d’abord la définition : modifiez un terme pour changer l’une, l’autre ou son nom.';
 
   @override
   String get importCcTermsNameTaken =>
-      'Une figure, une abréviation ou un terme porte déjà ce nom. Renommez-le pour l\'ajouter, ou laissez-le de côté.';
+      'Une figure, une abréviation ou un terme porte déjà ce nom. Renommez-le pour l’ajouter, ou laissez-le de côté.';
 
   @override
   String get importCcTermsNeedsDefinition =>
-      'Il n\'a pas de définition. Modifiez-le pour lui en donner une et l\'ajouter.';
+      'Il n’a pas de définition. Modifiez-le pour lui en donner une et l’ajouter.';
 
   @override
   String get importCcTermsIncomplete =>
-      'Il lui faut un nom, une définition et une description. Modifiez-le pour les remplir et l\'ajouter.';
+      'Il lui faut un nom, une définition et une description. Modifiez-le pour les remplir et l’ajouter.';
 
   @override
   String get importCcTermsTooLong =>
-      'Il est plus long qu\'une entrée du glossaire ne peut l\'être. Modifiez-le pour le raccourcir et l\'ajouter.';
+      'Il est plus long qu’une entrée du glossaire ne peut l’être. Modifiez-le pour le raccourcir et l’ajouter.';
 
   @override
   String get importCcTermsEditTitle => 'Modifier le terme';
@@ -511,9 +512,9 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count termes n\'ont pas pu être ajoutés : ils sont trop longs, ou votre glossaire est plein.',
+          '$count termes n’ont pas pu être ajoutés : ils sont trop longs, ou votre glossaire est plein.',
       one:
-          '1 terme n\'a pas pu être ajouté : il est trop long, ou votre glossaire est plein.',
+          '1 terme n’a pas pu être ajouté : il est trop long, ou votre glossaire est plein.',
     );
     return '$_temp0';
   }
@@ -525,7 +526,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String glossaryCustomShippedNameBody(String name) {
-    return 'L\'application a maintenant sa propre figure nommée $name. Renommez la vôtre, ou faites passer vos danses à la figure de l\'application et retirez la vôtre.';
+    return 'L’application a maintenant sa propre figure nommée $name. Renommez la vôtre, ou faites passer vos danses à la figure de l’application et retirez la vôtre.';
   }
 
   @override
@@ -533,7 +534,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get glossaryCustomSwitchToShipped =>
-      'Passer à la figure de l\'application';
+      'Passer à la figure de l’application';
 
   @override
   String userFigureSwitchTitle(String name) {
@@ -557,12 +558,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String userFigureSwitchNoTarget(String name, String param) {
-    return '$name n\'a rien que votre $param puisse devenir. Retirez-le d\'abord de votre figure, ou renommez plutôt la vôtre.';
+    return '$name n’a rien que votre $param puisse devenir. Retirez-le d’abord de votre figure, ou renommez plutôt la vôtre.';
   }
 
   @override
   String userFigureSwitchAllTaken(String name, String param) {
-    return 'Chaque paramètre de $name que votre $param pourrait devenir est déjà choisi pour un autre des vôtres. Changez d\'abord ce choix-là.';
+    return 'Chaque paramètre de $name que votre $param pourrait devenir est déjà choisi pour un autre des vôtres. Changez d’abord ce choix-là.';
   }
 
   @override
@@ -583,18 +584,18 @@ class AppLocalizationsFr extends AppLocalizations {
       one:
           '1 danse utilise votre figure et utilisera $name à la place. La vôtre est retirée de votre glossaire.',
       zero:
-          'Aucune danse de votre collection n\'utilise votre figure. Elle est retirée de votre glossaire.',
+          'Aucune danse de votre collection n’utilise votre figure. Elle est retirée de votre glossaire.',
     );
     return '$_temp0';
   }
 
   @override
   String get userFigureSwitchConfirmDefaults =>
-      'Vos figures par défaut l\'utilisent aussi et passent de la même façon.';
+      'Vos figures par défaut l’utilisent aussi et passent de la même façon.';
 
   @override
   String userFigureSwitchConfirmKeepsWording(String name) {
-    return 'Toute utilisation d\'un groupe de danseurs absent de $name conserve sa formulation.';
+    return 'Toute utilisation d’un groupe de danseurs absent de $name conserve sa formulation.';
   }
 
   @override
@@ -610,7 +611,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get userFigureSwitchFailed =>
-      'Rien n\'a changé : votre figure a été modifiée ou n\'existe plus. Ouvrez-la de nouveau pour passer.';
+      'Rien n’a changé : votre figure a été modifiée ou n’existe plus. Ouvrez-la de nouveau pour passer.';
 
   @override
   String get glossaryNoDefinition => 'Pas encore de définition.';
@@ -673,7 +674,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncExcludeImportsSubtitle =>
-      'Désactivé par défaut. Réduit ce que cet appareil envoie si vous avez une grande collection importée ; une danse utilisée dans un programme ou liée depuis une autre danse est toujours incluse. Rien n\'est supprimé de vos autres appareils, et le désactiver renvoie les danses ignorées.';
+      'Désactivé par défaut. Réduit ce que cet appareil envoie si vous avez une grande collection importée ; une danse utilisée dans un programme ou liée depuis une autre danse est toujours incluse. Rien n’est supprimé de vos autres appareils, et le désactiver renvoie les danses ignorées.';
 
   @override
   String get settingsSyncStatusHeader => 'État';
@@ -699,7 +700,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncIdCaution =>
-      'Saisissez-la sur votre autre appareil pour le connecter. C\'est là que se trouve votre bibliothèque partagée : quiconque la détient peut donc ouvrir cette bibliothèque, lire tout ce que vous synchronisez, en modifier ou en supprimer n\'importe quelle partie sur tous les appareils connectés, et supprimer l\'espace entier du serveur. Changer de phrase suppose de faire passer tous les appareils à la nouvelle.';
+      'Saisissez-la sur votre autre appareil pour le connecter. C’est là que se trouve votre bibliothèque partagée : quiconque la détient peut donc ouvrir cette bibliothèque, lire tout ce que vous synchronisez, en modifier ou en supprimer n’importe quelle partie sur tous les appareils connectés, et supprimer l’espace entier du serveur. Changer de phrase suppose de faire passer tous les appareils à la nouvelle.';
 
   @override
   String get settingsSyncStatusNotPaired =>
@@ -744,7 +745,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncStatusSettingsUnreadable =>
-      'Les réglages de la synchronisation des appareils n\'ont pas pu être lus ; les réglages affichés ici peuvent donc être obsolètes, et la synchronisation peut être désactivée même si vous l\'avez activée. Redémarrez l\'application pour réessayer.';
+      'Les réglages de la synchronisation des appareils n’ont pas pu être lus ; les réglages affichés ici peuvent donc être obsolètes, et la synchronisation peut être désactivée même si vous l’avez activée. Redémarrez l’application pour réessayer.';
 
   @override
   String get syncRestoredCopyNotice =>
@@ -864,8 +865,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count étiquettes',
-      one: '1 étiquette',
+      other: '$count tags',
+      one: '1 tag',
     );
     return '$_temp0';
   }
@@ -1031,6 +1032,17 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeListSeparator => ', ';
+
+  @override
+  String get commonListSeparator => ', ';
+
+  @override
+  String get commonClauseSeparator => ' ; ';
+
+  @override
+  String commonSentencePair(String first, String second) {
+    return '$first $second';
+  }
 
   @override
   String settingsSyncNoticeRecordNamed(String kind, String name) {
@@ -1445,7 +1457,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String settingsSyncNoticeAwaitingDevice(String tag) {
-    return 'Certains nouveaux types de données sur cet appareil commenceront à se synchroniser dès que l\'appareil $tag sera mis à jour vers la dernière version de l\'application ou retiré de « Autres appareils ». Elles sont en sécurité ici.';
+    return 'Certains nouveaux types de données sur cet appareil commenceront à se synchroniser dès que l’appareil $tag sera mis à jour vers la dernière version de l’application ou retiré de « Autres appareils ». Elles sont en sécurité ici.';
   }
 
   @override
@@ -1491,14 +1503,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncDevicesSubtitle =>
-      'Voyez ce qui est connecté à cet espace, et retirez un appareil que vous n\'utilisez plus.';
+      'Voyez ce qui est connecté à cet espace, et retirez un appareil que vous n’utilisez plus.';
 
   @override
   String get settingsSyncDevicesScreenTitle => 'Autres appareils';
 
   @override
   String get settingsSyncDevicesCaution =>
-      'Chaque appareil invente son propre identifiant aléatoire, et un nouveau à chaque connexion : les appareils sont donc présentés ici par une courte étiquette tirée de cet identifiant, et non par un nom. Cet appareil n’est pas listé ; sa propre étiquette figure ci-dessous pour que vous puissiez le retrouver sur vos autres appareils. Si vous ne savez pas lequel retirer, vous pouvez sans risque le laisser : un appareil retiré peut se reconnecter avec la phrase de synchronisation.';
+      'Chaque appareil invente son propre identifiant aléatoire, et un nouveau à chaque connexion : les appareils sont donc présentés ici par un court tag tiré de cet identifiant, et non par un nom. Cet appareil n’est pas listé ; son propre tag figure ci-dessous pour que vous puissiez le retrouver sur vos autres appareils. Si vous ne savez pas lequel retirer, vous pouvez sans risque le laisser : un appareil retiré peut se reconnecter avec la phrase de synchronisation.';
 
   @override
   String settingsSyncDevicesThisDevice(String tag) {
@@ -1561,7 +1573,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncDevicesStoreMissing =>
-      'Cet espace n\'est plus sur le serveur : il n\'y a aucun appareil à afficher.';
+      'Cet espace n’est plus sur le serveur : il n’y a aucun appareil à afficher.';
 
   @override
   String get settingsSyncDevicesRetry => 'Réessayer';
@@ -1574,7 +1586,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncDeviceRemoveBody =>
-      'L\'espace abandonne la liste de ce que cet appareil a partagé et libère la place qu\'il occupait. Rien n\'est supprimé sur cet appareil, et rien n\'est supprimé sur le vôtre. C\'est prévu pour un appareil vraiment disparu : le retirer ne le déconnecte pas, donc un appareil encore en service republiera sa liste à sa prochaine synchronisation, et n\'importe quel appareil peut se reconnecter avec la phrase de synchronisation.';
+      'L’espace abandonne la liste de ce que cet appareil a partagé et libère la place qu’il occupait. Rien n’est supprimé sur cet appareil, et rien n’est supprimé sur le vôtre. C’est prévu pour un appareil vraiment disparu : le retirer ne le déconnecte pas, donc un appareil encore en service republiera sa liste à sa prochaine synchronisation, et n’importe quel appareil peut se reconnecter avec la phrase de synchronisation.';
 
   @override
   String get settingsSyncDeviceRemoveAction => 'Retirer';
@@ -1585,7 +1597,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncWipeTitle =>
-      'Déconnecter tous les appareils et supprimer l\'espace';
+      'Déconnecter tous les appareils et supprimer l’espace';
 
   @override
   String get settingsSyncWipeSubtitle =>
@@ -1600,15 +1612,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'Tout ce que contient le magasin est supprimé du serveur, pour tous les appareils à la fois. Cette action est irréversible. Votre bibliothèque reste sur cet appareil et sur chacun de vos autres appareils, mais tout ce qui n’avait jamais atteint un autre appareil que par la synchronisation n’arrivera pas ici. Cet appareil se déconnecte et oublie sa phrase de synchronisation ; vos autres appareils constateront que le magasin a disparu à leur prochaine synchronisation et proposeront de configurer une nouvelle phrase. Utilisez cette option si vous voulez cesser d’utiliser l’adresse de ce magasin : c’est la seule façon de supprimer immédiatement ce qu’il contient. Pour continuer à synchroniser, configurez une nouvelle phrase sur chaque appareil : se reconnecter avec l’ancienne recrée un nouveau magasin à la même adresse.';
 
   @override
-  String get settingsSyncWipeConfirmAction => 'Supprimer l\'espace';
+  String get settingsSyncWipeConfirmAction => 'Supprimer l’espace';
 
   @override
   String get settingsSyncWipeFailed =>
-      'Impossible de supprimer l\'espace, ou impossible de confirmer sa suppression. Cet appareil est toujours connecté. Vérifiez vos autres appareils avant de réessayer.';
+      'Impossible de supprimer l’espace, ou impossible de confirmer sa suppression. Cet appareil est toujours connecté. Vérifiez vos autres appareils avant de réessayer.';
 
   @override
   String get settingsSyncWipeDetachFailed =>
-      'L\'espace a été supprimé du serveur, mais cet appareil n\'a pas pu s\'en déconnecter. L\'espace a disparu et ne peut pas être récupéré. Utilisez Déconnecter cet appareil pour terminer.';
+      'L’espace a été supprimé du serveur, mais cet appareil n’a pas pu s’en déconnecter. L’espace a disparu et ne peut pas être récupéré. Utilisez Déconnecter cet appareil pour terminer.';
 
   @override
   String get settingsSyncWipeDetachFailedTitle =>
@@ -1657,25 +1669,25 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncPairingConnectSubtitle =>
-      'Saisissez la phrase affichée sur l\'appareil déjà configuré.';
+      'Saisissez la phrase affichée sur l’appareil déjà configuré.';
 
   @override
   String get settingsSyncPairingYourPhrase => 'Votre phrase de synchronisation';
 
   @override
   String get settingsSyncPairingYourPhraseHelper =>
-      'Quatre mots séparés par des traits d\'union. Gardez la phrase générée ou saisissez la vôtre.';
+      'Quatre mots séparés par des traits d’union. Gardez la phrase générée ou saisissez la vôtre.';
 
   @override
   String get settingsSyncPairingRegenerate => 'Générer une autre phrase';
 
   @override
   String get settingsSyncPairingPersonalInfoTitle =>
-      'Ne mettez pas d\'informations personnelles dans la phrase';
+      'Ne mettez pas d’informations personnelles dans la phrase';
 
   @override
   String get settingsSyncPairingPersonalInfoBody =>
-      'Si vous saisissez votre propre phrase, n\'y mettez ni noms, ni adresses, ni dates de naissance, ni quoi que ce soit d\'autre vous concernant. La phrase part vers le serveur à chaque requête et elle est lue à voix haute ou saisie sur chaque appareil que vous connectez : considérez-la comme ce qui est écrit sur le dessus d\'un carton, pas comme un endroit où mettre des informations privées.';
+      'Si vous saisissez votre propre phrase, n’y mettez ni noms, ni adresses, ni dates de naissance, ni quoi que ce soit d’autre vous concernant. La phrase part vers le serveur à chaque requête et elle est lue à voix haute ou saisie sur chaque appareil que vous connectez : considérez-la comme ce qui est écrit sur le dessus d’un carton, pas comme un endroit où mettre des informations privées.';
 
   @override
   String get settingsSyncPairingWeakPhraseTitle =>
@@ -1704,11 +1716,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncPairingInvalidEndpoint =>
-      'Cette adresse de serveur n\'est pas valide. Utilisez une adresse https:// sans nom d\'utilisateur, ni partie ? ou # (http:// simple n\'est accepté que pour localhost ou 127.0.0.1).';
+      'Cette adresse de serveur n’est pas valide. Utilisez une adresse https:// sans nom d’utilisateur, ni partie ? ou # (http:// simple n’est accepté que pour localhost ou 127.0.0.1).';
 
   @override
   String get settingsSyncPairingNotFound =>
-      'Aucun espace ne correspond à cette phrase. Vérifiez-la sur l\'autre appareil et réessayez.';
+      'Aucun espace ne correspond à cette phrase. Vérifiez-la sur l’autre appareil et réessayez.';
 
   @override
   String get settingsSyncPairingAlreadyInUse =>
@@ -1721,15 +1733,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncPairingCustomEndpointBody =>
-      'Ce n\'est pas le serveur de synchronisation par défaut. Quiconque l\'exploite peut lire, modifier et supprimer tout ce que vous synchronisez ; n\'utilisez donc qu\'un serveur de confiance.';
+      'Ce n’est pas le serveur de synchronisation par défaut. Quiconque l’exploite peut lire, modifier et supprimer tout ce que vous synchronisez ; n’utilisez donc qu’un serveur de confiance.';
 
   @override
   String get settingsSyncPairingSharingTitle =>
-      'Le partage n\'est pas une collaboration';
+      'Le partage n’est pas une collaboration';
 
   @override
   String get settingsSyncPairingSharingBody =>
-      'Une deuxième personne peut utiliser la même phrase sur son appareil. Si vous modifiez tous les deux la même danse ou le même programme en même temps, une modification écrase silencieusement l\'autre — il n\'y a ni avertissement ni moyen de les combiner.';
+      'Une deuxième personne peut utiliser la même phrase sur son appareil. Si vous modifiez tous les deux la même danse ou le même programme en même temps, une modification écrase silencieusement l’autre — il n’y a ni avertissement ni moyen de les combiner.';
 
   @override
   String get settingsSyncPairingNewerDataTitle =>
@@ -1737,7 +1749,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'Cette version synchronise certains éléments que les versions antérieures de l\'app ne peuvent pas lire. Mettez à jour chaque appareil avant de le connecter : un appareil sous une version antérieure risque de ne pas pouvoir se connecter. Tant que tous les appareils connectés ne sont pas à jour, ces éléments ne sont pas envoyés à vos autres appareils.';
+      'Cette version synchronise certains éléments que les versions antérieures de l’app ne peuvent pas lire. Mettez à jour chaque appareil avant de le connecter : un appareil sous une version antérieure risque de ne pas pouvoir se connecter. Tant que tous les appareils connectés ne sont pas à jour, ces éléments ne sont pas envoyés à vos autres appareils.';
 
   @override
   String get settingsSyncPairingBearerTitle =>
@@ -1745,23 +1757,23 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncPairingBearerBody =>
-      'La phrase est l\'endroit où se trouve votre bibliothèque partagée, pas un mot de passe placé devant : il n\'y a rien où se connecter. Toute personne à qui vous la donnez, et toute personne qui tombe simplement dessus, peut ouvrir cette bibliothèque depuis son propre appareil : lire tout ce que vous synchronisez, en modifier ou en supprimer n\'importe quelle partie partout où elle est arrivée, et supprimer l\'ensemble du serveur. Il n\'existe pas de version d\'une phrase qui en permette moins.';
+      'La phrase est l’endroit où se trouve votre bibliothèque partagée, pas un mot de passe placé devant : il n’y a rien où se connecter. Toute personne à qui vous la donnez, et toute personne qui tombe simplement dessus, peut ouvrir cette bibliothèque depuis son propre appareil : lire tout ce que vous synchronisez, en modifier ou en supprimer n’importe quelle partie partout où elle est arrivée, et supprimer l’ensemble du serveur. Il n’existe pas de version d’une phrase qui en permette moins.';
 
   @override
   String get settingsSyncPairingCredentialTitle =>
-      'Il n\'existe aucune copie de cette phrase, et elle ne se reprend pas';
+      'Il n’existe aucune copie de cette phrase, et elle ne se reprend pas';
 
   @override
   String get settingsSyncPairingCredentialBody =>
-      'Rien d\'autre nulle part ne connaît cette phrase : si vous la perdez, la bibliothèque reste là où elle est et plus personne ne peut l\'atteindre. Dire la phrase à quelqu\'un ne se défait pas non plus. Faire passer vos appareils à une nouvelle phrase ne fait que commencer une deuxième bibliothèque ailleurs : la première est toujours là, et quiconque a gardé l\'ancienne phrase peut encore l\'ouvrir et la modifier. Seule la suppression de l\'espace la retire immédiatement.';
+      'Rien d’autre nulle part ne connaît cette phrase : si vous la perdez, la bibliothèque reste là où elle est et plus personne ne peut l’atteindre. Dire la phrase à quelqu’un ne se défait pas non plus. Faire passer vos appareils à une nouvelle phrase ne fait que commencer une deuxième bibliothèque ailleurs : la première est toujours là, et quiconque a gardé l’ancienne phrase peut encore l’ouvrir et la modifier. Seule la suppression de l’espace la retire immédiatement.';
 
   @override
   String get settingsSyncPairingBackupOfferTitle =>
-      'Sauvegarder votre bibliothèque d\'abord ?';
+      'Sauvegarder votre bibliothèque d’abord ?';
 
   @override
   String get settingsSyncPairingBackupOfferBody =>
-      'C\'est facultatif et uniquement pour votre propre sécurité — la connexion elle-même ne sauvegarde rien.';
+      'C’est facultatif et uniquement pour votre propre sécurité — la connexion elle-même ne sauvegarde rien.';
 
   @override
   String get settingsSyncPairingBackupOfferAccept => 'Sauvegarder maintenant';
@@ -1781,7 +1793,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncPairingCompleteFailed =>
-      'Votre bibliothèque est connectée, mais la première synchronisation n\'est pas allée au bout. Elle réessaiera d\'elle-même.';
+      'Votre bibliothèque est connectée, mais la première synchronisation n’est pas allée au bout. Elle réessaiera d’elle-même.';
 
   @override
   String get settingsSyncPairingCompleteMetered =>
@@ -1793,14 +1805,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncPairingCompletePending =>
-      'Votre bibliothèque est connectée. La première synchronisation n\'a pas encore eu lieu ; elle se fera à la prochaine synchronisation de cet appareil.';
+      'Votre bibliothèque est connectée. La première synchronisation n’a pas encore eu lieu ; elle se fera à la prochaine synchronisation de cet appareil.';
 
   @override
-  String get settingsSyncReplacementTitle => 'Cet espace n\'existe plus';
+  String get settingsSyncReplacementTitle => 'Cet espace n’existe plus';
 
   @override
   String get settingsSyncReplacementBody =>
-      'L\'espace avec lequel cet appareil se synchronisait n\'existe plus. Il a peut-être expiré par inactivité, ou il a peut-être été supprimé. Pour cesser d\'utiliser l\'adresse de cet espace, configurez une nouvelle phrase : cet appareil se déconnecte, puis vous créez un nouvel espace ou vous vous connectez à un espace configuré sur un autre appareil. Faites-le sur chacun de vos appareils. « Se reconnecter » crée au contraire un nouvel espace à la même adresse, avec la même phrase, et y envoie toute votre bibliothèque ; si un autre appareil l\'a déjà fait, cet appareil rejoint cet espace.';
+      'L’espace avec lequel cet appareil se synchronisait n’existe plus. Il a peut-être expiré par inactivité, ou il a peut-être été supprimé. Pour cesser d’utiliser l’adresse de cet espace, configurez une nouvelle phrase : cet appareil se déconnecte, puis vous créez un nouvel espace ou vous vous connectez à un espace configuré sur un autre appareil. Faites-le sur chacun de vos appareils. « Se reconnecter » crée au contraire un nouvel espace à la même adresse, avec la même phrase, et y envoie toute votre bibliothèque ; si un autre appareil l’a déjà fait, cet appareil rejoint cet espace.';
 
   @override
   String get settingsSyncReplacementConfirm => 'Se reconnecter';
@@ -1864,14 +1876,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDateFormatCustomInvalid =>
-      'Format non reconnu — utilisation du format système par défaut jusqu\'à correction.';
+      'Format non reconnu — utilisation du format système par défaut jusqu’à correction.';
 
   @override
   String get settingsFirstDayOfWeekTitle => 'Premier jour de la semaine';
 
   @override
   String get settingsFirstDayOfWeekSubtitle =>
-      'Jour de début de la semaine dans les vues de date propres à l\'application, comme le bandeau « cette semaine » de la liste des programmes.';
+      'Jour de début de la semaine dans les vues de date propres à l’application, comme le bandeau « cette semaine » de la liste des programmes.';
 
   @override
   String get settingsFirstDayOfWeekSunday => 'Dimanche';
@@ -2028,7 +2040,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsUpdatesAutoStoreSubtitle =>
-      'Rechercher en arrière-plan, au démarrage de l\'application, une date de fin de prise en charge de cette version. Désactivé par défaut.';
+      'Rechercher en arrière-plan, au démarrage de l’application, une date de fin de prise en charge de cette version. Désactivé par défaut.';
 
   @override
   String get settingsUpdatesPrivacyNote =>
@@ -2081,11 +2093,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsUpdatesStoreTitle =>
-      'Les mises à jour viennent de votre boutique d\'applications';
+      'Les mises à jour viennent de votre boutique d’applications';
 
   @override
   String get settingsUpdatesStoreSubtitle =>
-      'Cette copie a été installée depuis une boutique d\'applications, qui se charge donc de la mettre à jour. L\'application ne recherche qu\'une éventuelle date de fin de prise en charge, jamais de nouvelle version.';
+      'Cette copie a été installée depuis une boutique d’applications, qui se charge donc de la mettre à jour. L’application ne recherche qu’une éventuelle date de fin de prise en charge, jamais de nouvelle version.';
 
   @override
   String get settingsUpdatesPortableTitle =>
@@ -2093,7 +2105,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsUpdatesPortableSubtitle =>
-      'Cette copie s\'exécute depuis une archive décompressée ; l\'application ne peut donc pas installer la mise à jour à votre place. Téléchargez le nouveau zip ou tar.gz depuis la version publiée et décompressez-le.';
+      'Cette copie s’exécute depuis une archive décompressée ; l’application ne peut donc pas installer la mise à jour à votre place. Téléchargez le nouveau zip ou tar.gz depuis la version publiée et décompressez-le.';
 
   @override
   String get settingsUpdatesDownloadTitle =>
@@ -2170,7 +2182,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String settingsDialectEditConflictSnack(String name) {
-    return '\"$name\" a été renommé ou supprimé pendant votre modification ; vos changements n\'ont pas été enregistrés.';
+    return '\"$name\" a été renommé ou supprimé pendant votre modification ; vos changements n’ont pas été enregistrés.';
   }
 
   @override
@@ -2608,7 +2620,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorTitle =>
-      'Colorier les lignes de la liste de sets';
+      'Colorier les lignes de la liste de danses';
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
@@ -2727,7 +2739,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsProgramSortSubtitle =>
-      'Comment la liste des programmes est triée à l\'ouverture. Vous pouvez toujours modifier le tri en parcourant la liste.';
+      'Comment la liste des programmes est triée à l’ouverture. Vous pouvez toujours modifier le tri en parcourant la liste.';
 
   @override
   String get settingsDefaultsSortLastUsedSubtitle =>
@@ -2833,18 +2845,18 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportHeader =>
-      'Paramètres par défaut de l\'import';
+      'Paramètres par défaut de l’import';
 
   @override
   String get settingsDefaultsImportTagsTitle => 'Tags des danses importées';
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Ajoutés à chaque nouvelle danse qu\'un import crée, y compris les danses d\'un fichier qu\'on vous a partagé. Les danses créées pour les emplacements d\'un programme lors de son import ne reçoivent pas de tags.';
+      'Ajoutés à chaque nouvelle danse qu’un import crée, y compris les danses d’un fichier qu’on vous a partagé. Les danses créées pour les créneaux d’un programme lors de son import ne reçoivent pas de tags.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
-      'Vous n\'avez pas encore de tags. Ajoutez-en un à une danse dans l\'éditeur, puis choisissez-le ici.';
+      'Vous n’avez pas encore de tags. Ajoutez-en un à une danse dans l’éditeur, puis choisissez-le ici.';
 
   @override
   String get settingsDefaultsAuthoringHeader =>
@@ -2863,7 +2875,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Lorsque cette option est activée, la modification du mouvement d\'une figure ou d\'un paramètre affectant le tempo recalcule immédiatement son nombre de temps — même en écrasant un nombre de temps que vous avez saisi manuellement. Lorsqu\'elle est désactivée (par défaut), un nombre de temps que vous avez modifié n\'est changé automatiquement que lorsque vous activez ou désactivez une option d\'équilibre, ce qui ajoute ou retire 4 temps.';
+      'Lorsque cette option est activée, la modification du mouvement d’une figure ou d’un paramètre affectant le tempo recalcule immédiatement son nombre de temps — même en écrasant un nombre de temps que vous avez saisi manuellement. Lorsqu’elle est désactivée (par défaut), un nombre de temps que vous avez modifié n’est changé automatiquement que lorsque vous activez ou désactivez une option d’équilibre, ce qui ajoute ou retire 4 temps.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Abréviations de figures';
@@ -2996,7 +3008,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsTagColoursLoadError =>
-      'Impossible de charger vos étiquettes. Rien n’a été modifié. Réessayez.';
+      'Impossible de charger vos tags. Rien n’a été modifié. Réessayez.';
 
   @override
   String get tagManagerTitle => 'Tags';
@@ -3242,19 +3254,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSharingTitleTitle =>
-      'Inclure le titre du programme lors du partage d\'une liste de danses';
+      'Inclure le titre du programme lors du partage d’une liste de danses';
 
   @override
   String get settingsSharingCallerBandTitle =>
-      'Inclure le caller et le groupe lors du partage d\'une liste de danses';
+      'Inclure le caller et le groupe lors du partage d’une liste de danses';
 
   @override
   String get settingsSharingDateVenueTitle =>
-      'Inclure la date, les horaires et le lieu lors du partage d\'une liste de danses';
+      'Inclure la date, les horaires et le lieu lors du partage d’une liste de danses';
 
   @override
   String get settingsSharingSubtitle =>
-      'S\'applique au partage ou à la copie de la liste de danses. Le partage du programme complet en fichier .ccshare ou JSON inclut toujours tout.';
+      'S’applique au partage ou à la copie de la liste de danses. Le partage du programme complet en fichier .ccshare ou JSON inclut toujours tout.';
 
   @override
   String get settingsGeneralMatrixExactCollisionTitle =>
@@ -3262,7 +3274,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsGeneralMatrixExactCollisionSubtitle =>
-      'Dans la matrice de programmation, ne signaler une figure répétée entre deux danses consécutives que lorsque ses temps se chevauchent réellement — pas seulement lorsqu\'elle tombe dans la même phrase nommée (A1, A2, B1, B2…). Désactivez pour signaler toute répétition dans la même phrase, même si les temps eux-mêmes ne se chevauchent pas.';
+      'Dans la matrice de programmation, ne signaler une figure répétée entre deux danses consécutives que lorsque ses temps se chevauchent réellement — pas seulement lorsqu’elle tombe dans la même phrase nommée (A1, A2, B1, B2…). Désactivez pour signaler toute répétition dans la même phrase, même si les temps eux-mêmes ne se chevauchent pas.';
 
   @override
   String get settingsProgramAutoCommitTitle =>
@@ -3284,7 +3296,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsMatrixColumnsSubtitle =>
-      'Réorganisez, renommez ou supprimez les colonnes affichées dans la matrice de programmation. Les modifications s\'appliquent à tous les programmes.';
+      'Réorganisez, renommez ou supprimez les colonnes affichées dans la matrice de programmation. Les modifications s’appliquent à tous les programmes.';
 
   @override
   String settingsMatrixColumnsDragToReorder(String label) {
@@ -3424,7 +3436,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
-      'Afficher le temps écoulé pendant l\'exécution d\'une danse seule. Le minuteur démarre lorsqu\'il s\'affiche et peut être mis en pause.';
+      'Afficher le temps écoulé pendant l’exécution d’une danse seule. Le minuteur démarre lorsqu’il s’affiche et peut être mis en pause.';
 
   @override
   String get settingsConfirmPerformExitTitle =>
@@ -3680,7 +3692,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get syncReviewKindChoreographer => 'Auteur';
 
   @override
-  String get syncReviewKindTag => 'Étiquette';
+  String get syncReviewKindTag => 'Tag';
 
   @override
   String get syncReviewKindCustomField => 'Champ personnalisé';
@@ -3805,7 +3817,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsGeneralReparseCustomFiguresSubtitle =>
-      'Revérifie les danses importées dont les figures ont été conservées comme figures non reconnues uniquement parce qu’elles n’avaient pas pu être reconnues à l’importation. Si l’application peut désormais les reconnaître, elles sont mises à niveau sur place — vos étiquettes, évaluations et notes sont préservées. Vous prévisualisez et confirmez avant tout changement.';
+      'Revérifie les danses importées dont les figures ont été conservées comme figures non reconnues uniquement parce qu’elles n’avaient pas pu être reconnues à l’importation. Si l’application peut désormais les reconnaître, elles sont mises à niveau sur place — vos tags, évaluations et notes sont préservés. Vous prévisualisez et confirmez avant tout changement.';
 
   @override
   String get settingsGeneralReparseCustomFiguresAction => 'Revérifier…';
@@ -4842,7 +4854,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get collectionFacetHistoryInert =>
-      'S\'applique avec Appelées ou Non appelées';
+      'S’applique avec Appelées ou Non appelées';
 
   @override
   String get collectionFacetVenue => 'Lieu';
@@ -5447,7 +5459,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceUnreadableReassurance =>
-      'Rien n\'a été supprimé. Ce qui a été enregistré est conservé tel quel, et modifier autre chose dans cette danse ne le remplacera pas.';
+      'Rien n’a été supprimé. Ce qui a été enregistré est conservé tel quel, et modifier autre chose dans cette danse ne le remplacera pas.';
 
   @override
   String get danceEditorFiguresUnreadable =>
@@ -5622,7 +5634,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsAddToProgramEmptyBody =>
-      'Créez un programme pour commencer à construire une liste de sets.';
+      'Créez un programme pour commencer à construire une liste de danses.';
 
   @override
   String get programsCreateWithDance =>
@@ -5891,7 +5903,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsSlotsHelper =>
-      'Chaque créneau est une place dans votre liste de sets : une danse, une note ou une pause.';
+      'Chaque créneau est une place dans votre liste de danses : une danse, une note ou une pause.';
 
   @override
   String get programsAddDanceButton => 'Ajouter une danse';
@@ -5901,6 +5913,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsInsertBreakButton => 'Insérer une pause';
+
+  @override
+  String get programsBreakSlotLabel => 'Pause';
 
   @override
   String get programsAddADanceSheetTitle => 'Ajouter une danse';
@@ -6060,17 +6075,17 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsHideAlternatesTitle =>
-      'Masquer les alternatives dans la liste de sets';
+      'Masquer les alternatives dans la liste de danses';
 
   @override
   String get programsHideAlternatesSubtitle =>
-      'Omet les créneaux ALT du résumé, du PDF et de la liste de sets exportée. Le constructeur affiche toujours tous les créneaux.';
+      'Omet les créneaux ALT du résumé, du PDF et de la liste de danses exportée. Le constructeur affiche toujours tous les créneaux.';
 
   @override
   String get programsDialectFieldLabel => 'Dialecte pour Perform';
 
   @override
-  String get programsDialectUseApp => 'Utiliser le dialecte de l\'app';
+  String get programsDialectUseApp => 'Utiliser le dialecte de l’app';
 
   @override
   String programsDialectUnavailable(String name) {
@@ -6377,7 +6392,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsInsertionCancelledAnnounce =>
-      'Annulé. Les nouvelles danses s\'ajoutent à la fin.';
+      'Annulé. Les nouvelles danses s’ajoutent à la fin.';
 
   @override
   String get programsEditSlotMenu => 'Modifier le créneau';
@@ -6400,7 +6415,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String programsCreatedDanceFromNoteAnnounce(String title) {
-    return '$title créée et liée à cet emplacement.';
+    return '$title créée et liée à ce créneau.';
   }
 
   @override
@@ -6589,7 +6604,7 @@ class AppLocalizationsFr extends AppLocalizations {
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'phrase': ', se répète dans la même phrase qu\'une danse voisine',
+      'phrase': ', se répète dans la même phrase qu’une danse voisine',
       'beats': ', partage des temps avec une danse voisine',
       'other': '',
     });
@@ -6651,7 +6666,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsMatrixLegendCollision =>
-      'Même phrase qu\'une danse voisine';
+      'Même phrase qu’une danse voisine';
 
   @override
   String get programsMatrixLegendCollisionBeats =>
@@ -7099,7 +7114,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’exporter cette danse. Votre danse est inchangée. Réessayez.';
 
   @override
-  String get exportShareSetListText => 'Partager la liste de sets (texte)';
+  String get exportShareSetListText => 'Partager la liste de danses (texte)';
 
   @override
   String get exportShareProgramBundle => 'Partager le programme et les danses';
@@ -7108,7 +7123,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportSaveProgramBundle => 'Enregistrer le fichier de programme…';
 
   @override
-  String get exportCopySetList => 'Copier la liste de sets';
+  String get exportCopySetList => 'Copier la liste de danses';
 
   @override
   String get exportSetListCopied =>
@@ -7168,7 +7183,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get exportShareSetListError =>
-      'Impossible de partager cette liste de sets. Réessayez.';
+      'Impossible de partager cette liste de danses. Réessayez.';
 
   @override
   String get exportShareProgramError =>
@@ -7176,7 +7191,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get exportSetListError =>
-      'Impossible d’exporter cette liste de sets. Réessayez.';
+      'Impossible d’exporter cette liste de danses. Réessayez.';
 
   @override
   String get exportIncludeFiguresTitle => 'Inclure les figures ?';
@@ -7338,7 +7353,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportMatrixLegendPresent => 'Présent';
 
   @override
-  String get exportMatrixLegendCollision => 'Même phrase qu\'une danse voisine';
+  String get exportMatrixLegendCollision => 'Même phrase qu’une danse voisine';
 
   @override
   String get exportMatrixLegendCollisionBeats =>
@@ -8105,15 +8120,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceLinkRefusedNewerVersion =>
-      'Ce code de danse a été créé par une version plus récente de Caller’s Compendium. Mettez l\'application à jour pour l\'ouvrir.';
+      'Ce code de danse a été créé par une version plus récente de Caller’s Compendium. Mettez l’application à jour pour l’ouvrir.';
 
   @override
   String get danceLinkRefusedDamaged =>
-      'Ce code de danse est endommagé ou incomplet ; impossible de l\'ouvrir.';
+      'Ce code de danse est endommagé ou incomplet ; impossible de l’ouvrir.';
 
   @override
   String get danceLinkRefusedNotADance =>
-      'Ce code n\'est pas un code de danse de Caller\'s Compendium.';
+      'Ce code n’est pas un code de danse de Caller\'s Compendium.';
 
   @override
   String get danceLinkRefusedNoContent =>
@@ -8124,22 +8139,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importScanNoCode =>
-      'Aucun code de danse n\'a été trouvé dans l\'image. Vérifiez que tout le code y figure, et net.';
+      'Aucun code de danse n’a été trouvé dans l’image. Vérifiez que tout le code y figure, et net.';
 
   @override
-  String get importScanUnreadable => 'Impossible de lire l\'image.';
+  String get importScanUnreadable => 'Impossible de lire l’image.';
 
   @override
   String get importDanceCodePicture => 'Code de danse depuis une image…';
 
   @override
   String importScanTooLarge(int limit) {
-    return 'Cette image dépasse $limit Mo ; elle n\'a pas été lue. Choisissez-en une plus petite.';
+    return 'Cette image dépasse $limit Mo ; elle n’a pas été lue. Choisissez-en une plus petite.';
   }
 
   @override
   String get importScanNoCamera =>
-      'Cet appareil n\'a pas d\'app appareil photo pour prendre la photo. Choisissez plutôt « Code de danse depuis une image… ».';
+      'Cet appareil n’a pas d’app appareil photo pour prendre la photo. Choisissez plutôt « Code de danse depuis une image… ».';
 
   @override
   String get importScanCameraOff =>
@@ -8147,7 +8162,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get archiveIntakeRejectedNotArchive =>
-      'Ce fichier n\'est pas un fichier de partage Caller’s Compendium.';
+      'Ce fichier n’est pas un fichier de partage Caller’s Compendium.';
 
   @override
   String get archiveIntakeRejectedNoContent =>
@@ -8171,7 +8186,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importErrorUnsupportedSharedLink =>
-      'Ce lien n\'est pas pris en charge pour l\'importation.';
+      'Ce lien n’est pas pris en charge pour l’importation.';
 
   @override
   String get importErrorTooManyRedirects =>
@@ -8212,19 +8227,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxEmptyInput =>
-      'Saisissez une URL ou un identifiant de danse Caller\'s Box pour importer.';
+      'Saisissez une URL ou un identifiant de danse Caller’s Box pour importer.';
 
   @override
   String get importErrorCallersBoxInvalidUrl =>
-      'Cela ne ressemble pas à une URL ou un identifiant numérique Caller\'s Box.';
+      'Cela ne ressemble pas à une URL ou un identifiant numérique Caller’s Box.';
 
   @override
   String get importErrorCallersBoxMissingId =>
-      'Cette URL Caller\'s Box ne contient pas d’identifiant de danse (…dance.php?id=N).';
+      'Cette URL Caller’s Box ne contient pas d’identifiant de danse (…dance.php?id=N).';
 
   @override
   String get importErrorCallersBoxUnsupportedHost =>
-      'Ce lien n\'est pas un lien Caller\'s Box pris en charge. Collez un lien d\'ibiblio.org ou de www.ibiblio.org sous /contradance/thecallersbox/, ou saisissez l\'identifiant numérique de la danse.';
+      'Ce lien n’est pas un lien Caller’s Box pris en charge. Collez un lien d’ibiblio.org ou de www.ibiblio.org sous /contradance/thecallersbox/, ou saisissez l’identifiant numérique de la danse.';
 
   @override
   String get importErrorCallersBoxEmptySearch =>
@@ -8267,7 +8282,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxImportFailed =>
-      'Impossible d’importer la danse Caller\'s Box.';
+      'Impossible d’importer la danse Caller’s Box.';
 
   @override
   String get importErrorContraDbEmptyTitle =>
@@ -8352,15 +8367,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importIssueProgramEmptySlot =>
-      'Un emplacement vide dans un programme a été ignoré.';
+      'Un créneau vide dans un programme a été ignoré.';
 
   @override
   String get importIssueProgramDeletedDance =>
-      'Un programme référençait une danse supprimée dans Caller\'s Companion ; l\'emplacement a été omis.';
+      'Un programme référençait une danse supprimée dans Caller\'s Companion ; le créneau a été omis.';
 
   @override
   String get importIssueProgramUnresolvedDance =>
-      'Un programme référençait une danse non importée ; l\'emplacement a été conservé comme texte de substitution.';
+      'Un programme référençait une danse non importée ; le créneau a été conservé comme texte de substitution.';
 
   @override
   String get importIssueProgramUnresolvedVenue =>
@@ -8368,7 +8383,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importIssueArchiveReadError =>
-      'Une entrée du fichier partagé n\'a pas pu être lue et a été ignorée.';
+      'Une entrée du fichier partagé n’a pas pu être lue et a été ignorée.';
 
   @override
   String get importIssueArchiveReadWarning =>
@@ -8376,7 +8391,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importIssueArchiveNewerSchema =>
-      'Ceci a été créé avec une version plus récente de Caller\'s Compendium. Mettez l\'application à jour avant d\'importer, sinon certains détails risquent d\'être omis.';
+      'Ceci a été créé avec une version plus récente de Caller\'s Compendium. Mettez l’application à jour avant d’importer, sinon certains détails risquent d’être omis.';
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
@@ -8389,15 +8404,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importIssueUsrFileTruncated =>
-      'Ce fichier semble incomplet : seule une partie a pu être lue. Copiez-le de nouveau depuis l\'original, puis réimportez-le.';
+      'Ce fichier semble incomplet : seule une partie a pu être lue. Copiez-le de nouveau depuis l’original, puis réimportez-le.';
 
   @override
   String get importIssueUsrFiguresFromDanceRows =>
-      'Les figures n\'ont pas pu être lues dans ce fichier ; des danses risquent donc d\'arriver sans figures. Vérifiez le fichier d\'origine ou réexportez-le depuis Caller\'s Companion.';
+      'Les figures n’ont pas pu être lues dans ce fichier ; des danses risquent donc d’arriver sans figures. Vérifiez le fichier d’origine ou réexportez-le depuis Caller\'s Companion.';
 
   @override
   String get importIssueUsrPhraseGroupsOrphaned =>
-      'Certaines figures n\'ont pas pu être associées à une danse et ont été omises. Vérifiez que vos danses sont bien arrivées en entier, ou copiez de nouveau le fichier depuis l\'original.';
+      'Certaines figures n’ont pas pu être associées à une danse et ont été omises. Vérifiez que vos danses sont bien arrivées en entier, ou copiez de nouveau le fichier depuis l’original.';
 
   @override
   String get importIssueUsrLinesDropped =>
@@ -8405,7 +8420,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importIssueUsrSetsSkipped =>
-      'Les programmes n\'ont pas pu être lus en entier dans ce fichier ; certains peuvent manquer ou arriver sans leurs danses. Vérifiez-les après l\'import.';
+      'Les programmes n’ont pas pu être lus en entier dans ce fichier ; certains peuvent manquer ou arriver sans leurs danses. Vérifiez-les après l’import.';
 
   @override
   String get importIssueUsrRelatedRowsSkipped =>
@@ -8417,19 +8432,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importIssueDirectionUnmapped =>
-      'Une direction Becket n\'a pas été reconnue ; sens horaire par défaut.';
+      'Une direction Becket n’a pas été reconnue ; sens horaire par défaut.';
 
   @override
   String get importIssueFormationUnclassified =>
-      'Une formation n\'a pas pu être reconnue ; conservée comme détail sur « other ».';
+      'Une formation n’a pas pu être reconnue ; conservée comme détail sur « other ».';
 
   @override
   String get importIssuePhraseStructureUnreadable =>
-      'Une structure de phrase n\'a pas pu être lue ; une structure par défaut a été utilisée.';
+      'Une structure de phrase n’a pas pu être lue ; une structure par défaut a été utilisée.';
 
   @override
   String get importIssueProgressionUnmapped =>
-      'Une progression n\'a pas été reconnue ; enregistrée comme « other ».';
+      'Une progression n’a pas été reconnue ; enregistrée comme « other ».';
 
   @override
   String get importIssueMetadataOnlyStub =>
@@ -8437,33 +8452,33 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String importIssueDateAssumedMdy(String field) {
-    return 'Une date $field ambiguë a été lue comme mois/jour (ordre américain) ; vérifiez-la si la source utilisait l\'ordre jour d\'abord.';
+    return 'Une date $field ambiguë a été lue comme mois/jour (ordre américain) ; vérifiez-la si la source utilisait l’ordre jour d’abord.';
   }
 
   @override
   String importIssueDateReducedPrecision(int year, String field) {
-    return 'Seule l\'année $year a pu être lue de la date $field ; aucun mois ni jour n\'était présent.';
+    return 'Seule l’année $year a pu être lue de la date $field ; aucun mois ni jour n’était présent.';
   }
 
   @override
   String get importIssueMissingTitle =>
-      'La danse n\'avait pas de titre ; un titre de substitution a été utilisé. Modifiez-le avant de valider.';
+      'La danse n’avait pas de titre ; un titre de substitution a été utilisé. Modifiez-le avant de valider.';
 
   @override
   String get importIssueProgramUnparsedDate =>
-      'Une date d\'événement n\'a pas pu être lue ; non définie.';
+      'Une date d’événement n’a pas pu être lue ; non définie.';
 
   @override
   String get importIssueRatingOutOfRange =>
-      'Une évaluation était hors de l\'échelle 1–5 ; non évaluée.';
+      'Une évaluation était hors de l’échelle 1–5 ; non évaluée.';
 
   @override
   String get importIssueUnmappedFormation =>
-      'Une formation n\'a pas été reconnue ; conservée comme détail en texte libre.';
+      'Une formation n’a pas été reconnue ; conservée comme détail en texte libre.';
 
   @override
   String get importIssueUnmappedLevel =>
-      'Un niveau n\'a pas été reconnu ; non spécifié.';
+      'Un niveau n’a pas été reconnu ; non spécifié.';
 
   @override
   String importIssueNewLevel(String level) {
@@ -8472,11 +8487,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importIssueUnmappedProgression =>
-      'Une progression n\'a pas été reconnue ; simple par défaut.';
+      'Une progression n’a pas été reconnue ; simple par défaut.';
 
   @override
   String get importIssueBarsMeterUnstated =>
-      'Cette danse compte en mesures mais n\'indique aucune métrique ; chaque mesure a donc été comptée pour 2 temps. Vérifiez ses comptes.';
+      'Cette danse compte en mesures mais n’indique aucune métrique ; chaque mesure a donc été comptée pour 2 temps. Vérifiez ses comptes.';
 
   @override
   String get importIssueBarsMeterMixed =>
@@ -8484,32 +8499,32 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importIssueUnmappedType =>
-      'Un type de danse n\'a pas été reconnu ; importé comme contra et conservé dans les notes.';
+      'Un type de danse n’a pas été reconnu ; importé comme contra et conservé dans les notes.';
 
   @override
   String importIssueUnparsedDate(String field) {
-    return 'La date $field n\'a pas pu être lue ; non définie.';
+    return 'La date $field n’a pas pu être lue ; non définie.';
   }
 
   @override
   String get importIssueCcUserFieldKeyAdjusted =>
-      'La clé d\'un champ de Caller\'s Companion a été ajustée pour rester valide et unique ; son nom est conservé.';
+      'La clé d’un champ de Caller\'s Companion a été ajustée pour rester valide et unique ; son nom est conservé.';
 
   @override
   String get importIssueCcUserFieldLabelMissing =>
-      'Un champ de Caller\'s Companion n\'avait pas de nom ; un nom générique lui a été donné.';
+      'Un champ de Caller\'s Companion n’avait pas de nom ; un nom générique lui a été donné.';
 
   @override
   String get importIssueUnparsedRating =>
-      'Une évaluation n\'a pas pu être lue ; non évaluée.';
+      'Une évaluation n’a pas pu être lue ; non évaluée.';
 
   @override
   String get importIssueFiguresUnreadable =>
-      'Les figures n\'ont pas pu être lues ; aucune figure importée.';
+      'Les figures n’ont pas pu être lues ; aucune figure importée.';
 
   @override
   String get importIssueBeatsUnreadable =>
-      'Un nombre de temps n\'a pas pu être lu ; 0 utilisé.';
+      'Un nombre de temps n’a pas pu être lu ; 0 utilisé.';
 
   @override
   String get importIssueNoFiguresTable =>
@@ -8517,11 +8532,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importIssueMoveFallback =>
-      'Une figure n\'a pas pu être associée à un mouvement connu ; importée comme figure non reconnue.';
+      'Une figure n’a pas pu être associée à un mouvement connu ; importée comme figure non reconnue.';
 
   @override
   String importIssueMoveFallbackAt(int position) {
-    return 'La figure $position n\'a pas pu être associée à un mouvement connu ; importée comme figure non reconnue.';
+    return 'La figure $position n’a pas pu être associée à un mouvement connu ; importée comme figure non reconnue.';
   }
 
   @override
@@ -8561,19 +8576,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importRecordErrorNotJson =>
-      'Ce n\'est pas un fichier JSON. Choisissez le fichier .json exporté par la source, ou collez à nouveau son JSON.';
+      'Ce n’est pas un fichier JSON. Choisissez le fichier .json exporté par la source, ou collez à nouveau son JSON.';
 
   @override
   String get importRecordErrorNotCompendiumArchive =>
-      'Ce n\'est pas un fichier de partage. Choisissez un fichier .json ou .ccshare exporté depuis cette application.';
+      'Ce n’est pas un fichier de partage. Choisissez un fichier .json ou .ccshare exporté depuis cette application.';
 
   @override
   String get importRecordErrorNotCallersBoxDance =>
-      'Ce n\'est pas une danse Caller\'s Box. Vérifiez que vous avez copié une danse depuis The Caller\'s Box, puis réessayez.';
+      'Ce n’est pas une danse Caller’s Box. Vérifiez que vous avez copié une danse depuis The Caller\'s Box, puis réessayez.';
 
   @override
   String get importRecordErrorNotContraDbDance =>
-      'Ce n\'est pas une danse ContraDB. Vérifiez que vous avez copié une page de danse depuis ContraDB, puis réessayez.';
+      'Ce n’est pas une danse ContraDB. Vérifiez que vous avez copié une page de danse depuis ContraDB, puis réessayez.';
 
   @override
   String get importRecordErrorNotUsrDatabase =>
@@ -8585,7 +8600,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importRecordErrorNoDanceAtId =>
-      'Aucune danse n\'a été trouvée à cet endroit. Vérifiez l\'identifiant ou le lien de la danse Caller\'s Box, puis réessayez.';
+      'Aucune danse n’a été trouvée à cet endroit. Vérifiez l’identifiant ou le lien de la danse Caller’s Box, puis réessayez.';
 
   @override
   String get importRecordErrorFetch =>
@@ -8600,7 +8615,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importRecordErrorCommit =>
-      'Impossible d\'enregistrer cet enregistrement.';
+      'Impossible d’enregistrer cet enregistrement.';
 
   @override
   String get importReviewUsrSubtitle =>
@@ -8719,7 +8734,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String importReviewReimportTitleAndCreditHint(String title) {
-    return 'Reprend le titre et l’auteur de ce fichier pour « $title ». Votre note, vos étiquettes, notes et liens restent tels quels.';
+    return 'Reprend le titre et l’auteur de ce fichier pour « $title ». Votre note, vos tags, notes et liens restent tels quels.';
   }
 
   @override
@@ -8761,9 +8776,9 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'La ré-importation remplace les figures, la formation et la progression de $count danses existantes, et peut changer leur forme de danse. Leurs notes, étiquettes et remarques restent.',
+          'La ré-importation remplace les figures, la formation et la progression de $count danses existantes, et peut changer leur forme de danse. Leurs notes, tags et remarques restent.',
       one:
-          'La ré-importation remplace les figures, la formation et la progression d’une danse existante, et peut changer sa forme de danse. Sa note, ses étiquettes et ses notes restent.',
+          'La ré-importation remplace les figures, la formation et la progression d’une danse existante, et peut changer sa forme de danse. Sa note, ses tags et ses notes restent.',
     );
     return '$_temp0';
   }
@@ -8918,7 +8933,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’importer cette danse pour la modifier. Réessayez.';
 
   @override
-  String get importUsrEnglishTitle => 'S\'agit-il de danses anglaises ?';
+  String get importUsrEnglishTitle => 'S’agit-il de danses anglaises ?';
 
   @override
   String get importUsrEnglishBody =>
@@ -8962,11 +8977,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importFileNotText =>
-      'Impossible de lire ce fichier : ce n\'est ni un fichier de partage, ni du texte que l\'application sait lire. S\'il a été enregistré en texte par une autre application, enregistrez-le à nouveau en UTF-8, puis réessayez.';
+      'Impossible de lire ce fichier : ce n’est ni un fichier de partage, ni du texte que l’application sait lire. S’il a été enregistré en texte par une autre application, enregistrez-le à nouveau en UTF-8, puis réessayez.';
 
   @override
   String get importFileUnreadable =>
-      'Impossible d\'ouvrir ce fichier. Une autre application l\'utilise peut-être, ou il se trouve sur un lecteur qui n\'est pas connecté.';
+      'Impossible d’ouvrir ce fichier. Une autre application l’utilise peut-être, ou il se trouve sur un lecteur qui n’est pas connecté.';
 
   @override
   String importReviewVariationTitle(String title) {
@@ -8975,7 +8990,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String importReviewVariationBody(String title) {
-    return 'Le titre et l\'auteur de cette danse correspondent à « $title », mais les figures sont différentes. Consultez les différences, puis choisissez comment l\'importer.';
+    return 'Le titre et l’auteur de cette danse correspondent à « $title », mais les figures sont différentes. Consultez les différences, puis choisissez comment l’importer.';
   }
 
   @override
@@ -9196,7 +9211,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceEditorGroupTitleHelper =>
-      'Un nom pour l\'ensemble du groupe, par exemple Flutterwheel. Il s\'affiche avant les figures du groupe, suivi d\'un tiret.';
+      'Un nom pour l’ensemble du groupe, par exemple Flutterwheel. Il s’affiche avant les figures du groupe, suivi d’un tiret.';
 
   @override
   String get danceEditorWordingOverrideLabel =>
@@ -9221,7 +9236,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceEditorSnippetDivergenceBody =>
-      'Ce texte diffère de l\'extrait de déroulé enregistré pour cette figure. Utiliser le nouveau texte partout, ou seulement dans cette danse ?';
+      'Ce texte diffère de l’extrait de déroulé enregistré pour cette figure. Utiliser le nouveau texte partout, ou seulement dans cette danse ?';
 
   @override
   String get danceEditorSnippetUseEverywhere => 'Utiliser partout';
@@ -9245,14 +9260,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceEditorFillWalkthroughEmpty =>
-      'Aucune de ces figures n\'a encore d\'extrait de déroulé enregistré.';
+      'Aucune de ces figures n’a encore d’extrait de déroulé enregistré.';
 
   @override
   String get settingsWalkthroughSnippetsTitle => 'Extraits de déroulé';
 
   @override
   String get settingsWalkthroughSnippetsSubtitle =>
-      'Vos descriptions d\'étapes enregistrées par figure';
+      'Vos descriptions d’étapes enregistrées par figure';
 
   @override
   String get settingsWalkthroughSnippetsHeader =>
@@ -9260,7 +9275,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsWalkthroughSnippetsDescription =>
-      'Ces descriptions d\'étapes par figure préremplissent les déroulés lorsque vous modifiez une danse. En modifier une ici met à jour la valeur par défaut utilisée partout.';
+      'Ces descriptions d’étapes par figure préremplissent les déroulés lorsque vous modifiez une danse. En modifier une ici met à jour la valeur par défaut utilisée partout.';
 
   @override
   String get settingsWalkthroughSnippetsEmptyTitle =>
@@ -9282,7 +9297,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get settingsWalkthroughSnippetEditTitle => 'Modifier l\'extrait';
+  String get settingsWalkthroughSnippetEditTitle => 'Modifier l’extrait';
 
   @override
   String get danceEditorSetupTitle => 'Crédits, formation et musique';
@@ -9636,7 +9651,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get validationPhraseInvalid =>
-      'Cette structure de phrase n\'est pas valide.';
+      'Cette structure de phrase n’est pas valide.';
 
   @override
   String get validationPhraseNamedEnglishOnly =>
@@ -9644,12 +9659,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String validationOrphanedAlt(int position) {
-    return 'L\'alternative à la position $position n\'a pas d\'emplacement principal précédent.';
+    return 'L’alternative à la position $position n’a pas de créneau principal précédent.';
   }
 
   @override
   String validationOrphanedAltNamed(int position, String text) {
-    return 'L\'alternative à la position $position (« $text ») n\'a pas d\'emplacement principal précédent.';
+    return 'L’alternative à la position $position (« $text ») n’a pas de créneau principal précédent.';
   }
 
   @override
@@ -9663,7 +9678,7 @@ class AppLocalizationsFr extends AppLocalizations {
     String existing,
     String substitution,
   ) {
-    return '« $source » et « $existing » correspondent tous deux à « $substitution » — l\'inversion serait ambiguë.';
+    return '« $source » et « $existing » correspondent tous deux à « $substitution » — l’inversion serait ambiguë.';
   }
 
   @override
@@ -10756,7 +10771,7 @@ class AppLocalizationsFr extends AppLocalizations {
       other: '$count danses rétablies.',
       one: '1 danse rétablie.',
       zero:
-          'Aucune danse n\'a été rétablie : le type ou les tags de chacune ont changé depuis.',
+          'Aucune danse n’a été rétablie : le type ou les tags de chacune ont changé depuis.',
     );
     return '$_temp0';
   }
@@ -10771,12 +10786,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String updateBannerPortable(String appName, String version) {
-    return 'Une version plus récente de $appName ($version) est disponible. Il s\'agit d\'une copie portable : téléchargez le nouveau zip ou tar.gz depuis la version publiée.';
+    return 'Une version plus récente de $appName ($version) est disponible. Il s’agit d’une copie portable : téléchargez le nouveau zip ou tar.gz depuis la version publiée.';
   }
 
   @override
   String retirementNoticeUpcoming(String appName, String version, String date) {
-    return 'La prise en charge de cette version de $appName ($version) prend fin le $date. Passez à une version plus récente d\'ici là.';
+    return 'La prise en charge de cette version de $appName ($version) prend fin le $date. Passez à une version plus récente d’ici là.';
   }
 
   @override
@@ -10792,7 +10807,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String installLocationBannerMessage(String appName) {
-    return '$appName n\'est peut-être pas installé. L\'app s\'exécute depuis l\'image disque ou l\'archive téléchargée, ou depuis un emplacement temporaire en lecture seule que macOS a mis en place pour elle. Quittez-la, puis, dans le Finder, faites-la glisser ou copiez-la dans le dossier Applications et ouvrez-la depuis ce dossier. Si elle se trouve déjà dans le dossier Applications, vous pouvez ignorer cet avis.';
+    return '$appName n’est peut-être pas installé. L’app s’exécute depuis l’image disque ou l’archive téléchargée, ou depuis un emplacement temporaire en lecture seule que macOS a mis en place pour elle. Quittez-la, puis, dans le Finder, faites-la glisser ou copiez-la dans le dossier Applications et ouvrez-la depuis ce dossier. Si elle se trouve déjà dans le dossier Applications, vous pouvez ignorer cet avis.';
   }
 
   @override
@@ -11115,7 +11130,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importUserFiguresIntro =>
-      'Les danses importées utilisent des figures créées par l\'expéditeur. Choisissez ce qu\'il faut ajouter à votre glossaire. Une danse dont vous n\'ajoutez pas la figure affiche la ligne avec laquelle elle a été partagée.';
+      'Les danses importées utilisent des figures créées par l’expéditeur. Choisissez ce qu’il faut ajouter à votre glossaire. Une danse dont vous n’ajoutez pas la figure affiche la ligne avec laquelle elle a été partagée.';
 
   @override
   String get importUserFiguresNewHeader => 'Nouvelles pour vous';
@@ -11431,7 +11446,7 @@ class AppLocalizationsFr extends AppLocalizations {
       other: '$danceCount danses',
       one: '1 danse',
     );
-    return 'Cela modifie les figures et la formation de $_temp0. Les étiquettes, notes, évaluations et tout le reste sont conservés. Cette action est irréversible : faites peut-être une sauvegarde d’abord.';
+    return 'Cela modifie les figures et la formation de $_temp0. Les tags, notes, évaluations et tout le reste sont conservés. Cette action est irréversible : faites peut-être une sauvegarde d’abord.';
   }
 
   @override
@@ -11849,7 +11864,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get venueLinkOfferBody =>
-      'Certains programmes ont un lieu saisi en texte qui correspond à une fiche de lieu. Les lier permet à l\'historique d\'animation de les compter comme un seul lieu. Le texte saisi est conservé.';
+      'Certains programmes ont un lieu saisi en texte qui correspond à une fiche de lieu. Les lier permet à l’historique d’animation de les compter comme un seul lieu. Le texte saisi est conservé.';
 
   @override
   String venueLinkOfferRow(String name, int count) {
@@ -11902,7 +11917,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get venueEditorPartialSyncHint =>
-      'Les champs d\'adresse et de contact ci-dessous de ce lieu restent sur cet appareil — la synchronisation des appareils ne les transmet pas à vos autres appareils, ils peuvent donc y être vides. Le champ Notes, lui, se synchronise : évitez d\'y mettre des coordonnées si vous préférez les garder privées sur cet appareil.';
+      'Les champs d’adresse et de contact ci-dessous de ce lieu restent sur cet appareil — la synchronisation des appareils ne les transmet pas à vos autres appareils, ils peuvent donc y être vides. Le champ Notes, lui, se synchronise : évitez d’y mettre des coordonnées si vous préférez les garder privées sur cet appareil.';
 
   @override
   String get venueEditorNameLabel => 'Nom';
@@ -12137,7 +12152,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String dialectEditorMoveWordingsForceHelp(String example) {
-    return 'Certains champs sont omis lorsqu\'ils n\'apportent rien, comme la main d\'une chaîne quand le rôle l\'implique déjà. Place un ! devant un champ, comme $example, pour qu\'il s\'affiche toujours.';
+    return 'Certains champs sont omis lorsqu’ils n’apportent rien, comme la main d’une chaîne quand le rôle l’implique déjà. Place un ! devant un champ, comme $example, pour qu’il s’affiche toujours.';
   }
 
   @override
@@ -12180,7 +12195,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String dialectEditorMoveWordingSaveError(String figures) {
-    return 'Corrigez les modèles de formulation de mouvements invalides avant d\'enregistrer : $figures';
+    return 'Corrigez les modèles de formulation de mouvements invalides avant d’enregistrer : $figures';
   }
 
   @override
@@ -12203,11 +12218,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get dialectEditorUserFigureNameSide =>
-      'Votre figure n\'a pas de côté que %S pourrait indiquer : elle garde donc son propre nom.';
+      'Votre figure n’a pas de côté que %S pourrait indiquer : elle garde donc son propre nom.';
 
   @override
   String dialectEditorUserFigureWordingUnknownSlots(String slots) {
-    return 'Votre figure n\'a pas de $slots : elle garde donc sa propre formulation tant que vous ne les retirez pas.';
+    return 'Votre figure n’a pas de $slots : elle garde donc sa propre formulation tant que vous ne les retirez pas.';
   }
 
   @override
@@ -12247,7 +12262,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Vous permet d\'ajouter et de modifier vos propres figures, et les propose quand vous modifiez une danse. Le glossaire n\'est pas nécessaire. Désactiver cette option les masque sans les supprimer.';
+      'Vous permet d’ajouter et de modifier vos propres figures, et les propose quand vous modifiez une danse. Le glossaire n’est pas nécessaire. Désactiver cette option les masque sans les supprimer.';
 
   @override
   String get settingsExperimentalCustomFiguresManageTitle =>
@@ -12462,7 +12477,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String compoundEditorNameTakenHiddenTerm(String name) {
-    return '« $name » est déjà le nom de l\'un de vos propres termes. Ils figurent dans le glossaire quand Afficher le glossaire est activé. Choisissez un autre nom.';
+    return '« $name » est déjà le nom de l’un de vos propres termes. Ils figurent dans le glossaire quand Afficher le glossaire est activé. Choisissez un autre nom.';
   }
 
   @override
@@ -12525,7 +12540,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get compoundEditorUnusedSave => 'Enregistrer quand même';
 
   @override
-  String get glossaryEntryKindHeading => 'Ce que c\'est';
+  String get glossaryEntryKindHeading => 'Ce que c’est';
 
   @override
   String get glossaryEntryKindHelp =>
@@ -12565,7 +12580,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get userFigureEditorParamNames =>
-      'Commencez le nom de chaque paramètre par une lettre, n\'utilisez que des lettres, des chiffres et _, et donnez à chacun un nom différent. Un nom ne peut pas être move, beats, text, un rôle, l\'opposé d\'un autre paramètre, comme otherHand, ou un mot qui sert à écrire les conditions : if, then, else, not, and, or, is.';
+      'Commencez le nom de chaque paramètre par une lettre, n’utilisez que des lettres, des chiffres et _, et donnez à chacun un nom différent. Un nom ne peut pas être move, beats, text, un rôle, l’opposé d’un autre paramètre, comme otherHand, ou un mot qui sert à écrire les conditions : if, then, else, not, and, or, is.';
 
   @override
   String userFigureEditorChoiceLabel(int number) {
@@ -12576,7 +12591,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get userFigureEditorAddChoice => 'Ajouter une option';
 
   @override
-  String get userFigureEditorRemoveChoice => 'Retirer l\'option';
+  String get userFigureEditorRemoveChoice => 'Retirer l’option';
 
   @override
   String get userFigureEditorDefault => 'Par défaut';
@@ -12592,7 +12607,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get userFigureEditorFlagLabelHelper =>
-      'Affiché dans la formulation quand c\'est activé, par exemple « avec panache ».';
+      'Affiché dans la formulation quand c’est activé, par exemple « avec panache ».';
 
   @override
   String get userFigureEditorWording => 'Formulation';
@@ -12612,7 +12627,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get userFigureEditorDefaultBeatsHelper =>
-      'Une danse peut les changer chaque fois qu\'elle utilise la figure.';
+      'Une danse peut les changer chaque fois qu’elle utilise la figure.';
 
   @override
   String userFigureEditorPreview(String text) {
@@ -12625,11 +12640,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get userFigureEditorBadWording =>
-      'La formulation n\'est pas complète : vérifiez ses accolades et ses crochets.';
+      'La formulation n’est pas complète : vérifiez ses accolades et ses crochets.';
 
   @override
   String userFigureEditorUnknownSlot(String slot) {
-    return 'La formulation utilise $slot, qui n\'est pas un paramètre de cette figure.';
+    return 'La formulation utilise $slot, qui n’est pas un paramètre de cette figure.';
   }
 
   @override
@@ -12658,16 +12673,16 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count danses dans « Récemment supprimées » l\'utilisent et gardent les lignes qu\'elles ont enregistrées en dernier.',
+          '$count danses dans « Récemment supprimées » l’utilisent et gardent les lignes qu’elles ont enregistrées en dernier.',
       one:
-          '1 danse dans « Récemment supprimées » l\'utilise et garde la ligne qu\'elle a enregistrée en dernier.',
+          '1 danse dans « Récemment supprimées » l’utilise et garde la ligne qu’elle a enregistrée en dernier.',
     );
     return '$_temp0';
   }
 
   @override
   String get glossaryCustomDeleteDefaults =>
-      'Vos figures par défaut dans les Réglages l\'utilisent et conservent sa formulation actuelle en texte simple.';
+      'Vos figures par défaut dans les Réglages l’utilisent et conservent sa formulation actuelle en texte simple.';
 
   @override
   String glossaryCustomDeleteShorthands(int count) {
@@ -12688,11 +12703,11 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count danses l\'utilisent. Elle est retirée de votre glossaire, et ces danses conservent leur formulation actuelle en texte simple.',
+          '$count danses l’utilisent. Elle est retirée de votre glossaire, et ces danses conservent leur formulation actuelle en texte simple.',
       one:
-          '1 danse l\'utilise. Elle est retirée de votre glossaire, et cette danse conserve sa formulation actuelle en texte simple.',
+          '1 danse l’utilise. Elle est retirée de votre glossaire, et cette danse conserve sa formulation actuelle en texte simple.',
       zero:
-          'Aucune danse de votre collection ne l\'utilise. Elle est retirée de votre glossaire.',
+          'Aucune danse de votre collection ne l’utilise. Elle est retirée de votre glossaire.',
     );
     return '$_temp0';
   }
@@ -13445,8 +13460,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count emplacements',
-      one: '1 emplacement',
+      other: '$count créneaux',
+      one: '1 créneau',
       zero: 'Vide',
     );
     return '$_temp0';
@@ -13466,7 +13481,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programTemplateEditorTitle => 'Modifier le modèle';
 
   @override
-  String get programTemplateSlotsHeader => 'Emplacements';
+  String get programTemplateSlotsHeader => 'Créneaux';
 
   @override
   String get programTemplateSlotsSubtitle =>
@@ -14344,7 +14359,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get repertoireNoFigures =>
-      'Aucune de ces danses n\'a de figures saisies.';
+      'Aucune de ces danses n’a de figures saisies.';
 
   @override
   String repertoireFigureValue(int dances, int total, int percent, int calls) {
@@ -14383,7 +14398,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get repertoireShowFewer => 'Afficher moins';
 
   @override
-  String get repertoireAuthorsHeader => 'Auteurs que vous appelez';
+  String get repertoireAuthorsHeader => 'Auteurs dont vous appelez les danses';
 
   @override
   String repertoireAuthorsSummary(int count) {
@@ -14427,7 +14442,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get repertoireNoRepeats =>
-      'Aucune danse n\'a été appelée plus d\'une fois dans un même lieu sur cette période.';
+      'Aucune danse n’a été appelée plus d’une fois dans un même lieu sur cette période.';
 
   @override
   String get repertoireVenueUnnamed => 'Lieu sans nom';
@@ -14448,8 +14463,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count danses appelées plus d\'une fois',
-      one: '1 danse appelée plus d\'une fois',
+      other: '$count danses appelées plus d’une fois',
+      one: '1 danse appelée plus d’une fois',
     );
     return '$venue : $_temp0';
   }
@@ -14462,7 +14477,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowRepertoireSubtitle =>
-      'Ajoute Répertoire au menu Plus d\'actions de la Collection : vos danses les plus et les moins appelées, celles que vous n\'avez jamais appelées, la fréquence des figures, les auteurs, les formations et les répétitions par lieu.';
+      'Ajoute Répertoire au menu Plus d’actions de la Collection : vos danses les plus et les moins appelées, celles que vous n’avez jamais appelées, la fréquence des figures, les auteurs, les formations et les répétitions par lieu.';
 
   @override
   String get importSourceLabelCsv => 'Votre propre tableur (CSV)';
@@ -14837,11 +14852,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get savedSearchUnreadableTitle =>
-      'Impossible d\'ouvrir cette recherche enregistrée';
+      'Impossible d’ouvrir cette recherche enregistrée';
 
   @override
   String get savedSearchUnreadableBody =>
-      'Elle a été enregistrée par une version plus récente de l\'application, ou elle est endommagée ; elle n\'est donc pas utilisée. Vous pouvez la supprimer, et annuler cette suppression.';
+      'Elle a été enregistrée par une version plus récente de l’application, ou elle est endommagée ; elle n’est donc pas utilisée. Vous pouvez la supprimer, et annuler cette suppression.';
 
   @override
   String get savedSearchSaveDialogTitle => 'Enregistrer cette recherche';
@@ -14880,8 +14895,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Période d\'historique conservée : les $count derniers mois',
-      one: 'Période d\'historique conservée : le dernier mois',
+      other: 'Période d’historique conservée : les $count derniers mois',
+      one: 'Période d’historique conservée : le dernier mois',
     );
     return '$_temp0';
   }
@@ -14902,7 +14917,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Vous pouvez garder jusqu\'à $count recherches enregistrées. Supprimez-en une pour en enregistrer une autre.',
+          'Vous pouvez garder jusqu’à $count recherches enregistrées. Supprimez-en une pour en enregistrer une autre.',
       one:
           'Vous pouvez garder 1 recherche enregistrée. Supprimez-la pour en enregistrer une autre.',
     );
@@ -14939,11 +14954,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get savedSearchInUseBody =>
-      'Elle est encore utilisée par ces éléments. Modifiez-les ou retirez-les d\'abord, puis supprimez-la.';
+      'Elle est encore utilisée par ces éléments. Modifiez-les ou retirez-les d’abord, puis supprimez-la.';
 
   @override
   String savedSearchNoticeTitle(String name) {
-    return '« $name » utilise des éléments qui n\'existent plus :';
+    return '« $name » utilise des éléments qui n’existent plus :';
   }
 
   @override
@@ -14955,7 +14970,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Un filtre sur un champ personnalisé supprimé est ignoré dans les résultats.';
 
   @override
-  String get savedSearchNoticeClose => 'Fermer l\'avis';
+  String get savedSearchNoticeClose => 'Fermer l’avis';
 
   @override
   String savedSearchMissingTag(String name) {
@@ -14967,7 +14982,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String savedSearchMissingAuthor(String name) {
-    return 'L\'auteur $name, qui a été supprimé';
+    return 'L’auteur $name, qui a été supprimé';
   }
 
   @override
@@ -15055,7 +15070,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSavedSearchesEmpty =>
-      'Aucune recherche enregistrée pour l\'instant. Enregistrez-en une depuis la collection : préparez une recherche, puis choisissez Enregistrer cette recherche… dans le menu Plus d’actions.';
+      'Aucune recherche enregistrée pour l’instant. Enregistrez-en une depuis la collection : préparez une recherche, puis choisissez Enregistrer cette recherche… dans le menu Plus d’actions.';
 
   @override
   String settingsSavedSearchRenameTooltip(String name) {
@@ -15081,7 +15096,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsExperimentalEventRulesSubtitle =>
-      'Ajoutez des règles à un programme, par exemple pas deux danses Becket à la suite, et l\'éditeur vous avertit quand le programme en enfreint une. Les avertissements ne vous empêchent jamais d\'enregistrer ni d\'appeler.';
+      'Ajoutez des règles à un programme, par exemple pas deux danses Becket à la suite, et l’éditeur vous avertit quand le programme en enfreint une. Les avertissements ne vous empêchent jamais d’enregistrer ni d’appeler.';
 
   @override
   String get settingsEventRulesCheckPerformSwapTitle =>
@@ -15100,7 +15115,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get eventRulesEmpty =>
-      'Aucune règle pour l\'instant. Une règle utilise l\'une de vos recherches enregistrées pour dire de quelles danses elle parle.';
+      'Aucune règle pour l’instant. Une règle utilise l’une de vos recherches enregistrées pour dire de quelles danses elle parle.';
 
   @override
   String get eventRulesNewRule => 'Nouvelle règle…';
@@ -15119,11 +15134,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get eventRuleNoSavedSearches =>
-      'Enregistrez d\'abord une recherche dans la Collection : une règle utilise une recherche enregistrée pour dire de quelles danses elle parle.';
+      'Enregistrez d’abord une recherche dans la Collection : une règle utilise une recherche enregistrée pour dire de quelles danses elle parle.';
 
   @override
   String get eventRuleSavedSearchGone =>
-      'Cette recherche enregistrée vient d\'être supprimée : la règle n\'a donc pas été enregistrée. Choisissez-en une autre.';
+      'Cette recherche enregistrée vient d’être supprimée : la règle n’a donc pas été enregistrée. Choisissez-en une autre.';
 
   @override
   String get eventRuleQuantifierLabel => 'Combien';
@@ -15183,14 +15198,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get eventRulesOrderManualSubtitle =>
-      'Le sélecteur de règles affiche vos règles dans l\'ordre que vous leur avez donné dans Gérer les règles.';
+      'Le sélecteur de règles affiche vos règles dans l’ordre que vous leur avez donné dans Gérer les règles.';
 
   @override
   String get eventRulesOrderMostUsed => 'Les plus utilisées';
 
   @override
   String get eventRulesOrderMostUsedSubtitle =>
-      'Le sélecteur de règles affiche d\'abord les règles que vos programmes utilisent le plus, sans compter les programmes dans Récemment supprimées.';
+      'Le sélecteur de règles affiche d’abord les règles que vos programmes utilisent le plus, sans compter les programmes dans Récemment supprimées.';
 
   @override
   String eventRulesDragToReorder(String rule) {
@@ -15322,22 +15337,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get eventRuleSentenceUnreadable =>
-      'Une règle d\'une version plus récente de l\'application';
+      'Une règle d’une version plus récente de l’application';
 
   @override
   String get eventRuleSearchUnknown => '…';
 
   @override
   String get eventRuleAttentionUnreadable =>
-      'Créée par une version plus récente de l\'application ; elle n\'est donc pas vérifiée.';
+      'Créée par une version plus récente de l’application ; elle n’est donc pas vérifiée.';
 
   @override
   String get eventRuleAttentionSearchGone =>
-      'Sa recherche enregistrée a été supprimée ou ne peut pas être lue ; elle n\'est donc pas vérifiée.';
+      'Sa recherche enregistrée a été supprimée ou ne peut pas être lue ; elle n’est donc pas vérifiée.';
 
   @override
   String get eventRuleAttentionUnresolvable =>
-      'Sa recherche enregistrée utilise des éléments qui n\'existent plus ; elle n\'est donc pas vérifiée :';
+      'Sa recherche enregistrée utilise des éléments qui n’existent plus ; elle n’est donc pas vérifiée :';
 
   @override
   String programsRulesButton(int count) {
@@ -15357,7 +15372,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsRulesPickerTitle => 'Règles de ce programme';
 
   @override
-  String get programsRulesPickerEmpty => 'Vous n\'avez encore aucune règle.';
+  String get programsRulesPickerEmpty => 'Vous n’avez encore aucune règle.';
 
   @override
   String get programsRulesPickerSearchHint => 'Rechercher une règle';
@@ -15476,12 +15491,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String programTemplateDuplicateSearchGone(String label) {
-    return 'Impossible de dupliquer : la recherche enregistrée de la règle d\'emplacement « $label » a été supprimée. Modifiez ou retirez cette règle, puis réessayez.';
+    return 'Impossible de dupliquer : la recherche enregistrée de la règle de créneau « $label » a été supprimée. Modifiez ou retirez cette règle, puis réessayez.';
   }
 
   @override
   String get programTemplateSlotRuleNotSavedSearchGone =>
-      'Cette recherche enregistrée vient d\'être supprimée : la règle d\'emplacement n\'a donc pas été enregistrée.';
+      'Cette recherche enregistrée vient d’être supprimée : la règle de créneau n’a donc pas été enregistrée.';
 
   @override
   String get programTemplateRulesHelp =>
@@ -15550,10 +15565,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Certaines figures ajoutées ont encore des champs vides. Remplissez-les pour enregistrer.';
 
   @override
-  String get programTemplateAddSlotRule => 'Ajouter une règle d\'emplacement';
+  String get programTemplateAddSlotRule => 'Ajouter une règle de créneau';
 
   @override
-  String get programTemplateSlotRuleBadge => 'Règle d\'emplacement';
+  String get programTemplateSlotRuleBadge => 'Règle de créneau';
 
   @override
   String programTemplateSlotRuleSubtitle(String name) {
@@ -15566,11 +15581,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleDialogTitle =>
-      'Ajouter une règle d\'emplacement';
+      'Ajouter une règle de créneau';
 
   @override
   String get programTemplateSlotRuleDialogBody =>
-      'Décrivez un type de danse au lieu d\'en nommer une. Un programme créé à partir de ce modèle l\'affiche comme un espace réservé, que vous remplissez à partir de la recherche enregistrée.';
+      'Décrivez un type de danse au lieu d’en nommer une. Un programme créé à partir de ce modèle l’affiche comme un espace réservé, que vous remplissez à partir de la recherche enregistrée.';
 
   @override
   String get programTemplateSlotRuleLabel => 'Libellé';
@@ -15583,7 +15598,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleNoSearches =>
-      'Une règle d\'emplacement utilise une recherche enregistrée. Enregistrez d\'abord une recherche dans Collection, puis choisissez-la ici.';
+      'Une règle de créneau utilise une recherche enregistrée. Enregistrez d’abord une recherche dans Collection, puis choisissez-la ici.';
 
   @override
   String get programsPlaceholderSubtitle => 'Espace réservé';
@@ -15608,12 +15623,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String programsFillSearchUnresolvable(String label, String name) {
-    return '« $label » ne peut pas utiliser sa recherche enregistrée « $name », qui utilise des éléments qui n\'existent plus ; toutes les danses sont donc affichées :';
+    return '« $label » ne peut pas utiliser sa recherche enregistrée « $name », qui utilise des éléments qui n’existent plus ; toutes les danses sont donc affichées :';
   }
 
   @override
   String savedSearchUsedBySlotRule(String rule, String template) {
-    return 'La règle d\'emplacement « $rule » du modèle $template';
+    return 'La règle de créneau « $rule » du modèle $template';
   }
 
   @override
@@ -15621,16 +15636,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'Sa recherche enregistrée ne peut pas être ouverte';
 
   @override
-  String get programTemplateSlotRuleEditTitle =>
-      'Modifier la règle d\'emplacement';
+  String get programTemplateSlotRuleEditTitle => 'Modifier la règle de créneau';
 
   @override
   String get programTemplateSlotRuleLabelBreak =>
-      '« Break » marque une pause dans le programme ; une règle d\'emplacement ne peut donc pas l\'utiliser comme libellé.';
+      '« Break » marque une pause dans le programme ; une règle de créneau ne peut donc pas l’utiliser comme libellé.';
 
   @override
   String programsFillSearchUnreadable(String label) {
-    return 'La recherche enregistrée de « $label » ne peut pas être ouverte : elle a été enregistrée par une version plus récente de l\'application, ou elle est endommagée. Toutes les danses sont affichées.';
+    return 'La recherche enregistrée de « $label » ne peut pas être ouverte : elle a été enregistrée par une version plus récente de l’application, ou elle est endommagée. Toutes les danses sont affichées.';
   }
 
   @override
