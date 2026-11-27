@@ -215,7 +215,10 @@ class SavedSearchActions {
     );
     if (name == null || !context.mounted) return null;
     try {
-      final saved = await repos.savedSearches.create(name: name, spec: spec);
+      final saved = await repos.savedSearches.create(
+        name: name,
+        spec: await _throughAliases(spec),
+      );
       _snack(l10n.savedSearchSavedSnack(saved.name));
       return SavedSearchLoad(search: saved, baseline: spec.toJson());
     } on SavedSearchLimitReached {
@@ -233,6 +236,29 @@ class SavedSearchActions {
       _showFailed();
     }
     return null;
+  }
+
+  /// [spec] with each tag, author or source id that a merge on this device
+  /// moved read as the id that survived it, so a panel that still shows a
+  /// merged-away id (it was on screen when the merge ran) does not write that
+  /// id back over the merge's rewrite of the stored search
+  /// ([SavedSearchSpec.movingReferences], as the merge itself uses). The
+  /// baseline stays the panel's own form, which is what the panel is compared
+  /// with.
+  Future<SavedSearchSpec> _throughAliases(SavedSearchSpec spec) async {
+    final aliases = await _repos.syncLocal.aliasMaps();
+    var out = spec;
+    for (final kind in const [
+      SyncRecordKind.tag,
+      SyncRecordKind.choreographer,
+      SyncRecordKind.publishedSource,
+    ]) {
+      final losers = aliases[kind]?.keys ?? const <String>[];
+      if (losers.isEmpty) continue;
+      final moves = {for (final id in losers) id: _alias(aliases, kind, id)};
+      out = out.movingReferences(kind, moves) ?? out;
+    }
+    return out;
   }
 
   /// The saved search [id] as it is stored now, or null (after telling the
@@ -283,7 +309,11 @@ class SavedSearchActions {
         onGone,
       );
       if (stored == null) return null;
-      final updated = SavedSearch(id: stored.id, name: stored.name, spec: spec);
+      final updated = SavedSearch(
+        id: stored.id,
+        name: stored.name,
+        spec: await _throughAliases(spec),
+      );
       await repos.savedSearches.save(updated);
       _snack(l10n.savedSearchUpdatedSnack(updated.name));
       return loaded.copyWith(search: updated, baseline: spec.toJson());
@@ -590,6 +620,10 @@ Future<List<SavedSearchMissing>> describeSavedSearchMissing(
       },
   ];
 }
+
+/// Whether [a] and [b] are the same search, as stored.
+bool sameSavedSearchSpec(SavedSearchSpec a, SavedSearchSpec b) =>
+    _sameJson(a.toJson(), b.toJson());
 
 bool _sameJson(Object? a, Object? b) {
   if (a is Map && b is Map) {

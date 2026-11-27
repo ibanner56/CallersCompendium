@@ -1686,7 +1686,12 @@ class _DanceListScreenState extends State<DanceListScreen>
   /// ([DanceListScreen.isActive]; the app shell keeps every destination
   /// mounted): a rename in Settings, or one
   /// synced from another device, shows in the ⋮ menu, and one deleted there is
-  /// forgotten. What the panel shows, and its baseline, are unchanged.
+  /// forgotten. A search whose stored form changed meanwhile (a merge in
+  /// Settings rewrote a tag, author or source it names, or an Update synced
+  /// from another device) is loaded again, unless the panel has been changed
+  /// from it here, so the panel and the list show what is stored, and a later
+  /// Update does not write the old form back. Otherwise what the panel shows,
+  /// and its baseline, are unchanged.
   Future<void> _refreshLoadedSearch() async {
     final loaded = _loadedSearch;
     if (loaded == null) return;
@@ -1695,6 +1700,9 @@ class _DanceListScreenState extends State<DanceListScreen>
       if (!mounted || !identical(_loadedSearch, loaded)) return;
       if (stored == null) {
         _forgetDeletedSavedSearch();
+      } else if (!sameSavedSearchSpec(stored.spec, loaded.search.spec) &&
+          !_savedSearchActions().changed(loaded)) {
+        await _loadSavedSearch(stored);
       } else if (stored.name != loaded.search.name) {
         _onSavedSearchLoaded(loaded.copyWith(search: stored));
       }
