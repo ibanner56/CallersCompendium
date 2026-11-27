@@ -20037,6 +20037,10 @@
   "@settingsSavedSearchesHeader": {
     "description": "Heading in Settings ▸ Collection over the list of saved searches."
   },
+  "settingsSavedSearchesLoadError": "Couldn't load your saved searches. Nothing was changed. Try again.",
+  "@settingsSavedSearchesLoadError": {
+    "description": "Shown in Settings > Collection > Saved searches, with a Try again button, when the list of saved searches could not be read. Never shown as 'no saved searches'."
+  },
   "settingsSavedSearchesEmpty": "No saved searches yet. Save one from the Collection: set up a search, then choose Save this search… in the More actions menu.",
   "@settingsSavedSearchesEmpty": {
     "description": "Shown in Settings ▸ Collection when there are no saved searches."

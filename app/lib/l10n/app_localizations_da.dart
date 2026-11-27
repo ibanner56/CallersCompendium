@@ -14872,6 +14872,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsSavedSearchesHeader => 'Gemte søgninger';
 
   @override
+  String get settingsSavedSearchesLoadError =>
+      'Couldn\'t load your saved searches. Nothing was changed. Try again.';
+
+  @override
   String get settingsSavedSearchesEmpty =>
       'Ingen gemte søgninger endnu. Gem en fra samlingen: lav en søgning, og vælg så Gem denne søgning… i menuen Flere handlinger.';
 

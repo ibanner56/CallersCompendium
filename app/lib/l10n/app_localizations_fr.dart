@@ -15029,6 +15029,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsSavedSearchesHeader => 'Recherches enregistrées';
 
   @override
+  String get settingsSavedSearchesLoadError =>
+      'Couldn\'t load your saved searches. Nothing was changed. Try again.';
+
+  @override
   String get settingsSavedSearchesEmpty =>
       'Aucune recherche enregistrée pour l\'instant. Enregistrez-en une depuis la collection : préparez une recherche, puis choisissez Enregistrer cette recherche… dans le menu Plus d’actions.';
 

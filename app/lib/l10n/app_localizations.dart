@@ -21569,6 +21569,12 @@ abstract class AppLocalizations {
   /// **'Saved searches'**
   String get settingsSavedSearchesHeader;
 
+  /// Shown in Settings > Collection > Saved searches, with a Try again button, when the list of saved searches could not be read. Never shown as 'no saved searches'.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your saved searches. Nothing was changed. Try again.'**
+  String get settingsSavedSearchesLoadError;
+
   /// Shown in Settings ▸ Collection when there are no saved searches.
   ///
   /// In en, this message translates to:

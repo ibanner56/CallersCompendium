@@ -14291,6 +14291,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSavedSearchesHeader => '保存した検索';
 
   @override
+  String get settingsSavedSearchesLoadError =>
+      'Couldn\'t load your saved searches. Nothing was changed. Try again.';
+
+  @override
   String get settingsSavedSearchesEmpty =>
       '保存した検索はまだありません。コレクションで検索を設定してから、その他のアクションメニューで「この検索を保存…」を選んでください。';
 

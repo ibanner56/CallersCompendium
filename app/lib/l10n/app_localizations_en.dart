@@ -14815,6 +14815,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSavedSearchesHeader => 'Saved searches';
 
   @override
+  String get settingsSavedSearchesLoadError =>
+      'Couldn\'t load your saved searches. Nothing was changed. Try again.';
+
+  @override
   String get settingsSavedSearchesEmpty =>
       'No saved searches yet. Save one from the Collection: set up a search, then choose Save this search… in the More actions menu.';
 

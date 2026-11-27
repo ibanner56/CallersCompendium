@@ -14997,6 +14997,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsSavedSearchesHeader => 'Gespeicherte Suchen';
 
   @override
+  String get settingsSavedSearchesLoadError =>
+      'Couldn\'t load your saved searches. Nothing was changed. Try again.';
+
+  @override
   String get settingsSavedSearchesEmpty =>
       'Noch keine gespeicherten Suchen. Speichere eine in der Sammlung: Richte eine Suche ein und wähle dann im Menü Weitere Aktionen „Diese Suche speichern…“.';
 

@@ -14955,6 +14955,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsSavedSearchesHeader => 'Opgeslagen zoekopdrachten';
 
   @override
+  String get settingsSavedSearchesLoadError =>
+      'Couldn\'t load your saved searches. Nothing was changed. Try again.';
+
+  @override
   String get settingsSavedSearchesEmpty =>
       'Nog geen opgeslagen zoekopdrachten. Sla er een op vanuit de collectie: stel een zoekopdracht in en kies dan Deze zoekopdracht opslaan… in het menu Meer acties.';
 
