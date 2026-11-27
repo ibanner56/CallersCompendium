@@ -4100,8 +4100,13 @@ in order with repeats dropped, and takes `barnesReference` from the latest
 copy, as it takes `meter` (but see *Which copy speaks for them* below), and
 only from a copy that has the merged dance's form: only an ECD dance holds one, and a merge the person chose may join
 copies of different forms, so a newer copy of another form leaves the
-survivor's value alone. Neither is part of the choreography fingerprint,
-which a build older than v42 computes without them.
+survivor's value alone. `formation.improper` is taken the same way, only
+from a copy of the merged dance's form, because only an ECD dance holds one
+(`formHasImproperFlag`): a newer contra copy leaves an English survivor's
+mark alone (amended 2026-11-27, the audit lead's call as an agent, not the
+maintainer's; until then a merge took it from the latest copy of any form).
+Neither `alternateTitles` nor `barnesReference` is part of the choreography
+fingerprint, which a build older than v42 computes without them.
 
 The square fields are taken from the latest copy too (but see *Which copy
 speaks for them* below), each one omitted when
@@ -4120,8 +4125,9 @@ that writes one knows them all, so what such a copy leaves out it cleared, and t
 merged dance leaves it out too. A latest copy that holds none of them cannot
 say so: no build up to v0.10.0-beta writes any of them, and this build's copy
 that holds none is the same bytes as one of those. Each field is then taken
-from the most recent copy that holds it (for `barnesReference`, the most
-recent copy of the merged dance's form), or left out when none does. Ties
+from the most recent copy that holds it (for `barnesReference` and
+`formation.improper`, the most recent copy of the merged dance's form), or
+left out when none does. Ties
 go to the survivor, and between other copies to the smaller id, as for the
 latest copy. `alternateTitles` and
 `interpreterIds` are unioned either way.
