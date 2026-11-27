@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/csv_import_mapping.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
+import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
@@ -247,6 +249,113 @@ void main() {
       tags.where((t) => dance.tagIds.contains(t.id)).map((t) => t.name).toSet(),
       {'Jig', 'Favourite'},
     );
+  });
+
+  // Pre-release audit finding PRIV-04: a field the import makes from a
+  // column is shared like any other, so the import shows the notice the
+  // custom fields screen shows for a first field.
+  group('a column made into a new custom field', () {
+    /// Maps column [i] to a new text field named after it.
+    Future<void> newTextField(WidgetTester tester, int i) async {
+      await tester.tap(find.byKey(ValueKey('csv-column-$i')));
+      await tester.pumpAndSettle();
+      final option =
+          csvTargetChoices(const []).length +
+          CustomFieldType.values.indexOf(CustomFieldType.text);
+      await tester.tap(find.byKey(ValueKey('csv-column-$i-option-$option')));
+      await tester.pumpAndSettle();
+      expect(columnValue(tester, i)?.target, CsvColumnTarget.newCustomField);
+    }
+
+    final bytes = Uint8List.fromList(
+      utf8.encode('Title,Booked by\r\nPetronella,Pat at the hall\r\n'),
+    );
+
+    testWidgets('shows the custom-field sharing notice once, on Import', (
+      tester,
+    ) async {
+      final repos = await pump(tester, bytes);
+      await newTextField(tester, 1);
+      await tester.tap(find.byKey(const ValueKey('csv-continue')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('sharing-disclosure-ok')),
+        findsOneWidget,
+      );
+      expect(
+        await tester.runAsync(
+          () => repos.settings.contains(kCustomFieldSharingDisclosureKey),
+        ),
+        isTrue,
+      );
+      await tester.tap(find.byKey(const ValueKey('sharing-disclosure-ok')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('sharing-disclosure-ok')), findsNothing);
+      final field = (await tester.runAsync(
+        repos.customFieldDefs.listAll,
+      ))!.single;
+      expect(field.label, 'Booked by');
+      final dance = (await tester.runAsync(repos.dances.listAll))!.single;
+      expect(dance.customFields.single.fieldId, field.id);
+    });
+
+    testWidgets('shows the notice on Import and edit', (tester) async {
+      final repos = await pump(tester, bytes);
+      await newTextField(tester, 1);
+      await tester.tap(find.byKey(const ValueKey('csv-continue')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('sharing-disclosure-ok')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('sharing-disclosure-ok')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('import-edit-error')), findsNothing);
+      expect(
+        (await tester.runAsync(repos.customFieldDefs.listAll))!,
+        hasLength(1),
+      );
+    });
+
+    testWidgets('does not show the notice again once it has been shown', (
+      tester,
+    ) async {
+      final repos = await pump(tester, bytes);
+      await tester.runAsync(
+        () => repos.settings.set(kCustomFieldSharingDisclosureKey, true),
+      );
+      await newTextField(tester, 1);
+      await tester.tap(find.byKey(const ValueKey('csv-continue')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('sharing-disclosure-ok')), findsNothing);
+      expect(
+        (await tester.runAsync(repos.customFieldDefs.listAll))!,
+        hasLength(1),
+      );
+    });
+
+    testWidgets('an import that creates no field shows no notice', (
+      tester,
+    ) async {
+      final repos = await pump(tester, bytes);
+      await tester.tap(find.byKey(const ValueKey('csv-continue')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('sharing-disclosure-ok')), findsNothing);
+      expect(
+        await tester.runAsync(
+          () => repos.settings.contains(kCustomFieldSharingDisclosureKey),
+        ),
+        isFalse,
+      );
+    });
   });
 
   testWidgets('Back on the map-columns step returns to choosing a file', (
