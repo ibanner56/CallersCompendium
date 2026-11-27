@@ -982,8 +982,11 @@ void main() {
       return (repos, await _seed(repos, 'Bouncey dances', state));
     }
 
-    Future<void> merge(CompendiumRepositories repos) => repos.references
-        .merge(ReferenceKind.tag, intoId: 't0', otherIds: const ['t1']);
+    Future<void> merge(CompendiumRepositories repos) => repos.references.merge(
+      ReferenceKind.tag,
+      intoId: 't0',
+      otherIds: const ['t1'],
+    );
 
     List<Object?>? storedTagIds(SavedSearch s) =>
         (s.spec.toJson()['facets']! as Map)['tagIds'] as List<Object?>?;
@@ -1002,9 +1005,7 @@ void main() {
       isActive.value = false;
       await tester.pumpAndSettle();
       await merge(repos);
-      expect(storedTagIds((await repos.savedSearches.get(search.id))!), [
-        't0',
-      ]);
+      expect(storedTagIds((await repos.savedSearches.get(search.id))!), ['t0']);
       isActive.value = true;
       await tester.pumpAndSettle();
 
@@ -1021,9 +1022,7 @@ void main() {
       await _tapOff(tester);
       await _openMore(tester);
       await _choose(tester, 'saved-search-update');
-      expect(storedTagIds((await repos.savedSearches.get(search.id))!), [
-        't0',
-      ]);
+      expect(storedTagIds((await repos.savedSearches.get(search.id))!), ['t0']);
     });
 
     testWidgets('a search changed here before its tag was merged keeps the '
@@ -1496,6 +1495,34 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Contra night, slot 3'), findsOneWidget);
+    });
+
+    testWidgets('the name field holds no more than the store keeps, counted '
+        'the same way, so a name it accepts is saved', (tester) async {
+      // An emoji is one character but two UTF-16 units, the unit the stored
+      // name is limited in (savedSearchMaxNameLength).
+      final repos = await _library();
+      await _pump(tester, repos);
+      await _type(tester, 'petronella');
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-save');
+      await tester.enterText(
+        find.byKey(const ValueKey('saved-search-name-field')),
+        '😀' * 51,
+      );
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextField>(
+        find.byKey(const ValueKey('saved-search-name-field')),
+      );
+      expect(field.controller!.text, '😀' * 50);
+      expect(
+        find.text('$savedSearchMaxNameLength/$savedSearchMaxNameLength'),
+        findsOneWidget,
+      );
+
+      await _choose(tester, 'saved-search-name-save');
+      expect(find.text("That name can't be used. Try another."), findsNothing);
+      expect((await _readable(repos)).single.name, '😀' * 50);
     });
 
     testWidgets('at the limit, saving another says so and adds nothing', (
