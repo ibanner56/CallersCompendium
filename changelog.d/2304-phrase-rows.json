@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "A contra or square dance's phrase structure is now set and read as rows: how many phrases, the bars in each, and the beats in a bar, with the labels the phrases get and the beats in all shown under them. The same rows are in Settings › Defaults for the default phrase structure. The phrase structure field stays under the rows, and you can use either."
+      "A contra or square dance's phrase structure is now set and read as rows: how many phrases, the bars in each, and the beats in a bar, with the labels the phrases get and the beats in all shown under them. The same rows are in Settings ▸ Defaults for the default phrase structure. The phrase structure field stays under the rows, and you can use either."
     ]
   }
 }

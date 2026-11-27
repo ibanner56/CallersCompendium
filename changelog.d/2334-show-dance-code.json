@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "A dance's Export menu now has Show code, which shows the dance as a full-screen QR code with the Caller's Compendium logo in the middle, and keeps the screen awake while it shows. The code holds the same dance file as Share dance file, with the same private details left out. A dance too long for a code says so and offers the dance file instead. Opening a shown code in the app is not available yet: another phone's camera shows its link as text."
+      "A dance's Export menu now has Show code, which shows the dance as a full-screen QR code with the Caller's Compendium logo in the middle of a short dance's code, and keeps the screen awake while it shows. The code holds the same dance file as Share dance file, with the same private details left out. A dance too long for a code says so and offers the dance file instead."
     ]
   }
 }

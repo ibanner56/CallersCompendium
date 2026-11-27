@@ -11,9 +11,6 @@
     ],
     "changed": [
       "A placeholder goes into a shared program, the programs CSV, the set list and the PDF as a plain note with its label; the saved search stays with you. Backups keep it, and a backup that holds one needs this version or later to restore."
-    ],
-    "data_migrations": [
-      "Opening your library adds the place a placeholder keeps its saved search. Existing program slots are unchanged."
     ]
   },
   "core": {

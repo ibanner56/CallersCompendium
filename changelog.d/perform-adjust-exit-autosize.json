@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "You can turn off the Exit Perform? question in Settings › Program › Performance with Confirm before leaving Perform, so the close button and Back leave Perform in one tap."
+      "You can turn off the Exit Perform? question in Settings ▸ Program ▸ Perform mode with Confirm before leaving Perform mode, so the close button and Back leave Perform in one tap."
     ],
     "changed": [
       "In program Perform, the footer labels its two clocks Program and Slot, and the program title wraps onto a second line instead of being cut short on a phone.",

@@ -169,9 +169,11 @@ backup is refused the same way, with its size and the limit.
 > reference, or a square's kind, repeat order, new partner, singing call or
 > free-form setting:
 > versions without them refuse it as coming
-> from a newer version. A backup that holds an archived program needs version
-> 0.11.0 or later to replace your library: versions 0.5.2 to 0.10.0 refuse
-> that, rather than bring your archived programs back unarchived.
+> from a newer version. A backup that holds an archived program, a program
+> imported from your calendar, an event rule, or a program slot that keeps a
+> saved search (a placeholder) needs version 0.11.0 or later to replace your
+> library: versions 0.5.2 to 0.10.0 refuse that, rather than restore it
+> without them.
 
 ### Restoring while Device Sync is connected
 

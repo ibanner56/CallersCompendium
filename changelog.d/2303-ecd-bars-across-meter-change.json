@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "An English dance whose tune changes meter, such as an A in 3/4 and a B in 6/8 written as `A:2*4*3 + B:1*8*2`, is now timed in bars throughout. Each figure's Bars field, its count on the dance page and in Perform, the dance's warnings, its calling card, and its figures when you share, copy or print it count each bar by the phrase it starts in, from where the figure starts, so a figure across the change counts each bar by its own phrase. A count that is not a whole number of half bars where it falls still shows in beats."
+      "An English dance whose tune changes meter, such as an A in 3/4 and a B in 6/8 written as `A:2*4*3 + B:1*8*2`, is now timed in bars throughout. Each figure's Bars field, its count on the dance page and in Perform, the dance's warnings, its calling card (Experimental), and its figures when you share, copy or print it count each bar by the phrase it starts in, from where the figure starts, so a figure across the change counts each bar by its own phrase. A count that is not a whole number of half bars where it falls still shows in beats."
     ],
     "changed": [
       "A Meter that states one meter no longer decides the bars of a tune whose phrases have different beats to the bar; each phrase's own count does. A tune in one meter is timed as before."
