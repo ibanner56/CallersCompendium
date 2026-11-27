@@ -5354,6 +5354,16 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    return 'Die Schlagzahlen der Figuren wurden angepasst, damit jede Figur ihre Takte behält, jetzt mit $beatsPerBar Schlägen pro Takt.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    return 'Schlagzahlen nicht geändert: Nicht jede Figur konnte ihre Takte genau behalten, darum zählen sie jetzt in Takten zu $beatsPerBar Schlägen. Prüfe sie.';
+  }
+
+  @override
   String get danceEditorSequenceSpanLabel => 'Takte für alle';
 
   @override

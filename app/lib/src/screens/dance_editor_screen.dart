@@ -17,6 +17,7 @@ import '../data/shorthand_mappings_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../editor/draft_save_health.dart';
 import '../editor/editor_snapshot.dart';
+import '../editor/figure_draft.dart' show FigureBarsRescale;
 import '../search/dance_editor_reference_data.dart';
 import '../theme/app_motion.dart';
 import '../utils/confirm_delete.dart';
@@ -249,7 +250,75 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       // The authors may have changed; a conversion this starts notifies
       // again, and the second pass finds nothing left to change.
       _syncEditorDialect();
+      _syncMeterBarsNotice();
       setState(_rebuildTagOptions);
+    }
+  }
+
+  /// The Meter edit [_meterBarsNotice] was shown for, so that each is shown
+  /// once.
+  MeterBarsChange? _meterBarsNoticeFor;
+
+  /// The notice of what the latest Meter edit did to an English dance's
+  /// figure counts, while it is showing (pre-release audit finding A2-02),
+  /// and the messenger showing it.
+  (
+    ScaffoldFeatureController<SnackBar, SnackBarClosedReason>,
+    ScaffoldMessengerState,
+  )?
+  _meterBarsNotice;
+
+  /// Shows the notice for a Meter edit that changed or kept the figures'
+  /// counts ([DanceEditorController.meterBarsChange]), and puts it away once
+  /// its Undo would no longer take that edit back: a later edit, or an Undo
+  /// or Redo, moved the history on ([DanceEditorController.canUndoMeterChange]).
+  void _syncMeterBarsNotice() {
+    final change = _controller.meterBarsChange;
+    if (change != null && !identical(change, _meterBarsNoticeFor)) {
+      _meterBarsNoticeFor = change;
+      _showMeterBarsNotice(change);
+    } else if (_meterBarsNoticeFor case final shown?
+        when !_controller.canUndoMeterChange(shown)) {
+      _closeMeterBarsNotice();
+    }
+  }
+
+  void _showMeterBarsNotice(MeterBarsChange change) {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final notice = showUndoSnackBar(
+      messenger,
+      key: const ValueKey('meter-bars-notice'),
+      actionKey: const ValueKey('meter-bars-notice-undo'),
+      message: switch (change.outcome) {
+        FigureBarsRescale.notExact => l10n.danceEditorMeterFigureBarsNotKept(
+          change.beatsPerBar,
+        ),
+        _ => l10n.danceEditorMeterFigureBarsKept(change.beatsPerBar),
+      },
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () {
+        // The prompt has already closed itself; the Undo's own notification
+        // must not close it again.
+        _meterBarsNotice = null;
+        _controller.undoMeterChange(change);
+      },
+    );
+    _meterBarsNotice = (notice, messenger);
+    unawaited(
+      notice.closed.then((_) {
+        if (identical(_meterBarsNotice?.$1, notice)) _meterBarsNotice = null;
+      }),
+    );
+  }
+
+  void _closeMeterBarsNotice() {
+    final shown = _meterBarsNotice;
+    _meterBarsNotice = null;
+    if (shown case (final notice, final messenger) when messenger.mounted) {
+      notice.close();
     }
   }
 
@@ -361,6 +430,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   @override
   void dispose() {
+    // Its Undo is this editor's to run. Closed once the tree is unlocked
+    // (closing can rebuild the messenger), and only while the messenger is
+    // still there: not when the whole app is going.
+    if (_meterBarsNotice != null) scheduleMicrotask(_closeMeterBarsNotice);
     _formScroll.dispose();
     if (_dependenciesInitialized) {
       _unregisterShutdownFlush?.call();

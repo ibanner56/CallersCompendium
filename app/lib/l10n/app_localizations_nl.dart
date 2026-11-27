@@ -5338,6 +5338,16 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    return 'De tellen van de figuren zijn aangepast, zodat elke figuur haar maten houdt, nu met $beatsPerBar tellen per maat.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    return 'Tellen niet aangepast: niet elke figuur kon haar maten precies houden, dus ze lezen nu in maten van $beatsPerBar tellen. Controleer ze.';
+  }
+
+  @override
   String get danceEditorSequenceSpanLabel => 'Maten voor alles';
 
   @override

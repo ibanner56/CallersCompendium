@@ -5311,6 +5311,16 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    return 'Figurernes slagantal er ændret, så hver figur beholder sine takter, nu med $beatsPerBar slag pr. takt.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    return 'Slagantallet er ikke ændret: ikke alle figurer kunne beholde deres takter præcist, så de læses nu i takter med $beatsPerBar slag. Tjek dem.';
+  }
+
+  @override
   String get danceEditorSequenceSpanLabel => 'Takter i alt';
 
   @override

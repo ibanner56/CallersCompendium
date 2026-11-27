@@ -5344,6 +5344,14 @@
   "@danceEditorHalfBarRefused": {
     "x-sourceSha256": "93140ef37e7658ae19604224df5f4f69822740dcf1121a0648c365663385774b"
   },
+  "danceEditorMeterFigureBarsKept": "De tellen van de figuren zijn aangepast, zodat elke figuur haar maten houdt, nu met {beatsPerBar} tellen per maat.",
+  "@danceEditorMeterFigureBarsKept": {
+    "x-sourceSha256": "3936d17fc213d49e05b54178e4126a449d1269411bbe7a9e39a8bba778d360a0"
+  },
+  "danceEditorMeterFigureBarsNotKept": "Tellen niet aangepast: niet elke figuur kon haar maten precies houden, dus ze lezen nu in maten van {beatsPerBar} tellen. Controleer ze.",
+  "@danceEditorMeterFigureBarsNotKept": {
+    "x-sourceSha256": "10a6add31bf4d437ab932098c6686fc7c360d986a5db167dea50a7765235a6db"
+  },
   "danceEditorSequenceSpanLabel": "Maten voor alles",
   "@danceEditorSequenceSpanLabel": {
     "x-sourceSha256": "8fe969410459de862aea4879d9ebbdd6588698d681056570bff0f861cd4776ff"

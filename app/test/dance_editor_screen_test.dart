@@ -64,6 +64,18 @@ Dance _dance({
 
 /// Pumps a trivial home that pushes the editor, so the editor's Save/pop flow
 /// returns to a real route (mirroring how it is reached in the app).
+/// Taps Save and reads back the dance [id] as it was stored.
+Future<Dance> _saveAndRead(
+  WidgetTester tester,
+  CompendiumRepositories repos,
+  String id,
+) async {
+  await tester.ensureVisible(find.byKey(const ValueKey('save-dance')));
+  await tester.tap(find.byKey(const ValueKey('save-dance')));
+  await tester.pumpAndSettle();
+  return (await repos.dances.getById(id))!;
+}
+
 Future<void> _pumpEditor(
   WidgetTester tester,
   CompendiumRepositories repos, {
@@ -2671,11 +2683,108 @@ void main() {
       // phrase structure is the standard one, two beats a bar.
       expect(find.text('4 bars'), findsOneWidget);
 
+      // Corrected to 2/2, the figure keeps its 4 bars: its count is now 8
+      // beats (pre-release audit finding A2-02), and a notice says so.
       await tester.enterText(find.byKey(const ValueKey('meter-field')), '2/2');
       // At once, not only after the autosave debounce rebuilds the form.
       await tester.pump();
-      expect(find.text('6 bars'), findsOneWidget);
+      expect(find.text('4 bars'), findsOneWidget);
+      expect(
+        find.text(
+          'Figure counts changed so each figure keeps its bars, now with 2 '
+          'beats to the bar.',
+        ),
+        findsOneWidget,
+      );
+      // Its Undo takes back the Meter and the count together.
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.byKey(const ValueKey('meter-bars-notice-undo')));
+      await tester.pump();
+      expect(
+        tester
+            .widget<TextField>(
+              find.descendant(
+                of: find.byKey(const ValueKey('meter-field')),
+                matching: find.byType(TextField),
+              ),
+            )
+            .controller
+            ?.text,
+        '3/2',
+      );
+      expect(find.text('4 bars'), findsOneWidget);
       await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('meter-bars-notice')), findsNothing);
+      final saved = await _saveAndRead(tester, repos, 'd2');
+      expect(saved.meter, '3/2');
+      expect((saved.figuresSource as DecodedFigures).figures.single.beats, 12);
+    });
+
+    testWidgets('a Meter that leaves a count no whole number of beats changes '
+        'no count, and says the figures read in the new bars', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd2',
+          title: 'Bars Dance',
+          form: DanceForm.ecd,
+          meter: '4/4',
+          formation: const Formation(FormationShape.dupleMinor),
+          figures: [
+            // A bar and a half of 4/4: 4½ beats in 3/2.
+            testFigure(move: 'ecd_circle', params: {'beats': 6}),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd2');
+      expect(find.text('1½ bars'), findsOneWidget);
+      await tester.enterText(find.byKey(const ValueKey('meter-field')), '3/2');
+      await tester.pump();
+      expect(find.text('2 bars'), findsOneWidget);
+      expect(
+        find.text(
+          'Figure counts not changed: not every figure could keep its bars '
+          'exactly, so they now read in bars of 3 beats. Check them.',
+        ),
+        findsOneWidget,
+      );
+      await tester.pumpAndSettle();
+      final saved = await _saveAndRead(tester, repos, 'd2');
+      expect((saved.figuresSource as DecodedFigures).figures.single.beats, 6);
+    });
+
+    testWidgets('the notice goes once a later edit means its Undo would take '
+        'back something else', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd2',
+          title: 'Bars Dance',
+          form: DanceForm.ecd,
+          formation: const Formation(FormationShape.dupleMinor),
+          figures: [
+            testFigure(move: 'ecd_circle', params: {'beats': 8}),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd2');
+      await tester.enterText(find.byKey(const ValueKey('meter-field')), '3/2');
+      await tester.pump();
+      expect(find.byKey(const ValueKey('meter-bars-notice')), findsOneWidget);
+      // Past the undo debounce, so the Meter edit is a step of its own.
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byKey(const ValueKey('meter-bars-notice')), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Renamed',
+      );
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('meter-bars-notice')), findsNothing);
     });
 
     group('named phrases', () {

@@ -5378,6 +5378,16 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    return 'Les temps des figures ont été modifiés pour que chacune garde ses mesures, désormais de $beatsPerBar temps.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    return 'Temps des figures inchangés : toutes les figures ne pouvaient pas garder exactement leurs mesures, elles se lisent donc en mesures de $beatsPerBar temps. Vérifiez-les.';
+  }
+
+  @override
   String get danceEditorSequenceSpanLabel => 'Mesures pour l’ensemble';
 
   @override

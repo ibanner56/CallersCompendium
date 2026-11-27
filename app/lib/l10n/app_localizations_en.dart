@@ -5272,6 +5272,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    return 'Figure counts changed so each figure keeps its bars, now with $beatsPerBar beats to the bar.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    return 'Figure counts not changed: not every figure could keep its bars exactly, so they now read in bars of $beatsPerBar beats. Check them.';
+  }
+
+  @override
   String get danceEditorSequenceSpanLabel => 'Bars for all';
 
   @override

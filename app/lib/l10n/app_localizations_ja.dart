@@ -5066,6 +5066,16 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    return '各フィギュアの小節数が変わらないよう拍数を変更しました（1小節$beatsPerBar拍）。';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    return '拍数は変更していません。小節数をそのまま保てないフィギュアがあるため、1小節$beatsPerBar拍で読み直されます。確認してください。';
+  }
+
+  @override
   String get danceEditorSequenceSpanLabel => '全体の小節';
 
   @override
