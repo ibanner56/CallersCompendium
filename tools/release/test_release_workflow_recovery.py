@@ -295,6 +295,42 @@ def main() -> None:
     assert text.count(codename_define) == 6
 
     build_job = _job_section(text, "build")
+    # macOS runners' /bin/bash is 3.2, where "${arr[@]}" of an empty array is
+    # an unbound variable under `set -u`: an input-free dry run (no codename)
+    # stopped the iOS build there (pre-release audit finding H-03). A step that
+    # sets -u must expand the array in the form that is safe on bash 3.2.
+    bare_expansion = '"${codename_define[@]}"'
+    safe_expansion = '${codename_define[@]+"${codename_define[@]}"}'
+    # `set -u`, `set -Eeuo pipefail`, `set -e -u`, `set -o nounset`, ...
+    nounset = re.compile(r"^\s*set\b[^\n#]*?(?:\s-[A-Za-z]*u|-o\s+nounset)", re.MULTILINE)
+    # A `shell:` that turns nounset on, at the workflow's or the build job's
+    # `defaults.run`, or on the step itself.
+    shell_nounset = re.compile(
+        r"^\s+shell:[^\n]*(?:\s-[A-Za-z]*u|-o\s+nounset)", re.MULTILINE
+    )
+    workflow_defaults = text[: text.index("\njobs:\n")]
+    job_defaults = build_job[: build_job.index("\n    steps:\n")]
+    inherited_nounset = bool(
+        shell_nounset.search(workflow_defaults) or shell_nounset.search(job_defaults)
+    )
+    nounset_steps = []
+    for step_name in re.findall(r"^      - name: (.+)$", build_job, re.MULTILINE):
+        try:
+            script = _step_script(build_job, step_name)
+        except IndexError:  # a `uses:` step, with no run: body
+            continue
+        if "codename_define" not in script:
+            continue
+        marker = f"      - name: {step_name}\n"
+        step_keys = build_job[build_job.index(marker) :].split("        run: |\n", 1)[0]
+        if inherited_nounset or shell_nounset.search(step_keys) or nounset.search(script):
+            nounset_steps.append(step_name)
+            assert bare_expansion not in script.replace(safe_expansion, ""), (
+                f"{step_name!r} runs under set -u and expands codename_define "
+                "bare, which bash 3.2 rejects when the array is empty"
+            )
+            assert safe_expansion in script, step_name
+    assert "Build signed iOS .ipa (App Store archive)" in nounset_steps, nounset_steps
     assert "      CODENAME: ${{ needs.meta.outputs.codename }}" in build_job
     # Only the Google Play bundle tells the installed app it came from a store
     # (install_kind.dart); the sideload APK shares the manifest channel, so it
