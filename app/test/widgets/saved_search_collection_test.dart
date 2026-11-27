@@ -1313,6 +1313,47 @@ void main() {
       expect(_row(saved.single.id), findsOneWidget);
     });
 
+    testWidgets('a typed name survives a tap outside, Escape and Back, and '
+        'Cancel still closes the dialog (pre-release audit finding F-02)', (
+      tester,
+    ) async {
+      final repos = await _library();
+      await _pump(tester, repos);
+      await _type(tester, 'Petronella');
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-save');
+      final field = find.byKey(const ValueKey('saved-search-name-field'));
+      await tester.enterText(field, 'Just the one');
+      await tester.pump();
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(field).controller!.text, 'Just the one');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(field, findsNothing);
+      expect(await _readable(repos), isEmpty);
+    });
+
+    testWidgets('an untouched name dialog still closes on a tap outside', (
+      tester,
+    ) async {
+      final repos = await _library();
+      await _pump(tester, repos);
+      await _type(tester, 'Petronella');
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-save');
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('saved-search-name-field')),
+        findsNothing,
+      );
+    });
+
     testWidgets('the save dialog says what is kept of a chosen date: the '
         'whole months back from today', (tester) async {
       final repos = await _library();

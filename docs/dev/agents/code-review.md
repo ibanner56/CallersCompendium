@@ -224,7 +224,17 @@ What a round is given and asked for:
   `AGENTS.md` and `.github/instructions/*.instructions.md` from the base into the
   job, so a PR cannot loosen the rules it is reviewed under. A PR that edits
   `SKILL.md` is reviewed under the old rubric; the new one applies from the next
-  PR.
+  PR. Separately, the action itself replaces a set of config paths in the
+  review checkout with the base branch's copy on every pull request
+  (`SENSITIVE_PATHS` in its `restore-config.ts`; `.claude/` and `CLAUDE.md`
+  for a long time, `AGENTS.md` from `anthropics/claude-code-action` 1.0.277;
+  from 1.0.279 it may use the default branch instead when the PR's author is
+  not confirmed to have write access), and keeps the PR's copies under
+  `.claude-pr/`. So the checkout's `AGENTS.md` is the base copy, not the
+  PR's; the review reads a PR's edit to it from the diff or `.claude-pr/`.
+  `claude.yml` runs the same action, so an `@claude` run on a PR that edits
+  `AGENTS.md` starts from the base copy too: a commit it makes with
+  `git add -A` can undo the PR's edit to that file.
 - **It sees earlier rounds.** The job is handed the previous Claude reviews, the
   inline comments with their replies, and the diff since the last reviewed
   commit. Only Claude's comments and those of repository owners, members and
@@ -236,7 +246,10 @@ What a round is given and asked for:
   comments, into `.claude-review/context/pr-description.json` (body capped at
   20000 characters; a file saying `unavailable` means the read failed, and
   `Coverage` says so). The review cannot run `gh pr view` or `gh issue view`,
-  which can print comments from any account. The job also fetches the issues
+  which can print comments from any account. That rests on the tool list being
+  strict, which it is only because the workflow passes
+  `--permission-mode default` (see [The tool boundary](#the-tool-boundary)).
+  The job also fetches the issues
   the PR closes, through `closingIssuesReferences`, into
   `.claude-review/context/closing-issues.jsonl`. The same author filter applies
   as for inline comments: an issue's title and body (body capped at 8000
@@ -258,7 +271,8 @@ What a round is given and asked for:
   collapsed, so the rubric leads each comment with the ID, severity and title.
   For a Claude review it passes only when the latest verdict is `APPROVE`; for
   Copilot it is informational and always passes.
-  The job cannot run tests or scripts, so it never reports that something is
+  The job cannot run tests or scripts (the same strict list), so it never
+  reports that something is
   merely unverified, and the workflow (not the rubric) leaves out the template's
   "Verification the author still owes" checklist. CI runs the preflight gates,
   its first item, but nothing in CI or the merge gate reads the other two (a new
@@ -327,7 +341,10 @@ Traps:
   such a bump as a PR of its own (`exclude-patterns` in
   [`dependabot.yml`](../../../.github/dependabot.yml)), so it passes the gate;
   like any change to the review workflow it gets no Claude review, so read it
-  yourself before merging.
+  yourself before merging. Read the upstream release notes for every version
+  in the range, not Dependabot's excerpt in the PR body, which it truncates:
+  #2551's excerpt stopped before the 1.0.277 note (base `AGENTS.md`),
+  and check each breaking note against this workflow's `claude_args`.
 - **Draft PRs and fork PRs are skipped.** Fork runs receive no secrets. For a
   draft, mark it ready (`ready_for_review` starts a round).
 - **The login is `claude[bot]` on both `/reviews` and `/comments`**, unlike
@@ -355,6 +372,26 @@ Traps:
   app token, so the gate keeps outsiders from costing either. It is a
   scheduling gate, not a sandbox: an insider's mention on an outsider's issue
   or PR still gives the model that thread to read.
+
+### The tool boundary
+
+The review job passes `--allowedTools` with only `Read`, `Glob`, `Grep`,
+`Write`, `gh pr diff` and the one `gh api` call that posts the review (allow
+rules in the base branch's `.claude/settings.json` are added to it; today they
+name only GitHub MCP tools, which the review has no server for). From
+`anthropics/claude-code-action` 1.0.273, the action starts its sessions in
+**auto mode**, where a safety review may let through a tool call that no allow
+rule covers, unless an input keeps the earlier default:
+`allowed_non_write_users`, `allowed_bots`, a custom `ANTHROPIC_BASE_URL`,
+`path_to_claude_code_executable`, or a `settings` input that is a file path or
+picks another mode. So the list on its own is not a boundary (the action's `src/modes/permission-mode.ts` and
+its `docs/security.md`, "Auto mode is a review, not a boundary"). The review
+workflow therefore also passes `--permission-mode default`. The action
+places the workflow's `claude_args` after its own, so that mode wins, and in
+it a call outside the list is denied, because a workflow has no one to
+approve it. Without that flag the list is advisory again. `claude.yml` sets no
+permission mode, so `@claude` runs in auto mode (or `acceptEdits` where auto
+mode is unavailable).
 
 ## Answering findings
 
