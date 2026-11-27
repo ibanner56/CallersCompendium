@@ -9,6 +9,7 @@ import 'package:compendium_app/src/screens/settings/program_templates_screen.dar
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show SemanticsNode;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/l10n_harness.dart';
@@ -591,6 +592,101 @@ void main() {
         find.byKey(const ValueKey('program-template-rule-subtitle-0')),
       );
       expect(subtitle.data, 'Its saved search was deleted');
+    });
+
+    testWidgets('a screen reader hears "Slot rule" once on a slot rule: from '
+        'its icon, or from its subtitle while the saved searches cannot be '
+        'read', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final db = openWidgetTestDatabase();
+      final settings = FailingSavedSearchReadsSettings(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      final template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [
+          ProgramTemplateEntry.rule(
+            savedSearchId: 'deleted-search',
+            label: 'Easy family opener',
+          ),
+        ],
+      );
+      await _seed(repos, [template]);
+
+      /// How many times the slot rule's row says "Slot rule", across every
+      /// semantics node in it, merged or not.
+      int slotRuleSaid() {
+        final row = find.ancestor(
+          of: find.byKey(const ValueKey('program-template-rule-subtitle-0')),
+          matching: find.byType(ListTile),
+        );
+        var count = 0;
+        void visit(SemanticsNode node) {
+          count += RegExp('Slot rule').allMatches(node.label).length;
+          node.visitChildren((child) {
+            visit(child);
+            return true;
+          });
+        }
+
+        visit(tester.getSemantics(row));
+        return count;
+      }
+
+      settings.failSearchReads = true;
+      await _pump(
+        tester,
+        repos,
+        ProgramTemplateEditorScreen(template: template),
+      );
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('program-template-rule-subtitle-0')),
+            )
+            .data,
+        'Slot rule',
+      );
+      expect(slotRuleSaid(), 1);
+      semantics.dispose();
+    });
+
+    testWidgets('with the saved searches read, a slot rule\'s icon still says '
+        'what the row is', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final repos = openTestRepositories();
+      final template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [
+          ProgramTemplateEntry.rule(
+            savedSearchId: 'deleted-search',
+            label: 'Easy family opener',
+          ),
+        ],
+      );
+      await _seed(repos, [template]);
+      await _pump(
+        tester,
+        repos,
+        ProgramTemplateEditorScreen(template: template),
+      );
+      // The saved searches are read: the subtitle is not the badge, so the
+      // one "Slot rule" heard is the icon's.
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('program-template-rule-subtitle-0')),
+            )
+            .data,
+        'Its saved search was deleted',
+      );
+      expect(find.bySemanticsLabel(RegExp('Slot rule')), findsOneWidget);
+      semantics.dispose();
     });
 
     testWidgets("a rule whose saved search is stored but unreadable says it "
