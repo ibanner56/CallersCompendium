@@ -153,9 +153,10 @@ petronella in it, and **combination nice** still finds *The Nice Combination*.
 A word of three or more letters can be any part of a longer one, so **ron**
 finds *petronella*; a word of one or two letters finds the start of a word, so
 **pe** finds *petronella* and **et** does not. A figure or role name of several
-words, such as **do si do**, counts as one word. A figure's other names find
-it too, and still find the words as you typed them: **do si do** finds every
-dosido, and a line you typed as *Do si do your neighbor* as well.
+words, such as **do si do**, counts as one word (a square call's other names,
+such as **turn by the hand**, also find their words apart). A figure's other
+names find it too, and still find the words as you typed them: **do si do**
+finds every dosido, and a line you typed as *Do si do your neighbor* as well.
 
 Search understands your [dialect](./glossary.md#dialect) wording. If you saved or
 imported a dance in one set of words and search in another, the app still finds

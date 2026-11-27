@@ -827,7 +827,9 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
     do", and leaving the phrase whole).
 
   A term of several words — a role ("Lady Birds"), a move ("do si do") or a
-  dialect's move name — stays one word, so its spaces must still match.
+  dialect's move name — stays one word, so its spaces must still match (a
+  phrase kept whole only by a square call's name or keyword also matches word
+  by word, as above).
   Each word then picks its own index (one or two characters: the token-prefix
   `dance_fts`; more: the trigram `dance_substring_fts`), and in All fields
   matches its canonical form in any column **or** its typed form in the

@@ -587,7 +587,9 @@ class FilterCompiler {
   /// word must match, each in any field, so "Kaynor petronella" finds a
   /// Kaynor dance with a petronella in it. A term of several words — a role
   /// ("Lady Birds"), a move ("do si do") or a dialect's move name — is one
-  /// word, so its spaces still have to match. Each word picks its own index
+  /// word, so its spaces still have to match; one kept whole only by a square
+  /// call's name or keyword also matches word by word ([_compileSearchTerm]).
+  /// Each word picks its own index
   /// (one or two characters: the token-prefix `dance_fts`; more: the trigram
   /// `dance_substring_fts`) and its own canonical-or-raw match
   /// ([_compileFullTextWord]).
@@ -610,9 +612,9 @@ class FilterCompiler {
         : '(${predicates.join(' AND ')})';
   }
 
-  /// Splits [query] into the words [_compileFullText] ANDs, each as typed
-  /// (`raw`) and as the canonical text the figures are stored in
-  /// (`canonical`).
+  /// Splits [query] into the terms [_compileFullText] ANDs ([_SearchTerm]),
+  /// each word as typed (`raw`) and as the canonical text the figures are
+  /// stored in (`canonical`).
   ///
   /// Everything that rewrites the query is decided on the **whole** query
   /// before it is split, so a word is never read out of its context:
@@ -622,7 +624,10 @@ class FilterCompiler {
   ///   word inside it;
   /// - a taxonomy move name or keyword ([moveKeywordSpans]).
   ///
-  /// Any of those that spans whitespace is kept as one word. The canonical
+  /// Any of those that spans whitespace is kept as one word. A stretch where a
+  /// square call's name or keyword decides the split differently from the
+  /// names kept whole before the square calls ([_keptWholeBeforeSquares]) is
+  /// also split as it was then, and the two splits are one term. The canonical
   /// form then applies the role tokens and dialect move names that fall in the
   /// word, followed by [canonicalizeMoveSearchText], as the whole query used
   /// to. The word also keeps two alternate forms ([_compileWordForms]): one
