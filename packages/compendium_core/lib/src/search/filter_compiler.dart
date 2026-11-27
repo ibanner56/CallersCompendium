@@ -3,7 +3,9 @@ import '../dialect/dialect.dart';
 import '../dialect/role_canonicalizer.dart';
 import '../dialect/substitution.dart';
 import '../model/enums.dart';
+import '../model/figure.dart' show customMoveId;
 import '../taxonomy/taxonomy.dart';
+import '../taxonomy/taxonomy_registry.dart' show danceFormMovePrefixes;
 import '../taxonomy/user_figure_use.dart';
 import 'filter.dart';
 import 'fts_query.dart';
@@ -45,10 +47,65 @@ const _rawTextColumns = 'title authors sources custom_values hook notes';
 /// query, not only the first.
 String _rawColumnsMatch(String query) => '{$_rawTextColumns} : ($query)';
 
+/// Whether a phrase that a name or keyword of the move [id] covers is kept
+/// whole even where the search reads a phrase word by word: a contra move's
+/// (an ID with no form prefix). v0.10.0-beta searched with contra's taxonomy
+/// alone, so it read every other phrase word by word; a phrase only an
+/// English or square move names is read that way too, as well as whole
+/// ([FilterCompiler._searchWords]). Contra's own names and keywords, those
+/// added since included, stay one phrase (the audit lead's call on
+/// pre-release audit B-04).
+bool _contraKeepsWhole(String id) =>
+    id != customMoveId &&
+    !danceFormMovePrefixes.values.any((prefix) => id.startsWith(prefix));
+
+/// Matches the names and keywords of [taxonomy]'s moves and aliases that
+/// [_contraKeepsWhole] admits, as [moveKeywordSpans] matches all of them, or
+/// `null` when it admits none. Built once per taxonomy.
+Substitutor? _contraKeepsWholeMatcher(Taxonomy taxonomy) {
+  final cached = _keptWholeMatchers[taxonomy];
+  if (cached != null) return cached.matcher;
+  final keywords = <String, String>{};
+  void add(String id, String name, List<String> searchKeywords) {
+    if (!_contraKeepsWhole(id)) return;
+    for (final word in [name, ...searchKeywords]) {
+      if (word.isNotEmpty) keywords[word.toLowerCase()] = id;
+    }
+  }
+
+  for (final move in taxonomy.moves.values) {
+    add(move.id, move.displayName, move.searchKeywords);
+  }
+  for (final alias in taxonomy.aliases.values) {
+    add(alias.id, alias.displayName, alias.searchKeywords);
+  }
+  final matcher = keywords.isEmpty
+      ? null
+      : Substitutor(keywords, caseInsensitive: true);
+  _keptWholeMatchers[taxonomy] = (matcher: matcher);
+  return matcher;
+}
+
+final _keptWholeMatchers = Expando<({Substitutor? matcher})>(
+  'contraKeepsWhole',
+);
+
 /// One word of a free-text query, as typed and in canonical form
-/// (`FilterCompiler._searchWords`). `asTyped` is the canonical form without
-/// the dialect's move names, set only when it differs from `canonical`.
-typedef _SearchWord = ({String raw, String canonical, String? asTyped});
+/// (`FilterCompiler._searchWords`). `alternates` are the other canonical
+/// forms it also matches, each different from `canonical` and from each
+/// other: without the dialect's move names, and with no move name or keyword
+/// rewritten at all (the words as typed, with only their role words made
+/// tokens).
+typedef _WordForms = ({String raw, String canonical, List<String> alternates});
+
+/// One term of a free-text query, which [FilterCompiler._compileFullText]
+/// ANDs with the others: its `whole` words, which must all match, **or** its
+/// `apart` words, which must all match. `apart` is the same stretch of the
+/// query split with only contra's names and keywords kept whole
+/// ([_contraKeepsWhole]), as v0.10.0-beta split it, set only where an
+/// English or square move's name or keyword made the split differ; it is
+/// empty otherwise, and `whole` is then one word.
+typedef _SearchTerm = ({List<_WordForms> whole, List<_WordForms> apart});
 
 /// A run of whitespace, where a free-text query splits into words.
 final _whitespace = RegExp(r'\s+');
@@ -535,7 +592,10 @@ class FilterCompiler {
   /// word must match, each in any field, so "Kaynor petronella" finds a
   /// Kaynor dance with a petronella in it. A term of several words — a role
   /// ("Lady Birds"), a move ("do si do") or a dialect's move name — is one
-  /// word, so its spaces still have to match. Each word picks its own index
+  /// word, so its spaces still have to match; one kept whole only by an
+  /// English or square move's name or keyword also matches word by word
+  /// ([_compileSearchTerm]).
+  /// Each word picks its own index
   /// (one or two characters: the token-prefix `dance_fts`; more: the trigram
   /// `dance_substring_fts`) and its own canonical-or-raw match
   /// ([_compileFullTextWord]).
@@ -548,19 +608,19 @@ class FilterCompiler {
     // Nothing to search for (no words, or only short punctuation): one empty
     // word, which matches nothing.
     if (words.isEmpty) {
-      return _compileFullTextWord(scope, '', '', binds);
+      return _compileFullTextWord(scope, '', const [''], binds);
     }
     final predicates = [
-      for (final word in words) _compileWordForms(scope, word, binds),
+      for (final term in words) _compileSearchTerm(scope, term, binds),
     ];
     return predicates.length == 1
         ? predicates.single
         : '(${predicates.join(' AND ')})';
   }
 
-  /// Splits [query] into the words [_compileFullText] ANDs, each as typed
-  /// (`raw`) and as the canonical text the figures are stored in
-  /// (`canonical`).
+  /// Splits [query] into the terms [_compileFullText] ANDs ([_SearchTerm]),
+  /// each word as typed (`raw`) and as the canonical text the figures are
+  /// stored in (`canonical`).
   ///
   /// Everything that rewrites the query is decided on the **whole** query
   /// before it is split, so a word is never read out of its context:
@@ -570,11 +630,18 @@ class FilterCompiler {
   ///   word inside it;
   /// - a taxonomy move name or keyword ([moveKeywordSpans]).
   ///
-  /// Any of those that spans whitespace is kept as one word. The canonical
+  /// Any of those that spans whitespace is kept as one word. A stretch where an
+  /// English or square move's name or keyword decides the split differently
+  /// from contra's names and keywords alone ([_contraKeepsWhole]) is also
+  /// split as contra's alone split it, and the two splits are one term. The
+  /// canonical
   /// form then applies the role tokens and dialect move names that fall in the
   /// word, followed by [canonicalizeMoveSearchText], as the whole query used
-  /// to.
-  List<_SearchWord> _searchWords(String query) {
+  /// to. The word also keeps two alternate forms ([_compileWordForms]): one
+  /// without the dialect's move names, and one with only its role words made
+  /// tokens and no move name or keyword rewritten, since text a caller typed
+  /// is stored as written (pre-release audit B-04).
+  List<_SearchTerm> _searchWords(String query) {
     final text = query.trim();
     if (text.isEmpty) return const [];
     final roles = analyzeRoleTerms(
@@ -597,16 +664,30 @@ class FilterCompiler {
     for (final m in dialectMoves) {
       keep(m.start, m.end);
     }
+    // The ranges kept whole by everything but a name or keyword of a form
+    // other than contra ([_contraKeepsWhole]): how v0.10.0-beta, which
+    // searched with contra's taxonomy alone, split the query.
+    final keptApart = List.of(kept);
     if (t != null) {
       for (final m in moveKeywordSpans(text, t)) {
         keep(m.start, m.start + m.text.length);
+      }
+      for (final m
+          in _contraKeepsWholeMatcher(t)?.matches(text) ??
+              const <({String text, int start})>[]) {
+        keptApart.fillRange(m.start, m.start + m.text.length, true);
       }
     }
 
     bool inDialectMove(int start, int end) =>
         dialectMoves.any((m) => start < m.end && m.start < end);
 
-    String canonical(int start, int end, {bool dialectNames = true}) {
+    String canonical(
+      int start,
+      int end, {
+      bool dialectNames = true,
+      bool moveNames = true,
+    }) {
       final out = StringBuffer();
       var i = start;
       while (i < end) {
@@ -640,76 +721,153 @@ class FilterCompiler {
         i++;
       }
       final roleCanonical = out.toString();
-      final moveCanonical = t == null
+      final moveCanonical = t == null || !moveNames
           ? roleCanonical
           : canonicalizeMoveSearchText(roleCanonical, t);
       // Stored figure text is single-spaced, so a kept term is too.
       return moveCanonical.replaceAll(_whitespace, ' ');
     }
 
-    final words = <_SearchWord>[];
-    int? wordStart;
-    for (var i = 0; i <= text.length; i++) {
-      final breaks =
-          i == text.length || (!kept[i] && _whitespace.hasMatch(text[i]));
-      if (!breaks) {
-        wordStart ??= i;
-      } else if (wordStart != null) {
-        final raw = text.substring(wordStart, i);
-        // A word of one or two characters with no letter or digit ("&",
-        // "-") has no token for the prefix index, so it would match no row
-        // and empty the whole AND; it constrains nothing, so it is dropped.
-        if (ftsQueryScalarLength(raw) > 2 || _letterOrDigit.hasMatch(raw)) {
-          final mapped = canonical(wordStart, i);
-          final unmapped = canonical(wordStart, i, dialectNames: false);
-          words.add((
-            raw: raw,
-            canonical: mapped,
-            asTyped: unmapped == mapped ? null : unmapped,
-          ));
+    // The ranges of the words of the query split at the whitespace [whole]
+    // does not keep. A word of one or two characters with no letter or digit
+    // ("&", "-") has no token for the prefix index, so it would match no row
+    // and empty the whole AND; it constrains nothing, so it is dropped.
+    List<({int start, int end})> split(List<bool> whole) {
+      final out = <({int start, int end})>[];
+      int? wordStart;
+      for (var i = 0; i <= text.length; i++) {
+        final breaks =
+            i == text.length || (!whole[i] && _whitespace.hasMatch(text[i]));
+        if (!breaks) {
+          wordStart ??= i;
+        } else if (wordStart != null) {
+          final raw = text.substring(wordStart, i);
+          if (ftsQueryScalarLength(raw) > 2 || _letterOrDigit.hasMatch(raw)) {
+            out.add((start: wordStart, end: i));
+          }
+          wordStart = null;
         }
-        wordStart = null;
       }
+      return out;
+    }
+
+    _WordForms forms(({int start, int end}) word) {
+      final (:start, :end) = word;
+      final mapped = canonical(start, end);
+      final alternates = <String>{
+        canonical(start, end, dialectNames: false),
+        canonical(start, end, dialectNames: false, moveNames: false),
+      }..remove(mapped);
+      return (
+        raw: text.substring(start, end),
+        canonical: mapped,
+        alternates: alternates.toList(),
+      );
+    }
+
+    // The two splits grouped into the shortest stretches that both end at
+    // the same place, so a phrase of the one that crosses a word of the
+    // other is in one term with it.
+    final wholeWords = split(kept);
+    final apartWords = split(keptApart);
+    final words = <_SearchTerm>[];
+    var w = 0;
+    var a = 0;
+    while (w < wholeWords.length || a < apartWords.length) {
+      final wholeStart = w;
+      final apartStart = a;
+      var end = -1;
+      do {
+        if (w < wholeWords.length && (end < 0 || wholeWords[w].start < end)) {
+          if (wholeWords[w].end > end) end = wholeWords[w].end;
+          w++;
+        } else if (a < apartWords.length &&
+            (end < 0 || apartWords[a].start < end)) {
+          if (apartWords[a].end > end) end = apartWords[a].end;
+          a++;
+        } else {
+          break;
+        }
+      } while (true);
+      final whole = wholeWords.sublist(wholeStart, w);
+      final apart = apartWords.sublist(apartStart, a);
+      final same =
+          whole.length == apart.length &&
+          [
+            for (var k = 0; k < whole.length; k++) whole[k] == apart[k],
+          ].every((e) => e);
+      words.add((
+        whole: [for (final word in whole) forms(word)],
+        apart: same ? const [] : [for (final word in apart) forms(word)],
+      ));
     }
     return words;
   }
 
-  /// A [word] whose dialect move names changed its canonical form matches
-  /// that form **or** its canonical form as typed, so a dialect that calls the
-  /// balance the ring "balance" still finds a plain balance by "balance"
-  /// (FIND-4 adds the dialect's meaning; it takes none away). Title and Author
-  /// read only the typed word, so they compile it once.
+  /// A [word] matches its canonical form **or** any of its alternate forms
+  /// ([_WordForms]):
+  /// - without the dialect's move names, so a dialect that calls the balance
+  ///   the ring "balance" still finds a plain balance by "balance" (FIND-4
+  ///   adds the dialect's meaning; it takes none away);
+  /// - with no move name or keyword rewritten, so "docey doe" finds a typed
+  ///   line "Docey doe your corner" as well as a structured do si do, and
+  ///   "balance in the ring" finds a square's balance in the ring though
+  ///   "ring" is a keyword of the circle (pre-release audit B-04, B-03). A
+  ///   keyword adds the move's meaning; it takes none of the words away.
+  ///
+  /// Title and Author read only the typed word, so they compile it once.
   String _compileWordForms(
     FullTextScope scope,
-    _SearchWord word,
+    _WordForms word,
+    List<Object?> binds,
+  ) => _compileFullTextWord(scope, word.raw, [
+    word.canonical,
+    ...word.alternates,
+  ], binds);
+
+  /// A [term] matches when its `whole` words all match **or** its `apart`
+  /// words all match ([_SearchTerm]). A phrase kept whole only by an English
+  /// or square move's name or keyword ("turn by the hand", "hand turn") is
+  /// read word by word too, as v0.10.0-beta read it, so "turn by the hand"
+  /// still finds a line typed "Turn by the right hand"; a contra move's name
+  /// or keyword ("do si do", "cast off") stays one word (the audit lead's
+  /// call on pre-release audit B-04).
+  String _compileSearchTerm(
+    FullTextScope scope,
+    _SearchTerm term,
     List<Object?> binds,
   ) {
-    final asTyped = word.asTyped;
-    final mapped = _compileFullTextWord(scope, word.raw, word.canonical, binds);
-    if (asTyped == null ||
-        scope == FullTextScope.title ||
-        scope == FullTextScope.author) {
-      return mapped;
+    String all(List<_WordForms> words) {
+      final each = [for (final w in words) _compileWordForms(scope, w, binds)];
+      return each.length == 1 ? each.single : '(${each.join(' AND ')})';
     }
-    final typed = _compileFullTextWord(scope, word.raw, asTyped, binds);
-    return '($mapped OR $typed)';
+
+    // A term always has a whole word: every word of the apart split shares
+    // its characters with one. Should one not, the term is its apart words.
+    if (term.whole.isEmpty) return all(term.apart);
+    final whole = all(term.whole);
+    if (term.apart.isEmpty) return whole;
+    return '($whole OR ${all(term.apart)})';
   }
 
   /// One word of a free-text search ([_compileFullText]): [raw] as typed and
-  /// [canonicalSearchText] in canonical form.
+  /// [canonicalForms] the canonical forms it may take (the first is its
+  /// canonical form; see [_compileWordForms] for the others), any of which
+  /// matches.
   ///
-  /// In All fields the word matches its canonical form in any column **or** its
+  /// In All fields the word matches a canonical form in any column **or** its
   /// typed form in the verbatim columns ([_rawTextColumns]), so a title such as
   /// "Hey Man", an author such as "Robin Hayden" or a note containing "ladies"
   /// cannot be rewritten away by the role synonym map, while "Robin Hayden
   /// swing" still finds Robin Hayden's dance with a swing in it.
-  /// `figures_text` stays canonical-only (it is stored canonicalised). The
-  /// word's own length picks the index, so a long word stays a literal
-  /// substring rather than falling back to unicode61 token semantics.
+  /// `figures_text` is matched by the canonical forms only (it is stored
+  /// canonicalised). The word's own length picks the index, so a long word
+  /// stays a literal substring rather than falling back to unicode61 token
+  /// semantics.
   String _compileFullTextWord(
     FullTextScope scope,
     String raw,
-    String canonicalSearchText,
+    List<String> canonicalForms,
     List<Object?> binds,
   ) {
     final isPrefix = ftsQueryScalarLength(raw) <= 2;
@@ -717,13 +875,15 @@ class FilterCompiler {
     final queryBuilder = isPrefix
         ? toFtsPrefixMatchQuery
         : toFtsSubstringMatchQuery;
-    final canonicalQuery = queryBuilder(canonicalSearchText);
     final rawTextQuery = queryBuilder(raw);
 
     String columnMatch(String column, String query) {
       binds.add(query);
       return 'id IN (SELECT dance_id FROM $table WHERE $column MATCH ?)';
     }
+
+    String any(List<String> branches) =>
+        branches.length == 1 ? branches.single : '(${branches.join(' OR ')})';
 
     switch (scope) {
       case FullTextScope.title:
@@ -735,33 +895,47 @@ class FilterCompiler {
         final authors = columnMatch('authors', rawTextQuery);
         return '($authors OR ${_interpreterMatch(raw, isPrefix, binds)})';
       case FullTextScope.figure:
-        return columnMatch('figures_text', canonicalQuery);
+        return any([
+          for (final form in canonicalForms)
+            columnMatch('figures_text', queryBuilder(form)),
+        ]);
       case FullTextScope.omni:
+        // Each branch adds its binds as it is built, in the order the SQL
+        // reads them: every form's column match, the typed word in the
+        // verbatim columns, the forms' role-token-free figure matches, then
+        // the meter, key and interpreters.
+        final columns = <String>[];
+        final fragments = <String>[];
+        for (final form in canonicalForms) {
+          final canonicalQuery = queryBuilder(form);
+          if (!_hasInternalRoleTokenFragment(form, prefix: isPrefix)) {
+            binds.add(canonicalQuery);
+            columns.add(
+              'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)',
+            );
+          } else {
+            // The form is only a fragment of an internal role token (see
+            // [_hasInternalRoleTokenFragment]), so `figures_text` is matched
+            // only where the form still holds with the role tokens removed.
+            binds.add(_rawColumnsMatch(canonicalQuery));
+            columns.add(
+              'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)',
+            );
+            fragments.add(form);
+          }
+        }
+        binds.add(_rawColumnsMatch(rawTextQuery));
         final rawMatch =
             'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
-        if (!_hasInternalRoleTokenFragment(
-          canonicalSearchText,
-          prefix: isPrefix,
-        )) {
-          binds.add(canonicalQuery);
-          binds.add(_rawColumnsMatch(rawTextQuery));
-          final canonical =
-              'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
-          final music = _musicAndInterpreterMatch(raw, isPrefix, binds);
-          return '($canonical OR $rawMatch OR $music)';
+        final figures = <String>[];
+        for (final form in fragments) {
+          binds
+            ..add(queryBuilder(form))
+            ..add(_figureLikePattern(form, prefix: isPrefix));
+          figures.add(_figureMatchWithoutRoleTokens(table, prefix: isPrefix));
         }
-        // The word is only a fragment of an internal role token (see
-        // [_hasInternalRoleTokenFragment]), so `figures_text` is matched only
-        // where the word still holds with the role tokens removed.
-        binds.add(_rawColumnsMatch(canonicalQuery));
-        binds.add(_rawColumnsMatch(rawTextQuery));
-        binds.add(canonicalQuery);
-        binds.add(_figureLikePattern(canonicalSearchText, prefix: isPrefix));
-        final canonicalColumns =
-            'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
-        final figures = _figureMatchWithoutRoleTokens(table, prefix: isPrefix);
         final music = _musicAndInterpreterMatch(raw, isPrefix, binds);
-        return '($canonicalColumns OR $rawMatch OR $figures OR $music)';
+        return '(${[...columns, rawMatch, ...figures, music].join(' OR ')})';
     }
   }
 

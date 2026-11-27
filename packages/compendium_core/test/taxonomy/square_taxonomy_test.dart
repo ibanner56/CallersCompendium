@@ -356,6 +356,25 @@ void main() {
       );
     });
 
+    test('a full courtesy turn reads apart from a plain right and left '
+        'through, shown and searched (pre-release audit B-08)', () {
+      final plain = Figure(
+        move: 'sq_right_left_through',
+        params: {'who': 'heads', 'whom': 'sides'},
+      );
+      final full = Figure(
+        move: 'sq_right_left_through',
+        params: {'who': 'heads', 'whom': 'sides', 'fullTurn': true},
+      );
+      expect(_shown(plain), 'heads right left through sides');
+      expect(_canonical(plain), 'heads right left through sides');
+      expect(_shown(full), 'heads right left through sides with a full turn');
+      expect(
+        _canonical(full),
+        'heads right left through sides with a full turn',
+      );
+    });
+
     test('a forward only reads "forward"; and back is the default', () {
       final heads = {'who': 'heads'};
       expect(
