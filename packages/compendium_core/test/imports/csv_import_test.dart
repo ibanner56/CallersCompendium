@@ -1301,5 +1301,111 @@ void main() {
         {'A': 'High', 'B': 'Low'},
       );
     });
+
+    group('the columns the export writes and the import once ignored', () {
+      const cols = [
+        CsvColumnMapping(CsvColumnTarget.title),
+        CsvColumnMapping(CsvColumnTarget.form),
+        CsvColumnMapping(CsvColumnTarget.composed),
+        CsvColumnMapping(CsvColumnTarget.interpreters),
+        CsvColumnMapping(CsvColumnTarget.interpreted),
+        CsvColumnMapping(CsvColumnTarget.mixedLevel),
+        CsvColumnMapping(CsvColumnTarget.rating),
+        CsvColumnMapping(CsvColumnTarget.barnesReference),
+      ];
+      const header =
+          'Title,Form,Composed,Interpreted by,Interpreted in,Mixed level,'
+          'Rating,Barnes reference\r\n';
+
+      test('read the value in the cell', () async {
+        final batch = await plan(
+          '${header}Hole in the Wall,ecd,1698,"Ivan Example, Zoë Müller",'
+          '1916-03-14,yes,4,BIII p. 92\r\n'
+          'Chorus Jig,contra,1987-03,,,no,1,\r\n',
+          m(cols),
+        );
+        expect(batch.errors, isEmpty);
+        final [ecd, contra] = [for (final r in batch.records) r.draft];
+        expect(ecd.dance.composedOn, PartialDate(1698));
+        expect(ecd.interpreterNames, ['Ivan Example', 'Zoë Müller']);
+        expect(ecd.dance.interpretedOn, PartialDate(1916, 3, 14));
+        expect(ecd.dance.mixedLevel, isTrue);
+        expect(ecd.dance.rating, 4);
+        expect(ecd.dance.barnesReference, 'BIII p. 92');
+        expect(ecd.dance.callingNotes, isEmpty);
+        expect(contra.dance.composedOn, PartialDate(1987, 3));
+        expect(contra.interpreterNames, isEmpty);
+        expect(contra.dance.interpretedOn, isNull);
+        expect(contra.dance.mixedLevel, isFalse);
+        expect(contra.dance.rating, 1);
+        expect(contra.dance.callingNotes, isEmpty);
+      });
+
+      test('keep a value that does not fit in the calling notes', () async {
+        final batch = await plan(
+          '${header}Odd,ecd,March 1987,,1916-02-30,sometimes,4.5,'
+          '${'B' * (kMaxBarnesReferenceLength + 1)}\r\n'
+          'Contra,contra,,,,,6,BIII p. 92\r\n',
+          m(cols),
+        );
+        final [odd, contra] = [for (final r in batch.records) r.draft.dance];
+        expect(
+          (odd.composedOn, odd.interpretedOn, odd.mixedLevel, odd.rating),
+          (null, null, false, null),
+        );
+        expect(odd.barnesReference, isEmpty);
+        expect(odd.callingNotes.split('\n\n'), [
+          'Composed: March 1987',
+          'Interpreted in: 1916-02-30',
+          'Mixed level: sometimes',
+          'Rating: 4.5',
+          'Barnes reference: ${'B' * (kMaxBarnesReferenceLength + 1)}',
+        ]);
+        // A contra has no Barnes reference to keep it in.
+        expect(contra.rating, isNull);
+        expect(contra.callingNotes.split('\n\n'), [
+          'Rating: 6',
+          'Barnes reference: BIII p. 92',
+        ]);
+      });
+
+      test('a Barnes reference waits for a Type column after it', () async {
+        final batch = await plan(
+          'Title,Barnes reference,Form\r\nA,BIII p. 92,ecd\r\n',
+          m(const [
+            CsvColumnMapping(CsvColumnTarget.title),
+            CsvColumnMapping(CsvColumnTarget.barnesReference),
+            CsvColumnMapping(CsvColumnTarget.form),
+          ]),
+        );
+        final dance = batch.records.single.draft.dance;
+        expect(dance.barnesReference, 'BIII p. 92');
+        expect(dance.callingNotes, isEmpty);
+      });
+
+      test(
+        'interpreters are matched to your authors, or added, at commit',
+        () async {
+          final batch = await plan(
+            '${header}Hole in the Wall,ecd,,"Ivan Example, Zoë Müller",,,,\r\n',
+            m(cols),
+          );
+          await importer.commit(
+            batch,
+            mapping: m(cols),
+            now: now,
+            newId: _ids(),
+          );
+          final dance = (await dances.listAll()).single;
+          final people = {
+            for (final c in await choreographers.listAll()) c.id: c.name,
+          };
+          expect(
+            [for (final id in dance.interpreterIds) people[id]],
+            ['Ivan Example', 'Zoë Müller'],
+          );
+        },
+      );
+    });
   });
 }

@@ -12,6 +12,7 @@ import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
+import '../model/partial_date.dart';
 import '../storage/shareable_text.dart' show normalizeShareableText;
 import 'author_tokenizer.dart';
 import 'figure_front_end_fan_out.dart';
@@ -26,16 +27,35 @@ enum CsvColumnTarget {
   ignore,
   title,
   authors,
+
+  /// When the dance was composed, as the export writes a date: `1951`,
+  /// `1951-03` or `1951-03-14`.
+  composed,
+
+  /// The people who interpreted the dance, read as [authors] are.
+  interpreters,
+
+  /// When the dance was interpreted, written as [composed] is.
+  interpreted,
   form,
   formation,
   progression,
   level,
+
+  /// Whether the dance is a mixed-level dance: a yes or no cell.
+  mixedLevel,
   status,
   mixer,
+
+  /// The star rating, a whole number from 1 to 5.
+  rating,
   tags,
   tunes,
   meter,
   key,
+
+  /// An English dance's Barnes reference (`formHasBarnesReference`).
+  barnesReference,
   hook,
   callingNotes,
   walkthrough,
@@ -360,6 +380,14 @@ StructuredDraft csvRowToDraft(
   final keptNotes = <String>[];
   String? title;
   final authors = <String>[];
+  final interpreters = <String>[];
+  PartialDate? composedOn;
+  PartialDate? interpretedOn;
+  bool? mixedLevel;
+  int? rating;
+  // The Barnes reference and its column: a form without one keeps it in the
+  // notes, and the form may come from a later column.
+  (int, String)? barnes;
   DanceForm? form;
   Formation? formation;
   Progression? progression;
@@ -436,6 +464,11 @@ StructuredDraft csvRowToDraft(
       CsvColumnTarget.key ||
       CsvColumnTarget.hook ||
       CsvColumnTarget.walkthrough ||
+      CsvColumnTarget.composed ||
+      CsvColumnTarget.interpreted ||
+      CsvColumnTarget.mixedLevel ||
+      CsvColumnTarget.rating ||
+      CsvColumnTarget.barnesReference ||
       CsvColumnTarget.title => column.target,
       CsvColumnTarget.customField => column.customFieldId,
       // A new field is the one commit will give it: an existing field of that
@@ -462,6 +495,45 @@ StructuredDraft csvRowToDraft(
         authors.addAll(
           splitAuthorNames([value], issues: issues, backslashEscapes: true),
         );
+      case CsvColumnTarget.interpreters:
+        interpreters.addAll(
+          splitAuthorNames([value], issues: issues, backslashEscapes: true),
+        );
+      case CsvColumnTarget.composed:
+        final date = _partialDateOf(value);
+        if (date == null) {
+          keep(i, value);
+        } else {
+          composedOn = date;
+        }
+      case CsvColumnTarget.interpreted:
+        final date = _partialDateOf(value);
+        if (date == null) {
+          keep(i, value);
+        } else {
+          interpretedOn = date;
+        }
+      case CsvColumnTarget.mixedLevel:
+        final b = yesNo(value);
+        if (b == null) {
+          keep(i, value);
+        } else {
+          mixedLevel = b;
+        }
+      case CsvColumnTarget.rating:
+        final n = number(value);
+        if (n == null || n != n.roundToDouble() || n < 1 || n > 5) {
+          keep(i, value);
+        } else {
+          rating = n.toInt();
+        }
+      case CsvColumnTarget.barnesReference:
+        // One the dance would cut short is kept whole in the notes.
+        if (value.length > kMaxBarnesReferenceLength) {
+          keep(i, value);
+        } else {
+          barnes = (i, value);
+        }
       case CsvColumnTarget.form:
         final f =
             vocab.forms[csvFold(value)] ?? _byName(DanceForm.values, value);
@@ -569,6 +641,16 @@ StructuredDraft csvRowToDraft(
   if (title == null || title.trim().isEmpty) {
     throw const FormatException('a row needs a title');
   }
+  final danceForm = form ?? DanceForm.contra;
+  // Only an English dance keeps a Barnes reference; another form's is kept in
+  // the notes rather than dropped by the dance.
+  if (barnes case (
+    final i,
+    final value,
+  ) when !formHasBarnesReference(danceForm)) {
+    keep(i, value);
+    barnes = null;
+  }
 
   for (final phrase in phraseLines.keys.toList()..sort()) {
     figureLines.addAll(phraseLines[phrase]!);
@@ -582,13 +664,11 @@ StructuredDraft csvRowToDraft(
   final dance = Dance(
     id: 'csv-draft',
     title: title.trim(),
-    form: form ?? DanceForm.contra,
+    form: danceForm,
     // A row with no readable formation starts on the shape a new dance of its
     // form starts on, as the editor offers it: a contra's duple improper, an
     // English dance's duple minor, a square's square.
-    formation:
-        formation ??
-        Formation(offeredFormationShapes(form ?? DanceForm.contra).first),
+    formation: formation ?? Formation(offeredFormationShapes(danceForm).first),
     progression: progression ?? Progression.single,
     figures: figures,
     hook: hook,
@@ -599,6 +679,11 @@ StructuredDraft csvRowToDraft(
     status: status ?? DanceStatus.active,
     difficultyLevelId: levelId,
     mixer: mixer ?? false,
+    mixedLevel: mixedLevel ?? false,
+    rating: rating,
+    composedOn: composedOn,
+    interpretedOn: interpretedOn,
+    barnesReference: barnes?.$2 ?? '',
     tunes: tunes,
     tagIds: [
       for (final name in {...tagNames}) '$kCsvTagPlaceholderPrefix$name',
@@ -612,7 +697,20 @@ StructuredDraft csvRowToDraft(
     raw: raw,
     issues: issues,
     authorNames: authors,
+    interpreterNames: interpreters,
   );
+}
+
+/// A date cell as the export writes one (`1951`, `1951-03`, `1951-03-14`),
+/// or `null`.
+PartialDate? _partialDateOf(String value) {
+  try {
+    return PartialDate.parse(value.trim());
+  } on FormatException {
+    return null;
+  } on ArgumentError {
+    return null;
+  }
 }
 
 /// Between a formation's shape and its free-text detail, as this app writes
