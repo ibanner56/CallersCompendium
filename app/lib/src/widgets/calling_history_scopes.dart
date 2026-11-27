@@ -56,6 +56,11 @@ class CallingHistoryScopes extends StatefulWidget {
 class _CallingHistoryScopesState extends State<CallingHistoryScopes> {
   StreamSubscription<List<VenueChoice>>? _sub;
   List<VenueChoice>? _choices;
+  StreamSubscription<Map<String, String>>? _namesSub;
+
+  /// Every venue record's name by id, for a chosen venue [_choices] does not
+  /// list.
+  Map<String, String> _venueNames = const {};
 
   @override
   void initState() {
@@ -72,15 +77,34 @@ class _CallingHistoryScopesState extends State<CallingHistoryScopes> {
   @override
   void dispose() {
     unawaited(_sub?.cancel());
+    unawaited(_namesSub?.cancel());
     super.dispose();
   }
 
   void _subscribe() {
     unawaited(_sub?.cancel());
+    unawaited(_namesSub?.cancel());
     _sub = null;
+    _namesSub = null;
     final source = widget.venues;
-    if (source == null) _choices = null;
-    if (source == null) return;
+    if (source == null) {
+      _choices = null;
+      _venueNames = const {};
+      return;
+    }
+    _namesSub = source.watchNames().listen(
+      (names) {
+        if (mounted) setState(() => _venueNames = names);
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        // The chip falls back to the label it was chosen with.
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'calling_history_scopes.venueNames',
+        );
+      },
+    );
     _sub = source.watch().listen(
       (choices) {
         if (mounted) setState(() => _choices = choices);
@@ -143,9 +167,13 @@ class _CallingHistoryScopesState extends State<CallingHistoryScopes> {
     final facets = widget.facets;
     final venue = facets.historyVenue;
     // The catalogue's current name beats the label stored when it was chosen,
-    // so a renamed venue reads right.
+    // so a renamed venue reads right. A venue record the chooser does not
+    // list (no counted call now; a saved search keeps no label) is named from
+    // the record.
+    final venueId = venue?.venueId;
     final venueLabel =
         _choices?.where((c) => c.key == venue).firstOrNull?.label ??
+        (venueId == null ? null : _venueNames[venueId]) ??
         facets.historyVenueLabel;
     final showVenue = venue != null || (_choices?.isNotEmpty ?? false);
     final noWindow =

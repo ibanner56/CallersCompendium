@@ -968,7 +968,8 @@ immutable JSON value:
 
 - Enums are stored by `name`; id sets and the keys of every id-keyed map are
   sorted, so the bytes depend only on the search. (`historyVenueLabel`, the chip
-  text, is display-only and not stored: it is looked up again on load.) Builder row ids are session counters and are **never stored**;
+  text, is display-only and not stored: the chip names a venue from the
+  chooser's row for it, else from the venue record, while it shows.) Builder row ids are session counters and are **never stored**;
   they are minted again on load.
 - `tagsMatchAll` and the sort **direction** are stored, though the panel does not
   persist them on its own: leaving them out would change which dances a saved
