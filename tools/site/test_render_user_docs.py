@@ -25,6 +25,9 @@ What it proves:
   keeps a cross-link from silently 404-ing on the site.
 * **Nothing escapes the output directory**, and no external JS/CSS/CDN
   reference is ever emitted.
+* **The hand-written pages say what the app says.** The home page and both
+  privacy-policy copies name the licence by the app's SPDX id and Perform mode
+  by its in-app name.
 """
 
 from __future__ import annotations
