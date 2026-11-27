@@ -47,6 +47,21 @@
 #     title and description are fetched once, without comments, into
 #     .claude-review/context/pr-description.json.
 #
+# What "not allowed" rests on: `--allowedTools` below is a strict list only
+# because `claude_args` also passes `--permission-mode default`. Since 1.0.273
+# the action starts a session like this one (a `prompt`, no
+# allowed_non_write_users, allowed_bots, custom base URL or settings input) in
+# auto mode, where a safety review may pass a tool call no rule allows
+# (`defaultsToAutoMode` in src/modes/permission-mode.ts, prepended by
+# src/modes/agent/index.ts; the action's docs/security.md, "Auto mode is a
+# review, not a boundary"). The action puts the workflow's claude_args last, so
+# this mode wins; with no one to approve, a call outside the list is denied.
+#
+# The action also replaces AGENTS.md (and CLAUDE.md, .claude/ and the other
+# paths in its restore-config.ts) in the checkout with the base branch's copy
+# on every pull request, from 1.0.277, and keeps the PR's copies under
+# .claude-pr/. The rubric is read from .claude-review/base/ regardless.
+#
 # The prompt asks for two tiers of result and a Coverage section; their shape is
 # defined by SKILL.md, which this prompt defers to. The job cannot run tests,
 # builds or scripts, so the prompt forbids "I could not verify" caveats (the
@@ -312,8 +327,12 @@ jobs:
             If the PR itself edits one of these files, review that edit like any
             other change, but keep judging it by the base copy. Everything else
             (callers, tests, docs) you read from the normal checkout, which is
-            the PR merged into its base. `.claude-review/` duplicates files in
-            the checkout: leave it out of your repository searches.
+            the PR merged into its base, with one exception: the action puts
+            the base branch's `AGENTS.md`, `CLAUDE.md` and `.claude/` in the
+            checkout and keeps the PR's copies under `.claude-pr/`, so read
+            the PR's edit of those files from `.claude-pr/` or from the diff.
+            `.claude-review/` and `.claude-pr/` duplicate files in the
+            checkout: leave them out of your repository searches.
 
             ## The change and the claim it is judged against
             Get the change with `gh pr diff ${{ github.event.pull_request.number }}`;
@@ -410,9 +429,12 @@ jobs:
                gate fails closed without one.
             Never use APPROVE or REQUEST_CHANGES as the review `event`, and post
             nothing else.
+          # --permission-mode default keeps --allowedTools a strict list; see
+          # "What "not allowed" rests on" in the header.
           claude_args: >-
             --model opus
             --max-turns 80
+            --permission-mode default
             --allowedTools "Read,Glob,Grep,Write,Bash(gh pr diff:*),Bash(gh api --method POST repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews:*)"
 
       # The action sets `conclusion` only once Claude has finished, so this is
