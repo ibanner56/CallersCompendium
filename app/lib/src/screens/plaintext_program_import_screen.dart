@@ -106,8 +106,8 @@ class _PlaintextProgramImportScreenState
   /// Whether an online resolution pass is currently running.
   bool _resolving = false;
 
-  /// The running pass's `(done, total)` over the unmatched lines, or null
-  /// before its first report.
+  /// The running pass's `(done, total)` over the unmatched lines that are not
+  /// breaks ([ParsedProgramLine.isBreak]), or null before its first report.
   (int, int)? _resolveProgress;
 
   /// Whether the user asked the running pass to stop.

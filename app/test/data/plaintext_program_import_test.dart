@@ -216,7 +216,17 @@ void main() {
     });
 
     test('a near-miss word stays a note', () {
-      const nearMisses = ['Pauses', 'Breaks', 'Pause!', 'Pause café', 'Pauzes'];
+      // A break printed with its minutes or as an alternate is not a bare
+      // label either: only the label alone on its line is recognised.
+      const nearMisses = [
+        'Pauses',
+        'Breaks',
+        'Pause!',
+        'Pause café',
+        'Pauzes',
+        'Pause (15 Min.)',
+        'ALT: Break',
+      ];
       final slots = paste(nearMisses.join('\n'));
       expect(slots.map((s) => s.isBreak), everyElement(isFalse));
       expect(slots.map((s) => s.text), nearMisses);

@@ -280,9 +280,10 @@ void main() {
     expect(resolved.single.importedOnline, isTrue);
   });
 
-  // A pasted break label is the break (question 44 of the pre-release audit's
-  // decision sheet), not a title to look up: a dance online called "Pause"
-  // must not take its place.
+  // Question 44 of the pre-release audit's decision sheet (the maintainer's
+  // answer) makes a pasted break label a break. Not looking it up online is
+  // this change's own call (the author's, not the maintainer's): otherwise a
+  // dance online called "Pause" would take the break's place.
   test('a pasted break label is never searched online', () async {
     final repos = openTestRepositories();
     final service = _FakeOnlineService(

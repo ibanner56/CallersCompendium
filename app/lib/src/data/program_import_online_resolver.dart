@@ -40,7 +40,8 @@ import 'program_import_rollback.dart';
 /// online resolution only fills the gap where the local collection had nothing.
 /// So does a break line ([ParsedProgramLine.isBreak]): a pasted break label is
 /// the break, not a title, and a dance online that shares its name must not
-/// take its place.
+/// take its place (an implementer's call alongside the maintainer's answer to
+/// question 44 of the pre-release audit's decision sheet).
 ///
 /// Only a single search fetch per title *per source* and a single JSON fetch
 /// per confident import are performed — no crawling (import fidelity rule).
@@ -58,7 +59,7 @@ import 'program_import_rollback.dart';
 /// [isCancelled] is checked before each title and each source; once it
 /// returns true the pass stops the same way and sets
 /// [ProgramOnlineResolution.cancelled]. [onProgress] reports `(done, total)`
-/// over the unmatched lines.
+/// over the unmatched lines that are not breaks ([ParsedProgramLine.isBreak]).
 ///
 /// **Undo.** Every dance this pass writes is recorded in [rollback] when one
 /// is supplied, so the program import can take it back out on Undo or when
