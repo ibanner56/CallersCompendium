@@ -912,7 +912,6 @@ class DanceEditorController extends ChangeNotifier {
       phraseController.text = dance.phraseStructure.raw;
       formationDetailController.text = dance.formation.detail ?? '';
       meterController.text = dance.meter;
-      _statedBeatsPerBarSeen = statedBeatsPerBar;
       musicalKeyController.text = dance.musicalKey;
       alternateTitlesController.text = dance.alternateTitles.join('\n');
       barnesReferenceController.text = dance.barnesReference;
@@ -920,6 +919,7 @@ class DanceEditorController extends ChangeNotifier {
       newPartnerTextController.text = dance.newPartnerText;
       _improper = dance.formation.improper;
       _form = dance.form;
+      _statedBeatsPerBarSeen = _statedBeatsPerBarApplied;
       _followForm();
       _formationShape = dance.formation.shape;
       _progression = dance.progression;
@@ -1513,10 +1513,7 @@ class DanceEditorController extends ChangeNotifier {
     if (formationDetailController.text != s.formationDetail) {
       formationDetailController.text = s.formationDetail;
     }
-    if (meterController.text != s.meter) {
-      meterController.text = s.meter;
-      _statedBeatsPerBarSeen = statedBeatsPerBar;
-    }
+    if (meterController.text != s.meter) meterController.text = s.meter;
     if (musicalKeyController.text != s.musicalKey) {
       musicalKeyController.text = s.musicalKey;
     }
@@ -1535,6 +1532,10 @@ class DanceEditorController extends ChangeNotifier {
 
     // Enum fields.
     _form = s.form;
+    // Snapshots (also the autosave draft's format) do not carry it, so a
+    // restored non-English dance forgets the Meter it had when last English,
+    // and making it English applies the Meter as for a dance just opened.
+    _statedBeatsPerBarSeen = _statedBeatsPerBarApplied;
     _formationShape = s.formationShape;
     _improper = s.improper;
     _progression = s.progression;
@@ -1885,6 +1886,8 @@ class DanceEditorController extends ChangeNotifier {
         newPartnerText: newPartnerText,
         singing: _singing,
         freeForm: _freeForm,
+        // Null is "follow the kind" (setFreeForm), not "keep the stored one".
+        clearFreeForm: _freeForm == null,
         form: _form,
         formation: formation,
         progression: _progression,
@@ -1959,11 +1962,26 @@ class DanceEditorController extends ChangeNotifier {
   // -------------------------------------------------------------------------
 
   void setForm(DanceForm value) {
-    _fitFormationToForm(from: _form, to: value);
+    final from = _form;
+    _fitFormationToForm(from: from, to: value);
     _form = value;
     _followForm();
     _fitSequenceTimingToForm(figureDrafts);
     _fitPhrasesToForm();
+    // A Meter given while the dance was another form becomes the rule for
+    // its bars now, as if typed now: when it states other beats than it did
+    // when the dance was last English (or the dance never was), the phrases
+    // take them in this undo step. Away from English and back with the same
+    // Meter changes nothing (ADR-006 §9.2 point 8).
+    if (from != value && offersNamedPhrases) {
+      final perBar = statedBeatsPerBar;
+      if (perBar != _statedBeatsPerBarSeen) {
+        if (_structureForMeter(perBar) case final raw?) {
+          phraseController.text = raw;
+        }
+      }
+      _statedBeatsPerBarSeen = perBar;
+    }
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
@@ -2897,53 +2915,100 @@ class DanceEditorController extends ChangeNotifier {
     scheduleAutosave();
   }
 
-  /// The beats in a bar the Meter stated when it was last loaded or edited, so
-  /// that [onMeterChanged] can tell a Meter that now states other beats from
-  /// one that only has more words in it.
+  /// The beats in a bar the Meter stated when it last counted the dance's bars
+  /// (loaded, restored or edited while the dance was English), so that
+  /// [onMeterChanged] and [setForm] can tell a Meter that now states other
+  /// beats from one that only has more words in it. Null while a dance of
+  /// another form has never been English here: its Meter has not counted its
+  /// bars, so making it English applies it.
   int? _statedBeatsPerBarSeen;
 
-  /// The Meter field changed. Named phrases count their bars by it (Hudson,
-  /// 19 November 2026: "the meter is the rule"), so a Meter that now states
-  /// other beats in a bar than it did sets them in each named phrase, keeping
-  /// its bars.
+  /// What [_statedBeatsPerBarSeen] starts as for the dance as loaded or
+  /// restored: the Meter's beats for an English dance, else none.
+  int? get _statedBeatsPerBarApplied =>
+      offersNamedPhrases ? statedBeatsPerBar : null;
+
+  /// The Meter field changed. An English dance's phrases count their bars by
+  /// it (Hudson, 19 November 2026: "the meter is the rule"; ADR-006), so a
+  /// Meter that now states other beats in a bar than it did sets them in each
+  /// part of the phrase structure, keeping its phrases and bars
+  /// ([_structureForMeter]).
   ///
   /// A Meter that states the same beats in a bar as before (a word added after
   /// "3/4"), or none or several meters ("3/4 and 6/8"), leaves the phrases as
-  /// they are. So does any Meter when the phrases differ in beats to the bar
-  /// among themselves: a structure a caller set phrase by phrase (#2303) is
-  /// never flattened, whatever the Meter says, and typing the Meter a
-  /// character at a time cannot reach it. An unnamed structure is not
-  /// rewritten.
+  /// they are. So does any Meter when the parts differ in beats to the bar
+  /// among themselves: a structure a caller set part by part (#2303) is never
+  /// flattened, whatever the Meter says, and typing the Meter a character at
+  /// a time cannot reach it.
   void onMeterChanged() {
+    // Another form's Meter counts no bars; [setForm] applies it if the dance
+    // is made English.
+    if (!offersNamedPhrases) {
+      onTextEdited();
+      return;
+    }
     final perBar = statedBeatsPerBar;
     final changed = perBar != _statedBeatsPerBarSeen;
     _statedBeatsPerBarSeen = perBar;
-    final phrases = typedPhraseStructure?.namedPhrases;
-    if (offersNamedPhrases &&
-        perBar != null &&
-        changed &&
-        phrases != null &&
-        phrases.every((p) => p.beatsPerBar == phrases.first.beatsPerBar) &&
-        phrases.any((p) => p.beatsPerBar != perBar)) {
-      try {
-        setPhraseStructureText(
-          PhraseStructure.named([
-            for (final p in phrases)
-              NamedPhrase(
-                name: p.name,
-                plays: p.plays,
-                bars: p.bars,
-                beatsPerBar: perBar,
-              ),
-          ]).raw,
-        );
+    if (changed) {
+      if (_structureForMeter(perBar) case final raw?) {
+        setPhraseStructureText(raw);
         return;
-      } on FormatException {
-        // diagnostics: silent — the bars in this meter are past the bounds;
-        // the structure keeps its old beats and the meter its text.
       }
     }
     onTextEdited();
+  }
+
+  /// The phrase structure text an English dance takes from a Meter stating
+  /// [perBar] beats to the bar, or null when it keeps the one it has: the
+  /// dance is not English, the Meter states no one meter, the structure does
+  /// not parse, its parts differ in beats to the bar, or it already counts
+  /// [perBar]. Named phrases keep their names; an unnamed structure becomes
+  /// the one an import writes for that meter (the standard `4*8*2` is
+  /// `4*8*3` in 3/2, and the standard again in 2/2), so its phrases stay a
+  /// whole number of bars. Named phrases followed the Meter first (ADR-006
+  /// §9.2 point 8); an unnamed structure follows it too since the
+  /// pre-release audit (finding A2-01, an implementer's call: before, it
+  /// kept two beats a bar under any Meter).
+  String? _structureForMeter(int? perBar) {
+    final structure = typedPhraseStructure;
+    if (!offersNamedPhrases ||
+        perBar == null ||
+        structure == null ||
+        structure.hasMixedMeter ||
+        structure.components.first.beatsPerBar == perBar) {
+      return null;
+    }
+    try {
+      return _inBeatsPerBar(structure, perBar);
+    } on FormatException {
+      // diagnostics: silent — the bars in this meter are past the bounds;
+      // the structure keeps its old beats and the meter its text.
+      return null;
+    }
+  }
+
+  /// [structure] with every part counting [perBar] beats to the bar, its
+  /// phrases and bars kept, as it is stored: the standard structure as `''`.
+  /// Throws [FormatException] when the result is past the bounds.
+  static String _inBeatsPerBar(PhraseStructure structure, int perBar) {
+    if (structure.namedPhrases case final phrases?) {
+      return PhraseStructure.named([
+        for (final p in phrases)
+          NamedPhrase(
+            name: p.name,
+            plays: p.plays,
+            bars: p.bars,
+            beatsPerBar: perBar,
+          ),
+      ]).raw;
+    }
+    final unnamed = PhraseStructure.parse(
+      structure.components
+          .map((c) => '${c.phraseCount}*${c.bars}*$perBar')
+          .join(' + '),
+    );
+    return unnamed == PhraseStructure.standard ? '' : unnamed.raw;
   }
 
   /// The phrase-structure field changed.
