@@ -165,6 +165,7 @@ void main() {
       DanceForm form = DanceForm.ecd,
       String meter = '',
       String phraseStructure = '',
+      int beats = 12,
     }) async {
       await repos.dances.create(
         Dance(
@@ -181,7 +182,7 @@ void main() {
           // Eight figures of 4 bars of 3/2: the ordinary 32-bar tune.
           figures: [
             for (var i = 0; i < 8; i++)
-              testFigure(move: 'ecd_set', params: {'beats': 12}),
+              testFigure(move: 'ecd_set', params: {'beats': beats}),
           ],
           createdAt: now,
           updatedAt: now,
@@ -210,10 +211,11 @@ void main() {
     test('typing 3/2 writes the structure an import writes, so a 32-bar dance '
         'fits its phrases; one Undo takes back both', () async {
       final repos = openTestRepositories();
-      final controller = await openEnglish(repos);
+      // Eight figures of 4 bars, entered before the Meter: 8 beats each in
+      // two beats a bar, and 12 in 3/2 once the Meter is typed (A2-02).
+      final controller = await openEnglish(repos, beats: 8);
       addTearDown(controller.dispose);
-      // 96 beats against the standard 64: the warning the fix removes.
-      expect(codes(controller), contains('phrase_overflow'));
+      expect(codes(controller), isEmpty);
 
       controller.meterController.text = '3/2';
       controller.onMeterChanged();
@@ -374,6 +376,557 @@ void main() {
       controller.onMeterChanged();
       expect(controller.phraseController.text, '');
     });
+  });
+
+  // Pre-release audit finding A2-02: a Meter typed or corrected after the
+  // figures re-read every figure's stored beats in the new bar length, so the
+  // 4 bars a caller typed read "8 beats" in 3/2 and 2 bars in 4/4. The
+  // maintainer chose to keep each figure's length in bars instead.
+  group('a Meter edit keeps each figure\'s length in bars (A2-02)', () {
+    Future<DanceEditorController> openDance(
+      CompendiumRepositories repos, {
+      DanceForm form = DanceForm.ecd,
+      String meter = '',
+      String phraseStructure = '',
+      List<Figure>? figures,
+    }) async {
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Figures First',
+          form: form,
+          formation: Formation(switch (form) {
+            DanceForm.ecd => FormationShape.dupleMinor,
+            DanceForm.square => FormationShape.square,
+            _ => FormationShape.dupleImproper,
+          }),
+          meter: meter,
+          phraseStructure: phraseStructure,
+          // Eight figures of 4 bars of two beats: a 32-bar dance with no
+          // Meter yet.
+          figures:
+              figures ??
+              [
+                for (var i = 0; i < 8; i++)
+                  testFigure(move: 'ecd_set', params: {'beats': 8}),
+              ],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        debounce: testDebounce,
+      );
+      await controller.load(
+        dance: await repos.dances.getById('d1'),
+        fieldDefs: const [],
+      );
+      return controller;
+    }
+
+    List<int> counts(DanceEditorController controller) => [
+      for (final d in controller.figureDrafts) d.beats,
+    ];
+
+    void typeMeter(DanceEditorController controller, String meter) {
+      controller.meterController.text = meter;
+      controller.onMeterChanged();
+    }
+
+    /// How many bars [beats] are in the dance as the editor now times it.
+    String? bars(DanceEditorController controller, int beats) => barTimingFor(
+      controller.form,
+      controller.phraseStructure,
+      meter: controller.meterController.text,
+    )?.barsTextAt(0, beats)?.text;
+
+    test('the 4 bars typed before the Meter stay 4 bars in 3/2 and in 4/4, '
+        'and the dance still fills its phrases', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        phraseStructure: 'A:2*8*2 + B:2*8*2',
+      );
+      addTearDown(controller.dispose);
+      expect(bars(controller, counts(controller).first), '4');
+      expect(controller.warnings, isEmpty);
+
+      typeMeter(controller, '3/2');
+      expect(controller.phraseController.text, 'A:2*8*3 + B:2*8*3');
+      expect(counts(controller), List.filled(8, 12));
+      expect(bars(controller, 12), '4');
+      expect(controller.warnings, isEmpty);
+
+      typeMeter(controller, '4/4');
+      expect(controller.phraseController.text, 'A:2*8*4 + B:2*8*4');
+      expect(counts(controller), List.filled(8, 16));
+      expect(bars(controller, 16), '4');
+      expect(controller.warnings, isEmpty);
+      // What Save writes.
+      expect(
+        controller.buildDance().figuresSource,
+        isA<DecodedFigures>().having(
+          (s) => [for (final f in s.figures) f.beats],
+          'beats',
+          List.filled(8, 16),
+        ),
+      );
+    });
+
+    test('one Undo takes back the Meter, the phrases and the counts, and '
+        'Redo puts them all back', () async {
+      for (final settle in [false, true]) {
+        final repos = openTestRepositories();
+        final controller = await openDance(repos);
+        addTearDown(controller.dispose);
+
+        typeMeter(controller, '3/2');
+        if (settle) await settleDebounce();
+        expect(counts(controller), List.filled(8, 12), reason: '$settle');
+
+        controller.undo();
+        expect(controller.meterController.text, '', reason: '$settle');
+        expect(controller.phraseController.text, '', reason: '$settle');
+        expect(counts(controller), List.filled(8, 8), reason: '$settle');
+        expect(controller.canUndo, isFalse, reason: '$settle');
+
+        controller.redo();
+        expect(controller.meterController.text, '3/2', reason: '$settle');
+        expect(controller.phraseController.text, '4*8*3', reason: '$settle');
+        expect(counts(controller), List.filled(8, 12), reason: '$settle');
+      }
+    });
+
+    test('the autosave draft holds the counts in the new bars', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(repos);
+      addTearDown(controller.dispose);
+
+      typeMeter(controller, '3/2');
+      expect(await draftPersisted(repos, controller.draftKey), isTrue);
+      final draft = decodeDraft(await repos.settings.get(controller.draftKey));
+      expect(draft.meter, '3/2');
+      expect(draft.phrase, '4*8*3');
+      expect(
+        [for (final d in draft.figureDrafts) d.params['beats']],
+        [for (var i = 0; i < 8; i++) 12],
+      );
+    });
+
+    test('typing the Meter a character at a time converts the counts '
+        'once', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(repos);
+      addTearDown(controller.dispose);
+      for (final text in ['3', '3/', '3/2', '3/2 ', '3/2 slow']) {
+        typeMeter(controller, text);
+      }
+      expect(counts(controller), List.filled(8, 12));
+      // And back, through the texts that state no meter on the way.
+      for (final text in ['3/', '', '6', '6/', '6/8']) {
+        typeMeter(controller, text);
+      }
+      expect(controller.phraseController.text, '');
+      expect(counts(controller), List.filled(8, 8));
+    });
+
+    test('a dance in 3/2 keeps its bars in 6/8, and again in 3/2', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        meter: '3/2',
+        phraseStructure: '4*8*3',
+        figures: [
+          for (var i = 0; i < 8; i++)
+            testFigure(move: 'ecd_set', params: {'beats': 12}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      typeMeter(controller, '6/8');
+      expect(controller.phraseController.text, '');
+      expect(counts(controller), List.filled(8, 8));
+      typeMeter(controller, '3/2');
+      expect(controller.phraseController.text, '4*8*3');
+      expect(counts(controller), List.filled(8, 12));
+    });
+
+    test('a Meter the phrases do not follow still keeps the bars: the Meter '
+        'is the rule', () async {
+      final repos = openTestRepositories();
+      // Timed in bars of 3 by the Meter, over the standard structure (two
+      // beats a bar) a caller left as it was.
+      final controller = await openDance(
+        repos,
+        meter: '3/2',
+        figures: [
+          for (var i = 0; i < 8; i++)
+            testFigure(move: 'ecd_set', params: {'beats': 12}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      expect(bars(controller, 12), '4');
+      // 2/2 leaves the standard structure as it is, but the bars are now two
+      // beats long.
+      typeMeter(controller, '2/2');
+      expect(controller.phraseController.text, '');
+      expect(counts(controller), List.filled(8, 8));
+      expect(bars(controller, 8), '4');
+    });
+
+    test('a Meter that leaves the bar length as it was changes no '
+        'count', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        meter: '3/2',
+        phraseStructure: '4*8*3',
+        figures: [
+          for (var i = 0; i < 8; i++)
+            testFigure(move: 'ecd_set', params: {'beats': 12}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      // The same beats in a bar, more words.
+      typeMeter(controller, '3/4 slow');
+      expect(counts(controller), List.filled(8, 12));
+      // No Meter at all: the phrases, still three beats a bar, time it.
+      typeMeter(controller, '');
+      expect(controller.phraseController.text, '4*8*3');
+      expect(counts(controller), List.filled(8, 12));
+      // Two meters of different bars state none either.
+      typeMeter(controller, '3/4 and 6/8');
+      expect(counts(controller), List.filled(8, 12));
+    });
+
+    test('a tune whose phrases differ in beats to the bar keeps every '
+        'count', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        meter: '3/4',
+        phraseStructure: 'A:2*4*3 + B:1*8*2',
+        figures: [
+          for (var i = 0; i < 4; i++)
+            testFigure(move: 'ecd_set', params: {'beats': 12}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      typeMeter(controller, '2/4');
+      expect(controller.phraseController.text, 'A:2*4*3 + B:1*8*2');
+      expect(counts(controller), List.filled(4, 12));
+    });
+
+    for (final (why, figures, meter) in [
+      (
+        'one count is a bar and a half of two beats, which is no whole '
+            'number of beats in 3/2',
+        [8, 3],
+        '3/2',
+      ),
+      (
+        'one count is a quarter of a bar of 4/4, no whole or half bar',
+        [16, 1],
+        '8/4',
+      ),
+      ('one count would pass the 64 beats a figure can hold', [64, 8], '3/2'),
+    ]) {
+      test('no count changes when $why', () async {
+        final repos = openTestRepositories();
+        final controller = await openDance(
+          repos,
+          meter: meter == '8/4' ? '4/4' : '',
+          phraseStructure: meter == '8/4' ? '4*8*4' : '',
+          figures: [
+            for (final beats in figures)
+              testFigure(move: 'ecd_set', params: {'beats': beats}),
+          ],
+        );
+        addTearDown(controller.dispose);
+        typeMeter(controller, meter);
+        // The phrases still follow the Meter.
+        expect(controller.phraseController.text, isNot(''));
+        expect(counts(controller), figures);
+      });
+    }
+
+    test('a meanwhile, a modifier and a sequence keep their bars, steps and '
+        'span alike', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        figures: [
+          Figure.meanwhile(
+            figures: [
+              testFigure(move: 'ecd_set', params: {'beats': 8}),
+              testFigure(move: 'ecd_circle', params: {'beats': 8}),
+            ],
+            beats: 8,
+          ),
+          Figure.modifier(
+            figures: [
+              testFigure(move: 'ecd_circle', params: {'beats': 8}),
+              testFigure(move: 'ecd_set', params: {'beats': 4}),
+            ],
+            beats: 8,
+          ),
+          // Counts its steps: 2 bars and 2 bars.
+          Figure.sequence(
+            figures: [
+              testFigure(move: 'ecd_set', params: {'beats': 4}),
+              testFigure(move: 'ecd_circle', params: {'beats': 4}),
+            ],
+            beats: 8,
+          ),
+          // States a span of 4 bars over steps with no timing of their own.
+          Figure.sequence(
+            figures: [
+              testFigure(move: 'ecd_set'),
+              testFigure(move: 'ecd_circle'),
+            ],
+            beats: 8,
+          ),
+        ],
+      );
+      addTearDown(controller.dispose);
+      final spanned = controller.figureDrafts[3];
+      expect(spanned.sequenceSpanStated, isTrue);
+
+      typeMeter(controller, '3/2');
+      List<int?> stepCounts(int row) => [
+        for (final child in controller.figureDrafts[row].containerChildren!)
+          child.params['beats'] as int?,
+      ];
+      expect(counts(controller), [12, 12, 12, 12]);
+      expect(stepCounts(0), [12, 12]);
+      expect(stepCounts(1), [12, 6]);
+      expect(stepCounts(2), [6, 6]);
+      // The span's steps stay untimed.
+      expect(stepCounts(3), [null, null]);
+      expect(controller.figureDrafts[3].sequenceSpanStated, isTrue);
+    });
+
+    test('a dance with no figures takes the Meter as before', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        phraseStructure: 'A:2*8*2 + B:2*8*2',
+        figures: const [],
+      );
+      addTearDown(controller.dispose);
+      typeMeter(controller, '3/2');
+      expect(controller.phraseController.text, 'A:2*8*3 + B:2*8*3');
+      expect(controller.figureDrafts, isEmpty);
+    });
+
+    test('says what it did to the counts, and only when it changed or kept '
+        'them', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(repos);
+      addTearDown(controller.dispose);
+      // No stated meter yet: nothing to say.
+      controller.meterController.text = '3';
+      expect(controller.onMeterChanged(), isNull);
+      controller.meterController.text = '3/2';
+      final kept = controller.onMeterChanged()!;
+      expect(kept.outcome, FigureBarsRescale.rescaled);
+      expect(kept.beatsPerBar, 3);
+      expect(controller.meterBarsChange, same(kept));
+      // More words, the same bars.
+      controller.meterController.text = '3/2 slow';
+      expect(controller.onMeterChanged(), isNull);
+      expect(controller.meterBarsChange, same(kept));
+      // On the way to another meter, a text that states none leaves the
+      // phrases' three beats a bar: the notice still holds.
+      controller.meterController.text = '3/';
+      expect(controller.onMeterChanged(), isNull);
+      expect(controller.canUndoMeterChange(kept), isTrue);
+
+      // One count of a bar and a half of 4/4 cannot be whole beats in 3/2.
+      final repos2 = openTestRepositories();
+      final uneven = await openDance(
+        repos2,
+        meter: '4/4',
+        phraseStructure: '4*8*4',
+        figures: [
+          testFigure(move: 'ecd_set', params: {'beats': 16}),
+          testFigure(move: 'ecd_set', params: {'beats': 6}),
+        ],
+      );
+      addTearDown(uneven.dispose);
+      uneven.meterController.text = '3/2';
+      final left = uneven.onMeterChanged()!;
+      expect(left.outcome, FigureBarsRescale.notExact);
+      expect(left.beatsPerBar, 3);
+    });
+
+    test('says nothing for a dance with no counts to change', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(repos, figures: const []);
+      addTearDown(controller.dispose);
+      controller.meterController.text = '3/2';
+      expect(controller.onMeterChanged(), isNull);
+      expect(controller.meterBarsChange, isNull);
+    });
+
+    test("the notice's Undo takes back the Meter change while it is the "
+        'latest step, and nothing after', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(repos);
+      addTearDown(controller.dispose);
+      controller.titleController.text = 'Renamed';
+      controller.onTextEdited();
+      await settleDebounce();
+
+      controller.meterController.text = '3/2';
+      final change = controller.onMeterChanged()!;
+      // While its step waits out the debounce.
+      expect(controller.canUndoMeterChange(change), isTrue);
+      await settleDebounce();
+      expect(controller.canUndoMeterChange(change), isTrue);
+      expect(controller.undoMeterChange(change), isTrue);
+      expect(controller.meterController.text, '');
+      expect(counts(controller), List.filled(8, 8));
+      expect(controller.titleController.text, 'Renamed');
+      // Undone already: a second tap does not undo the title too.
+      expect(controller.canUndoMeterChange(change), isFalse);
+      expect(controller.undoMeterChange(change), isFalse);
+      expect(controller.titleController.text, 'Renamed');
+      // Redone, it is the latest step again.
+      controller.redo();
+      expect(controller.canUndoMeterChange(change), isTrue);
+
+      // A later edit, pending or pushed, is not the Meter's to take back.
+      controller.notesController.text = 'Later';
+      controller.onTextEdited();
+      expect(controller.canUndoMeterChange(change), isFalse);
+      await settleDebounce();
+      expect(controller.canUndoMeterChange(change), isFalse);
+      expect(controller.undoMeterChange(change), isFalse);
+      expect(controller.notesController.text, 'Later');
+      expect(counts(controller), List.filled(8, 12));
+    });
+
+    test('a Meter corrected back after counts that could not follow it '
+        'leaves them as they were', () async {
+      final repos = openTestRepositories();
+      // 3 bars and a bar and a half of 2/2.
+      final controller = await openDance(
+        repos,
+        meter: '2/2',
+        figures: [
+          testFigure(move: 'ecd_set', params: {'beats': 6}),
+          testFigure(move: 'ecd_set', params: {'beats': 3}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      controller.meterController.text = '3/2';
+      final left = controller.onMeterChanged()!;
+      expect(left.outcome, FigureBarsRescale.notExact);
+      expect(counts(controller), [6, 3]);
+      // Typed back: the counts mean what they meant, and nothing changes.
+      controller.meterController.text = '2/2';
+      expect(controller.onMeterChanged(), isNull);
+      expect(counts(controller), [6, 3]);
+      // The figures read in their bars again: the notice that said they
+      // read in bars of 3 goes, though its step is still waiting.
+      expect(controller.canUndoMeterChange(left), isFalse);
+    });
+
+    test('a Meter edited in place through meters the counts cannot follow '
+        'ends with them in the bars they had', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        meter: '2/2',
+        figures: [
+          testFigure(move: 'ecd_set', params: {'beats': 8}),
+          testFigure(move: 'ecd_set', params: {'beats': 32}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      // 2/2 to 12/8 by typing a 1 before the 2, then fixing the 2 below.
+      for (final text in ['12/2', '12/', '12/8']) {
+        typeMeter(controller, text);
+      }
+      // 4 bars and 16 bars of four beats.
+      expect(counts(controller), [16, 64]);
+    });
+
+    test('once a count is edited in the bars a Meter left them in, the next '
+        'Meter counts from those bars', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        meter: '2/2',
+        figures: [
+          testFigure(move: 'ecd_set', params: {'beats': 6}),
+          testFigure(move: 'ecd_set', params: {'beats': 3}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      typeMeter(controller, '3/2');
+      // Set to 1 bar of 3/2.
+      controller.figureDrafts[1].params['beats'] = 3;
+      controller.figureDrafts[0].params['beats'] = 9;
+      controller.onFiguresChanged();
+      typeMeter(controller, '2/2');
+      expect(counts(controller), [6, 2]);
+    });
+
+    test('an edit that makes its own undo step while the Meter step waits '
+        'takes the Meter change with it, so the notice cannot undo it '
+        'alone', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(repos);
+      addTearDown(controller.dispose);
+      controller.meterController.text = '3/2';
+      final change = controller.onMeterChanged()!;
+      controller.setWalkthroughText('Walk it.');
+      expect(controller.canUndoMeterChange(change), isFalse);
+      expect(controller.undoMeterChange(change), isFalse);
+      expect(controller.walkthroughController.text, 'Walk it.');
+    });
+
+    test('typing after the Meter step tells the editor at once that the '
+        "notice's Undo no longer applies", () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(repos);
+      addTearDown(controller.dispose);
+      controller.meterController.text = '3/2';
+      final change = controller.onMeterChanged()!;
+      await settleDebounce();
+      var notified = 0;
+      controller.addListener(() => notified++);
+      controller.titleController.text = 'Renamed';
+      controller.onTextEdited();
+      expect(controller.canUndoMeterChange(change), isFalse);
+      expect(notified, greaterThan(0));
+    });
+
+    for (final form in [DanceForm.contra, DanceForm.square]) {
+      test('a ${form.name} dance, timed in beats, keeps its counts', () async {
+        final repos = openTestRepositories();
+        final controller = await openDance(
+          repos,
+          form: form,
+          figures: [
+            for (var i = 0; i < 4; i++)
+              testFigure(
+                move: form == DanceForm.square
+                    ? 'sq_forward_and_back'
+                    : 'circle',
+                params: {'beats': 8},
+              ),
+          ],
+        );
+        addTearDown(controller.dispose);
+        typeMeter(controller, '3/2');
+        expect(counts(controller), List.filled(4, 8));
+      });
+    }
   });
 
   group('an undecodable transcription survives editing (#1347)', () {

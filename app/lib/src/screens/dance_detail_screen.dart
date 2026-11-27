@@ -1150,7 +1150,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // The dialect this dance is shown in: the reader's, unless the dance's
     // choreographer asked that it only be called with larks and robins.
     final danceDialect = _danceDialect(detail, activeDialect);
-    final roleTermsOverridden = !identical(danceDialect, activeDialect);
+    // Only a role-term swap earns the note: a Fifer dance can also leave out a
+    // gendered move wording, which returns a copy whose role terms are the
+    // reader's own.
+    final roleTermsOverridden = overridesRoleTerms(
+      activeDialect,
+      title: dance.title,
+      authorNames: detail.authorNames,
+    );
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );

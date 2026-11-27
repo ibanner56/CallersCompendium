@@ -6,8 +6,9 @@
 /// Rachel ("Rae") Fifer has asked the dance community at large that her dances
 /// only ever be called with larks and robins. Her dances therefore render
 /// through [dialectForDance], which swaps the reader's role terms for lark and
-/// robin and leaves the rest of their dialect (move names, wordings, the other
-/// dancer words) as they chose it.
+/// robin, leaves out the reader's move names and wordings that hold a gendered
+/// role word, and leaves the rest of their dialect (the other move names and
+/// wordings, the other dancer words) as they chose it.
 library;
 
 import 'package:meta/meta.dart';
@@ -37,6 +38,49 @@ const Set<String> _larksRobinsTitles = {
   'renewed joy',
   'if i was dead and it wouldnt go to waste',
 };
+
+/// The gendered role words a dance [requiresLarksRobins] leaves out of the
+/// reader's move names and wordings, lowercase. The app's own former list of
+/// gendered role words, restored for this one use from gendered_terms.dart,
+/// the file #2570 removed: its words
+/// are the gendered ones `legacyRoleSynonyms` and the discouraged-term table
+/// read as a role, plus "gentleman" and "gentlemen".
+const Set<String> _genderedRoleWords = {
+  'gent',
+  'gents',
+  'gentleman',
+  'gentlemen',
+  'man',
+  'men',
+  'lady',
+  'ladies',
+  'woman',
+  'women',
+};
+
+/// Gendered role words that are also everyday words in a language the app
+/// ships: "man" is the impersonal pronoun in German and Danish ("one"), and
+/// "men" is a word in Dutch. A move name or wording is a sentence in any of
+/// those languages, so these are not taken as gendered there, and a German
+/// wording such as "dann geht man vor" is kept (the former list's own rule).
+/// The cost: an English wording whose only role word is "man" or "men" is
+/// kept too.
+const Set<String> _alsoPronouns = {'man', 'men'};
+
+/// What separates words: anything that is not a letter or mark, so "Gents2"
+/// and "Men-chain" hold a role word, and "Gent's" holds "gent".
+final RegExp _nonWord = RegExp(r'[^\p{L}\p{M}]+', unicode: true);
+
+/// Whether [text], a move name or wording, holds a gendered role word as a
+/// whole word, in any case, other than [_alsoPronouns]. "Ladies chain" does;
+/// "Mandy chain", "salmon" and "dann geht man vor" do not.
+bool _holdsGenderedRoleWord(String text) {
+  for (final word in text.toLowerCase().split(_nonWord)) {
+    if (_alsoPronouns.contains(word)) continue;
+    if (_genderedRoleWords.contains(word)) return true;
+  }
+  return false;
+}
 
 /// Author names that say nothing about who wrote the dance. "Unknown" and
 /// "Traditional" are real choreographer rows, not an empty author list.
@@ -81,7 +125,8 @@ bool requiresLarksRobins({
 }
 
 /// Whether [dialect]'s role terms already read lark and robin (in any case),
-/// so [dialectForDance] has nothing to change.
+/// so [dialectForDance] leaves its role terms, and its single-dancer and
+/// discouraged words, as they are.
 bool _hasLarksRobinsRoles(Dialect dialect) {
   for (final MapEntry(:key, :value) in _larksRobinsRoles.entries) {
     final term = dialect.roles[key];
@@ -109,22 +154,66 @@ bool overridesRoleTerms(
 /// The dialect to show the dance titled [title] by [authorNames] in, given the
 /// reader's [dialect].
 ///
-/// Returns [dialect] itself unless [overridesRoleTerms]. Otherwise returns a
-/// copy, under the same name, that:
+/// Returns [dialect] itself unless the dance [requiresLarksRobins] and
+/// [dialect] either [overridesRoleTerms] or has a move name or wording that
+/// holds a gendered role word. Otherwise returns a copy, under the same name.
+/// When it [overridesRoleTerms], the copy:
 /// - calls the roles lark and robin;
 /// - drops the reader's own words for single dancers (`onesRole1` …), which
 ///   usually spell a role ("first gent"), so they read "first lark";
 /// - stops flagging lark and robin as discouraged terms.
 ///
-/// Move names, move wordings and the other dancer words are the reader's.
+/// Either way, the copy drops each of the reader's move names
+/// ([Dialect.moves]), move wordings ([Dialect.moveWordings]) and wording
+/// branches ([Dialect.moveWordingBranches]) that holds a gendered role word,
+/// so that move reads in the app's default wording ("ladies chain" reads as
+/// the default chain): the maintainer's answer to question 35 of the
+/// pre-release audit's decision sheet, 2026-11-27.
+///
+/// So a returned copy does not by itself mean the role terms were set aside:
+/// ask [overridesRoleTerms] for that. The other move names and wordings and
+/// the other dancer words are the
+/// reader's. Only what is shown changes: [dialect] itself, the caller's
+/// stored dialect, is never changed.
 @useResult
 Dialect dialectForDance(
   Dialect dialect, {
   required String title,
   required Iterable<String> authorNames,
 }) {
-  if (!overridesRoleTerms(dialect, title: title, authorNames: authorNames)) {
+  if (!requiresLarksRobins(title: title, authorNames: authorNames)) {
     return dialect;
+  }
+  final moves = {
+    for (final MapEntry(:key, :value) in dialect.moves.entries)
+      if (!_holdsGenderedRoleWord(value)) key: value,
+  };
+  final moveWordings = {
+    for (final MapEntry(:key, :value) in dialect.moveWordings.entries)
+      if (!_holdsGenderedRoleWord(value)) key: value,
+  };
+  final moveWordingBranches = {
+    for (final MapEntry(key: move, value: branches)
+        in dialect.moveWordingBranches.entries)
+      if ({
+            for (final MapEntry(:key, :value) in branches.entries)
+              if (!_holdsGenderedRoleWord(value)) key: value,
+          }
+          case final kept when kept.isNotEmpty)
+        move: kept,
+  };
+  final dropsWording =
+      moves.length != dialect.moves.length ||
+      moveWordings.length != dialect.moveWordings.length ||
+      !_sameBranches(moveWordingBranches, dialect.moveWordingBranches);
+  if (_hasLarksRobinsRoles(dialect)) {
+    return dropsWording
+        ? dialect.copyWith(
+            moves: moves,
+            moveWordings: moveWordings,
+            moveWordingBranches: moveWordingBranches,
+          )
+        : dialect;
   }
   final larksRobinsWords = {
     for (final term in _larksRobinsRoles.values) ...{
@@ -134,6 +223,9 @@ Dialect dialectForDance(
   };
   return dialect.copyWith(
     roles: _larksRobinsRoles,
+    moves: moves,
+    moveWordings: moveWordings,
+    moveWordingBranches: moveWordingBranches,
     dancers: {
       for (final entry in dialect.dancers.entries)
         if (FigureRenderer.singleDancerDefaultTerm(entry.key, dialect) == null)
@@ -144,4 +236,20 @@ Dialect dialectForDance(
         if (!larksRobinsWords.contains(term)) term,
     ],
   );
+}
+
+/// Whether [a] and [b] hold the same wording branches.
+bool _sameBranches(
+  Map<String, Map<String, String>> a,
+  Map<String, Map<String, String>> b,
+) {
+  if (a.length != b.length) return false;
+  for (final MapEntry(:key, :value) in a.entries) {
+    final other = b[key];
+    if (other == null || other.length != value.length) return false;
+    for (final MapEntry(key: branch, value: text) in value.entries) {
+      if (other[branch] != text) return false;
+    }
+  }
+  return true;
 }

@@ -8144,6 +8144,18 @@ abstract class AppLocalizations {
   /// **'Whole bars only, with {beatsPerBar} beats to the bar'**
   String danceEditorHalfBarRefused(int beatsPerBar);
 
+  /// Message with an Undo button, shown when an English country dance's Meter is typed or changed after its figures: each figure's count in beats was changed so that it lasts as many bars as before, in bars of the new meter's beats.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure counts changed so each figure keeps its bars, now with {beatsPerBar, plural, =1{1 beat} other{{beatsPerBar} beats}} to the bar.'**
+  String danceEditorMeterFigureBarsKept(int beatsPerBar);
+
+  /// Message with an Undo button, shown when an English country dance's Meter is typed or changed after its figures and some figure's count cannot last the same number of bars in the new meter as a whole number of beats (such as a bar and a half moving into three beats to the bar): no count was changed, so the figures' lengths in bars now read differently.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure counts not changed: not every figure could keep its bars exactly, so they now read in bars of {beatsPerBar, plural, =1{1 beat} other{{beatsPerBar} beats}}. Check them.'**
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar);
+
   /// Label of the field giving the bars a whole sequence takes in an English country dance, as in 'A, B and C in bars 1–4'.
   ///
   /// In en, this message translates to:

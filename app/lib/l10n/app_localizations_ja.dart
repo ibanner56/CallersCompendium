@@ -5070,6 +5070,26 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar拍',
+    );
+    return '各フィギュアの小節数が変わらないよう拍数を変更しました（1小節$_temp0）。';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar拍',
+    );
+    return '拍数は変更していません。小節数をそのまま保てないフィギュアがあるため、1小節$_temp0で読み直されます。確認してください。';
+  }
+
+  @override
   String get danceEditorSequenceSpanLabel => '全体の小節';
 
   @override
