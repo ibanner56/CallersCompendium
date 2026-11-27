@@ -809,7 +809,14 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
     lays several dance forms together, the moves of its own form win a name
     or keyword that another form also uses: a search over every dance reads
     "hey" as contra does, and an ECD dance's taxonomy reads it as ECD does
-    (ADR-006).
+    (ADR-006). A keyword adds a meaning too, rather than replacing the
+    words: the word also matches with no move name or keyword rewritten
+    (its role words still made tokens), ORed, because text a caller typed (a
+    custom line, an imported line the parser did not recognize) is stored as
+    written. So "docey doe" finds a line typed "Docey doe your corner" as
+    well as a structured do si do, in a dance of any form, and "balance in
+    the ring" finds a square's balance in the ring though "ring" is a
+    keyword of the circle (pre-release audit B-04, B-03).
 
   A term of several words — a role ("Lady Birds"), a move ("do si do") or a
   dialect's move name — stays one word, so its spaces must still match.
