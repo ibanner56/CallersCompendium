@@ -22,7 +22,9 @@ It is **local-first**, and that shapes everything else:
 
 - **Your data stays on your device.** Dances, programs, custom fields, and your
   wording all live in local storage on the machine you are using — not on
-  someone else's server.
+  someone else's server. Your device's own backup, such as Android's backup to
+  your Google account, can copy them as it does your other apps' data; see
+  [Your device's own backup](./backup-portability.md#your-devices-own-backup).
 - **There is no account.** Nothing to sign up for, nothing to sign in to. You
   open the app and start working.
 - **No telemetry.** The app does not track you, phone home, or collect usage

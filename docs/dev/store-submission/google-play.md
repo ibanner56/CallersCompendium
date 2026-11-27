@@ -14,7 +14,7 @@ text and the exact Data-safety / content-rating answers are in
 > count toward it. So the fast "open beta = one click" mental model from Apple
 > does **not** apply here. **Start recruiting your 12 closed testers now** — it is
 > the critical path for Android. (Organization accounts are exempt; see
-> [Account type](#account-type-decision-read-first).)
+> [Account type](#account-type-decision-read-first--one-time-gate).)
 
 > **Where we already are.** CI builds a **signed universal `.apk`** for
 > sideloading from GitHub Releases. Google Play needs an **`.aab` (Android App
@@ -150,7 +150,13 @@ any track (including testing) can go live. Answers are drafted in
   shared with third parties), not "No data collected". Imports, the opt-in
   update check and the opt-in startup calendar import are user-initiated (the
   two opt-ins are off by default). Full answer set in
-  [`listing-copy.md`](listing-copy.md#data-safety-google-play).
+  [`listing-copy.md`](listing-copy.md#data-safety-google-play). Android's own
+  device backup is separate: the manifest sets no `android:allowBackup`, so
+  Android's backup to the user's Google account and its phone-to-phone transfer
+  copy the app's whole data directory, database included. That copy goes to the
+  user's own Google account, never to us; the privacy policy (section 2) and the
+  user guide ([backup-portability.md](../../user/backup-portability.md#your-devices-own-backup))
+  say so.
 - [x] **[Gate]** **Government apps / financial / health / etc.** declarations —
   all **No** for us.
 - [x] **[Gate]** **News app?** — **No**.

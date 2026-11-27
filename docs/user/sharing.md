@@ -636,8 +636,10 @@ none of them carries contact people in the first place.
 
 ### A note on diagnostics
 
-The app's diagnostics log is separate from exports. It never leaves your device
-unless you export it yourself, and an exported log has your content removed
+The app's diagnostics log is separate from exports. It leaves your device only
+when you export it yourself, or when your
+[device's own backup](./backup-portability.md#your-devices-own-backup) copies
+the app's data, and an exported log has your content removed
 unless you choose otherwise. [Settings ▸ Diagnostics](./settings.md#diagnostics)
 explains what the log contains and what **Include full detail** changes.
 

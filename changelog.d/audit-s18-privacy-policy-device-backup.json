@@ -1,0 +1,10 @@
+{
+  "id": "audit-s18-privacy-policy-device-backup",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The privacy policy has changed. In this release it says that on iPhone and iPad the app can ask to use your camera, lists the calendar import beside the update check, and says that a calendar (.ics) export includes a venue's address when you tick that option. It now also says that your device's own backup copies the app's data: Android's backup to your Google account and its transfer to a new phone, or an iCloud or computer backup on iPhone and iPad. That copy includes what the app's own backup file leaves out, such as your calendar address, your Device Sync settings and edits you haven't saved.",
+      "The user guide's Backup & portability page has a new section, Your device's own backup, on what that copy holds and where it is set."
+    ]
+  }
+}

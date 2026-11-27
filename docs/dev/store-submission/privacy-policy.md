@@ -15,7 +15,7 @@
 
 ## Privacy Policy for Caller's Compendium
 
-**Effective date:** November 24, 2026 · **Last updated:** November 25, 2026
+**Effective date:** November 27, 2026 · **Last updated:** November 27, 2026
 
 Caller's Compendium ("the app") is a free, open-source, local-first application
 for dance callers, developed by Isaac Banner ("we," "us"). This policy explains
@@ -105,6 +105,19 @@ corruption — not encryption, and, because the checksum travels inside the file
 not a safeguard against deliberate tampering) and restore it on another device. Those backup files
 are created and kept by you; we never receive them.
 
+**Your device's own backup.** Separately from the app's backup file, your phone,
+tablet or computer can back up the app's data along with your other apps. The
+app does not opt out of Android's backup: if backup to your Google account is
+turned on in your phone's settings, Android copies the app's data there, and
+moving to a new phone with Android's transfer copies it to the new phone. On
+iPhone and iPad, an iCloud or computer backup of the device includes it too.
+These copies hold everything the app keeps on the device, including what the
+app's own backup file leaves out: your calendar address, your Device Sync
+settings (whether sync is on, and which store and server it uses), edits you
+have not saved yet, and the app's diagnostics log. Restoring one, or setting up a new phone from one, puts all
+of it back. These copies are made and kept by your device's system and your
+Google or Apple account, under their settings, not by us; we never receive them.
+
 ### 3. Network connections the app makes
 
 The app works fully offline when Device Sync is disabled. When it contacts the
@@ -168,7 +181,9 @@ knowingly collect personal information from children.
 Your local data remains under your control:
 
 - Delete individual items in the app, or uninstall the app to remove its local
-  data from your device.
+  data from your device. Uninstalling does not delete a copy your device's own
+  backup has already made (Section 2); your device's backup settings manage
+  that.
 - Export a backup at any time to keep or move your data yourself.
 - Disable Device Sync when you no longer want the app to synchronize selected
   content.
@@ -188,7 +203,7 @@ sweep. They contain no content or sync phrases.
 
 ### 8. Open source
 
-Caller's Compendium is open source under the AGPL-3.0 license. You can inspect
+Caller's Compendium is open source under the AGPL-3.0-only license. You can inspect
 exactly what the app does — including every network request — in the source code
 at <https://github.com/ibanner56/CallersCompendium>.
 
