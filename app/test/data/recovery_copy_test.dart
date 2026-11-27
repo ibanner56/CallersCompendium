@@ -124,7 +124,7 @@ void main() {
       putSetting(seeded, 'calendar_feed_url', jsonEncode(_marker));
       // A key the registry does not know: the rule fails closed.
       putSetting(seeded, 'not.a.registered.key', jsonEncode(_marker));
-      emptied = tablesToEmpty(seeded);
+      emptied = {...tablesToEmpty(seeded), ...kTablesRecoveryCopyEmpties};
       for (final table in emptied) {
         seedRow(seeded, table);
       }
@@ -156,6 +156,7 @@ void main() {
         'review_queue',
         'published_records',
         'normalisation_skips',
+        'collection_import_events',
       }),
     );
     final sourceBytes = source.readAsBytesSync();
@@ -240,6 +241,27 @@ void main() {
     expect(File('${copy.path}-journal').existsSync(), isFalse);
   });
 
+  test('every table with a device-local column is decided: a backup carries '
+      'it, or the copy empties it', () {
+    // The tables whose deviceLocal columns a backup carries (choreographers'
+    // and venues' private fields, and settings, judged per key). A new table
+    // with a deviceLocal column fails here until someone decides whether the
+    // recovery copy may carry it.
+    const carriedByBackups = {'choreographers', 'venues', 'settings'};
+    final deviceLocalTables = {
+      for (final entry in fieldClassifications.entries)
+        if (entry.value.egress == EgressClass.deviceLocal)
+          entry.key.split('.').first,
+    };
+    expect(
+      deviceLocalTables.difference({
+        ...carriedByBackups,
+        ...kTablesRecoveryCopyEmpties,
+      }),
+      isEmpty,
+    );
+  });
+
   test(
     'the settings rule fails closed on a key the registry does not know',
     () {
@@ -270,10 +292,10 @@ void main() {
     const origin = Rect.fromLTWH(10, 20, 30, 40);
     final workDir = Directory(p.join(tmp.path, 'work'));
 
-    await shareRecoveryCopy(
-      source: source,
+    final copy = await prepareRecoveryCopy(source: source, workDir: workDir);
+    await shareRecoveryCopyFile(
+      copy,
       origin: origin,
-      workDir: workDir,
       shareInvoker: (params) async => shared.add(params),
     );
 
@@ -300,21 +322,17 @@ void main() {
     }
   });
 
-  test('nothing is shared when the copy cannot be made', () async {
+  test('no copy is left when it cannot be made', () async {
     final notADatabase = File(p.join(tmp.path, 'garbage.sqlite'))
       ..writeAsStringSync('this is not a database');
-    final shared = <ShareParams>[];
 
     await expectLater(
-      shareRecoveryCopy(
+      prepareRecoveryCopy(
         source: notADatabase,
-        origin: null,
         workDir: Directory(p.join(tmp.path, 'work')),
-        shareInvoker: (params) async => shared.add(params),
       ),
       throwsA(anything),
     );
-    expect(shared, isEmpty);
     expect(
       File(p.join(tmp.path, 'work', kRecoveryCopyFileName)).existsSync(),
       isFalse,

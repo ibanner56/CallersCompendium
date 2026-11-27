@@ -252,6 +252,14 @@
   "@migrationBelowFloorShareCopyFailedBody": {
     "x-sourceSha256": "224c0a203ab2f682ba768ed759b2af916149eeb4cce43ca7bc050fd18a5d0650"
   },
+  "migrationBelowFloorShareSheetFailedTitle": "共有メニューを開けませんでした",
+  "@migrationBelowFloorShareSheetFailedTitle": {
+    "x-sourceSha256": "efc575e34db2927b05d4b49073937c372349328a864abbe4b25f5f7755da6c52"
+  },
+  "migrationBelowFloorShareSheetFailedBody": "コピーは作成されましたが、共有できませんでした。データは変更されていません。もう一度お試しください。",
+  "@migrationBelowFloorShareSheetFailedBody": {
+    "x-sourceSha256": "c6255a72a7e6508280c23f5bea0d48d3bcb028b0e96fe75b7a20eeae2dcdd4e5"
+  },
   "migrationBelowFloorComputerGuide": "コンピューターで更新する方法",
   "@migrationBelowFloorComputerGuide": {
     "x-sourceSha256": "62ededb674b675c3575e7a0b4afb0403adc1a07125d739092eedf332acb53d24"

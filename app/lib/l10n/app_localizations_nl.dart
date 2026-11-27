@@ -257,6 +257,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Er is niets gedeeld en je gegevens zijn niet gewijzigd. Maak wat ruimte vrij en probeer het dan opnieuw.';
 
   @override
+  String get migrationBelowFloorShareSheetFailedTitle =>
+      'Kan het deelmenu niet openen';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedBody =>
+      'De kopie is gemaakt, maar kon niet worden gedeeld. Je gegevens zijn niet gewijzigd. Probeer het opnieuw.';
+
+  @override
   String get migrationBelowFloorComputerGuide =>
       'Zo werk je ze bij op een computer';
 

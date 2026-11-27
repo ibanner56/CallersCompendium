@@ -54,7 +54,8 @@ import 'src/data/incoming_file_channel.dart';
 import 'src/data/locale_scope.dart';
 import 'src/data/migration_error_labels.dart';
 import 'src/data/migration_guard.dart';
-import 'src/data/recovery_copy.dart' show shareRecoveryCopy;
+import 'src/data/recovery_copy.dart'
+    show prepareRecoveryCopy, shareRecoveryCopyFile;
 import 'src/data/online_search.dart';
 import 'src/data/persisted_preference.dart';
 import 'src/data/colour_dance_theme_scope.dart';
@@ -2671,6 +2672,7 @@ class _CompendiumAppState extends State<CompendiumApp>
           );
       }
     }
+    var sharingBackup = false;
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -2687,13 +2689,26 @@ class _CompendiumAppState extends State<CompendiumApp>
               child: Text(l10n.commonCancel),
             ),
             if (onPhoneOrTablet)
-              Builder(
-                builder: (buttonContext) => TextButton(
+              // Disabled while a share is being prepared, so a second tap
+              // cannot overwrite the copy the first is sharing.
+              StatefulBuilder(
+                builder: (buttonContext, setButtonState) => TextButton(
                   key: const ValueKey('below-floor-share-backup'),
-                  onPressed: () => _shareRecoveryCopy(
-                    ready.snapshotFile,
-                    _shareOriginOf(buttonContext),
-                  ),
+                  onPressed: sharingBackup
+                      ? null
+                      : () async {
+                          setButtonState(() => sharingBackup = true);
+                          try {
+                            await _shareRecoveryCopy(
+                              ready.snapshotFile,
+                              _shareOriginOf(buttonContext),
+                            );
+                          } finally {
+                            if (buttonContext.mounted) {
+                              setButtonState(() => sharingBackup = false);
+                            }
+                          }
+                        },
                   child: Text(l10n.migrationBelowFloorShareBackup),
                 ),
               ),
@@ -2724,33 +2739,62 @@ class _CompendiumAppState extends State<CompendiumApp>
 
   /// Shares a scrubbed recovery copy of [source] (`recovery_copy.dart`): the
   /// live database from the recovery screen, or the snapshot "Back up + reset"
-  /// just wrote, from its confirmation dialog. If the copy cannot be made,
-  /// nothing is shared and a dialog says so; the source is never changed.
+  /// just wrote, from its confirmation dialog. The source is never changed. If
+  /// the copy cannot be made, nothing is shared; if the share sheet fails, the
+  /// copy was made but not handed over. A dialog says which.
   Future<void> _shareRecoveryCopy(File source, Rect? origin) async {
+    final File copy;
     try {
-      await shareRecoveryCopy(source: source, origin: origin);
+      copy = await prepareRecoveryCopy(source: source);
     } on Object catch (e, st) {
-      logCaughtErrorTypeOnly(e, st, source: 'main.shareRecoveryCopy');
-      final context = _navigatorKey.currentContext;
-      if (context == null || !context.mounted) return;
-      final l10n = AppLocalizations.of(context);
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          icon: const Icon(Icons.warning_amber_outlined),
-          title: Text(l10n.migrationBelowFloorShareCopyFailedTitle),
-          content: Text(l10n.migrationBelowFloorShareCopyFailedBody),
-          actions: [
-            TextButton(
-              autofocus: true,
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(l10n.commonOk),
-            ),
-          ],
-        ),
-        animationStyle: AppMotion.styleFor(context),
+      logCaughtErrorTypeOnly(e, st, source: 'main.prepareRecoveryCopy');
+      final l10n = _currentL10n();
+      if (l10n == null) return;
+      await _showRecoveryCopyFailure(
+        l10n.migrationBelowFloorShareCopyFailedTitle,
+        l10n.migrationBelowFloorShareCopyFailedBody,
+      );
+      return;
+    }
+    try {
+      await shareRecoveryCopyFile(copy, origin: origin);
+    } on Object catch (e, st) {
+      logCaughtErrorTypeOnly(e, st, source: 'main.shareRecoveryCopyFile');
+      final l10n = _currentL10n();
+      if (l10n == null) return;
+      await _showRecoveryCopyFailure(
+        l10n.migrationBelowFloorShareSheetFailedTitle,
+        l10n.migrationBelowFloorShareSheetFailedBody,
       );
     }
+  }
+
+  AppLocalizations? _currentL10n() {
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted) return null;
+    return AppLocalizations.of(context);
+  }
+
+  Future<void> _showRecoveryCopyFailure(String title, String body) async {
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+    final l10n = AppLocalizations.of(context);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_outlined),
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            autofocus: true,
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.commonOk),
+          ),
+        ],
+      ),
+      animationStyle: AppMotion.styleFor(context),
+    );
   }
 
   /// The on-screen rectangle of the widget [context] belongs to, which the

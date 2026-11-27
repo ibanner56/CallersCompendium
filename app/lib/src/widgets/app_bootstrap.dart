@@ -304,6 +304,13 @@ class AppBootstrap extends StatelessWidget {
   }
 }
 
+/// The user guide's steps for updating a shared recovery copy on a computer and
+/// restoring it on a phone or tablet (`docs/user/faq.md`; the heading's anchor
+/// is checked by `app_bootstrap_test.dart`).
+const String kBelowFloorRecoveryGuideUrl =
+    '$kSourceRepoUrl/blob/main/docs/user/faq.md'
+    '#my-data-is-too-old-to-open-on-my-phone-or-tablet';
+
 /// Terminal recovery screen shown when the on-disk database was written by a
 /// build older than the minimum supported schema version floor (issue #841).
 ///
@@ -330,13 +337,6 @@ class AppBootstrap extends StatelessWidget {
 ///   no iOS download); the message points to TestFlight's earlier builds,
 ///   without promising the bridge is still listed there, and offers the same
 ///   share action and guide as Android for when it is not.
-/// The user guide's steps for updating a shared recovery copy on a computer and
-/// restoring it on a phone or tablet (`docs/user/faq.md`; the heading's anchor
-/// is checked by `app_bootstrap_test.dart`).
-const String kBelowFloorRecoveryGuideUrl =
-    '$kSourceRepoUrl/blob/main/docs/user/faq.md'
-    '#my-data-is-too-old-to-open-on-my-phone-or-tablet';
-
 class _BelowFloorRecoveryScreen extends StatefulWidget {
   const _BelowFloorRecoveryScreen({
     required this.error,

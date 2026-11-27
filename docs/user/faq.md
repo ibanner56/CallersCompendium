@@ -32,8 +32,10 @@ On your device, in a single database file named `compendium.sqlite`:
   `Documents`, so OneDrive's folder backup does not sync a live database.
 - **Linux:** `$XDG_DATA_HOME/org.callerscompendium.compendiumApp/` (by default
   `~/.local/share/org.callerscompendium.compendiumApp/`).
-- **Android, iOS and macOS:** the app's own documents folder (on macOS, inside
-  the app's sandbox container).
+- **macOS:** `~/Library/Containers/org.callerscompendium.compendiumApp/Data/Documents`,
+  inside the app's sandbox container. In Finder, choose **Go ▸ Go to Folder…**
+  and paste the folder path.
+- **Android and iOS:** the app's own documents folder, which you can't browse.
 
 Earlier versions kept the file in your `Documents` folder on Windows and Linux
 (on Linux without a Documents folder configured, that is your home folder). A
@@ -264,7 +266,8 @@ To update your data on a computer:
    then export a backup (**Settings ▸ General ▸ Export a backup**) and get the
    backup file to your phone or tablet.
 5. On the phone or tablet, choose **Reset only** under **Start fresh
-   instead**. The app opens on an empty library. Restore the backup from step 4
+   instead**. The app opens on a new library with only its sample dance in it.
+   Restore the backup from step 4, which replaces that library
    (**Settings ▸ General ▸ Restore from a backup**); see
    [Restore from a backup](./backup-portability.md#restore-from-a-backup).
 6. On the computer, put back anything you moved in step 3 and install the

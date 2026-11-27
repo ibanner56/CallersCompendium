@@ -257,6 +257,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Es wurde nichts geteilt, und deine Daten wurden nicht geändert. Gib etwas Speicherplatz frei und versuche es dann erneut.';
 
   @override
+  String get migrationBelowFloorShareSheetFailedTitle =>
+      'Das Teilen-Menü ließ sich nicht öffnen';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedBody =>
+      'Die Kopie wurde erstellt, konnte aber nicht geteilt werden. Deine Daten wurden nicht geändert. Versuche es erneut.';
+
+  @override
   String get migrationBelowFloorComputerGuide =>
       'So aktualisierst du sie auf einem Computer';
 

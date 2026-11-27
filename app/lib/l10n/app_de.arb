@@ -252,6 +252,14 @@
   "@migrationBelowFloorShareCopyFailedBody": {
     "x-sourceSha256": "224c0a203ab2f682ba768ed759b2af916149eeb4cce43ca7bc050fd18a5d0650"
   },
+  "migrationBelowFloorShareSheetFailedTitle": "Das Teilen-Menü ließ sich nicht öffnen",
+  "@migrationBelowFloorShareSheetFailedTitle": {
+    "x-sourceSha256": "efc575e34db2927b05d4b49073937c372349328a864abbe4b25f5f7755da6c52"
+  },
+  "migrationBelowFloorShareSheetFailedBody": "Die Kopie wurde erstellt, konnte aber nicht geteilt werden. Deine Daten wurden nicht geändert. Versuche es erneut.",
+  "@migrationBelowFloorShareSheetFailedBody": {
+    "x-sourceSha256": "c6255a72a7e6508280c23f5bea0d48d3bcb028b0e96fe75b7a20eeae2dcdd4e5"
+  },
   "migrationBelowFloorComputerGuide": "So aktualisierst du sie auf einem Computer",
   "@migrationBelowFloorComputerGuide": {
     "x-sourceSha256": "62ededb674b675c3575e7a0b4afb0403adc1a07125d739092eedf332acb53d24"

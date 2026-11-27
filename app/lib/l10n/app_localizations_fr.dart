@@ -262,6 +262,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Rien n’a été partagé et vos données n’ont pas été modifiées. Libérez de l’espace, puis réessayez.';
 
   @override
+  String get migrationBelowFloorShareSheetFailedTitle =>
+      'Impossible d’ouvrir le menu de partage';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedBody =>
+      'La copie a été créée, mais elle n’a pas pu être partagée. Vos données n’ont pas été modifiées. Réessayez.';
+
+  @override
   String get migrationBelowFloorComputerGuide =>
       'Comment les mettre à jour sur un ordinateur';
 

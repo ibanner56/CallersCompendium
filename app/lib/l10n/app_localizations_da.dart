@@ -258,6 +258,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Intet blev delt, og dine data er ikke ændret. Frigør noget plads, og prøv så igen.';
 
   @override
+  String get migrationBelowFloorShareSheetFailedTitle =>
+      'Kunne ikke åbne delingsmenuen';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedBody =>
+      'Kopien blev lavet, men den kunne ikke deles. Dine data er ikke ændret. Prøv igen.';
+
+  @override
   String get migrationBelowFloorComputerGuide =>
       'Sådan opdaterer du dem på en computer';
 

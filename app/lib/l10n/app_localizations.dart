@@ -488,6 +488,18 @@ abstract class AppLocalizations {
   /// **'Nothing was shared, and your data hasn\'t been changed. Free up some space, then try again.'**
   String get migrationBelowFloorShareCopyFailedBody;
 
+  /// Title of the dialog shown when the copy for migrationBelowFloorShareCopy or migrationBelowFloorShareBackup was made but the system share sheet failed to open or to take it.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the share sheet'**
+  String get migrationBelowFloorShareSheetFailedTitle;
+
+  /// Body of the dialog titled migrationBelowFloorShareSheetFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The copy was made, but it couldn\'t be shared. Your data hasn\'t been changed. Try again.'**
+  String get migrationBelowFloorShareSheetFailedBody;
+
   /// Link on the below-floor recovery screen on Android, iPhone and iPad. It opens the user guide's steps for updating a shared copy of the data with the older release on a computer and restoring it on this device.
   ///
   /// In en, this message translates to:

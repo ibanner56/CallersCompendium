@@ -247,6 +247,13 @@ class AppLocalizationsJa extends AppLocalizations {
       '何も共有されておらず、データも変更されていません。空き容量を増やしてから、もう一度お試しください。';
 
   @override
+  String get migrationBelowFloorShareSheetFailedTitle => '共有メニューを開けませんでした';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedBody =>
+      'コピーは作成されましたが、共有できませんでした。データは変更されていません。もう一度お試しください。';
+
+  @override
   String get migrationBelowFloorComputerGuide => 'コンピューターで更新する方法';
 
   @override

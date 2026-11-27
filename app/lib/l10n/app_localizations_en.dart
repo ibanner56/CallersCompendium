@@ -254,6 +254,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nothing was shared, and your data hasn\'t been changed. Free up some space, then try again.';
 
   @override
+  String get migrationBelowFloorShareSheetFailedTitle =>
+      'Couldn\'t open the share sheet';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedBody =>
+      'The copy was made, but it couldn\'t be shared. Your data hasn\'t been changed. Try again.';
+
+  @override
   String get migrationBelowFloorComputerGuide =>
       'How to update it on a computer';
 
