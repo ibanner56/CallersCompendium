@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 
 import '../model/figure.dart';
 import '../taxonomy/cast_vocabulary.dart';
+import 'flag_words.dart';
 import '../taxonomy/dance_vocabulary.dart'
     show displayDirectionPhrases, displayFacingPhrases;
 import '../taxonomy/gate_facing.dart';
@@ -2435,20 +2436,11 @@ class FigureRenderer {
     if (value is num) return _formatNumber(value);
     if (value is bool) {
       if (!value) return '';
-      return (userFigure ? null : _flagWords[name]) ?? name;
+      return (userFigure ? null : taxonomyFlagWords[name]) ?? name;
     }
     return _squareRoleWords(value.toString(), dialect) ??
         _humanize(value.toString());
   }
-
-  /// The words a taxonomy flag shows in a move's `renderTemplate` when it is
-  /// set, where its name is not already the word (a square chain's `{four}`
-  /// is). Both renders use them, so the words are searchable: a square right
-  /// left through's `fullTurn` reads "heads right left through with a full
-  /// turn" (square taxonomy v1, pre-release audit B-08).
-  static const Map<String, String> _flagWords = {
-    'fullTurn': 'with a full turn',
-  };
 
   /// The words of a square token that names a role ("head larks" or
   /// "lark's place" with larks and robins; ADR-007 §5.5), with the dialect's
