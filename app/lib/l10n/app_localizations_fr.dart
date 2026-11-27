@@ -747,6 +747,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les réglages de la synchronisation des appareils n\'ont pas pu être lus ; les réglages affichés ici peuvent donc être obsolètes, et la synchronisation peut être désactivée même si vous l\'avez activée. Redémarrez l\'application pour réessayer.';
 
   @override
+  String get syncRestoredCopyNotice =>
+      'Device Sync is off because this library was restored from a device backup. Turn it back on under Settings ▸ Experimental ▸ Device Sync and this device will sync as a new device, not the one the backup came from.';
+
+  @override
   String get settingsSyncFailureUnreachable =>
       'Impossible de joindre le serveur de synchronisation.';
 

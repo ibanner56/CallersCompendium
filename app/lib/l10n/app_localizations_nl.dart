@@ -738,6 +738,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'De instellingen voor apparaatsynchronisatie konden niet worden gelezen, dus de hier getoonde instellingen kunnen verouderd zijn, en apparaatsynchronisatie kan uit staan, ook als je het had aangezet. Start de app opnieuw op om het nog eens te proberen.';
 
   @override
+  String get syncRestoredCopyNotice =>
+      'Device Sync is off because this library was restored from a device backup. Turn it back on under Settings ▸ Experimental ▸ Device Sync and this device will sync as a new device, not the one the backup came from.';
+
+  @override
   String get settingsSyncFailureUnreachable =>
       'Kan de synchronisatieserver niet bereiken.';
 

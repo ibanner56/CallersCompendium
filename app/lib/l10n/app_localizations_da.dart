@@ -732,6 +732,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Indstillingerne for enhedssynkronisering kunne ikke læses, så de indstillinger, der vises her, kan være forældede, og enhedssynkronisering kan være slået fra, selvom du har slået den til. Genstart appen for at prøve igen.';
 
   @override
+  String get syncRestoredCopyNotice =>
+      'Device Sync is off because this library was restored from a device backup. Turn it back on under Settings ▸ Experimental ▸ Device Sync and this device will sync as a new device, not the one the backup came from.';
+
+  @override
   String get settingsSyncFailureUnreachable =>
       'Synkroniseringsserveren kunne ikke nås.';
 

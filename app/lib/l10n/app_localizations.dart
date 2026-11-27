@@ -1136,6 +1136,12 @@ abstract class AppLocalizations {
   /// **'Device Sync\'s settings couldn\'t be read, so the settings shown here may be out of date, and Device Sync may be off even if you turned it on. Restart the app to try again.'**
   String get settingsSyncStatusSettingsUnreadable;
 
+  /// Message shown once at start-up when the app finds its library was restored from a device backup (Android Auto Backup or phone-to-phone transfer, an iCloud or computer backup, or iPhone-to-iPhone transfer) on a device where Device Sync was on. The app turned Device Sync off and dropped the old device's sync identity, so two devices never sync as one. 'Settings ▸ Experimental ▸ Device Sync' is where the toggle lives.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Sync is off because this library was restored from a device backup. Turn it back on under Settings ▸ Experimental ▸ Device Sync and this device will sync as a new device, not the one the backup came from.'**
+  String get syncRestoredCopyNotice;
+
   /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the transport could not connect at all: DNS failure, refused or dropped connection, or a failed secure (TLS) handshake.
   ///
   /// In en, this message translates to:

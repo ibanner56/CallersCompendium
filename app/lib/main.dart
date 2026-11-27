@@ -135,6 +135,7 @@ import 'src/screens/settings_screen.dart'
 import 'src/theme/app_motion.dart';
 import 'src/theme/app_theme.dart';
 import 'src/app_metadata.dart';
+import 'src/sync/restored_copy_check.dart';
 import 'src/sync/sync_controller.dart';
 import 'src/sync/sync_coordinator.dart';
 import 'src/sync/sync_network.dart';
@@ -291,6 +292,7 @@ Future<void> main(List<String> args) async {
           );
         },
         seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
+        noBackupMarker: platformNoBackupMarker(),
         incomingFileChannel: incomingFileChannel,
         installPlatformMenuBar:
             !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS,
@@ -354,6 +356,7 @@ class CompendiumApp extends StatefulWidget {
     this.backupSaver,
     this.crashReporter,
     this.seedInitialCollection,
+    this.noBackupMarker,
     this.incomingFileChannel,
     this.incomingFileReader,
     this.incomingFileDeleter,
@@ -495,6 +498,13 @@ class CompendiumApp extends StatefulWidget {
   /// seed failure is non-fatal to startup, mirroring [integrityCheck].
   final Future<void> Function(CompendiumRepositories repos)?
   seedInitialCollection;
+
+  /// This installation's device-backup marker, which start-up uses to
+  /// recognise a library restored from a device backup and stop it syncing as
+  /// the device it came from ([checkRestoredCopy], sync-spec §3.3). Injected
+  /// from [main] on Android and iOS; `null` on other platforms and in tests
+  /// that don't exercise it, and the check is then skipped.
+  final NoBackupMarker? noBackupMarker;
 
   /// Delivers a shared [CompendiumArchive] file the OS handed the app (AirDrop /
   /// "Open with" / a share intent), including whether native code staged an
@@ -2112,6 +2122,9 @@ class _CompendiumAppState extends State<CompendiumApp>
         logCaughtError(error, stackTrace, source: 'startup.purge_programs');
       }
     }
+    // Before anything reads the Device Sync settings, so a library restored
+    // from a device backup never starts syncing as the device it came from.
+    await _checkRestoredCopy();
     await _loadPreferences();
     await _configureSyncCoordinator();
     // Read now: the pass the configure above started, if sync is on.
@@ -2143,6 +2156,59 @@ class _CompendiumAppState extends State<CompendiumApp>
       if (!mounted) return;
       unawaited(_runDeferredIntegrityProbe());
     });
+    if (_restoredCopyNoticePending) {
+      unawaited(_showRestoredCopyNotice());
+    }
+  }
+
+  /// Set when [_checkRestoredCopy] turned Device Sync off, until the notice
+  /// saying why has been shown. A field rather than a local, so a bootstrap
+  /// that fails after the check and is retried still shows it: the retry's
+  /// own check finds an ordinary start.
+  bool _restoredCopyNoticePending = false;
+
+  /// Runs [checkRestoredCopy] where the platform keeps a device-backup marker.
+  /// Never fatal: a failure is logged and the app starts as it would have
+  /// without the check, with Device Sync as it was.
+  Future<void> _checkRestoredCopy() async {
+    final marker = widget.noBackupMarker;
+    if (marker == null) return;
+    try {
+      final outcome = await checkRestoredCopy(
+        _appData.repositories.settings,
+        marker,
+      );
+      if (outcome == RestoredCopyOutcome.restoredSyncTurnedOff) {
+        _restoredCopyNoticePending = true;
+      }
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'startup.restored_copy_check');
+    }
+  }
+
+  /// Says, once, why Device Sync is off on a library restored from a device
+  /// backup. After the first frame, so the messenger and its localizations
+  /// exist.
+  Future<void> _showRestoredCopyNotice() async {
+    await WidgetsBinding.instance.endOfFrame;
+    final messenger = _messengerKey.currentState;
+    final shownContext = _navigatorKey.currentContext;
+    if (!mounted ||
+        messenger == null ||
+        shownContext == null ||
+        !shownContext.mounted) {
+      return;
+    }
+    _restoredCopyNoticePending = false;
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('restored-copy-sync-notice'),
+        content: Text(AppLocalizations.of(shownContext).syncRestoredCopyNotice),
+        duration: const Duration(seconds: 15),
+        showCloseIcon: true,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   /// The startup calendar import's once-per-launch gate (#2353): a failed

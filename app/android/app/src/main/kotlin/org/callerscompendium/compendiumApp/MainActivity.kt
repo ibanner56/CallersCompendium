@@ -6,6 +6,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.io.IOException
 
 /**
  * Receive-side share import (issues #298 + #343): forwards an incoming shared
@@ -26,9 +27,15 @@ import java.io.File
  * validation and import (the file, via `ArchiveIntakeService`, the URL, via
  * `validateSharedContraDbProgramUrl`, and the dance link, via
  * `validateDanceLink`, are all untrusted input).
+ *
+ * It also answers the `is.banner.callerscompendium/no_backup` channel, which
+ * keeps the marker Dart's `restored_copy_check.dart` uses to recognise a
+ * library restored from a device backup (sync-spec §3.3), through
+ * NoBackupMarker.kt.
  */
 class MainActivity : FlutterActivity() {
     private val channelName = "is.banner.callerscompendium/incoming_files"
+    private val noBackupChannelName = "is.banner.callerscompendium/no_backup"
     private var channel: MethodChannel? = null
 
     // The size cap, the copy, and the cold-start vs warm routing live in
@@ -51,6 +58,24 @@ class MainActivity : FlutterActivity() {
             }
         }
         channel = methodChannel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, noBackupChannelName)
+            .setMethodCallHandler { call, result ->
+                val marker = NoBackupMarker(noBackupFilesDir)
+                try {
+                    when (call.method) {
+                        "markerExists" -> result.success(marker.exists())
+                        "writeMarker" -> {
+                            marker.write()
+                            result.success(null)
+                        }
+                        else -> result.notImplemented()
+                    }
+                } catch (e: IOException) {
+                    result.error("io", e.message, null)
+                } catch (e: SecurityException) {
+                    result.error("io", e.message, null)
+                }
+            }
         // The intent that launched the activity may carry a payload to open.
         handleIntent(intent)
     }
