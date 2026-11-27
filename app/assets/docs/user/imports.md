@@ -697,12 +697,16 @@ written, with the bars' count. A line that names several figures, each with
 its own count in brackets, such as `(4) First corners trade by right  (4)
 Second corners trade by right` or `(5-8) circle left (9-12) circle right`,
 comes across as one figure for each count, each read on its own, so a piece
-the app cannot read is kept as text without holding back the others. An
+the app cannot read is kept as text without holding back the others. Only a
+line that starts with a count, or with a section label and a count, is split
+this way: a line that writes each count after its figure, such as `Set (4)
+Turn single (2)`, does not say where its figures start, so it is read whole,
+as written. An
 opening count that is the total of the counts after it, as in `(16) 1-4
 partners set (5-8) turn single`, counts the line rather than its first
 figure. A count in brackets that ends a piece of the line, rather than
 starting one, stays with it, and so does one followed by what it counts
-(`circle (3) hands round`). A line counted in bars splits only at its further
+(`circle (3) hands round`, `slip (8) steps`, `hey for three (3) dancers`). A line counted in bars splits only at its further
 bar ranges, so `1-4 (6) circle left` and a count in beats inside a ranged line
 stay as written, and a section label (`A1 (1-4) circle left`) stays with the
 figure after it.
@@ -729,8 +733,9 @@ square through, each with its balance. In an English dance, "First corners
 trade by right", "Pass P by L", "All Partner Set", "Ones Partner right-hand
 turn 1.5", "Partner Set Right and Left advancing" and "Lines of three go
 forward and back" are read as English figures too. A line that joins several
-figures with a count, as "First corners trade by right (4) Second corners trade
-by right" does, is still kept as written. The same wordings work in
+figures with a count but does not start with one, as "First corners trade by
+right (4) Second corners trade by right" does, is still kept as written; with a
+count before each figure, as above, it comes across as one figure for each. The same wordings work in
 [Free-text entry](./authoring.md#free-text-entry). For dances brought across
 earlier, [Re-check unrecognized figures](./authoring.md#fix-figures-an-import-could-not-read)
 can upgrade such lines, but it does not split a line at its commas: re-import

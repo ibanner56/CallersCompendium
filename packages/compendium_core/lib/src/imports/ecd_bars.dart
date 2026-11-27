@@ -5,6 +5,8 @@
 /// where its phrases differ in beats per bar, by the phrase each bar falls in.
 library;
 
+import 'package:meta/meta.dart';
+
 import '../model/bar_timing.dart';
 import '../model/phrase_structure.dart';
 
@@ -130,7 +132,7 @@ final RegExp _laterBarRange = RegExp(
 final RegExp _barRange = RegExp(
   // A section label (`A1`, `a1`, `A1&2`, `A1&A2`, `A1:`), dropped.
   r'^\s*(?:(?:[ABCD][1-4]?|[abcd][1-4])'
-  r'(?:\s*&\s*[ABCDabcd]?[1-4])?\s*:?\s+)?'
+  r'(?:\s*&\s*[ABCDabcd]?[1-4])?(?:\s*:\s+|\s+))?'
   // The range, alone or in a matched pair of brackets.
   r'(?:\(\s*(\d{1,3})\s*[-–—]\s*(\d{1,3})\s*\)|(\d{1,3})\s*[-–—]\s*(\d{1,3}))'
   r'(?:\s*[:.,]\s*|\s+)'
@@ -192,7 +194,7 @@ const int _maxBeats = 64;
 /// all of its lines' counts ([EcdSectionBeats.counted]).
 int ecdStatedBeats(String line, int beatsPerBar) {
   var beats = 0;
-  for (final match in _statedCount.allMatches(line)) {
+  for (final match in ecdStatedCountPattern.allMatches(line)) {
     final range = match.group(2);
     if (range != null) {
       final first = int.parse(range);
@@ -208,10 +210,13 @@ int ecdStatedBeats(String line, int beatsPerBar) {
 }
 
 /// A bracketed count in beats, or a bar range alone or in brackets, not part
-/// of a longer number, a meter or a word.
-final RegExp _statedCount = RegExp(
+/// of a longer number, a meter or a word ([ecdStatedBeats]). A range's space
+/// is taken only after its bracket, so no match starts inside a run of
+/// spaces: from each of a run's spaces it would scan the rest of the run.
+@visibleForTesting
+final RegExp ecdStatedCountPattern = RegExp(
   r'\(\s*(\d{1,3}(?:\s*[,+]\s*\d{1,3})*)\s*\)'
-  r'|(?<![\w/.-])\(?\s*(\d{1,3})\s*[-–—]\s*(\d{1,3})\s*\)?(?![\w/]|[.-]\d)',
+  r'|(?<![\w/.-])(?:\(\s*)?(\d{1,3})\s*[-–—]\s*(\d{1,3})\s*\)?(?![\w/]|[.-]\d)',
 );
 
 /// One section of an English dance as its source lays it out: its [label]

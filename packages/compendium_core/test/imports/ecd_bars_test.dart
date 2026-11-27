@@ -696,6 +696,24 @@ void main() {
       }
     });
 
+    // A match that could start at any space of a run would scan the rest of
+    // the run from each one, so a long run of spaces would cost its length
+    // squared. Starting only at a bracket or a digit, each space is scanned
+    // a bounded number of times.
+    test('a stated count never starts inside a run of spaces', () {
+      final line = '(4) circle left${' ' * 40}1-4 circle right (2-3)  (4)';
+      for (var i = 0; i < line.length; i++) {
+        if (line[i] != ' ') continue;
+        expect(
+          ecdStatedCountPattern.matchAsPrefix(line, i),
+          isNull,
+          reason: 'a match starts at $i',
+        );
+      }
+      expect(ecdStatedBeats(line, 2), 4 + 8 + 4 + 4);
+      expect(ecdStatedBeats('circle${' ' * 40}( 1-4 ) x', 2), 8);
+    });
+
     test('a file of English dances reads a Contra-typed dance as English, '
         'and a square as English in a square set', () {
       final english = mapCallersCompanionDance(
@@ -1256,6 +1274,72 @@ void main() {
       test('a count of hands or places', () {
         expect(read('(8) Circle left (3) hands round'), hasLength(1));
         expect(read('(8) Ones cast (2) places down'), hasLength(1));
+      });
+
+      // A line that does not start with a count writes its counts after its
+      // figures, so a split there would give each count to the next figure.
+      test('a count written after its figure', () {
+        for (final line in const [
+          'Set (4) Turn single (2)',
+          'Circle left (8) circle right (8)',
+          '1s cross (4) cast (4)',
+          'Circle left (8) Set and turn single (8)',
+          'Lead up a double (4) and fall back (4)',
+          'Partners set (4) and turn single (4)',
+          'First corners trade by right (4) Second corners trade by right',
+        ]) {
+          expect(read(line), hasLength(1), reason: line);
+        }
+        final setAndTurn = read('Partners set (4) and turn single (4)').single;
+        expect(setAndTurn.isCustom, isFalse);
+        expect(setAndTurn.subFigures.map((f) => f.move), [
+          'ecd_set',
+          'ecd_turn_single',
+        ]);
+      });
+
+      test('a figure that starts with a word for what a count counts', () {
+        for (final (line, count) in const [
+          ('(8) Circle left (8) Slip left', 16),
+          ('(8) Set and turn single (8) Double figure eight', 16),
+          ('(4) Set (4) Step right', 8),
+          ('(8) Circle left (8) Round the set', 16),
+        ]) {
+          final figures = read(line);
+          expect(figures, hasLength(2), reason: line);
+          expect(beats(figures), count, reason: line);
+        }
+      });
+
+      test('a section label for two sections', () {
+        final figures = read('A1&A2 (1-4) circle left (5-8) circle right');
+        expect(figures, hasLength(2));
+        expect(figures.any((f) => f.isCustom), isFalse);
+        expect(beats(figures), 16);
+      });
+
+      test('a section label and its colon, however spaced', () {
+        for (final line in [
+          'A1${' ' * 40}(1-4) circle left (5-8) circle right',
+          'A1 :  (1-4) circle left (5-8) circle right',
+        ]) {
+          expect(beats(read(line)), 16, reason: line);
+        }
+      });
+
+      test('a count of steps, doubles, dancers or people', () {
+        for (final (line, count) in const [
+          ('(8) Slip (8) steps to the left', 8),
+          ('(8) Lead up (2) doubles and back', 8),
+          ('(8) Hey for three (3) dancers', 8),
+          ('(4) Set (2) singles right and left', 4),
+          ('(8) Star (4) people', 8),
+          ('(8) Turn (1) and a half', 8),
+        ]) {
+          final figures = read(line);
+          expect(figures, hasLength(1), reason: line);
+          expect(beats(figures), count, reason: line);
+        }
       });
 
       test('a later piece\'s bar range with no meter still warns', () {

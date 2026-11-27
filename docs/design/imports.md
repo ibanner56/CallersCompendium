@@ -2720,10 +2720,23 @@ ECD dance.
   `splitCcEcdCountedLine` splits the line before each bracketed count or bar
   range that follows its start and is followed by a word, and each piece is
   read as a line of its own (`(8)` prefix, bars, grammar), so a piece kept as
-  text keeps its own count and the others still read. A count that ends a
+  text keeps its own count and the others still read. Only a line that
+  starts with a count (a bracketed count or compound count, a bar range
+  alone or bracketed, after an optional section label) is split: in one that
+  does not, its counts follow their figures (`Set (4) Turn single (2)`,
+  `Partners set (4) and turn single (4)`), and a split would give each to
+  the next figure, so the line is read whole, as before the split existed.
+  A count that ends a
   piece (`… into (6) (3-4) Ladies …`) stays with it, as does one with no
   space before its word (`(7-8)and link`) or followed by what it counts
-  (`circle (3) hands`, `cast (2) places`). A line whose text starts with a
+  (`circle (3) hands`, `cast (2) places`, `slip (8) steps`, `lead up (2)
+  doubles`, `hey for three (3) dancers`, `turn (1) and a half`). The words
+  for steps and dancers leave out those that start figures, which still
+  split: a dancer word (`(4) Ladies cross`, so `(8) Circle (3) ladies only`
+  splits too) or a step's singular (`(8) Slip left`, `(8) Double figure
+  eight`). Some older words can start a figure too (`Hands across`, `Change
+  places`, `Couples cross`), and a count before one stays with the piece
+  before it, so the line is not split there. A line whose text starts with a
   bar range splits only at further bracketed ranges: a count in beats right
   after the range (`1-4 (6) circle left`) or inside the line (`(5-8) join R
   hands (5) then L hands (6)`) is part of its words. A piece with no words of
