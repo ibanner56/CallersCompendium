@@ -7460,6 +7460,18 @@ abstract class AppLocalizations {
   /// **'Not in your library'**
   String get collectionFacetMissingValue;
 
+  /// Heading of a Filters panel section that lists filters on custom fields that were deleted, or whose type changed, since a saved search using them was saved. Each chip removes one.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted or changed custom fields'**
+  String get collectionFacetStaleFields;
+
+  /// Label of a chip in the 'Deleted or changed custom fields' section: the custom field's name and the value the filter chose (a choice option, or Yes / No).
+  ///
+  /// In en, this message translates to:
+  /// **'{field}: {value}'**
+  String collectionFacetStaleFieldValue(String field, String value);
+
   /// Button that clears all active facet filters.
   ///
   /// In en, this message translates to:
@@ -21568,6 +21580,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Saved searches'**
   String get settingsSavedSearchesHeader;
+
+  /// Shown in Settings > Collection > Saved searches, with a Try again button, when the list of saved searches could not be read. Never shown as 'no saved searches'.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your saved searches. Nothing was changed. Try again.'**
+  String get settingsSavedSearchesLoadError;
 
   /// Shown in Settings ▸ Collection when there are no saved searches.
   ///

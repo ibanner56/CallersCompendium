@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/event_rules_scope.dart';
@@ -42,6 +43,16 @@ class SavedSearchLoad {
   /// What the search refers to that is gone, for the notice. Empty for a
   /// search that resolved whole.
   final List<SavedSearchMissing> missing;
+
+  /// The name of each deleted custom field the search filters on, by id, for
+  /// the Filters panel's chip that removes that filter
+  /// (`FacetPanel.deletedCustomFieldNames`). A field no name is known for is
+  /// left out.
+  Map<String, String> get deletedCustomFieldNames => {
+    for (final m in missing)
+      if (m.reference.kind == MissingReferenceKind.customField)
+        m.reference.id: ?m.name,
+  };
 
   SavedSearchLoad copyWith({
     SavedSearch? search,
@@ -150,8 +161,17 @@ class SavedSearchActions {
   }
 
   /// Shows [search] in the host and runs it. Returns what the host now holds,
-  /// or null when it could not be read (a message says so).
-  Future<SavedSearchLoad?> load(SavedSearch search) async {
+  /// or null when it could not be read (a message says so), or when
+  /// [stillWanted], asked once everything is read and just before the panel
+  /// is replaced, says the host no longer wants it (a load the host started
+  /// in the background, overtaken by what the user did meanwhile). [quiet]
+  /// logs a failure without telling the user, for a load that only follows
+  /// a write that succeeded.
+  Future<SavedSearchLoad?> load(
+    SavedSearch search, {
+    bool Function()? stillWanted,
+    bool quiet = false,
+  }) async {
     final text = _text();
     final repos = _repos;
     try {
@@ -169,7 +189,7 @@ class SavedSearchActions {
           );
           missing = await describeSavedSearchMissing(repos, refs, ctx);
       }
-      if (!context.mounted) return null;
+      if (!context.mounted || !(stillWanted?.call() ?? true)) return null;
       apply!(state);
       final baseline = _currentForm() ?? search.spec.toJson();
       return SavedSearchLoad(
@@ -179,7 +199,7 @@ class SavedSearchActions {
       );
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'saved_search_actions.load');
-      _showFailed();
+      if (!quiet) _showFailed();
       return null;
     }
   }
@@ -205,8 +225,12 @@ class SavedSearchActions {
     );
     if (name == null || !context.mounted) return null;
     try {
-      final saved = await repos.savedSearches.create(name: name, spec: spec);
+      final written = await _throughAliases(spec);
+      final saved = await repos.savedSearches.create(name: name, spec: written);
       _snack(l10n.savedSearchSavedSnack(saved.name));
+      if (!sameSavedSearchSpec(written, spec)) {
+        return await _showWritten(saved, spec);
+      }
       return SavedSearchLoad(search: saved, baseline: spec.toJson());
     } on SavedSearchLimitReached {
       // diagnostics: silent — an expected refusal, told to the user in full.
@@ -223,6 +247,57 @@ class SavedSearchActions {
       _showFailed();
     }
     return null;
+  }
+
+  /// Shows [written] in the host as it was just stored, when that differs
+  /// from the panel (a merged-away id written as its survivor), so the panel
+  /// and the list are on the survivor too, and the next change compares with
+  /// what is stored. It was stored either way: if it cannot be shown, the
+  /// host still holds it, with the panel's own form ([panel]) as the
+  /// baseline and the [missing] it had. Not shown if the user changed the
+  /// panel while it was being read: their change stands, and Update offers
+  /// to save it.
+  Future<SavedSearchLoad> _showWritten(
+    SavedSearch written,
+    SavedSearchSpec panel, {
+    List<SavedSearchMissing> missing = const [],
+  }) async {
+    final panelForm = panel.toJson();
+    final shown = apply == null || readContext == null || !context.mounted
+        ? null
+        : await load(
+            written,
+            quiet: true,
+            stillWanted: () {
+              final now = _currentForm();
+              return now != null && _sameJson(now, panelForm);
+            },
+          );
+    return shown ??
+        SavedSearchLoad(search: written, baseline: panelForm, missing: missing);
+  }
+
+  /// [spec] with each tag, author or source id that a merge on this device
+  /// moved read as the id that survived it, so a panel that still shows a
+  /// merged-away id (it was on screen when the merge ran) does not write that
+  /// id back over the merge's rewrite of the stored search
+  /// ([SavedSearchSpec.movingReferences], as the merge itself uses). The
+  /// baseline stays the panel's own form, which is what the panel is compared
+  /// with.
+  Future<SavedSearchSpec> _throughAliases(SavedSearchSpec spec) async {
+    final aliases = await _repos.syncLocal.aliasMaps();
+    var out = spec;
+    for (final kind in const [
+      SyncRecordKind.tag,
+      SyncRecordKind.choreographer,
+      SyncRecordKind.publishedSource,
+    ]) {
+      final losers = aliases[kind]?.keys ?? const <String>[];
+      if (losers.isEmpty) continue;
+      final moves = {for (final id in losers) id: _alias(aliases, kind, id)};
+      out = out.movingReferences(kind, moves) ?? out;
+    }
+    return out;
   }
 
   /// The saved search [id] as it is stored now, or null (after telling the
@@ -273,9 +348,17 @@ class SavedSearchActions {
         onGone,
       );
       if (stored == null) return null;
-      final updated = SavedSearch(id: stored.id, name: stored.name, spec: spec);
+      final written = await _throughAliases(spec);
+      final updated = SavedSearch(
+        id: stored.id,
+        name: stored.name,
+        spec: written,
+      );
       await repos.savedSearches.save(updated);
       _snack(l10n.savedSearchUpdatedSnack(updated.name));
+      if (!sameSavedSearchSpec(written, spec)) {
+        return await _showWritten(updated, spec, missing: loaded.missing);
+      }
       return loaded.copyWith(search: updated, baseline: spec.toJson());
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'saved_search_actions.update');
@@ -581,6 +664,10 @@ Future<List<SavedSearchMissing>> describeSavedSearchMissing(
   ];
 }
 
+/// Whether [a] and [b] are the same search, as stored.
+bool sameSavedSearchSpec(SavedSearchSpec a, SavedSearchSpec b) =>
+    _sameJson(a.toJson(), b.toJson());
+
 bool _sameJson(Object? a, Object? b) {
   if (a is Map && b is Map) {
     if (a.length != b.length) return false;
@@ -814,8 +901,13 @@ class _SavedSearchNameDialogState extends State<_SavedSearchNameDialog> {
 
   String get _name => _controller.text.trim();
 
+  /// Whether [_name] is one the store keeps. The field's formatter holds it
+  /// to the limit, except while an input method is composing.
+  bool get _canSave =>
+      _name.isNotEmpty && _name.length <= savedSearchMaxNameLength;
+
   void _submit() {
-    if (_name.isEmpty) return;
+    if (!_canSave) return;
     Navigator.of(context).pop(_name);
   }
 
@@ -833,8 +925,17 @@ class _SavedSearchNameDialogState extends State<_SavedSearchNameDialog> {
             key: const ValueKey('saved-search-name-field'),
             controller: _controller,
             autofocus: true,
-            maxLength: savedSearchMaxNameLength,
-            decoration: InputDecoration(labelText: l10n.savedSearchNameLabel),
+            // Limited, and counted, in UTF-16 code units, as the store limits
+            // a name: `maxLength` counts characters, so a name of emoji it
+            // accepted could be refused on save.
+            inputFormatters: const [
+              _CodeUnitLimitFormatter(savedSearchMaxNameLength),
+            ],
+            decoration: InputDecoration(
+              labelText: l10n.savedSearchNameLabel,
+              counterText:
+                  '${_controller.text.length}/$savedSearchMaxNameLength',
+            ),
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) => _submit(),
           ),
@@ -850,10 +951,73 @@ class _SavedSearchNameDialogState extends State<_SavedSearchNameDialog> {
         ),
         TextButton(
           key: const ValueKey('saved-search-name-save'),
-          onPressed: _name.isEmpty ? null : _submit,
+          onPressed: _canSave ? _submit : null,
           child: Text(l10n.commonSave),
         ),
       ],
+    );
+  }
+}
+
+/// Keeps a field's text to at most [maxLength] UTF-16 code units. An edit
+/// that would go past it keeps what was there and as much of what it inserted
+/// as fits, never splitting a surrogate pair.
+class _CodeUnitLimitFormatter extends TextInputFormatter {
+  const _CodeUnitLimitFormatter(this.maxLength);
+
+  final int maxLength;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final next = newValue.text;
+    if (next.length <= maxLength) return newValue;
+    // An input method may pass the limit while it composes; cut once it has
+    // committed, as Flutter's own length limiter does, so it is not broken
+    // off mid-word.
+    if (newValue.composing.isValid) return newValue;
+    final old = oldValue.text;
+    // What the edit inserted: next less the longest common prefix and suffix
+    // it shares with the old text.
+    var prefix = 0;
+    final shorter = old.length < next.length ? old.length : next.length;
+    while (prefix < shorter &&
+        old.codeUnitAt(prefix) == next.codeUnitAt(prefix)) {
+      prefix++;
+    }
+    var suffix = 0;
+    while (suffix < shorter - prefix &&
+        old.codeUnitAt(old.length - 1 - suffix) ==
+            next.codeUnitAt(next.length - 1 - suffix)) {
+      suffix++;
+    }
+    // Matched by code unit, either can end inside a surrogate pair: keep
+    // pairs whole by giving the split half back to the insertion.
+    bool isHigh(int unit) => unit >= 0xD800 && unit <= 0xDBFF;
+    bool isLow(int unit) => unit >= 0xDC00 && unit <= 0xDFFF;
+    if (prefix > 0 && isHigh(next.codeUnitAt(prefix - 1))) prefix--;
+    if (suffix > 0 && isLow(next.codeUnitAt(next.length - suffix))) suffix--;
+    final room = maxLength - prefix - suffix;
+    if (room < 0) {
+      final text = truncateOnRuneBoundary(next, maxLength);
+      return TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+    final inserted = truncateOnRuneBoundary(
+      next.substring(prefix, next.length - suffix),
+      room,
+    );
+    final text =
+        next.substring(0, prefix) +
+        inserted +
+        next.substring(next.length - suffix);
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: prefix + inserted.length),
     );
   }
 }

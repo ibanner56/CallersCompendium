@@ -28,6 +28,7 @@ Future<void> _pump(
   Map<String, String> sourceTitles = const {},
   List<CustomFieldDef> choiceFields = const [],
   List<CustomFieldDef> allCustomFields = const [],
+  Map<String, String> deletedCustomFieldNames = const {},
   required VoidCallback onChanged,
 }) async {
   await tester.binding.setSurfaceSize(const Size(900, 2000));
@@ -62,6 +63,7 @@ Future<void> _pump(
               allTagNames: allTagNames,
               sourceTitles: sourceTitles,
               allCustomFields: allCustomFields,
+              deletedCustomFieldNames: deletedCustomFieldNames,
               onChanged: () {
                 onChanged();
                 setState(() {});
@@ -408,6 +410,107 @@ void main() {
         isCleared: () => !facets.booleanValues.containsKey('f2'),
         changes: () => changes,
       );
+    });
+
+    // A saved search can name a custom field that has since been deleted, or
+    // changed type; the search leaves the filter out, and the notice asks the
+    // user to remove it, so it needs a chip like any other selection.
+    testWidgets('a choice on a deleted custom field, named as it was', (
+      tester,
+    ) async {
+      final facets = FacetSelections()..choiceValues['cf1'] = {'calm'};
+      var changes = 0;
+      await _pump(
+        tester,
+        facets,
+        deletedCustomFieldNames: const {'cf1': 'Mood'},
+        onChanged: () => changes++,
+      );
+      // (The panel puts its section's key on the padding around it too.)
+      expect(find.byKey(const ValueKey('facet-row-cf-stale')), findsWidgets);
+      await _expectRemovableChip(
+        tester,
+        key: 'cf-stale-cf1-choice-calm',
+        label: 'Mood: calm',
+        isCleared: () => facets.isEmpty,
+        changes: () => changes,
+      );
+      // Its section goes with its last chip.
+      expect(find.byKey(const ValueKey('facet-row-cf-stale')), findsNothing);
+    });
+
+    testWidgets('a text filter on a deleted field whose name is not known', (
+      tester,
+    ) async {
+      final facets = FacetSelections()
+        ..textValues['cf3'] = const TextFacetState(
+          op: CustomFieldOp.contains,
+          value: 'slow',
+        );
+      var changes = 0;
+      await _pump(tester, facets, onChanged: () => changes++);
+      await _expectRemovableChip(
+        tester,
+        key: 'cf-stale-cf3-text',
+        label: _missing,
+        isCleared: () => facets.isEmpty,
+        changes: () => changes,
+      );
+    });
+
+    testWidgets('a number filter on a deleted field', (tester) async {
+      final facets = FacetSelections()
+        ..numberValues['cf4'] = const NumberFacetState(
+          op: CustomFieldOp.eq,
+          lo: 3,
+        );
+      var changes = 0;
+      await _pump(
+        tester,
+        facets,
+        deletedCustomFieldNames: const {'cf4': 'Tempo'},
+        onChanged: () => changes++,
+      );
+      await _expectRemovableChip(
+        tester,
+        key: 'cf-stale-cf4-number',
+        label: 'Tempo',
+        isCleared: () => facets.isEmpty,
+        changes: () => changes,
+      );
+    });
+
+    testWidgets('a yes/no filter on a field that is now a text field: named '
+        'from the live field, and removing it keeps its text filter', (
+      tester,
+    ) async {
+      final def = CustomFieldDef(
+        id: 'cf2',
+        key: 'mood',
+        label: 'Mood',
+        type: CustomFieldType.text,
+      );
+      final facets = FacetSelections()
+        ..booleanValues['cf2'] = true
+        ..textValues['cf2'] = const TextFacetState(
+          op: CustomFieldOp.contains,
+          value: 'calm',
+        );
+      var changes = 0;
+      await _pump(
+        tester,
+        facets,
+        allCustomFields: [def],
+        onChanged: () => changes++,
+      );
+      await _expectRemovableChip(
+        tester,
+        key: 'cf-stale-cf2-bool',
+        label: 'Mood: ${_en.commonYes}',
+        isCleared: () => facets.booleanValues.isEmpty,
+        changes: () => changes,
+      );
+      expect(facets.textValues['cf2']?.value, 'calm');
     });
   });
 }

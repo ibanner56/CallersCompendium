@@ -4921,6 +4921,15 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionFacetMissingValue => 'Niet in je bibliotheek';
 
   @override
+  String get collectionFacetStaleFields =>
+      'Verwijderde of gewijzigde aangepaste velden';
+
+  @override
+  String collectionFacetStaleFieldValue(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
   String get collectionFacetClear => 'Filters wissen';
 
   @override
@@ -14951,6 +14960,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSavedSearchesHeader => 'Opgeslagen zoekopdrachten';
+
+  @override
+  String get settingsSavedSearchesLoadError =>
+      'Je opgeslagen zoekopdrachten konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
 
   @override
   String get settingsSavedSearchesEmpty =>

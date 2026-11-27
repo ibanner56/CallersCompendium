@@ -4956,6 +4956,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionFacetMissingValue => 'Absent de votre bibliothèque';
 
   @override
+  String get collectionFacetStaleFields =>
+      'Champs personnalisés supprimés ou modifiés';
+
+  @override
+  String collectionFacetStaleFieldValue(String field, String value) {
+    return '$field : $value';
+  }
+
+  @override
   String get collectionFacetClear => 'Effacer les filtres';
 
   @override
@@ -15025,6 +15034,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSavedSearchesHeader => 'Recherches enregistrées';
+
+  @override
+  String get settingsSavedSearchesLoadError =>
+      'Impossible de charger vos recherches enregistrées. Rien n’a été modifié. Réessayez.';
 
   @override
   String get settingsSavedSearchesEmpty =>

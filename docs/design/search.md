@@ -989,7 +989,8 @@ immutable JSON value:
 
 - Enums are stored by `name`; id sets and the keys of every id-keyed map are
   sorted, so the bytes depend only on the search. (`historyVenueLabel`, the chip
-  text, is display-only and not stored: it is looked up again on load.) Builder row ids are session counters and are **never stored**;
+  text, is display-only and not stored: the chip names a venue from the
+  chooser's row for it, else from the venue record, while it shows.) Builder row ids are session counters and are **never stored**;
   they are minted again on load.
 - `tagsMatchAll` and the sort **direction** are stored, though the panel does not
   persist them on its own: leaving them out would change which dances a saved
@@ -1082,6 +1083,15 @@ reads that format can use it, and only until it is retired. A host builds the
 alias map once per run, from one read (`SyncLocalRepository.aliasMaps`), never
 per reference. Deleting a tag has no survivor, so nothing is rewritten and the
 resolver reports the missing tag.
+
+A Collection that has the search loaded when the merge runs still shows the
+loser. Two things keep it from undoing the rewrite: **Save** and **Update**
+write the panel's ids through the same aliases (`movingReferences`), then load
+what they wrote when that differs, so the panel is on the survivor too; and
+when the Collection is shown again a loaded search whose stored form changed
+meanwhile is loaded again, unless the panel was changed from it there or
+Online search is on, and unless the user changes, clears or replaces the
+search, or turns Online search on, before that load has read what it needs.
 
 Moves and sections are not references to records, and are not reported here: a
 move id the taxonomy does not know, or a By phrase section the dance form has no
@@ -1249,7 +1259,10 @@ built). Then `resolveSavedSearch`:
   this device never knew it), and the user removes each criterion themselves.
   A Filters criterion on a deleted custom field is left out by
   `buildCollectionFilter`, so the notice also says that one is not in the
-  results. There is no "open anyway" step: the notice is what keeps the load
+  results. The Filters panel gives each criterion on a deleted custom field,
+  or on one whose type changed, a removable chip of its own (named from the
+  load's missing references, or the live field), as it does a deleted tag or
+  level. There is no "open anyway" step: the notice is what keeps the load
   from being silent.
 
 Both hosts take "today" from a `SearchClock` (`DanceListScreen.clock`,

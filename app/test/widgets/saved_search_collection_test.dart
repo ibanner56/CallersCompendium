@@ -496,6 +496,49 @@ void main() {
       expect(find.text('Advanced (on)'), findsOneWidget);
       expect(find.text('Filters · 1'), findsOneWidget);
     });
+
+    testWidgets('a filter on a deleted custom field has a chip, named as the '
+        'field was, that removes it so Update can save without it', (
+      tester,
+    ) async {
+      final repos = await _library();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'cf1',
+          key: 'mood',
+          label: 'Mood',
+          type: CustomFieldType.choice,
+          choices: const ['calm'],
+        ),
+      );
+      final state = CollectionPanelState();
+      state.facets.setTag('t1', selected: true);
+      state.facets.choiceValues['cf1'] = {'calm'};
+      final search = await _seed(repos, 'Calm bouncey', state);
+      await repos.customFieldDefs.delete('cf1');
+      await _pump(tester, repos);
+      await _load(tester, search);
+      expect(find.byKey(const ValueKey('saved-search-notice')), findsOneWidget);
+
+      await tester.tap(find.text('Filters · 2'));
+      await tester.pumpAndSettle();
+      final chip = find.byKey(const ValueKey('cf-stale-cf1-choice-calm'));
+      expect(
+        find.descendant(of: chip, matching: find.text('Mood: calm')),
+        findsOneWidget,
+      );
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      expect(find.text('Filters · 1'), findsOneWidget);
+
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-update');
+      final stored = (await repos.savedSearches.get(search.id))!;
+      final facets = stored.spec.toJson()['facets']! as Map;
+      expect(facets.containsKey('choiceValues'), isFalse);
+      expect(facets['tagIds'], ['t1']);
+    });
   });
 
   group('the dropdown keeps the field working', () {
@@ -927,6 +970,206 @@ void main() {
       expect(find.text('Save this search…'), findsOneWidget);
     });
 
+    // A merge of the loaded search's tag (Settings ▸ Tags, or synced) rewrites
+    // the stored search to the survivor; the panel on screen still names the
+    // merged-away tag, which no dance carries any more.
+    Future<(CompendiumRepositories, SavedSearch)> mergedTagSearch() async {
+      final repos = await _library();
+      // 't0' sorts before 't1', so it survives the merge.
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't0', name: 'Bouncy'));
+      final state = CollectionPanelState();
+      state.facets.setTag('t1', selected: true);
+      return (repos, await _seed(repos, 'Bouncey dances', state));
+    }
+
+    Future<void> merge(CompendiumRepositories repos) => repos.references.merge(
+      ReferenceKind.tag,
+      intoId: 't0',
+      otherIds: const ['t1'],
+    );
+
+    List<Object?>? storedTagIds(SavedSearch s) =>
+        (s.spec.toJson()['facets']! as Map)['tagIds'] as List<Object?>?;
+
+    testWidgets('when the Collection is shown again after a merge of its '
+        'tag, the loaded search shows as stored, on the surviving tag', (
+      tester,
+    ) async {
+      final (repos, search) = await mergedTagSearch();
+      final isActive = ValueNotifier(true);
+      addTearDown(isActive.dispose);
+      await _pump(tester, repos, isActive: isActive);
+      await _load(tester, search);
+      expect(_shows('Petronella'), isTrue);
+
+      isActive.value = false;
+      await tester.pumpAndSettle();
+      await merge(repos);
+      expect(storedTagIds((await repos.savedSearches.get(search.id))!), ['t0']);
+      isActive.value = true;
+      await tester.pumpAndSettle();
+
+      expect(_shows('Petronella'), isTrue);
+      expect(_shows('Chorus Jig'), isFalse);
+      await _openMore(tester);
+      // Still the loaded search, and unchanged from it.
+      expect(find.text('Update "Bouncey dances"'), findsOneWidget);
+      expect(_enabled(tester, 'saved-search-update'), isFalse);
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+
+      await _type(tester, 'petronella');
+      await _tapOff(tester);
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-update');
+      expect(storedTagIds((await repos.savedSearches.get(search.id))!), ['t0']);
+    });
+
+    testWidgets('a search changed here before its tag was merged keeps the '
+        'change, and Update saves it on the surviving tag', (tester) async {
+      final (repos, search) = await mergedTagSearch();
+      final isActive = ValueNotifier(true);
+      addTearDown(isActive.dispose);
+      await _pump(tester, repos, isActive: isActive);
+      await _load(tester, search);
+      await _type(tester, 'petronella');
+      await _tapOff(tester);
+
+      isActive.value = false;
+      await tester.pumpAndSettle();
+      await merge(repos);
+      isActive.value = true;
+      await tester.pumpAndSettle();
+
+      // The change made here is still on screen.
+      expect(_searchText(tester), 'petronella');
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-update');
+      final stored = (await repos.savedSearches.get(search.id))!;
+      expect(storedTagIds(stored), ['t0']);
+      expect(stored.spec.toJson()['text'], 'petronella');
+      // The panel is on the survivor too, so the list shows what was saved,
+      // and Update is off: nothing differs from it.
+      expect(_shows('Petronella'), isTrue);
+      await _openMore(tester);
+      expect(_enabled(tester, 'saved-search-update'), isFalse);
+    });
+
+    testWidgets('Save as a new search, from a panel still on a tag merged '
+        'away meanwhile, saves the surviving tag and shows it', (tester) async {
+      final (repos, search) = await mergedTagSearch();
+      await _pump(tester, repos);
+      await _load(tester, search);
+      // Merged while the Collection is showing (as sync can): nothing has
+      // reloaded the panel.
+      await merge(repos);
+      await tester.pumpAndSettle();
+      await _type(tester, 'petronella');
+      await _tapOff(tester);
+
+      await _saveAs(tester, 'Copy');
+
+      final copy = (await _readable(
+        repos,
+      )).singleWhere((s) => s.name == 'Copy');
+      expect(storedTagIds(copy), ['t0']);
+      expect(_shows('Petronella'), isTrue);
+    });
+
+    testWidgets('a loaded search changed elsewhere is not loaded again over '
+        'Online search', (tester) async {
+      final repos = await _library();
+      // Searched by title, which online search keeps as it is, so the panel
+      // still reads as the loaded search while online.
+      final search = await _seed(
+        repos,
+        'Pet',
+        CollectionPanelState(text: 'Petronella', scope: FullTextScope.title),
+      );
+      final isActive = ValueNotifier(true);
+      addTearDown(isActive.dispose);
+      await _pump(
+        tester,
+        repos,
+        isActive: isActive,
+        contraDbOnline: ContraDbOnline(
+          searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}',
+        ),
+      );
+      await _load(tester, search);
+      await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('online-source-selector')),
+        findsOneWidget,
+      );
+
+      isActive.value = false;
+      await tester.pumpAndSettle();
+      // Updated on another device, and synced.
+      await repos.savedSearches.save(
+        SavedSearch(
+          id: search.id,
+          name: 'Pet',
+          spec: SavedSearchSpec.fromPanelState(
+            CollectionPanelState(text: 'Chorus', scope: FullTextScope.title),
+            today: _day,
+          ).value!,
+        ),
+      );
+      isActive.value = true;
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('online-source-selector')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('when the Collection is shown again, an Update made '
+        'elsewhere is loaded, unless the search was changed here', (
+      tester,
+    ) async {
+      final repos = await _library();
+      final search = await _seed(
+        repos,
+        'Pet',
+        CollectionPanelState(text: 'Petronella'),
+      );
+      final isActive = ValueNotifier(true);
+      addTearDown(isActive.dispose);
+      await _pump(tester, repos, isActive: isActive);
+      await _load(tester, search);
+
+      Future<void> updateElsewhere(String text) async {
+        isActive.value = false;
+        await tester.pumpAndSettle();
+        await repos.savedSearches.save(
+          SavedSearch(
+            id: search.id,
+            name: 'Pet',
+            spec: SavedSearchSpec.fromPanelState(
+              CollectionPanelState(text: text),
+              today: _day,
+            ).value!,
+          ),
+        );
+        isActive.value = true;
+        await tester.pumpAndSettle();
+      }
+
+      await updateElsewhere('Chorus');
+      expect(_searchText(tester), 'Chorus');
+      expect(_shows('Chorus Jig'), isTrue);
+      expect(_shows('Petronella'), isFalse);
+
+      await _type(tester, 'Jig');
+      await _tapOff(tester);
+      await updateElsewhere('Petronella');
+      expect(_searchText(tester), 'Jig');
+    });
+
     testWidgets('Undo of a delete does not take over from a search loaded '
         'since', (tester) async {
       final repos = await _library();
@@ -1329,6 +1572,86 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Contra night, slot 3'), findsOneWidget);
+    });
+
+    testWidgets('the name field holds no more than the store keeps, counted '
+        'the same way, so a name it accepts is saved', (tester) async {
+      // An emoji is one character but two UTF-16 units, the unit the stored
+      // name is limited in (savedSearchMaxNameLength).
+      final repos = await _library();
+      await _pump(tester, repos);
+      await _type(tester, 'petronella');
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-save');
+      await tester.enterText(
+        find.byKey(const ValueKey('saved-search-name-field')),
+        '😀' * 51,
+      );
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextField>(
+        find.byKey(const ValueKey('saved-search-name-field')),
+      );
+      expect(field.controller!.text, '😀' * 50);
+      // An edit past the limit never leaves half of a surrogate pair: the
+      // old text's last emoji and the new one share their second unit.
+      await tester.enterText(
+        find.byKey(const ValueKey('saved-search-name-field')),
+        '${'a' * 98}😀',
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('saved-search-name-field')),
+        '${'a' * 98}X\u{1F200}',
+      );
+      await tester.pumpAndSettle();
+      expect(field.controller!.text, '${'a' * 98}X');
+      await tester.enterText(
+        find.byKey(const ValueKey('saved-search-name-field')),
+        '😀' * 50,
+      );
+      await tester.pumpAndSettle();
+      // At the limit, an insertion is refused; what was there stays.
+      await tester.enterText(
+        find.byKey(const ValueKey('saved-search-name-field')),
+        'x${'😀' * 50}',
+      );
+      await tester.pumpAndSettle();
+      expect(field.controller!.text, '😀' * 50);
+      expect(
+        find.text('$savedSearchMaxNameLength/$savedSearchMaxNameLength'),
+        findsOneWidget,
+      );
+
+      // An input method's composition may run past the limit for a moment;
+      // Save waits until the name fits.
+      final composing = '😀' * 50 + 'a';
+      tester.testTextInput.updateEditingValue(
+        TextEditingValue(
+          text: composing,
+          selection: TextSelection.collapsed(offset: composing.length),
+          composing: TextRange(start: 100, end: composing.length),
+        ),
+      );
+      await tester.pump();
+      expect(
+        tester
+            .widget<TextButton>(
+              find.byKey(const ValueKey('saved-search-name-save')),
+            )
+            .onPressed,
+        isNull,
+      );
+      tester.testTextInput.updateEditingValue(
+        TextEditingValue(
+          text: '😀' * 50,
+          selection: const TextSelection.collapsed(offset: 100),
+        ),
+      );
+      await tester.pump();
+
+      await _choose(tester, 'saved-search-name-save');
+      expect(find.text("That name can't be used. Try another."), findsNothing);
+      expect((await _readable(repos)).single.name, '😀' * 50);
     });
 
     testWidgets('at the limit, saving another says so and adds nothing', (
