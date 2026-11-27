@@ -263,8 +263,10 @@ class Dance {
   final String walkthrough;
 
   /// The tune's written meter, as free text ("3/2", "6/8"), or `''` when not
-  /// given (ADR-006 §12, F3). Shown and searched, never computed with: the
-  /// beats per bar that timing uses live in [phraseStructure].
+  /// given (ADR-006 §12, F3). Shown and searched. Where it states one meter,
+  /// an English dance whose phrases agree in beats per bar counts its bars by
+  /// it (`danceBeatsPerBar` in bar_count.dart); otherwise the beats per bar
+  /// that timing uses live in [phraseStructure].
   final String meter;
 
   /// The tune's key, as free text ("G minor", "D"), or `''` when not given

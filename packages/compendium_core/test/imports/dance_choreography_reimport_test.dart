@@ -314,6 +314,45 @@ void main() {
       },
     );
 
+    // Pre-release audit finding C-01: a dance imported as contra and
+    // re-imported as English took figures counted in 3-beat bars but kept the
+    // standard structure of four 16-beat phrases, so its phrase labels cut
+    // figures mid-phrase.
+    test('takes the phrase structure with the figures over the standard '
+        'one, and keeps one the person set', () {
+      final triple = DecodedFigures([
+        for (var i = 0; i < 8; i++)
+          testFigure(move: customMove, params: {'text': '4 bars', 'beats': 12}),
+      ]);
+      final incoming = english(
+        triple,
+      ).copyWith(meter: '3/2', phraseStructure: '4*8*3');
+      final taken = withReimportedChoreography(
+        existing,
+        incoming,
+        updatedAt: DateTime.utc(2026, 2),
+      );
+      expect(taken.phraseStructure.raw, '4*8*3');
+      expect(
+        [for (final f in taken.sectionedFigures) f.label],
+        ['A1', 'A1', 'A2', 'A2', 'B1', 'B1', 'B2', 'B2'],
+      );
+
+      final kept = withReimportedChoreography(
+        existing.copyWith(phraseStructure: '3*8*2 + 1*4*2'),
+        incoming,
+        updatedAt: DateTime.utc(2026, 2),
+      );
+      expect(kept.phraseStructure.raw, '3*8*2 + 1*4*2');
+
+      final noFigures = withReimportedChoreography(
+        existing,
+        english(DecodedFigures(const [])).copyWith(phraseStructure: '4*8*3'),
+        updatedAt: DateTime.utc(2026, 2),
+      );
+      expect(noFigures.phraseStructure.raw, '');
+    });
+
     test('stays, with its formation, when no figures are taken', () {
       final result = withReimportedChoreography(
         existing,

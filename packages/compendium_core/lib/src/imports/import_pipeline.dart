@@ -926,7 +926,8 @@ class ImportPipeline {
           );
         } else if (action == CommitAction.reimport) {
           // A re-import refreshes only the choreography (figures, formation,
-          // progression, and the form, meter and key they need; see
+          // progression, and the form, meter, key and phrase structure they
+          // need; see
           // [withReimportedChoreography]) and the provenance, from every
           // source: the caller's
           // own title, notes, rating, tags, links, authors and custom fields
