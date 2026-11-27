@@ -358,7 +358,9 @@ How the values come in:
   know, or text in a number field — goes into the dance's **calling notes**,
   with a note on the review row, so nothing is lost.
 - When two columns are set to the same field, the first value that fits fills
-  it and the other goes into the calling notes. A new custom field counts as
+  it and the other goes into the calling notes. A field that holds several
+  values (Authors, Interpreted by, Tags, Tunes, Calling notes) takes them from
+  every column instead. A new custom field counts as
   one of yours with the same name and type, and two new ones with the same
   name and type are one field. Two columns for the same phrase of **Figures**
   are both kept, one after the other.
