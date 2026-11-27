@@ -816,7 +816,15 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
     written. So "docey doe" finds a line typed "Docey doe your corner" as
     well as a structured do si do, in a dance of any form, and "balance in
     the ring" finds a square's balance in the ring though "ring" is a
-    keyword of the circle (pre-release audit B-04, B-03).
+    keyword of the circle (pre-release audit B-04, B-03). A phrase kept
+    whole only by a square call's name or keyword ("turn by the hand",
+    "right and left thru") also matches when its words all match on their
+    own, as a search over every form read it before the square calls were
+    registered, so "turn by the hand" still finds a line typed "Turn by the
+    right hand"; a name or keyword contra or English dances already had ("do
+    si do") stays one word (the audit lead's call; the rejected
+    alternatives were splitting every keyword, which would loosen "do si
+    do", and leaving the phrase whole).
 
   A term of several words — a role ("Lady Birds"), a move ("do si do") or a
   dialect's move name — stays one word, so its spaces must still match.

@@ -2720,8 +2720,9 @@ instead, which the gate cannot see.
     as it does for contra, and no square keyword is another form's move name
     or a phrase another form's text says (such as "single file"), so a
     search over every form reads those as before; a keyword's words as typed
-    are searched too, so a line typed in them is still found (pre-release
-    audit B-04). The selectors are
+    are searched too, together and, for a phrase only a square call names,
+    apart, so a line typed in them is still found (pre-release audit B-04;
+    `docs/design/search.md`). The selectors are
     ADR-007 §6.2's (`squareSelectors`); a selector or destination that names
     a role (`headRole1s`, `rightHandRole2`, `role1Place`) shows the dialect's
     role term. `ParamBeats.rules` lets a count follow more than one parameter
