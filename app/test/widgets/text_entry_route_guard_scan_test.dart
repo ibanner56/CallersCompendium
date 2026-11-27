@@ -361,16 +361,19 @@ void open(BuildContext context) => showDialog<void>(
       for (final f in findings)
         if (_exempt.containsKey(f.split(':').first)) f.split(':').first,
     };
-    // Both at once, so neither failure hides the other.
+    // Both at once, so neither failure hides the other. A map, which the
+    // matcher compares deeply (a record compares its lists by identity).
     expect(
-      (
-        unguarded: [
+      {
+        'unguarded': [
           for (final f in findings)
             if (!_exempt.containsKey(f.split(':').first)) f,
         ],
-        staleExemptions: _exempt.keys.toSet().difference(exempted),
-      ),
-      (unguarded: <String>[], staleExemptions: <String>{}),
+        'stale exemptions': _exempt.keys
+            .where((key) => !exempted.contains(key))
+            .toList(),
+      },
+      {'unguarded': <String>[], 'stale exemptions': <String>[]},
       reason:
           'wrap the content in DirtyDialogGuard (a small input dialog) or '
           'DiscardChangesGuard (an editor), as #2219 and #2236 did; and '
