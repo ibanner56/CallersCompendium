@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Each type of dance (contra, English country dance, square) now has its own dialects and its own active dialect. Choose the type at the top of Settings › Dialect, and every dance reads in the dialect of its own type.",
+      "Each type of dance (contra, English country dance, square) now has its own dialects and its own active dialect. Choose the type at the top of Settings ▸ Dialect, and every dance reads in the dialect of its own type.",
       "The new-dance Type setting can be Last used, so a new dance starts as the type of the last new dance you saved."
     ],
     "changed": [

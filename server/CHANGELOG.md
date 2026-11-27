@@ -10,19 +10,33 @@ the app and of `compendium_core`; version headings below refer to
 
 ### Changed
 
-- The generated sync allow-list now accepts `archivedAt` on the `program`
-  record kind (schema v42, program archiving). Deploy this server before any
-  client on app `0.11.0` syncs an archived program: an older server rejects
-  that program's record with `422`. Programs that are not archived carry no
-  such key, so they are unaffected. The server's own code is unchanged.
-- The generated sync allow-list now accepts `calendarEventKey` on the
-  `program` record kind (schema v42, calendar import). Deploy this server
-  before any client on app `0.11.0` syncs a program imported from a calendar:
-  an older server rejects that program's record with `422`. Other programs
-  carry no such key. The server's own code is unchanged.
-- The same applies to `calendarEventFingerprint`, `calendarWrittenAt` and
-  `calendarFlag` on the `program` record kind (schema v42, calendar changes and
-  cancellations): an older server rejects a program carrying them with `422`.
+- **Deploy this server before any client on app `0.11.0` syncs with it.**
+  Every client on that app version needs it, not only those using one
+  feature. The generated sync allow-list and the settings registry this
+  server is built from accept, since the server built for app `0.10.0-beta`:
+  - new `dance` record fields (an English or square dance's meter, key,
+    improper mark, interpreters and square details, and any dance's other
+    titles and Barnes reference);
+  - new `program` record fields (archiving, start, end, lesson and arrival
+    times, calendar import and its change tracking, the event rules a program
+    uses, and a placeholder slot's saved search);
+  - the new `eventRule` record kind;
+  - new shareable settings keys and the `program_template:` and
+    `saved_search:` key prefixes, including keys no sync capability gates,
+    such as `last_used_dance_form`, which the app writes when a dance is
+    added in its editor.
+
+  An older server rejects a record or settings key carrying any of these with
+  `422`. A refused upload fails the whole sync pass before the device's
+  manifest is published, so the device then shares none of its changes; it
+  sends the refused record again on every later pass and is refused again,
+  until the server is updated or that record no longer carries the new key.
+  It still receives other devices' changes. Removing a
+  refused setting on the device does not help: its deletion names the same
+  key, which the older server refuses too. The server's own code is
+  unchanged; `packages/compendium_core/lib/src/sync/generated_sync_allow_list.dart`
+  and `packages/compendium_core/lib/src/privacy/settings_registry.dart` list
+  every key.
 
 ## [0.5.0] - 2026-11-16
 
