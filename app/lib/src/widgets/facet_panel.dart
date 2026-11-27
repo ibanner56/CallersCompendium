@@ -58,6 +58,7 @@ class FacetPanel extends StatelessWidget {
     this.allTagNames = const {},
     this.sourceTitles = const {},
     this.allCustomFields = const [],
+    this.deletedCustomFieldNames = const {},
     this.historyFromSavedSearch = false,
     required this.onChanged,
   });
@@ -131,6 +132,10 @@ class FacetPanel extends StatelessWidget {
   /// Every custom field, so a selection on one that is not offered as a
   /// filter (not searchable) still has a section.
   final List<CustomFieldDef> allCustomFields;
+
+  /// The names, by id, of deleted custom fields that a selection still names
+  /// (a saved search that filters on one), to label its chip.
+  final Map<String, String> deletedCustomFieldNames;
 
   /// Whether the panel state came from a saved search, which a **Within**
   /// window outside the presets says ([CallingHistoryScopes]).
