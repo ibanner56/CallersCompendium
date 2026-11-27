@@ -39,10 +39,11 @@ const String _pinnedSuffix = '.pinned$_snapshotSuffix';
 /// newest release that predates the floor, let it migrate to a supported
 /// version, then update again). The AppBootstrap error screen localizes the
 /// explanation, and its guidance depends on the platform (`BelowFloorRoute` in
-/// `migration_error_labels.dart`): on desktop it gives that route, on iPhone
-/// and iPad it points to TestFlight's earlier builds, and on Android, which
-/// will not install an older release over a newer one, it says not to
-/// uninstall or reset instead.
+/// `migration_error_labels.dart`): on desktop it gives that route. On Android,
+/// which will not install an older release over a newer one, it says not to
+/// uninstall and shares a scrubbed copy to update on a computer instead
+/// (`recovery_copy.dart`); on iPhone and iPad it points to TestFlight's
+/// earlier builds and offers the same copy.
 ///
 /// [bridgeTag] is the release tag of the newest release that can still open
 /// and migrate a database at [fileVersion] to a version at or above the floor —

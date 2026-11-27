@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:compendium_core/compendium_core.dart'
     show EgressClass, classifySettingsKey, fieldClassifications;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/painting.dart' show Rect;
 import 'package:path/path.dart' as p;
+import 'package:share_plus/share_plus.dart' show ShareParams;
 import 'package:sqlite3/sqlite3.dart' as sql;
 
 import 'package:compendium_app/src/data/recovery_copy.dart';
@@ -255,6 +257,68 @@ void main() {
     expect(keepSettingInRecoveryCopy('sync_enabled'), isFalse);
     expect(keepSettingInRecoveryCopy('sync_id'), isFalse);
     expect(keepSettingInRecoveryCopy('sync_device_id'), isFalse);
+  });
+
+  test('sharing hands the sheet the scrubbed copy, and only that', () async {
+    final seeded = sql.sqlite3.open(source.path);
+    try {
+      putSetting(seeded, 'editor_draft:1', jsonEncode(_marker));
+    } finally {
+      seeded.close();
+    }
+    final shared = <ShareParams>[];
+    const origin = Rect.fromLTWH(10, 20, 30, 40);
+    final workDir = Directory(p.join(tmp.path, 'work'));
+
+    await shareRecoveryCopy(
+      source: source,
+      origin: origin,
+      workDir: workDir,
+      shareInvoker: (params) async => shared.add(params),
+    );
+
+    expect(shared, hasLength(1));
+    final params = shared.single;
+    expect(params.sharePositionOrigin, origin);
+    expect(params.fileNameOverrides, [kRecoveryCopyFileName]);
+    expect(params.files, hasLength(1));
+    final sharedPath = params.files!.single.path;
+    expect(sharedPath, p.join(workDir.path, kRecoveryCopyFileName));
+    final db = sql.sqlite3.open(sharedPath, mode: sql.OpenMode.readOnly);
+    try {
+      expect(settingKeys(db), isNot(contains('editor_draft:1')));
+      expect(db.select('PRAGMA user_version').first.values.first, 39);
+    } finally {
+      db.close();
+    }
+    // The live database still has its draft: only the copy is scrubbed.
+    final live = sql.sqlite3.open(source.path, mode: sql.OpenMode.readOnly);
+    try {
+      expect(settingKeys(live), contains('editor_draft:1'));
+    } finally {
+      live.close();
+    }
+  });
+
+  test('nothing is shared when the copy cannot be made', () async {
+    final notADatabase = File(p.join(tmp.path, 'garbage.sqlite'))
+      ..writeAsStringSync('this is not a database');
+    final shared = <ShareParams>[];
+
+    await expectLater(
+      shareRecoveryCopy(
+        source: notADatabase,
+        origin: null,
+        workDir: Directory(p.join(tmp.path, 'work')),
+        shareInvoker: (params) async => shared.add(params),
+      ),
+      throwsA(anything),
+    );
+    expect(shared, isEmpty);
+    expect(
+      File(p.join(tmp.path, 'work', kRecoveryCopyFileName)).existsSync(),
+      isFalse,
+    );
   });
 
   test('a copy that fails leaves nothing behind', () async {

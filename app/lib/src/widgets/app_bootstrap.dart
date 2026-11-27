@@ -40,16 +40,17 @@ import 'brand_mark.dart';
 /// **Copy details** and a link to the Releases page ([_TerminalScreen]), except
 /// [DatabaseBelowFloorError], which offers Copy details and, on Windows, macOS
 /// and Linux, a button to the release that can update the data, in place of
-/// the generic link (Android and iOS get wording instead; see
-/// [_BelowFloorRecoveryScreen]).
+/// the generic link (Android and iOS share a copy to update on a computer
+/// instead; see [_BelowFloorRecoveryScreen]).
 /// - [DatabaseDowngradeError] (on-disk data written by a newer build): the only
 ///   fix is to update the app, so retrying would just fail again.
 /// - [DatabaseBelowFloorError] (on-disk data written by a build older than the
 ///   minimum supported schema version): retrying cannot recover the data; the
-///   user must run the bridge release to migrate it (on desktop, or through
-///   TestFlight on iPhone and iPad; Android will not install an older release
-///   over this one), or reset. [onBackUpAndReset]
-///   and [onResetOnly] supply the recovery actions.
+///   user must run the bridge release to migrate it (on desktop, through
+///   TestFlight on iPhone and iPad, or on a computer from a shared copy, since
+///   Android will not install an older release over this one), or reset.
+///   [onBackUpAndReset], [onResetOnly] and [onShareRecoveryCopy] supply the
+///   recovery actions.
 /// - [MigrationSnapshotAborted] (no backup could be written): free space, fix
 ///   the backups folder, or close another app that has the library open, then
 ///   reopen.
