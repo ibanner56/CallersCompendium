@@ -600,8 +600,41 @@ gen-l10n`, then `fvm dart format .`).
 The glossary (`tools/ci/i18n_glossary.json`) pins the meaning of dance jargon
 (`caller`, `set`, `figure`, `program`, `proper`/`improper`, …) and lists proper
 nouns to copy verbatim (`Caller's Compendium`, `ContraDB`, license names).
-Extend it as new domain terms enter the UI — it improves both assisted and
-human translations.
+Where a language has settled on one word for an app term (slot, beat, bar,
+break, template, …) the term's note names it per locale. Extend it as new
+domain terms enter the UI — it improves both assisted and human translations.
+
+Its `register` map says how each language addresses the user, and `extract`
+puts the batch locale's line in the payload as `register`. German uses **du**
+throughout (maintainer decision, 2026-11-27); Dutch uses **je** (the majority
+voice when a pre-release audit found three strings using *u*); French uses
+*vous* and Danish *du*.
+
+`app/test/l10n/translation_terms_test.dart` holds the translations to those
+choices: no German string may address the user as *Sie*/*Ihr* (a *Sie* that
+opens a sentence and means "they" is listed there, key by key), no Dutch one as
+*u*, and where the English names a slot, a beat, a level and so on, the
+translation must not use the word the language retired. When a translation
+trips it, use the word it names; if the old word is right in that string,
+narrow the rule rather than allow-listing the key silently.
+
+## Text the code puts together
+
+A break slot is stored as the English token `Break`
+(`Program.breakSlotText`) in every language, and the database, backups, sync,
+data exports and event rules read that token. What a person reads shows the
+translated `programsBreakSlotLabel` instead: build such text with
+`slotDisplayText` / `templateEntryDisplayText`
+(`app/lib/src/utils/slot_display_text.dart`), and pass `breakLabel` to
+`ProgramExportLabels` for printed and shared set lists. An edit field that
+shows the label writes the token back while the label is left as it was
+(`storedSlotText`).
+
+Lists and sentences joined in Dart use the UI language's punctuation:
+`commonListSeparator` (`, `; Japanese `、`), `commonClauseSeparator` for items
+that may contain commas, and `joinSentences` (`app/lib/src/utils/l10n_joins.dart`,
+built on `commonSentencePair`) for whole sentences, which Japanese writes with
+nothing between. Don't `join(', ')` or `join(' ')` text a person reads.
 
 ## Known limitation: system date pickers
 

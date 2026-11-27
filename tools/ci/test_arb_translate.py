@@ -208,13 +208,22 @@ def _extract_cases() -> None:
             },
         )
         gloss = arb / "glossary.json"
-        _write(gloss, {"doNotTranslate": ["ContraDB"], "terms": {}})
+        _write(
+            gloss,
+            {
+                "doNotTranslate": ["ContraDB"],
+                "register": {"fr": "vous", "de": "du"},
+                "terms": {},
+            },
+        )
 
         code, out = _run(
             ["--arb-dir", str(arb), "extract", "--locale", "fr", "--glossary", str(gloss)]
         )
         assert code == 0, out
         payload = json.loads(out)
+        # The batch carries its own locale's form of address, and only that.
+        assert payload["register"] == "vous"
         keys = [it["key"] for it in payload["items"]]
         # appTitle (missing), search (missing), danceCount (blank) need work;
         # greeting is already translated so it is excluded.
@@ -355,6 +364,15 @@ def _glossary_cases() -> None:
         _write(shape, {"terms": ["not", "a", "map"]})
         code, _, err = _run_full(
             ["--arb-dir", str(arb), "extract", "--locale", "fr", "--glossary", str(shape)]
+        )
+        assert code == 2, err
+        assert "::error::" in err
+
+        # So is a register that is not a map of locale to text.
+        reg = arb / "register_glossary.json"
+        _write(reg, {"register": {"de": ["du"]}})
+        code, _, err = _run_full(
+            ["--arb-dir", str(arb), "extract", "--locale", "fr", "--glossary", str(reg)]
         )
         assert code == 2, err
         assert "::error::" in err
@@ -506,6 +524,7 @@ def _real_template_cases() -> None:
     gloss = a.load_glossary(repo_root / "tools" / "ci" / "i18n_glossary.json")
     assert isinstance(gloss["doNotTranslate"], list)
     assert "caller" in gloss["terms"]
+    assert gloss["register"]["de"].startswith("Informal: du")
 
 
 def main() -> int:

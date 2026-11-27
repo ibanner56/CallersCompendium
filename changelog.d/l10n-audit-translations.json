@@ -1,0 +1,21 @@
+{
+  "id": "l10n-audit-translations",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "German now addresses you as “du” everywhere, including the camera permission prompt on iPhone and iPad, and Dutch as “je”; screens no longer switch between the formal and informal form part-way through.",
+      "A break in a program now reads in your language (“Pause” in German, French and Danish, “Pauze” in Dutch, “ブレイク” in Japanese) in the program builder, Perform and printed or shared set lists. It is still stored as “Break”, so programs, backups, sync and data exports are unchanged, and event rules about the first break work as before.",
+      "Translations use one word for each thing: calling a dance is “callen” in German and Dutch (Dutch no longer says the Repertoire page’s dances were “phoned”), and slots, beats, levels, formations, custom fields, tags and dance types each keep one name in Danish, German, French, Dutch and Japanese. French uses one kind of apostrophe, and several misspellings and grammar slips in German, Dutch and Danish are fixed.",
+      "In Japanese, lists and sentences shown on screen (rule breaches, suggestion reasons, authors, sync conflict details and calendar messages) use Japanese punctuation instead of an English comma or a space."
+    ],
+    "fixed": [
+      "The dances CSV export and the list of program templates sort accented titles where the Collection does, so “École” files with E instead of after Z.",
+      "In Settings ▸ Dialect, a preset dialect’s “preset” badge no longer overflows its row on a narrow screen with large text; it moves under the name."
+    ]
+  },
+  "core": {
+    "added": [
+      "`ProgramExportLabels.breakLabel` (default `Break`): what a break slot reads as in `programToPlainText` and the set-list lines it shares with the program PDF. The stored token `Program.breakSlotText` is unchanged."
+    ]
+  }
+}
