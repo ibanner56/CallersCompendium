@@ -449,11 +449,10 @@ as draft programs.
 - **Which events** — how far ahead to look: 3, 6 (the default) or 12 months.
   Repeating events are read only 30 days ahead, whatever you choose.
 - **Only events whose title contains** — for a calendar that also holds things
-  other than gigs. Leave it empty for every event. It ignores capitals.
-
-The address and title dialogs stay open once you have changed their text, so a
-stray tap outside, **Esc** or **Back** doesn't lose a pasted address; use
-**Cancel** to close one on purpose.
+  other than gigs. Leave it empty for every event. It ignores capitals. This
+  dialog and the address dialog stay open once you have changed their text,
+  so a stray tap outside, **Esc** or **Back** doesn't lose a pasted address;
+  use **Cancel** to close one on purpose.
 - **Import calendar when the app starts** (off) — reads your calendar once each
   time the app starts, and never at any other time: not in the background, not
   on a timer, not when you come back to the app. Like the automatic

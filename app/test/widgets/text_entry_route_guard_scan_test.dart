@@ -31,10 +31,17 @@
 // fails outright, since it could then be called under a name this scan does
 // not know.
 //
-// What it does not see: full-screen editors pushed as pages (each has its
-// own behaviour tests), content built by a callback read through a `.` (an
-// extension method, or `widget.builder(…)`), and whether the guard actually
-// wraps the field rather than sitting beside it.
+// What it does not see:
+// - full-screen editors pushed as pages (each has its own behaviour tests);
+// - anything reached through a `.`: an extension method, a callback such as
+//   `widget.builder(…)`, or a widget named through a prefixed import
+//   (`b.NameDialog()`);
+// - whether the guard actually wraps the field rather than sitting beside
+//   it;
+// - Flutter's own date and time pickers, whose typed input mode it does not
+//   count as a text field;
+// - a new opener inside an exempted member: an exemption covers every opener
+//   in its `file#member`.
 //
 // The scan has its own positive controls below ("the scan flags …"): each
 // shape it must catch is fed to it as a small source, so a scan that silently
@@ -286,6 +293,30 @@ void open(BuildContext context) => showModalBottomSheet<void>(
       expect(findings, [
         'lib/a.dart#open: a guarded sheet must set enableDrag: false',
       ]);
+    });
+
+    test('a field whose only guard is in a helper of another file', () {
+      final findings = _scan({
+        'lib/a.dart': '''
+Widget wrapAnything(Widget child) =>
+    DiscardChangesGuard(dirty: false, child: child);
+''',
+        'lib/b.dart': '''
+void open(BuildContext context) => showDialog<void>(
+  context: context,
+  builder: (_) => const _NameDialog(),
+);
+class _NameDialog extends StatefulWidget {
+  State<_NameDialog> createState() => _NameDialogState();
+}
+class _NameDialogState extends State<_NameDialog> {
+  Widget build(BuildContext context) => AlertDialog(
+    content: Column(children: [TextField(), wrapAnything(SizedBox())]),
+  );
+}
+''',
+      });
+      expect(findings, ['lib/b.dart#open: no guard']);
     });
 
     test('a guarded sheet that can still be swiped away', () {
@@ -792,8 +823,8 @@ class _Index {
   final _allMembers = <_Decl>[];
 
   /// What the text [start]..[end] of [file] reaches, from inside [context]:
-  /// whether a text field, a guard, and a [DiscardChangesGuard] are in it.
-  ({bool text, bool guard, bool discardGuard}) reach(
+  /// whether a text field and a guard are in it.
+  ({bool text, bool guard}) reach(
     _File file,
     int start,
     int end,
@@ -801,22 +832,23 @@ class _Index {
   ) {
     final root = _node(file, start, end, context);
     // The guard has to be where the dialog is built: in the opener's
-    // arguments, the code they call, or the widget they name (and its State),
-    // not in some class that widget reaches further down. A field counts
-    // however deep it is.
-    var guard = false, discard = false;
+    // arguments, the code of the same file they call, or the widget they name
+    // (and its State) and the code of its file that calls; not in a helper of
+    // another file, or some class that widget reaches further down. A field
+    // counts however deep it is.
+    var guard = false;
     final near = <(_Decl?, int)>{};
-    final nearQueue = [(root, null as _Decl?, 0)];
+    final nearQueue = [(root, file, 0)];
     while (nearQueue.isNotEmpty) {
-      final (node, _, hops) = nearQueue.removeLast();
+      final (node, nodeFile, hops) = nearQueue.removeLast();
       guard |= node.guard;
-      discard |= node.discardGuard;
       for (final next in node.memberRefs) {
-        if (near.add((next, hops))) nearQueue.add((_of(next), next, hops));
+        if (next.file != nodeFile) continue;
+        if (near.add((next, hops))) nearQueue.add((_of(next), nodeFile, hops));
       }
       if (hops > 0) continue;
       for (final next in node.typeRefs) {
-        if (near.add((next, 1))) nearQueue.add((_of(next), next, 1));
+        if (near.add((next, 1))) nearQueue.add((_of(next), next.file, 1));
       }
     }
     var text = false;
@@ -829,7 +861,7 @@ class _Index {
         if (seen.add(next)) queue.add(_of(next));
       }
     }
-    return (text: text, guard: guard, discardGuard: discard);
+    return (text: text, guard: guard);
   }
 
   _Node _of(_Decl decl) => _nodes[decl] ??= _nodeOf(decl);
@@ -858,7 +890,6 @@ class _Index {
     return _Node(
       text: _textEntry.hasMatch(text),
       guard: _guard.hasMatch(text),
-      discardGuard: text.contains('DiscardChangesGuard'),
       memberRefs: memberRefs,
       typeRefs: typeRefs,
     );
@@ -897,14 +928,12 @@ class _Node {
   _Node({
     required this.text,
     required this.guard,
-    required this.discardGuard,
     required this.memberRefs,
     required this.typeRefs,
   });
 
   final bool text;
   final bool guard;
-  final bool discardGuard;
 
   /// The functions, methods, getters and variables this code reads.
   final Set<_Decl> memberRefs;
