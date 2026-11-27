@@ -76,14 +76,30 @@ enum NoBackupMarker {
 
   /// Creates the marker if it is missing, and sets its backup exclusion every
   /// time, so a marker whose exclusion did not stick is excluded before Dart
-  /// records it as written.
+  /// records it as written. The file and its directory are flushed to disk
+  /// before this returns, as `NoBackupMarker.kt` does on Android: Dart records
+  /// the marker as written once this succeeds, and a marker lost to a power
+  /// cut after that would read as a restore.
   static func write(in directory: URL) throws {
     var url = directory.appendingPathComponent(fileName)
     if !FileManager.default.fileExists(atPath: url.path) {
-      try Data([1]).write(to: url, options: .atomic)
+      try Data([1]).write(to: url)
     }
     var values = URLResourceValues()
     values.isExcludedFromBackup = true
     try url.setResourceValues(values)
+    try flushToDisk(url.path)
+    try flushToDisk(directory.path)
+  }
+
+  /// `F_FULLFSYNC`, which asks the drive to write its cache out, as `fsync`
+  /// alone does not on Apple platforms; `fsync` where the volume refuses it.
+  private static func flushToDisk(_ path: String) throws {
+    let fd = open(path, O_RDONLY)
+    guard fd >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+    defer { close(fd) }
+    if fcntl(fd, F_FULLFSYNC) == -1 && fsync(fd) == -1 {
+      throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+    }
   }
 }
