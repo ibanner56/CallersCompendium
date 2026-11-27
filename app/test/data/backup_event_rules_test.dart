@@ -159,8 +159,7 @@ void main() {
     // rules or by this build while there were none, says nothing about the
     // rules, so a Replace restore keeps them; it does replace the saved
     // searches, which are settings. A kept rule whose saved search the
-    // restore removed is deleted too (the maintainer's call on the
-    // pre-release audit's D2-01 / MIG-04 / D3-06), and only such a rule.
+    // restore removed is deleted too, and only such a rule.
 
     /// The device restored onto: a rule on 'search-1', one on 'search-2',
     /// and one whose saved search was already gone before the restore (as a
@@ -226,26 +225,29 @@ void main() {
       for (final r in await repos.eventRules.listAll()) r.id,
     ];
 
-    test('a Replace restore of a backup this build made with no rules '
-        'deletes the rules whose saved search it removed, and only them', () async {
-      final (repos, before) = await withThreeRules();
-      final [onRemoved, onKept, orphan] = before;
-      final outcome = await BackupService(
-        repos,
-      ).restoreFromJson(jsonEncode(await thisBuildWithoutRules()));
+    test(
+      'a Replace restore of a backup this build made with no rules '
+      'deletes the rules whose saved search it removed, and only them',
+      () async {
+        final (repos, before) = await withThreeRules();
+        final [onRemoved, onKept, orphan] = before;
+        final outcome = await BackupService(
+          repos,
+        ).restoreFromJson(jsonEncode(await thisBuildWithoutRules()));
 
-      expect(outcome.applied, isTrue);
-      expect(outcome.errors, isEmpty);
-      expect(outcome.removedEventRules, 1);
-      expect(await isSavedSearchStored(repos.settings, 'search-1'), isFalse);
-      expect(await isSavedSearchStored(repos.settings, 'search-2'), isTrue);
-      // The rule on the search the backup holds, and the one whose search was
-      // gone before the restore, are exactly as they were.
-      expect(await repos.eventRules.listAll(), [onKept, orphan]);
-      // The removed rule is deleted softly, so the deletion syncs.
-      final all = await repos.eventRules.listAll(includeDeleted: true);
-      expect(all.map((r) => r.id), contains(onRemoved.id));
-    });
+        expect(outcome.applied, isTrue);
+        expect(outcome.errors, isEmpty);
+        expect(outcome.removedEventRules, 1);
+        expect(await isSavedSearchStored(repos.settings, 'search-1'), isFalse);
+        expect(await isSavedSearchStored(repos.settings, 'search-2'), isTrue);
+        // The rule on the search the backup holds, and the one whose search was
+        // gone before the restore, are exactly as they were.
+        expect(await repos.eventRules.listAll(), [onKept, orphan]);
+        // The removed rule is deleted softly, so the deletion syncs.
+        final all = await repos.eventRules.listAll(includeDeleted: true);
+        expect(all.map((r) => r.id), contains(onRemoved.id));
+      },
+    );
 
     test('a Replace restore of a backup made before event rules deletes the '
         'rules whose saved search it removed, and only them', () async {
@@ -288,23 +290,26 @@ void main() {
       }
     });
 
-    test('a Replace restore whose rules section could not all be read keeps '
-        'the rules it lacks, but not those whose saved search it removed', () async {
-      final (repos, before) = await withThreeRules();
-      final [_, onKept, orphan] = before;
-      final payload = await thisBuildWithoutRules();
-      (payload['app']! as Map)['eventRules'] = [
-        {'id': 'bad'},
-      ];
-      final outcome = await BackupService(
-        repos,
-      ).restoreFromJson(jsonEncode(payload));
+    test(
+      'a Replace restore whose rules section could not all be read keeps '
+      'the rules it lacks, but not those whose saved search it removed',
+      () async {
+        final (repos, before) = await withThreeRules();
+        final [_, onKept, orphan] = before;
+        final payload = await thisBuildWithoutRules();
+        (payload['app']! as Map)['eventRules'] = [
+          {'id': 'bad'},
+        ];
+        final outcome = await BackupService(
+          repos,
+        ).restoreFromJson(jsonEncode(payload));
 
-      expect(outcome.applied, isTrue);
-      expect(outcome.errors, isNotEmpty);
-      expect(outcome.removedEventRules, 1);
-      expect(await liveIds(repos), [onKept.id, orphan.id]);
-    });
+        expect(outcome.applied, isTrue);
+        expect(outcome.errors, isNotEmpty);
+        expect(outcome.removedEventRules, 1);
+        expect(await liveIds(repos), [onKept.id, orphan.id]);
+      },
+    );
 
     test('retrying the settings of a Replace restore removes the rules too, '
         'and says so', () async {
