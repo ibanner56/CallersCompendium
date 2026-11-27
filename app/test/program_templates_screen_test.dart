@@ -966,7 +966,8 @@ void main() {
     });
 
     testWidgets('Edit with no saved search left keeps the edit form: the label '
-        'can change, no search is chosen, and a note says why', (tester) async {
+        'can change and be saved, keeping the rule\'s own search, no search '
+        'is offered, and a note says why', (tester) async {
       final repos = openTestRepositories();
       final template = ProgramTemplate(
         id: 'a',
@@ -1007,16 +1008,89 @@ void main() {
         tester.widget<TextField>(label).controller!.text,
         'Easy family opener',
       );
+      // It says its saved search was deleted, as the rule's row does.
+      expect(
+        find.byKey(const ValueKey('program-template-rule-search-gone-note')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('program-template-rule-dialog')),
+          matching: find.text('Its saved search was deleted'),
+        ),
+        findsOneWidget,
+      );
       await tester.enterText(label, 'Something else');
       await tester.pumpAndSettle();
+      final save = find.byKey(const ValueKey('program-template-rule-save'));
+      expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
       expect(
-        tester
-            .widget<FilledButton>(
-              find.byKey(const ValueKey('program-template-rule-save')),
-            )
-            .onPressed,
-        isNull,
+        find.byKey(const ValueKey('program-template-rule-dialog')),
+        findsNothing,
       );
+      // The label changed; the rule still names its own search, which the
+      // stored template already names, so the save is not refused.
+      expect((await _stored(repos)).byId('a')!.entries, [
+        ProgramTemplateEntry.rule(
+          savedSearchId: 'deleted-search',
+          label: 'Something else',
+        ),
+      ]);
+    });
+
+    testWidgets('Edit of a rule whose saved search is stored but unreadable '
+        'says so, and saves a new label with the same search', (tester) async {
+      final repos = openTestRepositories();
+      await saveSearch(repos, 'Family dances');
+      // Stored under its key, but not a value this build can read.
+      await repos.settings.set('${savedSearchKeyPrefix}unreadable', {
+        'v': 2,
+        'name': 'Newer',
+      });
+      final template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [
+          ProgramTemplateEntry.rule(
+            savedSearchId: 'unreadable',
+            label: 'Easy family opener',
+          ),
+        ],
+      );
+      await _seed(repos, [template]);
+      await _pump(
+        tester,
+        repos,
+        ProgramTemplateEditorScreen(template: template),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-edit-0')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('program-template-rule-dialog')),
+          matching: find.text("Its saved search can't be opened"),
+        ),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('program-template-rule-label')),
+        'Family opener',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-save')),
+      );
+      await tester.pumpAndSettle();
+      expect((await _stored(repos)).byId('a')!.entries, [
+        ProgramTemplateEntry.rule(
+          savedSearchId: 'unreadable',
+          label: 'Family opener',
+        ),
+      ]);
     });
 
     testWidgets('a break entry reads as the translated label', (tester) async {
@@ -1121,8 +1195,14 @@ void main() {
         find.descendant(of: dropdown, matching: find.text('Family dances')),
         findsNothing,
       );
+      // Its own search, kept, lets the rule be saved as it is; choosing
+      // another replaces it.
       final save = find.byKey(const ValueKey('program-template-rule-save'));
-      expect(tester.widget<FilledButton>(save).onPressed, isNull);
+      expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+      expect(
+        find.byKey(const ValueKey('program-template-rule-search-gone-note')),
+        findsOneWidget,
+      );
 
       await tester.tap(dropdown);
       await tester.pumpAndSettle();

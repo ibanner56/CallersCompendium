@@ -199,7 +199,7 @@ void main() {
     String text(String id) => tester.widget<Text>(line(id)).data!;
 
     expect(text(family.id), 'Family friendly');
-    expect(text('never-here'), "Removed: a rule that isn't on this device");
+    expect(text('never-here'), "A rule that isn't on this device");
 
     await repos.eventRules.delete(family.id);
     await pumpUntilFound(tester, find.text('Removed: Family friendly'));
@@ -390,6 +390,41 @@ void main() {
     },
   );
 
+  testWidgets("the template's picker says Remove takes a rule that isn't on "
+      'this device off the template', (tester) async {
+    final repos = openTestRepositories();
+    const template = ProgramTemplate(
+      id: 't',
+      name: 'Family dance',
+      eventRuleIds: ['never-here'],
+    );
+    await saveProgramTemplate(repos.settings, template);
+    await _pump(
+      tester,
+      repos,
+      const ProgramTemplateEditorScreen(template: template),
+      enabled: true,
+    );
+    await tester.tap(_rulesRow);
+    await tester.pumpAndSettle();
+    final notHere = find.byKey(const ValueKey('program-rules-not-here'));
+    await pumpUntilFound(tester, notHere);
+    expect(
+      find.descendant(
+        of: notHere,
+        matching: find.text(
+          'Added on another device and still on the way, or gone for good. '
+          'Remove takes them off this template.',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: notHere, matching: find.textContaining('program')),
+      findsNothing,
+    );
+  });
+
   testWidgets('a rule a sync brings with a new saved search while the editor '
       'is open names that search, and does not need attention', (tester) async {
     final repos = openTestRepositories();
@@ -405,10 +440,7 @@ void main() {
       const ProgramTemplateEditorScreen(template: template),
       enabled: true,
     );
-    await pumpUntilFound(
-      tester,
-      find.text("Removed: a rule that isn't on this device"),
-    );
+    await pumpUntilFound(tester, find.text("A rule that isn't on this device"));
 
     final facets = FacetSelections()..formations.add(FormationShape.becketCcw);
     final late = await repos.savedSearches.create(
