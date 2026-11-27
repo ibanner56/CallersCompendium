@@ -161,8 +161,15 @@ class SystemCameraPhotoCapture implements PhotoCaptureService {
 /// read with [deleteCapturedPhoto]. Used on iOS only (see
 /// `openRecognitionPicture`); another platform's copies would need their own
 /// matcher first.
+///
+/// The copy is at most [kCapturedPhotoMaxSide] on its longer side, as a
+/// photo from the camera is: the plugin re-encodes a HEIC photo as JPEG at
+/// full quality, so a full-size copy of a large photo could be far larger
+/// than the photo in the library, and over the readers' byte caps.
 Future<XFile?> pickLibraryPhoto() => ImagePicker().pickImage(
   source: ImageSource.gallery,
+  maxWidth: kCapturedPhotoMaxSide,
+  maxHeight: kCapturedPhotoMaxSide,
   // Full metadata means a photo-library lookup, which needs access the app
   // does not ask for; the photo is read for its pixels only.
   requestFullMetadata: false,

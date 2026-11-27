@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:compendium_app/src/data/dance_code_scanner.dart';
 import 'package:compendium_app/src/data/photo_capture.dart';
+import 'package:compendium_app/src/data/text_recognition.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
@@ -277,6 +278,9 @@ void main() {
       expect(args['source'], ImageSource.gallery.index);
       // Full metadata is a photo-library lookup, which needs permission.
       expect(args['requestFullMetadata'], isFalse);
+      // Scaled as a camera photo is, so a re-encoded HEIC fits the byte cap.
+      expect(args['maxWidth'], kCapturedPhotoMaxSide);
+      expect(args['maxHeight'], kCapturedPhotoMaxSide);
     });
 
     test('elsewhere it is the file picker', () async {
@@ -291,6 +295,11 @@ void main() {
       }
       expect(pickers.photoPicks, isEmpty);
       expect(pickers.fileCalls, List.filled(4, 'openFile'));
+      for (final args in pickers.fileArguments) {
+        final groups = args['acceptedTypeGroups'] as List<Object?>;
+        final group = groups.single as Map<Object?, Object?>;
+        expect(group['extensions'], recognitionImageTypeGroup().extensions);
+      }
     });
 
     test("on iOS the photo picker's copy is deleted once read", () async {

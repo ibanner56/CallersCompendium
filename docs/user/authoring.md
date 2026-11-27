@@ -305,7 +305,9 @@ On iPhone and iPad, **From an image…** opens your photos, the same picker
 other apps use to choose a photo: the app doesn't ask for access to your
 photo library and receives only the picture you choose. A picture kept in the
 Files app isn't offered there; open it in Files and save it to Photos first
-(**Share** ▸ **Save Image**). On a Mac or Windows it opens the file picker.
+(**Share** ▸ **Save Image**). A photo kept only in iCloud is downloaded by
+iOS when you choose it, so it needs a connection; without one, the sheet says
+the picture couldn't be read. On a Mac or Windows it opens the file picker.
 
 - The picture is read **on your device**, by the text recognition built into
   iOS, macOS and Windows. Nothing is sent anywhere, and nothing is downloaded
@@ -326,6 +328,9 @@ Files app isn't offered there; open it in Files and save it to Photos first
   works.
 - A picture over 25 MB, or over 10,000 pixels on a side or 50 million pixels
   in all, is refused before anything is read. Crop it or choose a smaller one.
+  On iPhone and iPad a photo from your library is first scaled down to at most
+  4,096 pixels on its longer side, as a photo taken with **Take a photo** is,
+  so it is not refused for its size in pixels.
 - Typed text reads best. Handwriting may come out wrong, so check each line.
 
 On iPhone and iPad, **Take a photo** beside it opens the camera instead, so

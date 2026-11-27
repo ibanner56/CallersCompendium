@@ -20,6 +20,9 @@ class PickerChannels {
   /// The method of each call to the file selector.
   final fileCalls = <String>[];
 
+  /// The arguments of each call to the file selector.
+  final fileArguments = <Map<Object?, Object?>>[];
+
   /// What either picker hands back.
   String? path;
 
@@ -38,6 +41,7 @@ class PickerChannels {
     });
     messenger.setMockMethodCallHandler(_files, (call) async {
       channels.fileCalls.add(call.method);
+      channels.fileArguments.add(call.arguments as Map<Object?, Object?>);
       return channels.path == null ? null : [channels.path];
     });
     addTearDown(() {
