@@ -417,24 +417,37 @@ def release_prep_end_to_end() -> None:
         git("add", ".")
         git("commit", "-qm", "v0.3.0-beta")
 
-        # No tag yet, but a fragment is pending: not a release-preparation tree,
-        # so nothing is judged and the missing tag does not matter.
+        # No tag yet. Whether the tree is a release-preparation one depends on
+        # the previous tag, so without tags it is unanswerable -- unless the
+        # caller (preflight in a shallow clone) opts into skipping.
+        write(repo, Path("changelog.d/pending.json"), "{}")
+        pending_untagged = run("--release-prep", cwd=repo)
+        check("no v* tag with a fragment pending is unanswerable", pending_untagged.returncode == 2,
+              pending_untagged.stderr)
+        (repo / "changelog.d/pending.json").unlink()
+
+        untagged = run("--release-prep", cwd=repo)
+        check("no v* tag is unanswerable, not a pass", untagged.returncode == 2, untagged.stderr)
+        check("no v* tag says to fetch tags", "tags" in untagged.stderr, untagged.stderr)
+        allowed = run("--release-prep", "--allow-missing-tags", cwd=repo)
+        check("--allow-missing-tags skips without tags", allowed.returncode == 0, allowed.stderr)
+        check("the skip is said, not silent", "skipped" in allowed.stdout and "tags" in allowed.stdout,
+              allowed.stdout)
+
+        tag("v0.3.0-beta", 1)
+
+        # Fragments pending while the app version still matches the tag: an
+        # ordinary PR, so nothing is judged.
         write(repo, Path("changelog.d/pending.json"), "{}")
         skipped = run("--release-prep", cwd=repo)
         check("a pending fragment skips the gate", skipped.returncode == 0, skipped.stderr)
         check("the skip says why", "pending" in skipped.stdout, skipped.stdout)
         (repo / "changelog.d/pending.json").unlink()
 
-        untagged = run("--release-prep", cwd=repo)
-        check("no v* tag is unanswerable, not a pass", untagged.returncode == 2, untagged.stderr)
-        check("no v* tag says to fetch tags", "tags" in untagged.stderr, untagged.stderr)
-
-        tag("v0.3.0-beta", 1)
-
         # The H-01 shape: the taxonomy moved since the tag, the fragments were
         # compiled into ## [0.4.0], and no taxonomy line reached it.
         write(repo, TAXONOMY, taxonomy(40))
-        write(repo, pubspec, "name: app\nversion: 0.4.0\n")
+        write(repo, pubspec, "name: app\nversion: 0.4.0+12\n")
         write(repo, Path("app/CHANGELOG.md"), notes("0.4.0"))
         missing = run("--release-prep", cwd=repo)
         check("a release-prep tree without the taxonomy line fails", missing.returncode == 1, missing.stderr)
@@ -448,6 +461,19 @@ def release_prep_end_to_end() -> None:
         present = run("--release-prep", cwd=repo)
         check("the same tree with the taxonomy line passes", present.returncode == 0, present.stderr)
 
+        # A fragment that reached the PR's merge ref from main after the branch
+        # drained changelog.d: the app version has moved past the tag, so this is
+        # still a release-preparation tree, and the tag would fail on both counts.
+        write(repo, Path("app/CHANGELOG.md"), notes("0.4.0"))
+        write(repo, Path("changelog.d/late.json"), "{}")
+        late = run("--release-prep", cwd=repo)
+        check("a moved app version is judged despite a pending fragment", late.returncode == 1, late.stderr)
+        check("both the stray fragment and the range are named",
+              "late.json" in late.stderr and "taxonomy changed" in late.stderr, late.stderr)
+        (repo / "changelog.d/late.json").unlink()
+        write(repo, Path("app/CHANGELOG.md"),
+              notes("0.4.0", "- Taxonomy 39 → 40: something is matched differently.\n"))
+
         # The newest tag is the reference, not an older one: after v0.4.0-beta
         # ships, an unchanged taxonomy owes no line again.
         git("add", ".")
@@ -457,6 +483,16 @@ def release_prep_end_to_end() -> None:
         newest = run("--release-prep", cwd=repo)
         check("the newest merged tag is the previous ref", newest.returncode == 0 and "v0.4.0-beta" in newest.stdout,
               f"{newest.stdout}{newest.stderr}")
+
+        # Right after a release changelog.d is empty, so an ordinary PR is judged
+        # too; one that moved the taxonomy without a fragment is told the fix.
+        write(repo, TAXONOMY, taxonomy(41))
+        unnoted = run("--release-prep", cwd=repo)
+        check("a post-release move with no fragment fails", unnoted.returncode == 1, unnoted.stderr)
+        check("the failure says a non-release PR needs a fragment",
+              "not a release-preparation PR" in unnoted.stderr and "changelog.d" in unnoted.stderr,
+              unnoted.stderr)
+        write(repo, TAXONOMY, taxonomy(40))
 
         # A tag on a commit HEAD does not contain is not this tree's previous release.
         git("commit", "-qam", "after v0.4.0-beta")
