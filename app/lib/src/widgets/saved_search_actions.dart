@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/event_rules_scope.dart';
@@ -877,8 +878,17 @@ class _SavedSearchNameDialogState extends State<_SavedSearchNameDialog> {
             key: const ValueKey('saved-search-name-field'),
             controller: _controller,
             autofocus: true,
-            maxLength: savedSearchMaxNameLength,
-            decoration: InputDecoration(labelText: l10n.savedSearchNameLabel),
+            // Limited, and counted, in UTF-16 code units, as the store limits
+            // a name: `maxLength` counts characters, so a name of emoji it
+            // accepted could be refused on save.
+            inputFormatters: const [
+              _CodeUnitLimitFormatter(savedSearchMaxNameLength),
+            ],
+            decoration: InputDecoration(
+              labelText: l10n.savedSearchNameLabel,
+              counterText:
+                  '${_controller.text.length}/$savedSearchMaxNameLength',
+            ),
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) => _submit(),
           ),
@@ -898,6 +908,59 @@ class _SavedSearchNameDialogState extends State<_SavedSearchNameDialog> {
           child: Text(l10n.commonSave),
         ),
       ],
+    );
+  }
+}
+
+/// Keeps a field's text to at most [maxLength] UTF-16 code units. An edit
+/// that would go past it keeps what was there and as much of what it inserted
+/// as fits, never splitting a surrogate pair.
+class _CodeUnitLimitFormatter extends TextInputFormatter {
+  const _CodeUnitLimitFormatter(this.maxLength);
+
+  final int maxLength;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final next = newValue.text;
+    if (next.length <= maxLength) return newValue;
+    final old = oldValue.text;
+    // What the edit inserted: next less the longest common prefix and suffix
+    // it shares with the old text.
+    var prefix = 0;
+    final shorter = old.length < next.length ? old.length : next.length;
+    while (prefix < shorter &&
+        old.codeUnitAt(prefix) == next.codeUnitAt(prefix)) {
+      prefix++;
+    }
+    var suffix = 0;
+    while (suffix < shorter - prefix &&
+        old.codeUnitAt(old.length - 1 - suffix) ==
+            next.codeUnitAt(next.length - 1 - suffix)) {
+      suffix++;
+    }
+    final room = maxLength - prefix - suffix;
+    if (room < 0) {
+      final text = truncateOnRuneBoundary(next, maxLength);
+      return TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+    final inserted = truncateOnRuneBoundary(
+      next.substring(prefix, next.length - suffix),
+      room,
+    );
+    final text =
+        next.substring(0, prefix) +
+        inserted +
+        next.substring(next.length - suffix);
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: prefix + inserted.length),
     );
   }
 }

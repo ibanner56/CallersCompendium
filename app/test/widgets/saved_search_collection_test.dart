@@ -1515,6 +1515,13 @@ void main() {
         find.byKey(const ValueKey('saved-search-name-field')),
       );
       expect(field.controller!.text, '😀' * 50);
+      // At the limit, an insertion is refused; what was there stays.
+      await tester.enterText(
+        find.byKey(const ValueKey('saved-search-name-field')),
+        'x${'😀' * 50}',
+      );
+      await tester.pumpAndSettle();
+      expect(field.controller!.text, '😀' * 50);
       expect(
         find.text('$savedSearchMaxNameLength/$savedSearchMaxNameLength'),
         findsOneWidget,
