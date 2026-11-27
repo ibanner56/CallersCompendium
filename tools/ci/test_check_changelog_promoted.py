@@ -385,9 +385,10 @@ def release_prep_end_to_end() -> None:
 
     The tag-time run in release.yml is the first place a missing Data /
     Migrations line used to show up (pre-release audit finding H-01): after the
-    tag existed. CI runs this mode on every changelog PR; it judges the tree
-    only once no fragment is pending, which is the state a release-preparation
-    PR leaves, and then reads the version and the previous tag itself.
+    tag existed. CI runs this mode on every changelog PR. It reads the version
+    and the previous tag itself, and judges the tree when no fragment is
+    pending or the app version differs from that tag's (the states a
+    release-preparation PR leaves); otherwise it passes.
     """
     print("--release-prep, end to end:")
     with tempfile.TemporaryDirectory() as temp:

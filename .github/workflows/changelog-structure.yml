@@ -74,8 +74,10 @@ jobs:
       # check_changelog_promoted.py only once the tag exists, so a release whose
       # notes lack a schema or taxonomy range, or a one-time repair's note,
       # failed after the tag was pushed (pre-release audit finding H-01). With
-      # --release-prep it judges the tree only when changelog.d holds no pending
-      # fragment, the state a release-preparation PR leaves; while fragments are
-      # pending it passes. It needs the tags, hence fetch-depth: 0.
+      # --release-prep it judges the tree when changelog.d holds no pending
+      # fragment or app/pubspec.yaml's version differs from the newest merged v*
+      # tag's (the states a release-preparation PR leaves, and in the second a
+      # pending fragment fails); otherwise it passes. It needs the tags, hence
+      # fetch-depth: 0.
       - name: Guard release notes as the tag will (release-preparation trees only)
         run: python3 tools/ci/check_changelog_promoted.py --release-prep

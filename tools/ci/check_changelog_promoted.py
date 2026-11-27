@@ -418,9 +418,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--release-prep",
         action="store_true",
-        help="PR CI mode: pass while fragments are pending; otherwise default "
-        "--version to app/pubspec.yaml's and --previous-ref to the newest "
-        "merged v* tag",
+        help="PR CI mode: default --version to app/pubspec.yaml's and "
+        "--previous-ref to the newest merged v* tag, and judge the tree only "
+        "when no fragment is pending or that version differs from the tag's; "
+        "otherwise pass",
     )
     parser.add_argument("--changelog", type=Path, default=Path("app/CHANGELOG.md"))
     parser.add_argument("--fragments", type=Path, default=Path("changelog.d"))
