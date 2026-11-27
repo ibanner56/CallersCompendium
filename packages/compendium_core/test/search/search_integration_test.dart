@@ -3963,6 +3963,77 @@ FROM seq
       });
     }
 
+    // A phrase kept whole only by a square call's name or keyword still
+    // matches word by word, as a search over every form read it before the
+    // square calls were registered; one contra already had stays one word.
+    group('a square keyword of several words', () {
+      setUp(() async {
+        await everyForm.create(
+          _dance(
+            id: 'apart',
+            title: 'Words apart',
+            figures: [
+              Figure(
+                move: 'custom',
+                params: const {'text': 'Turn by the right hand'},
+              ),
+            ],
+          ),
+        );
+        await everyForm.create(
+          _dance(
+            id: 'spread',
+            title: 'Spread out',
+            callingNotes: 'Turn as a couple.',
+            figures: [
+              Figure(
+                move: 'custom',
+                params: const {'text': 'Pull by the left hand'},
+              ),
+            ],
+          ),
+        );
+        await everyForm.create(
+          _dance(
+            id: 'do-a-si',
+            title: 'Steps',
+            figures: [
+              Figure(
+                move: 'custom',
+                params: const {'text': 'Do a si step and stop'},
+              ),
+            ],
+          ),
+        );
+      });
+
+      Future<List<String>> find(String q, FullTextScope scope) async =>
+          (await everyForm.search(FullTextFilter(q, scope: scope)))..sort();
+
+      test('matches its words apart in the figures', () async {
+        for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+          expect(await find('turn by the hand', scope), [
+            'apart',
+            'contra-typed',
+            if (scope == FullTextScope.omni) 'spread',
+          ], reason: scope.name);
+        }
+      });
+
+      test('matches its words spread across notes and figures', () async {
+        expect(
+          await find('turn by the hand', FullTextScope.omni),
+          contains('spread'),
+        );
+      });
+
+      test('"do si do", a contra keyword, still counts as one word', () async {
+        for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+          expect(await find('do si do', scope), isEmpty, reason: scope.name);
+        }
+      });
+    });
+
     test('searchText finds the words as typed', () async {
       expect(await everyForm.searchText('docey doe'), ['english-typed']);
       expect(await everyForm.searchText('balance in the ring'), ['square']);
