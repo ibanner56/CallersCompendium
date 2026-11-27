@@ -1165,6 +1165,31 @@ void main() {
     expect(merged['barnesReference'], 'BIII p. 92');
   });
 
+  test('a merge the person chose across forms keeps the English survivor\'s '
+      'improper mark, which a newer contra copy cannot hold', () {
+    // The contra copy is from this build (it holds a meter), so it speaks for
+    // the fields added after v0.10.0-beta; but only an English dance holds an
+    // improper mark (`formHasImproperFlag`), so it says nothing about that.
+    final merged = mergeDanceCandidates([
+      _danceCandidate(
+        'a-survivor',
+        'Shared',
+        updatedSeconds: 1,
+        extra: const {'form': 'ecd'},
+        formationExtra: const {'improper': true},
+      ),
+      _danceCandidate(
+        'm-newest',
+        'Shared',
+        updatedSeconds: 2,
+        extra: const {'meter': '6/8'},
+      ),
+    ]).winner.blob.body;
+    expect(merged['form'], 'ecd');
+    expect(merged['meter'], '6/8');
+    expect((merged['formation']! as Map)['improper'], isTrue);
+  });
+
   test('fresh attach takes the latest copy\'s square fields, and a copy '
       'that leaves one out has the default', () {
     final body = planFreshAttachDedupe([

@@ -392,13 +392,20 @@ Map<String, Object?> _mergeDanceBodies(
       body.remove('barnesReference');
     }
   }
+  // The improper mark likewise: only an ECD dance holds one
+  // (`formHasImproperFlag`), so only a copy of the merged dance's form speaks
+  // for it.
   final improperSource = source(
     (b) =>
-        b['formation'] is Map && (b['formation']! as Map)['improper'] == true,
+        b['form'] == body['form'] &&
+        b['formation'] is Map &&
+        (b['formation']! as Map)['improper'] == true,
   ).blob.body;
   final improperFormation = improperSource['formation'];
   final survivorFormation = body['formation'];
-  if (improperFormation is Map && survivorFormation is Map) {
+  if (improperSource['form'] == body['form'] &&
+      improperFormation is Map &&
+      survivorFormation is Map) {
     final formation = Map<String, Object?>.from(survivorFormation);
     if (improperFormation['improper'] == true) {
       formation['improper'] = true;
