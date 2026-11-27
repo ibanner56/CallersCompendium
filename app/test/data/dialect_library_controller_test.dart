@@ -447,42 +447,6 @@ void main() {
     });
 
     test(
-      'renames a dialect whose name is gendered, and its programs follow',
-      () async {
-        final repos = openTestRepositories();
-        await repos.ensureMigrated();
-        final t0 = DateTime.utc(2026, 1, 1);
-        await repos.settings.set(kCustomDialectsEcdKey, [
-          _custom('Gents and Ladies').toJson(),
-          _custom('Custom').toJson(),
-        ]);
-        await repos.settings.set(kActiveDialectRefEcdKey, 'Gents and Ladies');
-        await repos.programs.create(
-          Program(
-            id: 'p',
-            title: 'p',
-            createdAt: t0,
-            updatedAt: t0,
-            dialectName: 'Gents and Ladies',
-          ),
-        );
-        final c = DialectLibraryController(
-          repos.settings,
-          programs: repos.programs,
-          form: DanceForm.ecd,
-        );
-
-        await c.load();
-
-        expect(c.customDialects.map((d) => d.name), ['Custom 2', 'Custom']);
-        expect(c.activeName, 'Custom 2');
-        expect(await repos.settings.get(kActiveDialectRefEcdKey), 'Custom 2');
-        expect((await repos.programs.getById('p'))!.dialectName, 'Custom 2');
-        c.dispose();
-      },
-    );
-
-    test(
       'a rename leaves programs alone while another form has the old name',
       () async {
         final repos = openTestRepositories();
@@ -511,77 +475,6 @@ void main() {
 
         await libraries.contra.rename('Foo', 'Baz');
         expect((await repos.programs.getById('p'))!.dialectName, 'Baz');
-      },
-    );
-
-    test('no listener sees a gendered name while the group loads', () async {
-      final repos = openTestRepositories();
-      await repos.ensureMigrated();
-      await repos.settings.set(kCustomDialectsKey, [
-        _custom('Gents Night').toJson(),
-      ]);
-      final libraries = DialectLibraries(
-        repos.settings,
-        programs: repos.programs,
-      );
-      addTearDown(libraries.dispose);
-      final seen = <String>[];
-      libraries.addListener(
-        () => seen.addAll(libraries.allCustomDialects.map((d) => d.name)),
-      );
-
-      await libraries.load();
-
-      expect(seen, isNotEmpty);
-      expect(seen, isNot(contains('Gents Night')));
-    });
-
-    test('a gendered name is renamed to a name no form uses', () async {
-      final repos = openTestRepositories();
-      await repos.ensureMigrated();
-      await repos.settings.set(kCustomDialectsKey, [
-        _custom('Gents Night').toJson(),
-      ]);
-      await repos.settings.set(kCustomDialectsEcdKey, [
-        _custom('Custom').toJson(),
-      ]);
-      final libraries = DialectLibraries(
-        repos.settings,
-        programs: repos.programs,
-      );
-      addTearDown(libraries.dispose);
-
-      await libraries.load();
-
-      expect(libraries.contra.customDialects.map((d) => d.name), ['Custom 2']);
-      expect(
-        libraries.forForm(DanceForm.ecd).customDialects.map((d) => d.name),
-        ['Custom'],
-      );
-    });
-
-    test(
-      'a gendered role term read from storage shows the default term',
-      () async {
-        final repos = openTestRepositories();
-        await repos.ensureMigrated();
-        await repos.settings.set(kCustomDialectsKey, [
-          {
-            'name': 'Mine',
-            'roles': {
-              'role1': {'singular': 'Gent'},
-              'role2': {'singular': 'Wren'},
-            },
-          },
-        ]);
-        final c = DialectLibraryController(repos.settings);
-
-        await c.load();
-
-        final roles = c.customByName('Mine')!.roles;
-        expect(roles['role1'], Dialect.larksRobins.roles['role1']);
-        expect(roles['role2']!.singular, 'Wren');
-        c.dispose();
       },
     );
   });

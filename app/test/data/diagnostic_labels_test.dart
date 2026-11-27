@@ -39,7 +39,6 @@ ValidationIssue _validationIssue(String code) => ValidationIssue(
       'existing': 'lords',
       'substitution': 'larks',
     },
-    'gendered_role_term' => {'source': 'role1', 'word': 'Gent'},
     _ => const <String, Object?>{},
   },
 );

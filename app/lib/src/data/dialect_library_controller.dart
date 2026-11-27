@@ -121,12 +121,6 @@ class DialectLibraryController extends ChangeNotifier {
   /// still answers to the old name.
   bool Function(String name)? _inOtherForm;
 
-  /// Whether [load] leaves renaming gendered names, and then notifying, to
-  /// its [DialectLibraries],
-  /// which does it once every form has loaded, so a new name can be checked
-  /// against every form's.
-  bool _renamesInGroup = false;
-
   /// Read-only view of the user's custom dialects, in insertion order.
   List<Dialect> get customDialects => List.unmodifiable(_customDialects);
 
@@ -163,12 +157,15 @@ class DialectLibraryController extends ChangeNotifier {
   /// yet, that blob is migrated in — as a custom dialect if it isn't a shipped
   /// preset — and made active, so a user's single custom dialect survives.
   ///
+  /// Each dialect is read as the caller wrote it and keeps its name: the app
+  /// does not overwrite a user's dialect (the maintainer's ruling of
+  /// 2026-11-27, ADR-006 §9.1, point 7).
+  ///
   /// Transactional: every read (including the legacy blob) finishes before any
   /// state changes, so a failing read leaves the previous library and active
-  /// name untouched. Writes come only after the commit: the first-run
-  /// write-back, and renaming a dialect whose name is gendered (which
-  /// [DialectLibraries.load] does instead, once every form has loaded). A
-  /// failure there leaves the in-memory library complete and consistent.
+  /// name untouched. Writes come only after the commit, for the first-run
+  /// write-back; a failure there leaves the in-memory library complete and
+  /// consistent.
   Future<void> load() async {
     final hasLibrary = await _settings.contains(_customKey);
     final raw = await _settings.get(_customKey);
@@ -207,30 +204,7 @@ class DialectLibraryController extends ChangeNotifier {
       if (migrated != null) await _persistActive();
       await _persistDialects();
     }
-    // In a group, [DialectLibraries.load] renames and then notifies, so no
-    // listener sees a gendered name in between.
-    if (_renamesInGroup) return;
-    await _renameGenderedNames();
     notifyListeners();
-  }
-
-  /// Renames every custom dialect whose name holds a gendered role word, which
-  /// the app never shows (ADR-006 §9.1, point 7), to [Dialect.customName]
-  /// (made unique). It goes through [rename], so the programs that name it
-  /// follow. A dialect named before such names were refused, or synced from a
-  /// device that still allows them, is renamed when the library loads.
-  Future<void> _renameGenderedNames() async {
-    final gendered = [
-      for (final d in _customDialects)
-        if (genderedRoleWordIn(d.name, inProse: true) != null) d.name,
-    ];
-    for (final name in gendered) {
-      await rename(
-        name,
-        _uniqueName(Dialect.customName, acrossForms: true),
-        notify: false,
-      );
-    }
   }
 
   /// Decodes a pre-library install's active dialect, stored as a full JSON blob
@@ -305,11 +279,7 @@ class DialectLibraryController extends ChangeNotifier {
   /// between leaves programs on the old name, which already reads as
   /// "unavailable" (`resolveProgramDialect`), rather than on a name that was
   /// never saved.
-  Future<String?> rename(
-    String oldName,
-    String newName, {
-    bool notify = true,
-  }) async {
+  Future<String?> rename(String oldName, String newName) async {
     final index = _customByNameIndex(oldName);
     if (index < 0) return null;
     final unique = oldName == newName ? newName : _uniqueName(newName);
@@ -326,7 +296,7 @@ class DialectLibraryController extends ChangeNotifier {
         updatedAt: _clock(),
       );
     }
-    if (notify) notifyListeners();
+    notifyListeners();
     return unique;
   }
 
@@ -424,19 +394,15 @@ class DialectLibraryController extends ChangeNotifier {
   }
 
   /// Ensures a name doesn't collide with an existing preset or custom dialect,
-  /// appending " 2", " 3", … until unique. [acrossForms] also avoids every
-  /// other form's dialect names, for a name the app picks itself.
-  String _uniqueName(String base, {bool acrossForms = false}) {
+  /// appending " 2", " 3", … until unique.
+  String _uniqueName(String base) {
     final existing = {
       ...Dialect.presets.map((d) => d.name),
       ..._customDialects.map((d) => d.name),
     };
-    bool taken(String name) =>
-        existing.contains(name) ||
-        (acrossForms && (_inOtherForm?.call(name) ?? false));
-    if (!taken(base)) return base;
+    if (!existing.contains(base)) return base;
     var n = 2;
-    while (taken('$base $n')) {
+    while (existing.contains('$base $n')) {
       n++;
     }
     return '$base $n';
@@ -493,7 +459,6 @@ class DialectLibraries extends ChangeNotifier {
             !identical(other, library) &&
             other.customDialects.any((d) => d.name == name),
       );
-      library._renamesInGroup = true;
       library.addListener(notifyListeners);
     }
   }
@@ -524,10 +489,9 @@ class DialectLibraries extends ChangeNotifier {
     for (final entry in _byForm.entries) entry.key: entry.value.active,
   });
 
-  /// Loads every form's library, then renames any dialect whose name is
-  /// gendered to a name no form uses. Each loads on its own, so one that
-  /// fails leaves the others loaded; the first failure is rethrown once all
-  /// have been tried.
+  /// Loads every form's library. Each loads on its own, so one that fails
+  /// leaves the others loaded; the first failure is rethrown once all have
+  /// been tried.
   Future<void> load() async {
     Object? firstError;
     StackTrace? firstStack;
@@ -542,23 +506,12 @@ class DialectLibraries extends ChangeNotifier {
       }
     }
 
-    final loaded = <DialectLibraryController>[];
     for (final library in _byForm.values) {
       try {
         await library.load();
-        loaded.add(library);
       } catch (error, stack) {
         failed(error, stack); // diagnostics: silent — rethrown or logged.
       }
-    }
-    // Once every form has loaded, so a new name avoids all of their names.
-    for (final library in loaded) {
-      try {
-        await library._renameGenderedNames();
-      } catch (error, stack) {
-        failed(error, stack); // diagnostics: silent — rethrown or logged.
-      }
-      library.notifyListeners();
     }
     if (firstError case final error?) {
       Error.throwWithStackTrace(error, firstStack!);

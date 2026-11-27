@@ -834,30 +834,6 @@ void main() {
       expect(await ctx.repos.settings.get(kActiveDialectRefKey), isNull);
     });
 
-    testWidgets('a dialect name with a gendered word is refused', (
-      tester,
-    ) async {
-      final ctx = await _pumpSettings(tester);
-      await openDialect(tester);
-
-      await tester.tap(find.byKey(const ValueKey('new-dialect')));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const ValueKey('dialect-name-field')),
-        'Gents & Ladies',
-      );
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text(AppLocalizationsEn().validationGenderedRoleTerm('gents')),
-        findsOneWidget,
-      );
-      await tester.tap(find.byKey(const ValueKey('dialect-name-confirm')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('dialect-editor-save')), findsNothing);
-      expect(ctx.dialectLibrary.customDialects, isEmpty);
-    });
-
     testWidgets('a dialect name with a gendered word is kept as typed', (
       tester,
     ) async {
@@ -1120,35 +1096,6 @@ void main() {
       expect(saved!.roles['role1']!.singular, equals('Jay'));
       // The name is preserved (edit terms never renames).
       expect(saved.name, equals('Mine'));
-    });
-
-    testWidgets('the editor will not save a gendered role term', (
-      tester,
-    ) async {
-      final ctx = await _pumpSettings(tester);
-      await ctx.dialectLibrary.upsert(Dialect(name: 'Mine'));
-      await openDialect(tester);
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const ValueKey('dialect-menu-Mine')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Edit terms'));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const ValueKey('dialect-role1-singular')),
-        'Gent',
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.textContaining(
-          AppLocalizationsEn().validationGenderedRoleTerm('gent'),
-        ),
-        findsWidgets,
-      );
-      expect(ctx.dialectLibrary.customByName('Mine')!.roles['role1'], isNull);
     });
 
     testWidgets('the editor saves a gendered role term as typed', (

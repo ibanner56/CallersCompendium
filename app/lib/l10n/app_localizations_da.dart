@@ -2108,6 +2108,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDialectDuplicateFrom => 'Kopier fra…';
 
   @override
+  String get settingsDialectDuplicateFromOtherForm =>
+      'Kopier fra en anden type…';
+
+  @override
+  String get settingsDialectDuplicateFromOtherFormEmpty =>
+      'Ingen anden dansetype har endnu en dialekt, du selv har lavet.';
+
+  @override
   String get settingsDialectRenameTitle => 'Omdøb dialekt';
 
   @override
@@ -9516,11 +9524,6 @@ class AppLocalizationsDa extends AppLocalizations {
     String substitution,
   ) {
     return '“$source” og “$existing” peger begge på “$substitution” — en omvendelse ville være tvetydig.';
-  }
-
-  @override
-  String validationGenderedRoleTerm(String word) {
-    return '„$word“ er et kønnet rolleord, som appen aldrig viser. Brug et kønsneutralt ord i stedet.';
   }
 
   @override

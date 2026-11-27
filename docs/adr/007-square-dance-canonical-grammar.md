@@ -249,10 +249,12 @@ not.
 - Each dance form has its own dialect library, square included, and the
   dialect settings switch between forms (storage keys
   `custom_dialects_square` and `active_dialect_ref_square`;
-  [dialect.md](../design/dialect.md)). Gendered role terms are never shown:
-  the maintainer's answer to ADR-006 §9.1 point 7 (recorded on 19 November
-  2026) rules them out of stored data and dialects, and ADR-006 applies it
-  to its own text. dialect.md records the same rule, dated 18 November.
+  [dialect.md](../design/dialect.md)). Gendered role terms are never stored
+  or offered: the maintainer's answer to ADR-006 §9.1 point 7 (recorded on
+  19 November 2026) rules them out of stored data, the presets and the
+  choices the app offers, and ADR-006 applies it to its own text. A
+  caller's own dialect may use them: the maintainer's ruling of 27 November
+  2026, recorded in the same point, is not to overwrite a user's dialect.
 - ECD dances imported before ECD had a taxonomy keep their contra moves, and
   a caller-run conversion maps their moves and formation to ECD ones
   (ADR-006 F5; #2273). §8.4 follows the same pattern for squares.
