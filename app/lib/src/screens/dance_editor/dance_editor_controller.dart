@@ -1972,7 +1972,9 @@ class DanceEditorController extends ChangeNotifier {
     // its bars now, as if typed now: when it states other beats than it did
     // when the dance was last English (or the dance never was), the phrases
     // take them in this undo step. Away from English and back with the same
-    // Meter changes nothing (ADR-006 §9.2 point 8).
+    // Meter changes nothing (ADR-006 §9.2 point 8). Unlike a Meter typed in
+    // an English dance ([onMeterChanged]), it changes no figure's count: the
+    // other form counted them in beats, not in bars to keep.
     if (from != value && offersNamedPhrases) {
       final perBar = statedBeatsPerBar;
       if (perBar != _statedBeatsPerBarSeen) {
