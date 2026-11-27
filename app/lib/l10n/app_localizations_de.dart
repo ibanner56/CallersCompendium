@@ -2734,7 +2734,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      'Wenn Kanonischer Figurentext aktiviert ist, wird ein Tanz mit kanonischen Rollen- und Bewegungsnamen statt deinem aktiven Dialekt geöffnet. Wenn es deaktiviert ist, werden Details in deinem aktiven Dialekt geöffnet und diese Einstellung bleibt erhalten.';
+      'Wenn Kanonischer Figurentext aktiviert ist, wird ein Tanz mit kanonischen Rollen- und Bewegungsnamen statt deines aktiven Dialekts geöffnet. Wenn es deaktiviert ist, werden Details in deinem aktiven Dialekt geöffnet und diese Einstellung bleibt erhalten.';
 
   @override
   String get settingsDefaultsCollectionCardHeader =>
@@ -10936,7 +10936,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get shorthandMappingsIntro =>
-      'Abkürzungen ermöglichen es dir, bei der Freitexteingabe einen kurzen Token einzugeben, der zu einer oder mehreren hier eingerichteten Figuren erweitert wird.';
+      'Abkürzungen ermöglichen es dir, bei der Freitexteingabe ein kurzes Token einzugeben, das zu einer oder mehreren hier eingerichteten Figuren erweitert wird.';
 
   @override
   String get shorthandMappingsNew => 'Neue Abkürzung';
@@ -11115,13 +11115,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importUserFiguresNameTaken =>
-      'Ihr Name ist hier schon vergeben, daher markiert dein Glossar sie mit „Umbenennung nötig“.';
+      'Der Name dieser Figur ist hier schon vergeben, daher markiert dein Glossar sie mit „Umbenennung nötig“.';
 
   @override
   String get importUserFiguresKeepMine => 'Meine behalten';
 
   @override
-  String get importUserFiguresUseTheirs => 'Ihre verwenden';
+  String get importUserFiguresUseTheirs => 'Die aus der Datei verwenden';
 
   @override
   String get importUserFiguresSkip => 'Überspringen';
@@ -15301,11 +15301,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get eventRuleAttentionSearchGone =>
-      'Ihre gespeicherte Suche wurde gelöscht oder kann nicht gelesen werden, daher wird sie nicht geprüft.';
+      'Die gespeicherte Suche dieser Regel wurde gelöscht oder kann nicht gelesen werden, daher wird sie nicht geprüft.';
 
   @override
   String get eventRuleAttentionUnresolvable =>
-      'Ihre gespeicherte Suche verwendet Dinge, die es nicht mehr gibt, daher wird sie nicht geprüft:';
+      'Die gespeicherte Suche dieser Regel verwendet Dinge, die es nicht mehr gibt, daher wird sie nicht geprüft:';
 
   @override
   String programsRulesButton(int count) {
@@ -15530,7 +15530,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleSearchGone =>
-      'Ihre gespeicherte Suche wurde gelöscht';
+      'Die gespeicherte Suche dieser Regel wurde gelöscht';
 
   @override
   String get programTemplateSlotRuleDialogTitle => 'Slot-Regel hinzufügen';
@@ -15585,7 +15585,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleSearchUnreadable =>
-      'Ihre gespeicherte Suche lässt sich nicht öffnen';
+      'Die gespeicherte Suche dieser Regel lässt sich nicht öffnen';
 
   @override
   String get programTemplateSlotRuleEditTitle => 'Slot-Regel bearbeiten';

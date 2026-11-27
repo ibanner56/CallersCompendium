@@ -421,10 +421,7 @@ class _DialectRow extends StatelessWidget {
         spacing: AppSpacing.xs,
         runSpacing: AppSpacing.xxxs,
         crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          Text(dialect.name),
-          if (isPreset) _presetBadge(theme, l10n),
-        ],
+        children: [Text(dialect.name), if (isPreset) _presetBadge(theme, l10n)],
       ),
       subtitle: _dialectSubtitle(dialect),
       secondary: PopupMenuButton<String>(

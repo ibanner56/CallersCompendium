@@ -2652,7 +2652,7 @@
   "@settingsDefaultsCanonicalTitle": {
     "x-sourceSha256": "befaeb6d65d4ce394b461aa5bb7f03f2090f47c63c139de5874d0180529e0886"
   },
-  "settingsDefaultsCanonicalSubtitle": "Wenn Kanonischer Figurentext aktiviert ist, wird ein Tanz mit kanonischen Rollen- und Bewegungsnamen statt deinem aktiven Dialekt geöffnet. Wenn es deaktiviert ist, werden Details in deinem aktiven Dialekt geöffnet und diese Einstellung bleibt erhalten.",
+  "settingsDefaultsCanonicalSubtitle": "Wenn Kanonischer Figurentext aktiviert ist, wird ein Tanz mit kanonischen Rollen- und Bewegungsnamen statt deines aktiven Dialekts geöffnet. Wenn es deaktiviert ist, werden Details in deinem aktiven Dialekt geöffnet und diese Einstellung bleibt erhalten.",
   "@settingsDefaultsCanonicalSubtitle": {
     "x-sourceSha256": "9cb58d4d250e5cdbed4498e9ce089565a361d376f60a50e4c943fb6dad7fb30a"
   },
@@ -10446,7 +10446,7 @@
   "@shorthandMappingsTitle": {
     "x-sourceSha256": "6f5ff0b92387ef25b6fc9fcb3f26f31b8e74ac953fd6f80b0662a6947c45e901"
   },
-  "shorthandMappingsIntro": "Abkürzungen ermöglichen es dir, bei der Freitexteingabe einen kurzen Token einzugeben, der zu einer oder mehreren hier eingerichteten Figuren erweitert wird.",
+  "shorthandMappingsIntro": "Abkürzungen ermöglichen es dir, bei der Freitexteingabe ein kurzes Token einzugeben, das zu einer oder mehreren hier eingerichteten Figuren erweitert wird.",
   "@shorthandMappingsIntro": {
     "x-sourceSha256": "fd5dd93068a8f09e4e68fc507ab11f1e336aaf50a8037b3cbedd93fb03eefa8f"
   },
@@ -10634,7 +10634,7 @@
   "@importUserFiguresSameHeader": {
     "x-sourceSha256": "120d46e2570a65e712e939d175feac1e4017671228a292fc06c8897eae9f63f9"
   },
-  "importUserFiguresNameTaken": "Ihr Name ist hier schon vergeben, daher markiert dein Glossar sie mit „Umbenennung nötig“.",
+  "importUserFiguresNameTaken": "Der Name dieser Figur ist hier schon vergeben, daher markiert dein Glossar sie mit „Umbenennung nötig“.",
   "@importUserFiguresNameTaken": {
     "x-sourceSha256": "7b52bb96db0395bb3315603a8add6b32218775775e3ee90e63ec45985d947c93"
   },
@@ -10642,7 +10642,7 @@
   "@importUserFiguresKeepMine": {
     "x-sourceSha256": "0335c833251799ba6c37ba1823af457b6232b46933570369cf38b4f2766f134c"
   },
-  "importUserFiguresUseTheirs": "Ihre verwenden",
+  "importUserFiguresUseTheirs": "Die aus der Datei verwenden",
   "@importUserFiguresUseTheirs": {
     "x-sourceSha256": "352c427214d201c262fdab4e83afb826b3b9d1ff0dcaf79d0f2a13b92398a108"
   },
@@ -14474,11 +14474,11 @@
   "@eventRuleAttentionUnreadable": {
     "x-sourceSha256": "e65a0bda60f4d3730edfc2b15f61c5c8df19cd13774ad0db4b682f737be9bb6e"
   },
-  "eventRuleAttentionSearchGone": "Ihre gespeicherte Suche wurde gelöscht oder kann nicht gelesen werden, daher wird sie nicht geprüft.",
+  "eventRuleAttentionSearchGone": "Die gespeicherte Suche dieser Regel wurde gelöscht oder kann nicht gelesen werden, daher wird sie nicht geprüft.",
   "@eventRuleAttentionSearchGone": {
     "x-sourceSha256": "5827cbac6a3818a421cce0c1d2cc280f3eb4e17a071c769779700a68a37caa28"
   },
-  "eventRuleAttentionUnresolvable": "Ihre gespeicherte Suche verwendet Dinge, die es nicht mehr gibt, daher wird sie nicht geprüft:",
+  "eventRuleAttentionUnresolvable": "Die gespeicherte Suche dieser Regel verwendet Dinge, die es nicht mehr gibt, daher wird sie nicht geprüft:",
   "@eventRuleAttentionUnresolvable": {
     "x-sourceSha256": "302139bd698ed4cf28b031eaf261f765b3d57844252538878b3d2213aa9c6e66"
   },
@@ -14642,7 +14642,7 @@
   "@programTemplateSlotRuleSubtitle": {
     "x-sourceSha256": "242a070d6c31dd6a7f66405773878eec37e63e53466dfa081736afea806a7ae7"
   },
-  "programTemplateSlotRuleSearchGone": "Ihre gespeicherte Suche wurde gelöscht",
+  "programTemplateSlotRuleSearchGone": "Die gespeicherte Suche dieser Regel wurde gelöscht",
   "@programTemplateSlotRuleSearchGone": {
     "x-sourceSha256": "1f35b0852f51aa2a31e190d22496980fd15f7d64f7475bee61c2adec35264436"
   },
@@ -14698,7 +14698,7 @@
   "@savedSearchUsedBySlotRule": {
     "x-sourceSha256": "f6abcf8a824f0c6964fb5e3090afcdddefa07ab6e162a7585f87f491c21b8d47"
   },
-  "programTemplateSlotRuleSearchUnreadable": "Ihre gespeicherte Suche lässt sich nicht öffnen",
+  "programTemplateSlotRuleSearchUnreadable": "Die gespeicherte Suche dieser Regel lässt sich nicht öffnen",
   "@programTemplateSlotRuleSearchUnreadable": {
     "x-sourceSha256": "87719e1e721958247eb5fe51c7cf2ad911163c3c04262db39ee0daee11e71814"
   },
