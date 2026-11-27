@@ -728,12 +728,23 @@ bars 6 beats too. Typing a **Meter** that states other beats to the bar than
 before sets them in the phrase structure as well, keeping its phrases and their
 bars, so the phrases stay whole bars long: the standard four 8-bar phrases
 become `4*8*3` in 3/2, as an import of the dance writes them, and the standard
-structure again in 2/2. A Meter given while the dance was another type is
-applied the same way when you make it English, unless it states the same beats
-to the bar as it did when you changed the dance from English since opening it
-(an **Undo** or **Redo** that lands on a step where the dance was not
-English forgets it). A structure whose parts have different
-beats to the bar is never rewritten from the Meter (see **Phrases** below). A
+structure again in 2/2. The figures keep their bars too, so you can enter them
+before the Meter or correct a mistyped one: when a Meter edit changes the beats
+in a bar the figures are counted in, every figure's count changes with it, and
+4 bars of two beats (8) become 4 bars of three (12) in 3/2. A message says so,
+and its **Undo** takes back the Meter, the phrases and the counts together, as
+one **Undo** in the toolbar does. When a count can't keep its bars exactly (a
+bar and a half of two beats would be 4½ beats in 3/2, or a count would pass the
+64 beats a figure can hold), or a figure is one of your combinations, no count
+changes: the message says the figures now read in the new bars, so check them.
+A Meter given while the dance was another type is
+applied to the phrases the same way when you make it English, unless it states
+the same beats to the bar as it did when you changed the dance from English
+since opening it (an **Undo** or **Redo** that lands on a step where the dance
+was not English forgets it); the figures keep their counts in beats, as that
+type counted them. A structure whose parts have different
+beats to the bar is never rewritten from the Meter, and neither are its figures'
+counts, which it counts phrase by phrase (see **Phrases** below). A
 tune whose phrases have different numbers of beats to the
 bar (`A:2*4*3 + B:1*8*2`, an A in 3/4 and a B in 6/8) counts each bar by the
 phrase it starts in, whatever the Meter says, and from where its figure
