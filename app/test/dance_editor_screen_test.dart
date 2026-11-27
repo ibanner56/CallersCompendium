@@ -3624,6 +3624,53 @@ void main() {
       expect(saved.isFreeForm, isTrue);
     });
 
+    // Pre-release audit finding B-01: a stored choice could not be set back
+    // to what the kind gives, because Save kept it.
+    testWidgets('a stored free form turned back off for a main part is saved '
+        'as following the kind', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Main, stored free',
+        ).copyWith(form: DanceForm.square, freeForm: true),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      final toggle = find.byKey(const ValueKey('free-form-field'));
+      expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = (await repos.dances.getById('d1'))!;
+      expect(saved.freeForm, isNull);
+      expect(saved.isFreeForm, isFalse);
+    });
+
+    testWidgets('stored phrased patter turned back to free form is saved as '
+        'following the kind', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Patter, stored phrased').copyWith(
+          form: DanceForm.square,
+          squareKind: SquareKind.patter,
+          freeForm: false,
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      final toggle = find.byKey(const ValueKey('free-form-field'));
+      expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = (await repos.dances.getById('d1'))!;
+      expect(saved.freeForm, isNull);
+      expect(saved.isFreeForm, isTrue);
+    });
+
     testWidgets("a square's sequence states one count for its steps, and "
         'saves them untimed (ADR-007 Q10)', (tester) async {
       final repos = openTestRepositories();
