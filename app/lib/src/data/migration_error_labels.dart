@@ -36,11 +36,13 @@ enum BelowFloorRoute {
 
   /// Android refuses to install an older release over a newer one, and
   /// uninstalling to make room deletes the library, so the desktop route would
-  /// lose the data: the screen says not to uninstall or reset.
+  /// lose the data: the screen says not to uninstall, and shares a scrubbed
+  /// copy to update on a computer instead (`recovery_copy.dart`).
   android,
 
   /// iPhone and iPad: the app comes only from TestFlight, and the release page
-  /// has no iOS download, so the screen points to TestFlight's earlier builds.
+  /// has no iOS download, so the screen points to TestFlight's earlier builds,
+  /// and offers the same copy as Android for when the bridge is not listed.
   ios,
 }
 

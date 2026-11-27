@@ -169,6 +169,18 @@ enum EgressClass {
   ///   No other share or export path offers it.
   ///
   /// See those entries in `field_registry.dart`.
+  ///
+  /// The recovery copy that the "data too old to open" screen shares on a phone
+  /// or tablet (`app/lib/src/data/recovery_copy.dart`, pre-release audit
+  /// finding F-01) is such a transfer: the user sends it to their own computer
+  /// to update it with an older release, and restores the backup that release
+  /// exports. It carries shareable columns, the [deviceLocal] columns a backup
+  /// carries, shareable settings, and a [deviceLocal] setting only when a
+  /// backup carries it; never [deviceScoped], [protocolIdentifier],
+  /// [storeAddress] or [derived] data, nor a setting the registry does not
+  /// know. The maintainer decided the route and its settings rule (2026-11-27,
+  /// the audit's decision sheet, question 39); the rest of the rule, and who
+  /// decided each part, is in `recovery_copy.dart`.
   deviceLocal,
 
   /// Never transmitted by any route, because the value is meaningless or

@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "data_migrations": [
-      "Your collection can no longer be brought up to date from version 0.7.0, whose support ended on November 30, 2026. If you last opened it with 0.7.0 or earlier, this version won't open it: on Windows, macOS and Linux the startup screen names the release to open it with first (0.10.0 for a collection last opened by 0.7.0); on iPhone and iPad it points to that release among TestFlight's earlier builds; on Android it tells you not to uninstall or reset the app, because Android can't install that release over this one. On every platform it also offers to back it up and start fresh. Collections last opened by 0.8.0 or later are not affected."
+      "Your collection can no longer be brought up to date from version 0.7.0, whose support ended on November 30, 2026. If you last opened it with 0.7.0 or earlier, this version won't open it: on Windows, macOS and Linux the startup screen names the release to open it with first (0.10.0 for a collection last opened by 0.7.0); on iPhone and iPad it points to that release among TestFlight's earlier builds; on Android, which can't install that release over this one, it tells you not to uninstall the app and lets you share a copy of your data to update on a computer and restore. On every platform it also offers to back it up and start fresh. Collections last opened by 0.8.0 or later are not affected."
     ]
   },
   "core": {

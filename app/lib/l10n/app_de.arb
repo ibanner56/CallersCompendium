@@ -224,13 +224,45 @@
   "@migrationBelowFloorBody": {
     "x-sourceSha256": "6855c6b21e03dea3850d71a05c79c42f710923c44dfb9f02f392e81939616c9d"
   },
-  "migrationBelowFloorBodyAndroid": "Deine Daten sind noch auf diesem Gerät, aber diese Version kann sie nicht aktualisieren. Deinstalliere die App nicht: Dabei werden deine Daten gelöscht, und Android installiert {bridgeTag} ohnehin nicht über diese Version. Damit deine Daten erhalten bleiben, lass die App installiert, setze sie nicht zurück und wähle „Details kopieren“, wenn du um Hilfe bittest.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.",
+  "migrationBelowFloorBodyAndroid": "Deine Daten sind noch auf diesem Gerät, aber diese Version kann sie hier nicht aktualisieren. Deinstalliere die App nicht: Dabei werden deine Daten gelöscht, und Android installiert {bridgeTag} ohnehin nicht über diese Version. Damit deine Daten erhalten bleiben, wähle „Eine Kopie deiner Daten teilen“ und speichere die Datei außerhalb der App, zum Beispiel auf einem Computer oder in einem Cloud-Speicher. Ein Computer mit {bridgeTag} kann sie aktualisieren, und diese App kann sie dann wiederherstellen: siehe „So aktualisierst du sie auf einem Computer“.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.",
   "@migrationBelowFloorBodyAndroid": {
-    "x-sourceSha256": "d7d6e28193c75cf55eaae8bffed52d211d90c33dac693e4b9c5d5012ce926478"
+    "x-sourceSha256": "8e961b255e303fcb519305e8dc89c42e53c004b130b9eaa9b2efbb060c1dbe89"
   },
-  "migrationBelowFloorBodyIos": "Deine Daten sind noch auf diesem Gerät. Lösche die App nicht: Dabei werden deine Daten gelöscht. Öffne in TestFlight Caller’s Compendium und suche unter „Frühere Builds“ nach Version {bridgeVersion}. Wenn sie dort steht, installiere sie, öffne die App einmal, damit sie deine Daten aktualisiert, und installiere dann wieder den neuesten Build. Wenn sie nicht dort steht, lass die App, wie sie ist, und wähle „Details kopieren“, wenn du um Hilfe bittest.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.",
+  "migrationBelowFloorBodyIos": "Deine Daten sind noch auf diesem Gerät. Lösche die App nicht: Dabei werden deine Daten gelöscht. Öffne in TestFlight Caller’s Compendium und suche unter „Frühere Builds“ nach Version {bridgeVersion}. Wenn sie dort steht, installiere sie, öffne die App einmal, damit sie deine Daten aktualisiert, und installiere dann wieder den neuesten Build. Wenn sie nicht dort steht, wähle „Eine Kopie deiner Daten teilen“ und aktualisiere sie stattdessen auf einem Computer: siehe „So aktualisierst du sie auf einem Computer“.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.",
   "@migrationBelowFloorBodyIos": {
-    "x-sourceSha256": "2b82ea98abe02624920609317078caab270884491449eb4bfa75691348b8fe53"
+    "x-sourceSha256": "bed41858683d7fdf0ef8dcf24b2f20910a8a349e98a575f57c98e4838cce53f8"
+  },
+  "migrationBelowFloorShareCopy": "Eine Kopie deiner Daten teilen",
+  "@migrationBelowFloorShareCopy": {
+    "x-sourceSha256": "cf15b2a0da12933726c959f817de9f5936ae245ef59215b0580ece82b10a4d49"
+  },
+  "migrationBelowFloorShareBackup": "Kopie teilen",
+  "@migrationBelowFloorShareBackup": {
+    "x-sourceSha256": "7a9e4b2ad71050489076afd11dc463167a30d6dfb17def2bc229acbf6f5347c3"
+  },
+  "migrationBelowFloorBackupKeptInApp": "Die Sicherung liegt in der App, wo du sie nicht öffnen kannst. Wenn du eine Kopie behalten willst, die du auf einem Computer nutzen kannst, wähle vor dem Zurücksetzen „Kopie teilen“.",
+  "@migrationBelowFloorBackupKeptInApp": {
+    "x-sourceSha256": "f6e9407c09f9c9b7c2222f787b46e1d48e20c520eca2413cd09abf87c569b24c"
+  },
+  "migrationBelowFloorShareCopyFailedTitle": "Kopie konnte nicht erstellt werden",
+  "@migrationBelowFloorShareCopyFailedTitle": {
+    "x-sourceSha256": "ebf6ba6d006d7823c6c67d39a2c183021ffce38b9e925f02326db41f7329cafa"
+  },
+  "migrationBelowFloorShareCopyFailedBody": "Es wurde nichts geteilt, und deine Daten wurden nicht geändert. Gib etwas Speicherplatz frei und versuche es dann erneut.",
+  "@migrationBelowFloorShareCopyFailedBody": {
+    "x-sourceSha256": "224c0a203ab2f682ba768ed759b2af916149eeb4cce43ca7bc050fd18a5d0650"
+  },
+  "migrationBelowFloorShareSheetFailedTitle": "Das Teilen-Menü ließ sich nicht öffnen",
+  "@migrationBelowFloorShareSheetFailedTitle": {
+    "x-sourceSha256": "efc575e34db2927b05d4b49073937c372349328a864abbe4b25f5f7755da6c52"
+  },
+  "migrationBelowFloorShareSheetFailedBody": "Die Kopie wurde erstellt, konnte aber nicht geteilt werden. Deine Daten wurden nicht geändert. Versuche es erneut.",
+  "@migrationBelowFloorShareSheetFailedBody": {
+    "x-sourceSha256": "c6255a72a7e6508280c23f5bea0d48d3bcb028b0e96fe75b7a20eeae2dcdd4e5"
+  },
+  "migrationBelowFloorComputerGuide": "So aktualisierst du sie auf einem Computer",
+  "@migrationBelowFloorComputerGuide": {
+    "x-sourceSha256": "62ededb674b675c3575e7a0b4afb0403adc1a07125d739092eedf332acb53d24"
   },
   "migrationBelowFloorGetBridge": "{bridgeTag} holen",
   "@migrationBelowFloorGetBridge": {
