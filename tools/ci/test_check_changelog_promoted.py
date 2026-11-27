@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -392,6 +393,12 @@ def release_prep_end_to_end() -> None:
     with tempfile.TemporaryDirectory() as temp:
         repo = Path(temp)
         git = lambda *args: subprocess.run(["git", *args], cwd=repo, check=True)  # noqa: E731
+
+        def tag(name: str, day: int) -> None:
+            # Dated explicitly: tags made in the same second tie on creatordate.
+            stamp = f"{1_700_000_000 + day * 86_400} +0000"
+            subprocess.run(["git", "tag", "-a", name, "-m", name], cwd=repo, check=True,
+                           env={**os.environ, "GIT_COMMITTER_DATE": stamp})
         git("init", "-q", "-b", "main")
         git("config", "user.email", "test@example.invalid")
         git("config", "user.name", "Test")
@@ -422,7 +429,7 @@ def release_prep_end_to_end() -> None:
         check("no v* tag is unanswerable, not a pass", untagged.returncode == 2, untagged.stderr)
         check("no v* tag says to fetch tags", "tags" in untagged.stderr, untagged.stderr)
 
-        git("tag", "-a", "v0.3.0-beta", "-m", "v0.3.0-beta")
+        tag("v0.3.0-beta", 1)
 
         # The H-01 shape: the taxonomy moved since the tag, the fragments were
         # compiled into ## [0.4.0], and no taxonomy line reached it.
@@ -445,7 +452,7 @@ def release_prep_end_to_end() -> None:
         # ships, an unchanged taxonomy owes no line again.
         git("add", ".")
         git("commit", "-qm", "v0.4.0-beta")
-        git("tag", "-a", "v0.4.0-beta", "-m", "v0.4.0-beta")
+        tag("v0.4.0-beta", 2)
         write(repo, Path("app/CHANGELOG.md"), notes("0.4.0"))
         newest = run("--release-prep", cwd=repo)
         check("the newest merged tag is the previous ref", newest.returncode == 0 and "v0.4.0-beta" in newest.stdout,
@@ -455,7 +462,7 @@ def release_prep_end_to_end() -> None:
         git("commit", "-qam", "after v0.4.0-beta")
         git("checkout", "-q", "-b", "side", "HEAD~1")
         git("commit", "-q", "--allow-empty", "-m", "unrelated")
-        git("tag", "-a", "v9.0.0-beta", "-m", "unrelated")
+        tag("v9.0.0-beta", 3)  # newest, but not merged
         git("checkout", "-q", "main")
         unmerged = run("--release-prep", cwd=repo)
         check("a tag not merged into HEAD is ignored", unmerged.returncode == 0 and "v0.4.0-beta" in unmerged.stdout,

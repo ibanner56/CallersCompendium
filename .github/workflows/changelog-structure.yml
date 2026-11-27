@@ -33,6 +33,7 @@ on:
       - 'tools/release/test_compile_changelog_fragments.py'
       - 'tools/ci/check_changelog_structure.py'
       - 'tools/ci/test_check_changelog_structure.py'
+      - 'tools/ci/check_changelog_promoted.py'
       - '.github/workflows/changelog-structure.yml'
   pull_request:
     paths:
@@ -44,6 +45,7 @@ on:
       - 'tools/release/test_compile_changelog_fragments.py'
       - 'tools/ci/check_changelog_structure.py'
       - 'tools/ci/test_check_changelog_structure.py'
+      - 'tools/ci/check_changelog_promoted.py'
       - '.github/workflows/changelog-structure.yml'
 
 # Least privilege: this check only reads the checked-out code.
@@ -56,6 +58,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the release tags, for the release-preparation step below
       # This workflow is the focused validation gate for changelog tooling and
       # fragment-only PRs, which ci.yml may otherwise skip.
       - name: Test the changelog structure gate
@@ -66,3 +70,12 @@ jobs:
         run: python3 tools/release/compile_changelog_fragments.py --check
       - name: Guard CHANGELOG structure (version order, no repeated category)
         run: python3 tools/ci/check_changelog_structure.py
+      # The tag-time notes gate, run before the tag. release.yml's meta job runs
+      # check_changelog_promoted.py only once the tag exists, so a release whose
+      # notes lack a schema or taxonomy range, or a one-time repair's note,
+      # failed after the tag was pushed (pre-release audit finding H-01). With
+      # --release-prep it judges the tree only when changelog.d holds no pending
+      # fragment, the state a release-preparation PR leaves; while fragments are
+      # pending it passes. It needs the tags, hence fetch-depth: 0.
+      - name: Guard release notes as the tag will (release-preparation trees only)
+        run: python3 tools/ci/check_changelog_promoted.py --release-prep

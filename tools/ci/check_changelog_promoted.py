@@ -3,6 +3,21 @@
 
 It also holds a release to the schema rule in ``CONTRIBUTING.md`` ("Never bump
 ``schemaVersion`` in a PATCH release"): see :func:`_schema_step_errors`.
+
+Of the versioned constants, only two owe the release notes a range: the schema
+(``kCompendiumSchemaVersion``) and the contra taxonomy
+(``contraTaxonomyVersion``), each in the release's Data / Migrations section.
+The sync wire, ECD taxonomy and square taxonomy versions are gated elsewhere
+(``check_version_history.py``, ``check_version_bump_policy.py``) but owe no
+line here.
+
+release.yml runs this on the tag. ``--release-prep`` runs the same check
+earlier, in PR CI: when ``changelog.d`` holds no pending fragment (the state a
+release-preparation PR leaves), it reads the version from ``app/pubspec.yaml``
+and the previous release from the newest ``v*`` tag merged into ``HEAD``, so a
+missing Data / Migrations line fails the PR instead of the tag. While any
+fragment is pending it passes without judging, because the tree is not a
+release yet. It needs the tags in the checkout, and exits 2 without one.
 """
 
 from __future__ import annotations
@@ -344,9 +359,59 @@ def _taxonomy_errors(
     ]
 
 
+PUBSPEC = Path("app/pubspec.yaml")
+_PUBSPEC_VERSION = re.compile(r"^version:[ \t]*([^\s#+]+)", flags=re.MULTILINE)
+
+
+def _pubspec_version(pubspec: Path) -> str:
+    """The app's ``X.Y.Z``, without a ``+build`` suffix; ValueError if unreadable."""
+    try:
+        text = pubspec.read_text(encoding="utf-8")
+    except OSError as error:
+        raise ValueError(f"could not read {pubspec.as_posix()}: {error}") from error
+    match = _PUBSPEC_VERSION.search(text)
+    if match is None:
+        raise ValueError(f"could not read a version: line from {pubspec.as_posix()}.")
+    return match.group(1)
+
+
+def _newest_merged_release_tag() -> str:
+    """The newest ``v*`` tag by creation date that ``HEAD`` contains.
+
+    release.yml picks among the same tags but also skips one with no published
+    GitHub release; this runs without the API, so a tag whose release was never
+    published still counts here.
+    """
+    result = subprocess.run(
+        ["git", "tag", "--list", "v[0-9]*", "--merged", "HEAD", "--sort=-creatordate"],
+        check=False,
+        capture_output=True,
+        encoding="utf-8",
+    )
+    if result.returncode:
+        raise ValueError(f"could not list release tags: {result.stderr.strip()}")
+    tags = [line for line in result.stdout.splitlines() if line.strip()]
+    if not tags:
+        raise ValueError(
+            "no v* release tag is merged into HEAD, so there is no previous "
+            "release to compare with. Fetch the tags (checkout fetch-depth: 0, "
+            "or `git fetch --tags origin`)."
+        )
+    return tags[0]
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", required=True)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("--version")
+    parser.add_argument(
+        "--release-prep",
+        action="store_true",
+        help="PR CI mode: pass while fragments are pending; otherwise default "
+        "--version to app/pubspec.yaml's and --previous-ref to the newest "
+        "merged v* tag",
+    )
     parser.add_argument("--changelog", type=Path, default=Path("app/CHANGELOG.md"))
     parser.add_argument("--fragments", type=Path, default=Path("changelog.d"))
     parser.add_argument(
@@ -366,8 +431,26 @@ def main(argv: list[str] | None = None) -> int:
         help="previous release tag/ref; omit for the first release",
     )
     args = parser.parse_args(argv)
+    if args.version is None and not args.release_prep:
+        parser.error("--version is required unless --release-prep is given")
 
     try:
+        if args.release_prep:
+            pending = fragment_paths(args.fragments)
+            if pending:
+                print(
+                    f"OK: {len(pending)} changelog fragment(s) pending, so this "
+                    "is not a release-preparation tree; nothing to judge yet."
+                )
+                return 0
+            if args.version is None:
+                args.version = _pubspec_version(PUBSPEC)
+            if args.previous_ref is None:
+                args.previous_ref = _newest_merged_release_tag()
+            print(
+                f"Release-preparation tree: judging ## [{_core_version(args.version)}] "
+                f"against {args.previous_ref}."
+            )
         errors = validate(
             version=args.version,
             changelog_text=args.changelog.read_text(encoding="utf-8"),
@@ -377,7 +460,7 @@ def main(argv: list[str] | None = None) -> int:
             taxonomy=args.taxonomy,
         )
         errors.extend(_pending_fragments(args.fragments))
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, FragmentError) as error:
         print(f"::error::{error}", file=sys.stderr)
         return 2
     if errors:
