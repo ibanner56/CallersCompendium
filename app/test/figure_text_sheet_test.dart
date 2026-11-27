@@ -303,6 +303,73 @@ void main() {
     expect(await _saveAndRead(tester, repos), existing);
   });
 
+  group('typed text is kept (pre-release audit finding F-02)', () {
+    const field = ValueKey('figure-text-sheet-field');
+
+    String sheetText(WidgetTester tester) =>
+        tester.widget<TextField>(find.byKey(field)).controller!.text;
+
+    testWidgets('a tap above the sheet asks first, and Keep editing keeps '
+        'every line', (tester) async {
+      final repos = await _repos(freeText: false);
+      await _pumpEditor(tester, repos);
+      await _openSheet(tester);
+      await _enterSheetText(tester, _lines.join('\n'));
+      await tester.tapAt(const Offset(600, 4));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('discard-confirm')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('discard-cancel')));
+      await tester.pumpAndSettle();
+      expect(sheetText(tester), _lines.join('\n'));
+    });
+
+    testWidgets('Back asks first, and Discard closes it adding nothing', (
+      tester,
+    ) async {
+      final existing = [
+        Figure(move: 'swing', params: const {'beats': 16}),
+      ];
+      final repos = await _repos(freeText: false, figures: existing);
+      await _pumpEditor(tester, repos);
+      await _openSheet(tester);
+      await _enterSheetText(tester, _lines.join('\n'));
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byKey(field), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(field), findsNothing);
+      expect(await _saveAndRead(tester, repos), existing);
+    });
+
+    testWidgets('a swipe down does not close it', (tester) async {
+      final repos = await _repos(freeText: false);
+      await _pumpEditor(tester, repos);
+      await _openSheet(tester);
+      await _enterSheetText(tester, _lines.join('\n'));
+      // From the button row, which is outside the sheet's scrolling body.
+      await tester.drag(
+        find.byKey(const ValueKey('figure-text-sheet-cancel')),
+        const Offset(0, 1500),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(field), findsOneWidget);
+      expect(sheetText(tester), _lines.join('\n'));
+    });
+
+    testWidgets('an empty sheet still closes on a tap above it', (
+      tester,
+    ) async {
+      final repos = await _repos(freeText: false);
+      await _pumpEditor(tester, repos);
+      await _openSheet(tester);
+      await tester.tapAt(const Offset(600, 4));
+      await tester.pumpAndSettle();
+      expect(find.byKey(field), findsNothing);
+      expect(find.byKey(const ValueKey('discard-confirm')), findsNothing);
+    });
+  });
+
   testWidgets('one Undo takes out every figure the sheet added', (
     tester,
   ) async {
