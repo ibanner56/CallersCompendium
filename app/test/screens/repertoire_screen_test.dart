@@ -315,6 +315,42 @@ void main() {
       expect(listedTitles(tester), {'Never Danced'});
     });
 
+    testWidgets('unloads a saved search it replaces, so Update cannot write '
+        'the drill-down over it', (tester) async {
+      final repos = await seeded();
+      final saved = await repos.savedSearches.create(
+        name: 'Becket only',
+        spec: SavedSearchSpec.fromPanelState(
+          CollectionPanelState(text: 'Becket'),
+          today: DateTime.utc(2026, 11, 22),
+        ).value!,
+      );
+      await pumpCollection(tester, repos);
+      await tester.tap(find.byKey(const ValueKey('collection-search-field')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('saved-search-row-${saved.id}')));
+      await tester.pumpAndSettle();
+      expect(listedTitles(tester), {'Becket Reel'});
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
+      // Control: while it is loaded, the menu acts on it.
+      expect(find.text('Rename "Becket only"…'), findsOneWidget);
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+
+      await openRepertoire(tester);
+      await tapRow(tester, 'repertoire-never-called');
+      expect(listedTitles(tester), {'Never Danced'});
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('saved-search-update')), findsNothing);
+      expect(find.textContaining('Becket only'), findsNothing);
+      expect(find.byKey(const ValueKey('saved-search-save')), findsOneWidget);
+      final stored = (await repos.savedSearches.get(saved.id))!;
+      expect(stored.spec.toJson(), saved.spec.toJson());
+    });
+
     testWidgets('a dance opens that dance', (tester) async {
       final repos = await seeded();
       await pumpCollection(tester, repos);
