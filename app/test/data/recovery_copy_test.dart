@@ -119,7 +119,9 @@ void main() {
       putSetting(seeded, 'calendar_feed_url', jsonEncode(_marker));
       // A key the registry does not know: the rule fails closed.
       putSetting(seeded, 'not.a.registered.key', jsonEncode(_marker));
-      emptied = tablesToEmpty(seeded);
+      // A table the registry does not know: emptied, failing closed.
+      seeded.execute('CREATE TABLE not_a_registered_table (note TEXT)');
+      emptied = {...tablesToEmpty(seeded), 'not_a_registered_table'};
       for (final table in emptied) {
         seedRow(seeded, table);
       }
