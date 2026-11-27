@@ -1578,9 +1578,9 @@ class ImportPipeline {
     hook: src.hook,
     callingNotes: src.callingNotes,
     walkthrough: src.walkthrough,
-    // A meter or key too: only the native archive and the Caller's Companion
-    // mapping carry them, and a linked-over English dance counts its typed
-    // bar ranges by its meter.
+    // A meter or key too: most sources carry none (the native archive, the
+    // Caller's Companion mapping and a CSV with those columns do), and a
+    // linked-over English dance counts its typed bar ranges by its meter.
     meter: src.meter.isNotEmpty ? src.meter : keepFrom?.meter ?? '',
     musicalKey: src.musicalKey.isNotEmpty
         ? src.musicalKey

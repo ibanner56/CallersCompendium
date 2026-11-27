@@ -1901,10 +1901,10 @@ class CallersBoxAdapter implements SourceAdapter {
     caseSensitive: false,
   );
 
-  /// The start of [_roleCentreWaveBalanceRe] with anything after it: a role's
-  /// in-centre balance that says more; group 1 is the role.
+  /// The start of [_roleCentreWaveBalanceRe], a comma after the role allowed,
+  /// with anything after it: a role's in-centre balance that says more.
   static final RegExp _roleCentreWaveBalanceLeadRe = RegExp(
-    r'^(role1s|role2s)\s+balance\s+(?:the\s+)?long\s+waves?\s+in\s+(?:the\s+)?center\b',
+    r'^(?:role1s|role2s),?\s+balance\s+(?:the\s+)?long\s+waves?\s+in\s+(?:the\s+)?center\b',
     caseSensitive: false,
   );
 

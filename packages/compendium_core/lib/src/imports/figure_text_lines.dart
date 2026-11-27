@@ -16,7 +16,8 @@ final RegExp _leadingPhraseLabel = RegExp(
 /// A label must stand as its own word: `A12 …` and `B1s …` are not labelled.
 /// Shared by the Caller's Companion text adapter, which reads its sections
 /// from these labels, and the dance editor's **Add figures from text** sheet
-/// (#2326), which drops them from contra lines before parsing.
+/// (#2326), which drops them from contra lines before parsing, except a
+/// corner code (`C2 corner …`, [splitFigureTextLines]).
 (String?, String) splitPhraseLabel(String line) {
   final match = _leadingPhraseLabel.firstMatch(line);
   if (match == null) return (null, line);

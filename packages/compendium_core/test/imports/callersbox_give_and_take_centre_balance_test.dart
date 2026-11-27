@@ -196,6 +196,7 @@ void main() {
         '(4) Men balance long wave in center and slide left',
         '(4) Men balance long wave in center (P2L,P3R)',
         '(4) Women balance long wave in center and slide right',
+        '(4) Men, balance long wave in center and slide left',
       ]) {
         expectRefused(
           await _figuresFor(['(0) Form long wave', balance]),

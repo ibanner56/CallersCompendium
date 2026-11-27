@@ -807,8 +807,29 @@ void main() {
       expect(ranged.isCustom, isTrue);
       expect(ranged.params['text'], '1-4 3 couples circle left');
       expect(ranged.params['beats'], 12);
+      // A count stated elsewhere on the line is still its beats.
+      for (final (line, beats) in [
+        ('4 hands across (8)', 8),
+        ('2 men turn single (4)', 4),
+        ('3 couples circle left 8 beats', 8),
+      ]) {
+        final f = _one(line);
+        expect(f.isCustom, isTrue, reason: line);
+        expect(f.beats, beats, reason: line);
+      }
+      // In a `;` line too, the number of dancers is not a count.
+      for (final line in [
+        '3 couples circle left; turn single',
+        '2 men turn single; 2 women turn single',
+        'turn single; 1 man cast',
+      ]) {
+        final f = _one(line);
+        expect(f.isCustom, isTrue, reason: line);
+        expect(f.beats, 0, reason: line);
+      }
       // Control: a bare count before a figure is still its beats.
       expect(_one('8 circle left').params['beats'], 8);
+      expect(_typed('8 circle left; turn single').first.params['beats'], 8);
     });
 
     test('`to the right` is a way to travel, never a hand', () {

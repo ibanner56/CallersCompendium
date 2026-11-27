@@ -335,8 +335,9 @@ carries none (*B19 follow-up*, maintainer decision of 2026-10-30, "Keep my
 rating"), and likewise its interpreters, interpretation date, other titles and
 Barnes reference (implementer's call, extending the rating rule to fields most
 sources never carry; the maintainer kept it on 23 November 2026), and its meter
-and key (an agent's call in the pre-release audit, finding A1-04, to match the
-re-import, which already keeps them). Its square
+and key (an agent's call in the pre-release audit, finding A1-04, like the
+re-import, which keeps them too, though a re-import keeps a value the dance has
+even when the record carries one, and a link takes the record's). Its square
 fields (ADR-007 §8.1) are kept the same way, each while the record leaves it
 at its default (this implementer's call, extending the same rule). A value the
 record does carry replaces the existing one. The record's form still applies,
@@ -2702,7 +2703,11 @@ ECD dance.
 - **Free-text entry** keeps its count, `;`-clause and shorthand handling, and
   retries a line with the dialect's role words as for contra. A line that
   starts with a bare number is read whole first (`2 changes of rights and
-  lefts`, `2 hand turn`), then with the number as its count.
+  lefts`, `2 hand turn`), then with the number as its count, unless the
+  number counts hands or dancers (`4 hands across`, `3 couples circle left`,
+  `2 men turn single`, in any `;` clause): such a line stays custom with no
+  count (pre-release audit finding C-04, an agent's call over reading it
+  without a count).
 - **Bars** (`ecd_bars.dart`, Hudson, 19 November 2026: "the meter is the
   rule"). ECD notation counts in bars of the tune, so a leading bar range
   (`1-4`, `(5-8)`, `9 – 12`, after a section label as in `A1 1-8` or
