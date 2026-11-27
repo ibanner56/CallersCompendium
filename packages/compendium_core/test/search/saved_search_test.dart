@@ -1376,13 +1376,81 @@ void main() {
       expect(
         spec.movingReferences(SyncRecordKind.difficultyLevel, {'K': 'S'}),
         isNull,
-        reason: 'levels are not merged',
+        reason: 'a level id is not a tag id',
       );
       expect(
         spec.movingReferences(SyncRecordKind.choreographer, {'K': 'S'}),
         isNull,
         reason: 'an author id is not a tag id',
       );
+    });
+
+    test('moves the Level filter and every custom-field filter, which only '
+        "sync's reconciliation merges", () {
+      final s = CollectionPanelState();
+      s.facets.levels.addAll(['L', 'K']);
+      s.facets.choiceValues['F'] = {'jig'};
+      s.facets.booleanValues['F'] = true;
+      s.facets.textValues['F'] = const TextFacetState(
+        op: CustomFieldOp.contains,
+        value: 'reel',
+      );
+      s.facets.numberValues['F'] = const NumberFacetState(
+        op: CustomFieldOp.gt,
+        lo: 3,
+      );
+      final spec = specOf(s);
+      final levels = spec.movingReferences(SyncRecordKind.difficultyLevel, {
+        'L': 'A',
+      })!;
+      expect((levels.toJson()['facets'] as Map)['levels'], ['A', 'K']);
+      expect(
+        spec.movingReferences(SyncRecordKind.customFieldDef, {'L': 'A'}),
+        isNull,
+        reason: 'no field named L',
+      );
+      final fields = spec.movingReferences(SyncRecordKind.customFieldDef, {
+        'F': 'E',
+      })!;
+      final facets = fields.toJson()['facets'] as Map;
+      expect(facets['choiceValues'], {
+        'E': ['jig'],
+      });
+      expect(facets['booleanValues'], {'E': true});
+      expect(facets['textValues'], {
+        'E': {'op': 'contains', 'value': 'reel'},
+      });
+      expect(facets['numberValues'], {
+        'E': {'op': 'gt', 'lo': 3},
+      });
+      expect(SavedSearchSpec.decode(fields.toJson()).isOk, isTrue);
+    });
+
+    test('a custom field filter on both the loser and the survivor keeps what '
+        'reading the loser through the alias gives: both choices, and the '
+        'later field in stored order for a single value', () {
+      final s = CollectionPanelState();
+      // Stored in key order: A (the survivor) before Z (the loser).
+      s.facets.choiceValues['A'] = {'jig'};
+      s.facets.choiceValues['Z'] = {'reel'};
+      s.facets.booleanValues['A'] = true;
+      s.facets.booleanValues['Z'] = false;
+      final spec = specOf(s);
+      final aliased = spec.toPanelState(
+        map: (kind, id) =>
+            kind == SyncRecordKind.customFieldDef && id == 'Z' ? 'A' : id,
+      );
+      final moved = spec.movingReferences(SyncRecordKind.customFieldDef, {
+        'Z': 'A',
+      })!;
+      final facets = moved.toJson()['facets'] as Map;
+      expect(facets['choiceValues'], {
+        'A': ['jig', 'reel'],
+      });
+      expect(facets['booleanValues'], {'A': false});
+      final rewritten = moved.toPanelState();
+      expect(rewritten.facets.choiceValues, aliased.facets.choiceValues);
+      expect(rewritten.facets.booleanValues, aliased.facets.booleanValues);
     });
 
     test('the result is readable and its bytes do not depend on the order '
