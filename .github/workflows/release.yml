@@ -1038,9 +1038,12 @@ jobs:
           if [ -n "${CODENAME:-}" ]; then
             codename_define+=(--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME")
           fi
+          # The ${arr[@]+...} form: this step runs under `set -u`, and the
+          # macOS runner's /bin/bash 3.2 calls a bare "${arr[@]}" of an empty
+          # array unbound, so an input-free dry run (no codename) stopped here.
           flutter build ios --release --no-codesign --build-number="${build_number}" \
             --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
-            "${codename_define[@]}"
+            ${codename_define[@]+"${codename_define[@]}"}
 
           # 2) Archive WITHOUT signing. No -allowProvisioningUpdates (that flag
           #    is what authorizes Xcode to create portal resources) and no API

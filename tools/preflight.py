@@ -451,7 +451,8 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "changelog-structure",
-        "both CHANGELOGs well-formed, and every pending changelog.d fragment valid",
+        "both CHANGELOGs well-formed, every pending changelog.d fragment valid, "
+        "and a release-preparation tree's notes as the tag will check them",
         # Mirrors ci.yml's changelog-structure-gate step for step. The fragment
         # compiler's --check used to run only in CI, so a malformed fragment --
         # the most common PR shape, since every user-visible change adds one --
@@ -461,6 +462,10 @@ STEPS: tuple[Step, ...] = (
             py("tools/release/test_compile_changelog_fragments.py"),
             py("tools/release/compile_changelog_fragments.py", "--check"),
             py("tools/ci/check_changelog_structure.py"),
+            # CI's release-preparation check. A shallow local clone has no tags
+            # to compare with, so here it says it skipped (`git fetch --tags
+            # origin` to run it); CI fetches the tags and never skips.
+            py("tools/ci/check_changelog_promoted.py", "--release-prep", "--allow-missing-tags"),
         ),
     ),
     Step(

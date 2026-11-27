@@ -31,7 +31,10 @@ sys.path.insert(0, str(HERE))
 import check_version_bump_policy as gate  # noqa: E402
 
 FAILURES: list[str] = []
-SCHEMA, TAXONOMY, WIRE, ECD = gate.CONSTANTS
+SCHEMA, TAXONOMY, WIRE, ECD = gate.CONSTANTS[:4]
+# Spelled out rather than unpacked, so that dropping it from CONSTANTS turns the
+# square scenarios red instead of crashing the import.
+SQUARE = gate.Constant("squareTaxonomyVersion", f"{gate.CORE_LIB}/taxonomy/square_taxonomy.dart")
 
 
 def check(name: str, condition: bool, detail: str = "") -> None:
@@ -66,11 +69,15 @@ class Repo:
             env={**os.environ, **env},
         )
 
-    def set_versions(self, schema: int, taxonomy: int, wire: int, ecd: int | None = 1) -> None:
-        """``ecd=None`` leaves ecdTaxonomyVersion undeclared, as at a release that predates it."""
+    def set_versions(
+        self, schema: int, taxonomy: int, wire: int, ecd: int | None = 1, square: int | None = 1
+    ) -> None:
+        """``ecd=None`` or ``square=None`` leaves that constant undeclared, as at a release that predates it."""
         pairs = [(SCHEMA, schema), (TAXONOMY, taxonomy), (WIRE, wire)]
         if ecd is not None:
             pairs.append((ECD, ecd))
+        if square is not None:
+            pairs.append((SQUARE, square))
         for constant, value in pairs:
             target = self.root / constant.source
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -199,6 +206,26 @@ def main() -> int:
     check("unchanged passes, not exit 2", res.returncode == 0, f"exit={res.returncode} {res.stdout}")
     res = ecd_scenario(1, 2)
     check("a bump over the banked v1 fails", res.returncode == 1 and "ecdTaxonomyVersion 1 -> 2" in res.stdout, f"exit={res.returncode} {res.stdout}")
+
+    # squareTaxonomyVersion is absent at v0.10.0-beta too (pre-release audit finding H-06).
+    def square_scenario(base_square: int, head_square: int):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Repo(Path(tmp))
+            repo.set_versions(5, 39, 1, square=None)
+            repo.commit("release")
+            repo.tag("v1.0.0")
+            repo.set_versions(5, 39, 1, square=base_square)
+            repo.commit("base")
+            repo.set_versions(5, 39, 1, square=head_square)
+            repo.commit("head")
+            return repo.run("HEAD~1", "HEAD")
+
+    print("squareTaxonomyVersion introduced after the release:")
+    check("the gate watches squareTaxonomyVersion", SQUARE in gate.CONSTANTS, repr(gate.CONSTANTS))
+    res = square_scenario(1, 1)
+    check("unchanged passes, not exit 2", res.returncode == 0, f"exit={res.returncode} {res.stdout}")
+    res = square_scenario(1, 2)
+    check("a bump over the banked v1 fails", res.returncode == 1 and "squareTaxonomyVersion 1 -> 2" in res.stdout, f"exit={res.returncode} {res.stdout}")
 
     # A constant absent at the tag AND unreadable at head: the message must name head.
     with tempfile.TemporaryDirectory() as tmp:
