@@ -1303,7 +1303,7 @@ void main() {
 
     test('a new choice column adds no option an existing field of that name '
         'has in another case', () async {
-      await fields.upsert(
+      final _ = await fields.upsert(
         CustomFieldDef(
           id: 'f-energy',
           key: 'energy',
