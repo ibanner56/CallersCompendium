@@ -117,6 +117,7 @@ CHANGELOG_EXACT_PATHS = {
     b"tools/release/test_compile_changelog_fragments.py",
     b"tools/ci/check_changelog_structure.py",
     b"tools/ci/test_check_changelog_structure.py",
+    b"tools/ci/check_changelog_promoted.py",
     b".github/workflows/changelog-structure.yml",
     # Same reasoning as DOCS_BUNDLE_EXACT_PATHS above: changelog-structure-gate
     # is defined in ci.yml.

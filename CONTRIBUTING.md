@@ -89,7 +89,7 @@ whole surface that changed; say in the body that it is a golden, and at which
 surface size.
 
 ### Versioned formats: bank changes in the unreleased vNext
-Four version numbers mark formats other installs depend on:
+Five version numbers mark formats other installs depend on:
 
 | Version | Declared in | Process |
 | --- | --- | --- |
@@ -97,6 +97,7 @@ Four version numbers mark formats other installs depend on:
 | `contraTaxonomyVersion` | `packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dart` | [Taxonomy version history](docs/design/figure-taxonomy.md#taxonomy-version-history) |
 | `syncWireVersion` | `packages/compendium_core/lib/src/sync/sync_codec.dart` | [sync-spec §7.2](docs/design/sync-spec.md#72-allow-list-validation), "An unreleased `v`"; [Wire version history](docs/design/sync-spec.md#wire-version-history) |
 | `ecdTaxonomyVersion` | `packages/compendium_core/lib/src/taxonomy/ecd_taxonomy.dart` | [ECD taxonomy versions](docs/design/figure-taxonomy.md#ecd-taxonomy-versions) |
+| `squareTaxonomyVersion` | `packages/compendium_core/lib/src/taxonomy/square_taxonomy.dart` | [Square taxonomy versions](docs/design/figure-taxonomy.md#square-taxonomy-versions) |
 
 A version is only worth a number once something outside `main` carries it.
 If the latest release tag carries an older value than `main`, that value is
@@ -106,7 +107,7 @@ direction of 2026-10-13, recorded in the description of
 [#1752](https://github.com/ibanner56/CallersCompendium/pull/1752), which the
 authoring session wrote; there is no tracker comment). Bump only when the tag's
 value matches `main`'s.
-Check all four at once with:
+Check all five at once with:
 
 ```sh
 git fetch --tags origin
@@ -122,6 +123,8 @@ for ref in "$tag" origin/main; do
     | grep -o 'syncWireVersion = [0-9]*'
   git show "$ref":packages/compendium_core/lib/src/taxonomy/ecd_taxonomy.dart \
     | grep -o 'ecdTaxonomyVersion = [0-9]*'
+  git show "$ref":packages/compendium_core/lib/src/taxonomy/square_taxonomy.dart \
+    | grep -o 'squareTaxonomyVersion = [0-9]*'
 done
 ```
 
@@ -133,7 +136,7 @@ emits the amended form, as for any manifest change. Ask the maintainer what is
 deployed if you can't tell.
 
 A second bump is gated: `check_version_bump_policy.py` fails a PR that raises
-one of these four constants while `main` already carries a value above the
+one of these five constants while `main` already carries a value above the
 latest release tag's, and names the constant. It compares tags only, never
 what is deployed. When you amend vNext rather than bump, none of the CI version
 gates (`check_schema_migration.py`, `check_version_history.py`,
@@ -170,7 +173,8 @@ When you change the schema:
   workspace and is driven from a throwaway project.
 - **Never bump `schemaVersion` in a PATCH release.** A schema change is a
   data-format change and rides at least a MINOR version bump. The release
-  workflow enforces it (`tools/ci/check_changelog_promoted.py`): a release on
+  workflow enforces it, and PR CI checks the release-preparation PR the same
+  way (`tools/ci/check_changelog_promoted.py`): a release on
   the same `X.Y` line as the previous published tag, with `Z` above zero, `-beta`
   included, fails if the schema rose, and a release never lowers it.
 
