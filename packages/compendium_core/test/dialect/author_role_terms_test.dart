@@ -160,6 +160,92 @@ void main() {
     });
   });
 
+  // On Rachel Fifer's dances only, the caller's move wordings that hold a
+  // gendered role word are left out, and the move reads in the app's default
+  // wording (the maintainer's answer to question 35 of the pre-release audit's
+  // decision sheet, 2026-11-27). The stored dialect is never changed.
+  group('gendered move wordings on her dances', () {
+    final mine = Dialect(
+      name: 'Mine',
+      roles: const {'role1': RoleTerm('Lark'), 'role2': RoleTerm('Robin')},
+      moves: const {'chain': 'ladies chain', 'do_si_do': 'dosido'},
+      moveWordings: const {
+        'swing': '{who} swing the lady',
+        'circle': '{move} {direction} {places}',
+        'balance': 'dann geht man vor',
+      },
+      moveWordingBranches: const {
+        'promenade': {
+          'ordinary': '{who} {move} with the gents',
+          'other': '{who} {move} along',
+        },
+      },
+    );
+    final chain = Figure(move: 'chain', params: const {'who': 'role2s'});
+    final renderer = FigureRenderer(contraTaxonomy);
+    Dialect forDance(List<String> authors) =>
+        dialectForDance(mine, title: 'x', authorNames: authors);
+
+    test('"ladies chain" reads in the default wording on her dance', () {
+      final shown = forDance(const ['Rae Fifer']);
+      expect(
+        renderer.render(chain, shown).toLowerCase(),
+        isNot(contains('ladies')),
+      );
+      expect(
+        renderer.render(chain, shown),
+        renderer.render(chain, Dialect.larksRobins),
+      );
+    });
+
+    test("and in the caller's wording on any other dance", () {
+      final shown = forDance(const ['Someone Else']);
+      expect(shown, same(mine));
+      expect(
+        renderer.render(chain, shown).toLowerCase(),
+        contains('ladies chain'),
+      );
+    });
+
+    test('only the gendered entries go; the rest are the caller\'s', () {
+      final shown = forDance(const ['Rachel Fifer']);
+      expect(shown.moves, {'do_si_do': 'dosido'});
+      expect(shown.moveWordings, {
+        'circle': '{move} {direction} {places}',
+        // "man" is the German pronoun here, not a role word.
+        'balance': 'dann geht man vor',
+      });
+      expect(shown.moveWordingBranches, {
+        'promenade': {'other': '{who} {move} along'},
+      });
+    });
+
+    test('the stored dialect is not changed', () {
+      forDance(const ['Rachel Fifer']);
+      expect(mine.moves, {'chain': 'ladies chain', 'do_si_do': 'dosido'});
+      expect(mine.moveWordings['swing'], '{who} swing the lady');
+      expect(mine.moveWordingBranches['promenade'], hasLength(2));
+    });
+
+    test('a role word that is a whole word, in any case or punctuation', () {
+      Dialect shownWith(String moveName) => dialectForDance(
+        Dialect(name: 'M', moves: {'chain': moveName}),
+        title: 'x',
+        authorNames: const ['Rae Fifer'],
+      );
+      for (final gendered in [
+        'LADIES Chain',
+        "the gents' chain",
+        'Men-chain',
+      ]) {
+        expect(shownWith(gendered).moves, isEmpty, reason: gendered);
+      }
+      for (final kept in ['Mandy chain', 'salmon chain', 'robins chain']) {
+        expect(shownWith(kept).moves, {'chain': kept}, reason: kept);
+      }
+    });
+  });
+
   group('exports', () {
     final now = DateTime.utc(2026, 11, 19);
     final dance = Dance(
