@@ -301,6 +301,12 @@ def main() -> None:
     # sets -u must expand the array in the form that is safe on bash 3.2.
     bare_expansion = '"${codename_define[@]}"'
     safe_expansion = '${codename_define[@]+"${codename_define[@]}"}'
+    # `set -u`, `set -Eeuo pipefail`, `set -e -u`, `set -o nounset`, ...
+    nounset = re.compile(r"^\s*set\b[^\n#]*?(?:\s-[A-Za-z]*u|-o\s+nounset)", re.MULTILINE)
+    # A workflow-wide `shell:` that turns nounset on applies to every step.
+    workflow_nounset = bool(
+        re.search(r"^    shell: [^\n]*(?:\s-[A-Za-z]*u|-o\s+nounset)", text, re.MULTILINE)
+    )
     nounset_steps = []
     for step_name in re.findall(r"^      - name: (.+)$", build_job, re.MULTILINE):
         try:
@@ -309,7 +315,7 @@ def main() -> None:
             continue
         if "codename_define" not in script:
             continue
-        if re.search(r"^\s*set -[a-z]*u", script, re.MULTILINE):
+        if workflow_nounset or nounset.search(script):
             nounset_steps.append(step_name)
             assert bare_expansion not in script.replace(safe_expansion, ""), (
                 f"{step_name!r} runs under set -u and expands codename_define "
