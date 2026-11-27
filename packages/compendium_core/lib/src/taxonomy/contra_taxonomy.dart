@@ -515,10 +515,19 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'chain',
       displayName: 'chain',
       params: {
+        // v40: the previous and next neighbours' role1s and role2s too, so
+        // the Caller's Box's `N2 Women chain` is the next ladles chaining.
         'who': ParamSpec(
           ParamKind.dancerSet,
           defaultValue: 'role2s',
-          choices: ['role1s', 'role2s'],
+          choices: [
+            'role1s',
+            'role2s',
+            'prevRole1s',
+            'prevRole2s',
+            'nextRole1s',
+            'nextRole2s',
+          ],
         ),
         // v28 (#976): ContraDB's `by_right_hand` (`figure.js:281-291`) is a
         // fourth param we never modelled, so a stated hand — including one

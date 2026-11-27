@@ -408,7 +408,16 @@ void main() {
           CompoundSlotBinding(figureIndex: 1, slotKey: 'who', paramKey: 'who'),
         ],
       );
-      expect(allowedValues(definition, 'who', taxonomy), {'role1s', 'role2s'});
+      // Chain takes a role, or (v40) a role among the previous or next
+      // neighbours; pull by takes those and more.
+      expect(allowedValues(definition, 'who', taxonomy), {
+        'role1s',
+        'role2s',
+        'prevRole1s',
+        'prevRole2s',
+        'nextRole1s',
+        'nextRole2s',
+      });
     });
 
     test('a declared-only parameter keeps every value its slots take', () {
