@@ -37,6 +37,9 @@ import 'program_import_rollback.dart';
 ///
 /// Non-`unmatched` lines (local `matched` / `ambiguous`) pass through untouched:
 /// online resolution only fills the gap where the local collection had nothing.
+/// So does a break line ([ParsedProgramLine.isBreak]): a pasted break label is
+/// the break, not a title, and a dance online that shares its name must not
+/// take its place.
 ///
 /// Only a single search fetch per title *per source* and a single JSON fetch
 /// per confident import are performed — no crawling (import fidelity rule).
@@ -73,6 +76,7 @@ Future<ProgramOnlineResolution> resolveUnmatchedOnline(
   final services = [service, ...fallbacks];
   final total = lines
       .where((l) => l.resolution == PlaintextLineResolution.unmatched)
+      .where((l) => !l.isBreak)
       .length;
   var done = 0;
   var stopped = false;
@@ -81,6 +85,7 @@ Future<ProgramOnlineResolution> resolveUnmatchedOnline(
   final resolved = <ParsedProgramLine>[];
   for (final line in lines) {
     if (line.resolution != PlaintextLineResolution.unmatched ||
+        line.isBreak ||
         stopped ||
         cancelled) {
       resolved.add(line);

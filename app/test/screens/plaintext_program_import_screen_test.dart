@@ -144,6 +144,42 @@ void main() {
     expect(find.text('3 slots'), findsOneWidget);
   });
 
+  // A pasted break label is the break (question 44 of the pre-release audit's
+  // decision sheet): the preview says so, and it is no title to look up.
+  testWidgets('a pasted break label previews as a break, not a lookup', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'Pause\nBREAK',
+    );
+    await tester.pumpAndSettle();
+
+    // Each line's text, then its "Break" label.
+    expect(find.text('Break'), findsNWidgets(2));
+    expect(find.text('No match — added as note'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+      findsNothing,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'Pause\nPauses',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Break'), findsOneWidget);
+    expect(find.text('No match — added as note'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets(
     'commit creates a program with ordered slots and undo removes it, '
     'taking nothing from the Default template (#2337)',
