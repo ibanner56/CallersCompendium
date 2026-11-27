@@ -290,26 +290,39 @@ void main() {
       }
     });
 
-    test(
-      'a Replace restore whose rules section could not all be read keeps '
-      'the rules it lacks, but not those whose saved search it removed',
-      () async {
-        final (repos, before) = await withThreeRules();
-        final [_, onKept, orphan] = before;
-        final payload = await thisBuildWithoutRules();
-        (payload['app']! as Map)['eventRules'] = [
-          {'id': 'bad'},
-        ];
-        final outcome = await BackupService(
-          repos,
-        ).restoreFromJson(jsonEncode(payload));
+    test('a Replace restore whose rules section could not all be read keeps '
+        'the rules it lacks, but not those whose saved search it removed; a '
+        'rule the section holds is written as it has it', () async {
+      final (repos, before) = await withThreeRules();
+      final [_, onKept, orphan] = before;
+      // On 'search-3', which the backup lacks too, but the backup holds
+      // the rule itself.
+      final carried = await repos.eventRules.create(
+        savedSearchId: 'search-3',
+        quantifier: EventRuleQuantifier.none,
+        scope: EventRuleScope.wholeProgram,
+      );
+      final payload = await thisBuildWithoutRules();
+      (payload['app']! as Map)['eventRules'] = [
+        {'id': 'bad'},
+        {
+          'id': carried.id,
+          'savedSearchId': 'search-3',
+          'quantifier': 'none',
+          'count': 0,
+          'scope': 'wholeProgram',
+          'position': carried.position,
+        },
+      ];
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson(jsonEncode(payload));
 
-        expect(outcome.applied, isTrue);
-        expect(outcome.errors, isNotEmpty);
-        expect(outcome.removedEventRules, 1);
-        expect(await liveIds(repos), [onKept.id, orphan.id]);
-      },
-    );
+      expect(outcome.applied, isTrue);
+      expect(outcome.errors, isNotEmpty);
+      expect(outcome.removedEventRules, 1);
+      expect(await liveIds(repos), [onKept.id, orphan.id, carried.id]);
+    });
 
     test('retrying the settings of a Replace restore removes the rules too, '
         'and says so', () async {
