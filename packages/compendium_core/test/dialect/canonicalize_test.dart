@@ -84,6 +84,29 @@ void main() {
       expect(result.discouraged.map((d) => d.text), contains('ravens'));
     });
 
+    test(
+      'a dialect\'s own role words are not flagged, possessives included',
+      () {
+        // The maintainer's ruling of 2026-11-27: a caller's dialect is shown as
+        // written, with no warning (ADR-006 §9.1, point 7). A copy of a preset
+        // keeps the default discouraged list, which holds these words.
+        final mine = Dialect(
+          name: 'Mine',
+          roles: const {
+            'role1': RoleTerm('Gent'),
+            'role2': RoleTerm('Lady Bird'),
+          },
+          discouragedTerms: Dialect.defaultDiscouragedTerms,
+        );
+        List<String> flagged(String text) =>
+            canonicalize(text, mine).discouraged.map((d) => d.text).toList();
+        expect(flagged("Gents allemande the gent's partner"), isEmpty);
+        expect(flagged('lady birds chain'), isEmpty);
+        // Words that are not the dialect's own are still flagged.
+        expect(flagged('lady and women chain'), ['lady', 'women']);
+      },
+    );
+
     test('men is both canonicalized and flagged discouraged', () {
       // "men" is a legacy role synonym (→ role1s) *and* discouraged, so it is
       // rewritten like "gents" while still surfacing on the lingo line.

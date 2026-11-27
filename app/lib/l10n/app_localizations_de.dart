@@ -2120,6 +2120,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDialectDuplicateFrom => 'Duplizieren von…';
 
   @override
+  String get settingsDialectDuplicateFromOtherForm =>
+      'Von einem anderen Typ duplizieren…';
+
+  @override
+  String get settingsDialectDuplicateFromOtherFormEmpty =>
+      'Noch hat kein anderer Tanztyp einen eigenen Dialekt von dir.';
+
+  @override
   String get settingsDialectRenameTitle => 'Dialekt umbenennen';
 
   @override
@@ -9607,11 +9615,6 @@ class AppLocalizationsDe extends AppLocalizations {
     String substitution,
   ) {
     return '„$source“ und „$existing“ werden beide auf „$substitution“ abgebildet – die Umkehrung wäre mehrdeutig.';
-  }
-
-  @override
-  String validationGenderedRoleTerm(String word) {
-    return '„$word“ ist ein geschlechtsbezogenes Rollenwort, das die App nie anzeigt. Verwende stattdessen ein rollenneutrales Wort.';
   }
 
   @override

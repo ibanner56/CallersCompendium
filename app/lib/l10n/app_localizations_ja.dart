@@ -2008,6 +2008,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDialectDuplicateFrom => '複製元を選択…';
 
   @override
+  String get settingsDialectDuplicateFromOtherForm => '別のタイプから複製…';
+
+  @override
+  String get settingsDialectDuplicateFromOtherFormEmpty =>
+      'ほかのダンスタイプには、まだ自分で作ったダイアレクトがありません。';
+
+  @override
   String get settingsDialectRenameTitle => 'ダイアレクトの名前を変更';
 
   @override
@@ -9141,11 +9148,6 @@ class AppLocalizationsJa extends AppLocalizations {
     String substitution,
   ) {
     return '「$source」と「$existing」はどちらも「$substitution」に対応するため、反転するとあいまいになります。';
-  }
-
-  @override
-  String validationGenderedRoleTerm(String word) {
-    return '「$word」は性別を表す役割語で、アプリでは表示しません。性別に依らない語を使ってください。';
   }
 
   @override

@@ -639,16 +639,9 @@ class SyncConflictComparison extends StatelessWidget {
     final otherRead = read(storedOther);
     final localWords = localRead ?? Dialect.canonical;
     final otherWords = otherRead ?? Dialect.canonical;
-    // What each side shows is the dialect as the app reads it, which drops
-    // or replaces gendered role words a device on an older build may still
-    // hold (ADR-006 §9.1, point 7), with the name masked the same way.
-    Map<Object?, Object?> shown(
-      Map<Object?, Object?> raw,
-      Dialect? dialect,
-    ) => {
-      ...(dialect?.toJson() ?? raw),
-      if (raw['name'] case final String name) 'name': shownDialectName(name),
-    };
+    // What each side shows is the dialect as the app reads it.
+    Map<Object?, Object?> shown(Map<Object?, Object?> raw, Dialect? dialect) =>
+        dialect?.toJson() ?? raw;
     final local = shown(storedLocal, localRead);
     final other = shown(storedOther, otherRead);
     final parts = <({String label, String local, String other})>[];
@@ -1351,9 +1344,8 @@ class SyncConflictComparison extends StatelessWidget {
       // diagnostics: silent — a value this view cannot name falls through to
       // the plain rendering below; the merge already admitted it.
     }
-    if (key == 'dialectName' && value is String) {
-      return shownDialectName(value);
-    }
+    // A dialect's name, as its caller wrote it: not free text to reword.
+    if (key == 'dialectName' && value is String) return value;
     if (value is String) {
       // A note on a built-in figure reads as the Glossary and the choice
       // above show it: in the dialect of the figure's form.

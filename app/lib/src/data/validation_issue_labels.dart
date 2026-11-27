@@ -32,7 +32,6 @@ const Set<String> mappedValidationCodes = {
   'orphaned_alt',
   'empty_substitution',
   'dialect_collision',
-  'gendered_role_term',
 };
 
 /// The [ValidationIssue.code] of a figure row that Save would leave out
@@ -208,9 +207,6 @@ String? _localizedValidation(
               substitution,
             )
           : null;
-    case 'gendered_role_term':
-      final word = data['word'];
-      return word is String ? l10n.validationGenderedRoleTerm(word) : null;
     default:
       return null;
   }

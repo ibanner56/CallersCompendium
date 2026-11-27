@@ -5,20 +5,14 @@
     "added": [
       "Each type of dance (contra, English country dance, square) now has its own dialects and its own active dialect. Choose the type at the top of Settings ▸ Dialect, and every dance reads in the dialect of its own type.",
       "The new-dance Type setting can be Last used, so a new dance starts as the type of the last new dance you saved."
-    ],
-    "changed": [
-      "Dialects no longer accept gendered role words such as \"gents\" or \"ladies\" in role names, move wording, or a dialect's name. A dialect saved earlier with one shows the built-in role name instead and is renamed if its name used one."
     ]
   },
   "core": {
     "added": [
       "`DialectsByForm` holds the dialect each dance form is shown in; `forDance` picks a dance's.",
-      "`genderedRoleWords`, `genderedRoleWordIn` and `shownDialectName` find and mask the gendered role words a dialect may not show.",
       "Classify `custom_dialects_ecd`, `custom_dialects_square`, `active_dialect_ref_ecd`, `active_dialect_ref_square` and `last_used_dance_form` as shareable preferences; the two custom-dialect keys sync as whole collections."
     ],
     "changed": [
-      "`Dialect.validate` reports `gendered_role_term` for a gendered word in a role term, substitution, move wording or branch entry, and `Dialect.fromJson` replaces a gendered role term with the Larks/Robins term and drops gendered substitutions and wordings.",
-      "`syncCollectionEntries` labels a dialect whose name is gendered with `Dialect.customName`.",
       "`FigureRenderer.moveWordingTemplate` seeds an English Country Dance movement's wording that saves as it stands and reads as the movement does by default: each switch group (`[{?flag}words]`) becomes the condition `[if flag then words]`, and the template's own choices (a run of changes with no count, a hey with no `who`, a forward and back with no direction) become conditions too. A wording of an ECD movement now reads its slots in ECD's words (\"back to place\") and leaves no space before a comma.",
       "A wording condition on an ECD `who` (a list of dancers) is empty when the list names nobody; it read as filled before."
     ]

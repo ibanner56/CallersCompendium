@@ -584,8 +584,9 @@ role names and wording the app uses when it describes dances.
   one offers **Undo**, which also makes it active again if it was.
 - One dialect is active at a time for each type; select a dialect in the list
   to make it active for that type.
-- Dialect names and role names can't use gendered words such as "gents" or
-  "ladies".
+- **Duplicate from another type…** copies one of your own dialects from another
+  type of dance into this one, keeping its name and words. English and square
+  dances start in Larks/Robins until you choose or copy a dialect for them.
 
 ### Dance details & shorthands
 

@@ -1639,9 +1639,7 @@ void main() {
       expect(find.text('Another device: swing → twirl'), findsOneWidget);
     });
 
-    testWidgets('a dialect from an older build shows no gendered term', (
-      tester,
-    ) async {
+    testWidgets('a dialect is shown as its caller wrote it', (tester) async {
       final repos = await _pump(tester);
       final mine = {
         ...Dialect.larksRobins.toJson(),
@@ -1671,11 +1669,11 @@ void main() {
       );
       await _open(tester);
 
-      for (final word in ['gent', 'Gents', 'Ladies']) {
-        expect(find.textContaining(word), findsNothing, reason: word);
-      }
+      // The maintainer's ruling of 2026-11-27: a user's dialect is not
+      // overwritten, so it is not reworded or renamed here either.
+      expect(find.textContaining('Gents & Ladies'), findsWidgets);
       expect(find.text('Mine: Role terms'), findsOneWidget);
-      expect(find.text('Another device: role1 → lark / larks'), findsOneWidget);
+      expect(find.text('Another device: role1 → gent / gents'), findsOneWidget);
     });
 
     testWidgets('a theme shows the colours that differ', (tester) async {

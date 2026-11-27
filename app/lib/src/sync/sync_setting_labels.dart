@@ -1,9 +1,5 @@
 import 'package:compendium_core/compendium_core.dart'
-    show
-        EventRuleOrder,
-        savedSearchKeyPrefix,
-        shownDialectName,
-        syncCapabilityKeyPrefix;
+    show EventRuleOrder, savedSearchKeyPrefix, syncCapabilityKeyPrefix;
 
 import '../../l10n/app_localizations.dart';
 
@@ -171,11 +167,6 @@ String syncSettingValueText(
   Object? value, {
   String? key,
 }) {
-  // An active dialect's name, which an older build may still send gendered
-  // (ADR-006 §9.1, point 7).
-  if (key != null && key.startsWith('active_dialect_ref') && value is String) {
-    value = shownDialectName(value);
-  }
   // A saved search is one object holding its name and its search; showing the
   // name tells two versions apart, where a count of its parts would not.
   if (key != null && key.startsWith(savedSearchKeyPrefix) && value is Map) {
@@ -225,14 +216,12 @@ String _collectionText(AppLocalizations l10n, List<Object?> items) {
 }
 
 /// The display names of a collection's entries, where entries carry one. A
-/// dialect's name (an entry with role terms) is masked when it is gendered,
-/// as a device on an older build may still send one (ADR-006 §9.1, point 7).
+/// dialect's name is shown as its caller wrote it (ADR-006 §9.1, point 7).
 List<String> _names(Iterable<Object?> entries) => [
   for (final entry in entries)
     if (entry is Map)
       switch (entry['name'] ?? entry['label'] ?? entry['title']) {
-        final String name when name.isNotEmpty =>
-          entry['roles'] is Map ? shownDialectName(name) : name,
+        final String name when name.isNotEmpty => name,
         _ => null,
       },
 ].whereType<String>().toList();
