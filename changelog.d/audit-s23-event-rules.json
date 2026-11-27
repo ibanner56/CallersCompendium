@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Restoring a backup made while you had no event rules (Experimental), or made by a version without them, no longer leaves rules that name a saved search the restore removed: it keeps your other rules, and deletes those whose saved search the backup doesn't have.",
+      "Restoring a backup made while you had no event rules (Experimental), or made by a version without them, no longer leaves rules that name a saved search the restore removed: it keeps your other rules, deletes those whose saved search was on this device but isn't in the backup, and says how many it deleted.",
       "The rule picker of a program or a template no longer shows a spinner for as long as it is open when your saved searches can't be read: it lists your rules, and says so if the rules themselves can't be read. It also marks a rule that isn't checked, because its saved search is gone or a newer version of the app made it, Needs attention, as Manage rules does.",
       "An event rule, or a template's slot rule, whose saved search is gone can now have its name or label changed and saved: it keeps that search until you choose another. The rule editor also opens, and says so, when your saved searches can't be read.",
       "When the rule editor can't save a rule, it now says why (this device already holds 500 rules, or the save failed) instead of doing nothing.",

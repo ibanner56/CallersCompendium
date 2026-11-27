@@ -119,8 +119,10 @@ A backup holds **everything** you've built, including:
   rules each program uses. Restoring a backup replaces your saved searches. A
   backup made while you had no rules, or by a version without event rules,
   leaves the rules on this device as they are, except a rule whose saved
-  search the backup doesn't have: the restore removes that search, so it
-  deletes that rule too.
+  search was on this device and isn't in the backup (or is there in a form
+  this version can't read): the restore removes that search, so it deletes
+  that rule too, and the message at the end says how many. A rule whose
+  saved search was already gone is kept.
 
 A few device-specific things are left out on purpose, so a restored device
 doesn't inherit the old one's quirks: window size and position, any

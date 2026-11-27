@@ -1403,8 +1403,9 @@ your store has a version of the app that knows them (see
 [New kinds of data wait for every device](#new-kinds-of-data-wait-for-every-device)).
 They are never in a program you share, print or export. Restoring a backup
 made while you had no rules, or by a version without event rules, keeps your
-rules, except those whose saved search the backup doesn't have: restoring
-removes those searches, so it deletes those rules too (see
+rules, except those whose saved search was on this device and isn't in the
+backup: restoring removes those searches, so it deletes those rules too, and
+says how many (see
 [What's inside a backup](./backup-portability.md#whats-inside-a-backup)). A
 rule made by a newer version of the app, or whose saved search is gone, is
 marked **Needs attention**, in Manage rules, a template's **Rules** row and
