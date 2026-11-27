@@ -741,8 +741,9 @@ Canonical JSON means:
   - a program's `dialectName`, `payMinorUnits` and `payCurrency` (omitted
     this way since before v0.10.0-beta), and `archivedAt`, `startMinute`,
     `endMinute`, `lessonMinute`, `arrivalMinute`, `calendarEventKey`,
-    `calendarEventFingerprint`, `calendarWrittenAt` and `calendarFlag`, all
-    `null`, and `eventRuleIds` (`[]`) (`omittedProgramDefaults`);
+    `calendarEventFingerprint`, `calendarWrittenAt`, `calendarFlag` and
+    `calendarFeedDigest`, all `null`, and `eventRuleIds` (`[]`)
+    (`omittedProgramDefaults`);
   - an event rule's `nickname` (`null`; `omittedEventRuleDefaults`);
   - a program slot's `placeholderSearchId` (`null`), which needs no filling:
     `slots` is applied as a whole list, never key by key;

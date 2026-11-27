@@ -314,8 +314,7 @@ behind your back, and never deletes one because of your calendar.
   another time zone.
 - **Changed in your calendar** — the same, for a program you have worked on,
   here or on another device. It starts unticked; tick it and **Import**
-  updates only what changed in the calendar. A program imported before this
-  check existed counts as worked on.
+  updates only what changed in the calendar.
 - If you leave an offer unticked, the program stays as it is, and the change is
   not offered again unless the event changes again.
 - **Canceled or gone from your calendar** — an event marked canceled, or one
@@ -337,6 +336,16 @@ behind your back, and never deletes one because of your calendar.
   no longer need it. The label goes away if the event comes back, or when you
   choose **Clear calendar flag** on the summary; the next import labels it again
   if the event is still canceled or gone.
+
+**Which calendar.** Each program remembers which calendar it came from: not the
+address itself, which for a private calendar holds a secret, but a scrambled
+stamp that only that address matches. An import looks for changes,
+cancellations and missing events only among programs from the calendar it is
+reading. So if you change the address, or your phone and your laptop are set to
+different calendars, programs from the other calendar are left alone: still
+recognised, so not offered again, but never labeled canceled or gone and never
+offered a change. A program that has lost that stamp (an older version of the
+app can drop it when it saves the program) is never labeled at all.
 
 Closing the review without choosing **Import** changes nothing.
 

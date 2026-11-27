@@ -358,8 +358,12 @@ never sets `lessonMinute` or `arrivalMinute`. Beside the key,
 the import keeps `calendarEventFingerprint` and `calendarWrittenAt` (#2354), to
 tell what changed upstream and whether the caller has touched the draft since,
 and `calendarFlag` (`cancelled`/`missing`), a label shown on the Programs list
-and the summary. The import never edits a program without the caller's tick
-and never deletes one.
+and the summary. It also keeps `calendarFeedDigest`, which calendar the program
+came from as a salted digest of its address (never the address; pre-release
+audit finding E1-01), and compares a program, for changes and both flags, only
+with the calendar whose address matches it: one from another calendar, or with
+no digest, is left alone. The import never edits a program without the caller's
+tick and never deletes one.
 
 `eventRuleIds` (schema v42, #2340, Experimental) lists the
 [event rules](#eventrule) the caller applied to this program, in order and
