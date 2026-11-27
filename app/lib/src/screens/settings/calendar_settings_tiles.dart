@@ -74,13 +74,20 @@ class _CalendarSettingsTilesState extends State<CalendarSettingsTiles> {
     }
   }
 
-  Future<void> _write(String key, Object? value) async {
+  /// Writes [value] under [key], or removes the key when [value] is `null`.
+  /// [permanent] erases the row instead of tombstoning it, for a key that
+  /// never syncs and whose value must not stay on disk.
+  Future<void> _write(
+    String key,
+    Object? value, {
+    bool permanent = false,
+  }) async {
     final repos = RepositoriesScope.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     try {
       if (value == null) {
-        await repos.settings.remove(key);
+        await repos.settings.remove(key, permanent: permanent);
       } else {
         await repos.settings.set(key, value);
       }
@@ -128,7 +135,14 @@ class _CalendarSettingsTilesState extends State<CalendarSettingsTiles> {
     if (trimmed == (settings.feedUrl ?? '')) return;
     // A changed address clears the repeated-failure notice (#2353).
     await _write(kCalendarStartupFailuresKey, 0);
-    await _write(kCalendarFeedUrlKey, trimmed.isEmpty ? null : trimmed);
+    // A cleared address is erased, not tombstoned: it holds a private
+    // calendar's secret token and never syncs, so a tombstone would keep it
+    // in the database with no peer to tell.
+    await _write(
+      kCalendarFeedUrlKey,
+      trimmed.isEmpty ? null : trimmed,
+      permanent: true,
+    );
   }
 
   Future<void> _editFilter(CalendarImportSettings settings) async {
