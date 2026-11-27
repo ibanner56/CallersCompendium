@@ -4122,8 +4122,8 @@ FROM seq
     // "allemande right" is a square call's name and "right left through" is
     // contra's, so they cross. The stretch matches as it reads now or as
     // contra alone split it ("allemande", "right left through"), and no
-    // looser: a line with "allemande", "left" and "through" but no "right"
-    // matches neither.
+    // looser: a line with all four words but neither phrase, which contra
+    // alone does not find, matches neither.
     test('a square name that crosses a contra phrase matches either split, '
         'and no looser', () async {
       await everyForm.create(
@@ -4145,7 +4145,7 @@ FROM seq
           figures: [
             Figure(
               move: 'custom',
-              params: const {'text': 'Allemande the left, then through'},
+              params: const {'text': 'Allemande left, go right, then through'},
             ),
           ],
         ),
