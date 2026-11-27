@@ -4934,6 +4934,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionFacetMissingValue => 'Nicht in deiner Bibliothek';
 
   @override
+  String get collectionFacetStaleFields =>
+      'Gelöschte oder geänderte benutzerdefinierte Felder';
+
+  @override
+  String collectionFacetStaleFieldValue(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
   String get collectionFacetClear => 'Filter löschen';
 
   @override
@@ -14990,6 +14999,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSavedSearchesHeader => 'Gespeicherte Suchen';
+
+  @override
+  String get settingsSavedSearchesLoadError =>
+      'Deine gespeicherten Suchen konnten nicht geladen werden. Es wurde nichts geändert. Versuche es erneut.';
 
   @override
   String get settingsSavedSearchesEmpty =>

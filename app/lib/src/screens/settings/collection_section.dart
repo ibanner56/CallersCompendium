@@ -11,6 +11,7 @@ import '../../data/repositories_scope.dart';
 import '../../data/sort_ignore_articles_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../theme/keyboard_dismiss.dart';
+import '../../widgets/load_error_view.dart';
 import '../../widgets/saved_search_actions.dart';
 import '../../widgets/section_header.dart';
 import '../reference_manager_screen.dart';
@@ -39,6 +40,10 @@ class CollectionSection extends StatefulWidget {
 
 class _CollectionSectionState extends State<CollectionSection> {
   List<StoredSavedSearch>? _saved;
+
+  /// Whether the last read of the list failed: then the section says so, with
+  /// Try again, and never that there are none.
+  bool _readFailed = false;
   int _readSeq = 0;
   bool _started = false;
 
@@ -70,10 +75,17 @@ class _CollectionSectionState extends State<CollectionSection> {
     try {
       final saved = await RepositoriesScope.of(context).savedSearches.list();
       if (!mounted || seq != _readSeq) return;
-      setState(() => _saved = saved);
+      setState(() {
+        _saved = saved;
+        _readFailed = false;
+      });
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'collection_section._read');
-      if (mounted) setState(() => _saved = const []);
+      if (!mounted || seq != _readSeq) return;
+      setState(() {
+        _saved = null;
+        _readFailed = true;
+      });
     }
   }
 
@@ -184,6 +196,12 @@ class _CollectionSectionState extends State<CollectionSection> {
           ),
         ),
         SectionHeader(title: l10n.settingsSavedSearchesHeader),
+        if (_readFailed)
+          LoadErrorView(
+            key: const ValueKey('settings-saved-searches-error'),
+            message: l10n.settingsSavedSearchesLoadError,
+            onRetry: () => unawaited(_read()),
+          ),
         if (saved != null && saved.isEmpty)
           ListTile(
             key: const ValueKey('settings-saved-searches-none'),

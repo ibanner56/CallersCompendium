@@ -1993,6 +1993,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
       allTagNames: data.allTagNames,
       sourceTitles: data.sourceTitles,
       allCustomFields: data.customFieldDefs,
+      deletedCustomFieldNames:
+          _loadedSearch?.deletedCustomFieldNames ?? const {},
       historyFromSavedSearch: _panelFromSavedSearch,
       onChanged: _onFacetsChanged,
     );

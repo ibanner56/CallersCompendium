@@ -112,6 +112,13 @@ class VenueChoiceSource {
     return controller.stream;
   }
 
+  /// Every venue record's name by id, live. A venue chosen before (a saved
+  /// search) may have no counted call now, so no row in [watch]; its chip is
+  /// named from this instead.
+  Stream<Map<String, String>> watchNames() => repos.venues.watchAll().map(
+    (venues) => {for (final v in venues) v.id: v.name},
+  );
+
   @override
   bool operator ==(Object other) =>
       other is VenueChoiceSource &&

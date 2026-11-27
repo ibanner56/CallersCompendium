@@ -423,6 +423,49 @@ void main() {
       },
     );
 
+    testWidgets('a chosen venue record with no counted call is named from '
+        'the record, not "Unnamed venue"', (tester) async {
+      // As a saved search brings it in: the label is not stored, and the
+      // chooser lists only venues with a counted call, which this one has
+      // none of.
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Town Hall'));
+      final facets = FacetSelections()
+        ..callStatuses.add(false)
+        ..setHistoryVenue(const VenueKey.record('v1'));
+      await _pump(
+        tester,
+        facets,
+        hasCallingHistory: true,
+        venueChoices: VenueChoiceSource(repos: repos),
+        onChanged: () {},
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 200)),
+      );
+      await tester.pump();
+      final chip = find.byKey(const ValueKey('facet-history-venue'));
+      expect(
+        find.descendant(of: chip, matching: find.text('Town Hall')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: chip, matching: find.text('Unnamed venue')),
+        findsNothing,
+      );
+
+      // Renamed: the chip follows the record.
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 200)),
+      );
+      await tester.pump();
+      expect(
+        find.descendant(of: chip, matching: find.text('Grange Hall')),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('no venue row while no venue has a counted call', (
       tester,
     ) async {

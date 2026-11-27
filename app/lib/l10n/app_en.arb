@@ -6216,6 +6216,24 @@
   "@collectionFacetMissingValue": {
     "description": "Label of a selected filter chip (a level, author, tag or source) whose item no longer exists, e.g. it was deleted after a search naming it was saved. The chip stays so the filter can be seen and removed."
   },
+  "collectionFacetStaleFields": "Deleted or changed custom fields",
+  "@collectionFacetStaleFields": {
+    "description": "Heading of a Filters panel section that lists filters on custom fields that were deleted, or whose type changed, since a saved search using them was saved. Each chip removes one."
+  },
+  "collectionFacetStaleFieldValue": "{field}: {value}",
+  "@collectionFacetStaleFieldValue": {
+    "description": "Label of a chip in the 'Deleted or changed custom fields' section: the custom field's name and the value the filter chose (a choice option, or Yes / No).",
+    "placeholders": {
+      "field": {
+        "type": "String",
+        "example": "Mood"
+      },
+      "value": {
+        "type": "String",
+        "example": "calm"
+      }
+    }
+  },
   "collectionFacetClear": "Clear filters",
   "@collectionFacetClear": {
     "description": "Button that clears all active facet filters."
@@ -20016,6 +20034,10 @@
   "settingsSavedSearchesHeader": "Saved searches",
   "@settingsSavedSearchesHeader": {
     "description": "Heading in Settings ▸ Collection over the list of saved searches."
+  },
+  "settingsSavedSearchesLoadError": "Couldn't load your saved searches. Nothing was changed. Try again.",
+  "@settingsSavedSearchesLoadError": {
+    "description": "Shown in Settings > Collection > Saved searches, with a Try again button, when the list of saved searches could not be read. Never shown as 'no saved searches'."
   },
   "settingsSavedSearchesEmpty": "No saved searches yet. Save one from the Collection: set up a search, then choose Save this search… in the More actions menu.",
   "@settingsSavedSearchesEmpty": {

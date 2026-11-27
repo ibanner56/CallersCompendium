@@ -1686,7 +1686,12 @@ class _DanceListScreenState extends State<DanceListScreen>
   /// ([DanceListScreen.isActive]; the app shell keeps every destination
   /// mounted): a rename in Settings, or one
   /// synced from another device, shows in the ⋮ menu, and one deleted there is
-  /// forgotten. What the panel shows, and its baseline, are unchanged.
+  /// forgotten. A search whose stored form changed meanwhile (a merge in
+  /// Settings rewrote a tag, author or source it names, or an Update synced
+  /// from another device) is loaded again, unless the panel has been changed
+  /// from it here or online search is on, so the panel and the list show what
+  /// is stored, and a later Update does not write the old form back.
+  /// Otherwise what the panel shows, and its baseline, are unchanged.
   Future<void> _refreshLoadedSearch() async {
     final loaded = _loadedSearch;
     if (loaded == null) return;
@@ -1695,6 +1700,22 @@ class _DanceListScreenState extends State<DanceListScreen>
       if (!mounted || !identical(_loadedSearch, loaded)) return;
       if (stored == null) {
         _forgetDeletedSavedSearch();
+      } else if (!sameSavedSearchSpec(stored.spec, loaded.search.spec) &&
+          !_onlineEnabled &&
+          !_savedSearchActions().changed(loaded)) {
+        // Asked again once the load has read what it needs: if the user has
+        // changed the search, cleared it, loaded another or gone online
+        // meanwhile, theirs stands.
+        bool stillWanted() =>
+            mounted &&
+            identical(_loadedSearch, loaded) &&
+            !_onlineEnabled &&
+            !_savedSearchActions().changed(loaded);
+        final load = await _savedSearchActions().load(
+          stored,
+          stillWanted: stillWanted,
+        );
+        if (load != null) _onSavedSearchLoaded(load);
       } else if (stored.name != loaded.search.name) {
         _onSavedSearchLoaded(loaded.copyWith(search: stored));
       }
@@ -3208,7 +3229,9 @@ class _DanceListScreenState extends State<DanceListScreen>
   /// Replaces the search with [drillDown] (#2357): clears the text, every
   /// facet, By phrase and Advanced, as Clear all does, then applies the
   /// drill-down's selections, so the list shows the dances the tapped number
-  /// counted. Online mode is left: the numbers are the local library's.
+  /// counted. Online mode is left: the numbers are the local library's. A
+  /// saved search that was loaded is forgotten, as Clear all forgets it, so
+  /// the ⋮ menu cannot Update it with the drill-down.
   void _applyRepertoireDrillDown(RepertoireDrillDown drillDown) {
     _debounceTimer?.cancel();
     _searchSeq++;
@@ -3226,6 +3249,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
       _panelFromSavedSearch = false;
+      _loadedSearch = null;
       drillDown.applyTo(_facets, _advancedRoot);
     });
     _runSearch();
@@ -3749,6 +3773,8 @@ class _DanceListScreenState extends State<DanceListScreen>
       allTagNames: data.allTagNames,
       sourceTitles: data.sourceTitles,
       allCustomFields: data.customFieldDefs,
+      deletedCustomFieldNames:
+          _loadedSearch?.deletedCustomFieldNames ?? const {},
       historyFromSavedSearch: _panelFromSavedSearch,
       onChanged: _onFacetsChanged,
     );

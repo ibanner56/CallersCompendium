@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../data/reduce_motion_scope.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 
 /// One search tool a [SearchPanelBar] can open: its toggle and its content.
@@ -99,6 +101,9 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
 
   /// Tools opened at least once while this bar is mounted; kept mounted.
   final Set<Key> _opened = {};
+
+  /// On the open tools' content, so opening a tool can bring it into view.
+  final GlobalKey _panelKey = GlobalKey();
   Timer? _announcement;
 
   String get _identifier => 'SearchPanelBar.${widget.storageId}';
@@ -152,6 +157,48 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
       context,
     )?.writeState(context, _open, identifier: _identifier);
     _announce(expanded: _open == key);
+    if (_open == key) _revealPanelSoon();
+  }
+
+  /// Once the frame that builds the opened tool is laid out, scrolls back so
+  /// the top of its content shows below whatever is pinned above it.
+  ///
+  /// The Collection pins the row of toggles while the list scrolls, so a tool
+  /// can be opened from far down the list; its content sits at the top of the
+  /// scroll view, below the row, and would otherwise open off screen with
+  /// nothing to show for the tap. Only scrolls back: content already on
+  /// screen, or below it, is left where it is, and closing a tool scrolls
+  /// nothing. Jumps instead of animating under "Reduce motion".
+  void _revealPanelSoon() {
+    final reduceMotion = ReduceMotionScope.read(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final panelContext = _panelKey.currentContext;
+      final box = panelContext?.findRenderObject();
+      if (panelContext == null || box is! RenderBox || !box.attached) return;
+      final position = Scrollable.maybeOf(panelContext)?.position;
+      final viewport = RenderAbstractViewport.maybeOf(box);
+      if (position == null || viewport == null) return;
+      // The offset that puts the content's top just below what is pinned
+      // ahead of it (the row of toggles): the viewport counts pinned slivers'
+      // obstruction in.
+      final target = math.max(
+        position.minScrollExtent,
+        viewport.getOffsetToReveal(box, 0).offset,
+      );
+      if (position.pixels <= target) return;
+      if (reduceMotion) {
+        position.jumpTo(target);
+      } else {
+        unawaited(
+          position.animateTo(
+            target,
+            duration: AppMotion.short,
+            curve: Curves.easeOut,
+          ),
+        );
+      }
+    });
   }
 
   /// Says the new state aloud, as a collapsible header does: the `expanded`
@@ -208,6 +255,7 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
       ),
     );
     final panel = Column(
+      key: _panelKey,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final panel in widget.panels)
