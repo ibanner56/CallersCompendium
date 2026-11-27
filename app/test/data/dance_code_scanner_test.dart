@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 
 import '../support/dance_links.dart';
+import '../support/picker_channels.dart';
 import '../support/qr_pictures.dart';
 
 /// Finding a dance code in a picture (#2336): the real `zxing2` reader over
@@ -265,6 +266,107 @@ void main() {
         ),
         isNull,
       );
+    });
+  });
+
+  group('the picker Dance code from a picture opens', () {
+    late PickerChannels pickers;
+    late Directory temp;
+    setUp(() async {
+      pickers = PickerChannels.install();
+      temp = await Directory.systemTemp.createTemp('code-pick');
+      addTearDown(() => temp.delete(recursive: true));
+    });
+
+    final bytes = Uint8List.fromList([1, 2, 3, 4]);
+
+    /// A picture at [relative] in [temp], handed back by either picker.
+    Future<File> picked(String relative, {List<int>? content}) async {
+      final file = File(p.join(temp.path, relative));
+      await file.create(recursive: true);
+      await file.writeAsBytes(content ?? bytes);
+      pickers.path = file.path;
+      return file;
+    }
+
+    Future<Uint8List?> pick(TargetPlatform platform) => pickDanceCodePicture(
+      platform: platform,
+      temporaryDirectory: () async => temp,
+    );
+
+    test('on iPhone and iPad it is the system photo picker, asked for no '
+        'more than the picture', () async {
+      await picked('image_picker_0A1B.png');
+      expect(await pick(TargetPlatform.iOS), bytes);
+      expect(pickers.fileCalls, isEmpty);
+      expect(pickers.photoPicks, hasLength(1));
+      final args = pickers.photoPicks.single;
+      expect(args['source'], ImageSource.gallery.index);
+      // Full metadata is a photo-library lookup, which needs permission.
+      expect(args['requestFullMetadata'], isFalse);
+    });
+
+    test('elsewhere it is the file picker', () async {
+      await picked('code.png');
+      for (final platform in [
+        TargetPlatform.android,
+        TargetPlatform.macOS,
+        TargetPlatform.windows,
+        TargetPlatform.linux,
+      ]) {
+        expect(await pick(platform), bytes, reason: platform.name);
+      }
+      expect(pickers.photoPicks, isEmpty);
+      expect(pickers.fileCalls, List.filled(4, 'openFile'));
+    });
+
+    test("on iOS the photo picker's copy is deleted once read", () async {
+      final copy = await picked('image_picker_0A1B.png');
+      expect(await pick(TargetPlatform.iOS), bytes);
+      expect(copy.existsSync(), isFalse);
+    });
+
+    test("on iOS the photo picker's copy is deleted unread when it is too "
+        'large', () async {
+      final copy = await picked(
+        'image_picker_0A1B.png',
+        content: Uint8List(kDanceCodePhotoMaxBytes + 1),
+      );
+      await expectLater(
+        pick(TargetPlatform.iOS),
+        throwsA(isA<DanceCodePictureTooLarge>()),
+      );
+      expect(copy.existsSync(), isFalse);
+    });
+
+    test('on iOS by default the copy is looked for in the system temporary '
+        'folder (NSTemporaryDirectory)', () async {
+      final copy = File(
+        p.join(
+          Directory.systemTemp.path,
+          'image_picker_${p.basename(temp.path)}.png',
+        ),
+      );
+      await copy.writeAsBytes(bytes);
+      addTearDown(() async {
+        if (copy.existsSync()) await copy.delete();
+      });
+      pickers.path = copy.path;
+      expect(await pickDanceCodePicture(platform: TargetPlatform.iOS), bytes);
+      expect(copy.existsSync(), isFalse);
+    });
+
+    test("on iOS a file that is not the picker's copy is left alone", () async {
+      for (final relative in ['code.png', 'nested/image_picker_0A1B.png']) {
+        final file = await picked(relative);
+        expect(await pick(TargetPlatform.iOS), bytes);
+        expect(file.existsSync(), isTrue, reason: relative);
+      }
+    });
+
+    test('a cancel reads nothing', () async {
+      expect(await pick(TargetPlatform.iOS), isNull);
+      expect(pickers.photoPicks, hasLength(1));
     });
   });
 }

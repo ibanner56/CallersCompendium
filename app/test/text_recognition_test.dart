@@ -8,9 +8,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 
 import 'support/l10n_harness.dart';
+import 'support/picker_channels.dart';
 
 /// A recognizer that answers from fixed values and records what it was asked.
 class _FakeRecognizer implements TextRecognitionService {
@@ -482,6 +484,134 @@ void main() {
         );
       }
       expect(file.existsSync(), isTrue);
+    });
+  });
+
+  group('the picker From an image… opens', () {
+    late PickerChannels pickers;
+    late Directory temp;
+    setUp(() async {
+      pickers = PickerChannels.install();
+      temp = await Directory.systemTemp.createTemp('ocr-pick');
+      addTearDown(() => temp.delete(recursive: true));
+    });
+
+    /// A picture at [relative] in [temp], handed back by either picker.
+    Future<File> picked(String relative, {List<int>? bytes}) async {
+      final file = File(p.join(temp.path, relative));
+      await file.create(recursive: true);
+      await file.writeAsBytes(bytes ?? _pngBytes);
+      pickers.path = file.path;
+      return file;
+    }
+
+    test('on iPhone and iPad it is the system photo picker, asked for no '
+        'more than the picture', () async {
+      await picked('image_picker_0A1B.png');
+      final image = await pickRecognitionImage(
+        platform: TargetPlatform.iOS,
+        temporaryDirectory: temp,
+      );
+      expect(image!.bytes, _pngBytes);
+      expect(pickers.fileCalls, isEmpty);
+      expect(pickers.photoPicks, hasLength(1));
+      final args = pickers.photoPicks.single;
+      expect(args['source'], ImageSource.gallery.index);
+      // Full metadata is a photo-library lookup, which needs permission.
+      expect(args['requestFullMetadata'], isFalse);
+    });
+
+    test('elsewhere it is the file picker, offering pictures', () async {
+      await picked('card.png');
+      for (final platform in [
+        TargetPlatform.macOS,
+        TargetPlatform.windows,
+        TargetPlatform.linux,
+        TargetPlatform.android,
+      ]) {
+        expect(
+          (await pickRecognitionImage(platform: platform))!.bytes,
+          _pngBytes,
+          reason: platform.name,
+        );
+      }
+      expect(pickers.photoPicks, isEmpty);
+      expect(pickers.fileCalls, List.filled(4, 'openFile'));
+    });
+
+    test("on iOS the photo picker's copy is deleted once read", () async {
+      final copy = await picked('image_picker_0A1B.png');
+      await pickRecognitionImage(
+        platform: TargetPlatform.iOS,
+        temporaryDirectory: temp,
+      );
+      expect(copy.existsSync(), isFalse);
+    });
+
+    test("on iOS the photo picker's copy is deleted unread when it is too "
+        'large', () async {
+      final copy = await picked(
+        'image_picker_0A1B.png',
+        bytes: Uint8List(kMaxRecognitionImageBytes + 1),
+      );
+      await expectLater(
+        pickRecognitionImage(
+          platform: TargetPlatform.iOS,
+          temporaryDirectory: temp,
+        ),
+        throwsA(
+          isA<TextRecognitionException>().having(
+            (e) => e.reason,
+            'reason',
+            TextRecognitionFailure.tooLarge,
+          ),
+        ),
+      );
+      expect(copy.existsSync(), isFalse);
+    });
+
+    test('on iOS by default the copy is looked for in the system temporary '
+        'folder (NSTemporaryDirectory)', () async {
+      final copy = File(
+        p.join(
+          Directory.systemTemp.path,
+          'image_picker_${p.basename(temp.path)}.png',
+        ),
+      );
+      await copy.writeAsBytes(_pngBytes);
+      addTearDown(() async {
+        if (copy.existsSync()) await copy.delete();
+      });
+      pickers.path = copy.path;
+      await pickRecognitionImage(platform: TargetPlatform.iOS);
+      expect(copy.existsSync(), isFalse);
+    });
+
+    test('on iOS a file that is not the picker\'s copy is left alone', () async {
+      for (final relative in ['card.png', 'nested/image_picker_0A1B.png']) {
+        final file = await picked(relative);
+        await pickRecognitionImage(
+          platform: TargetPlatform.iOS,
+          temporaryDirectory: temp,
+        );
+        expect(file.existsSync(), isTrue, reason: relative);
+      }
+    });
+
+    test('off iOS the picked file is left alone, whatever its name', () async {
+      final file = await picked('image_picker_0A1B.png');
+      for (final platform in [TargetPlatform.macOS, TargetPlatform.windows]) {
+        await pickRecognitionImage(
+          platform: platform,
+          temporaryDirectory: temp,
+        );
+      }
+      expect(file.existsSync(), isTrue);
+    });
+
+    test('a cancel reads nothing', () async {
+      expect(await pickRecognitionImage(platform: TargetPlatform.iOS), isNull);
+      expect(pickers.photoPicks, hasLength(1));
     });
   });
 
