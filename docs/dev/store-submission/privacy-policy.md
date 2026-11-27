@@ -164,7 +164,11 @@ its figures or of a dance's QR code to import it. The photo is read on your
 device and deleted as soon as it has been read. It is never sent to us or anyone
 else, and the app does not save it to your photo library. On Android, some
 camera apps also keep their own copy of the photo in your gallery; check that
-app's settings if you don't want one. The app does **not** request access to your microphone, location,
+app's settings if you don't want one. You can also choose a picture you already
+have with **From an image…** or **Dance code from a picture…**; it too is read on
+your device and never uploaded, and on iPhone and iPad the system photo picker
+passes the app only the picture you choose, without access to your photo
+library. The app does **not** request access to your microphone, location,
 contacts, photos, or similar sensitive device data.
 
 ### 5. Sharing between your own devices

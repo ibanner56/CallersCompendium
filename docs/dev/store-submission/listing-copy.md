@@ -242,7 +242,8 @@ Paste into Apple's **App Review Information → Notes** / TestFlight **Beta App
 Review** notes and Play's **App access** section.
 
 ```
-Caller's Compendium is an offline organizer/reference for contra dance callers.
+Caller's Compendium is an offline organizer/reference for contra, English
+country and square dance callers.
 
 - No account or login is required. Every feature is available offline on first
   launch; the app seeds one sample dance ("The Baby Rose") so the collection is
@@ -252,7 +253,12 @@ Caller's Compendium is an offline organizer/reference for contra dance callers.
   from text...) or Scan a dance code in Import (Settings > General >
   Import...). The photo is read on the device, to fill in the figures or to
   open the dance a QR code holds, then deleted; it is never uploaded or saved
-  to the photo library. No other special
+  to the photo library. The user can also choose an existing picture: From an
+  image... in Add figures from text (iPhone, iPad, Mac and Windows), or Dance
+  code from a picture... in Import. On iPhone and iPad this opens the system
+  photo picker, which passes the app only the picture chosen, without
+  photo-library access; the picture is read on the device and never uploaded,
+  and the app's copy is deleted once read. No other special
   device permissions are requested (no microphone, location, contacts, or
   photos). On Android, Scan a dance code opens the phone's own camera app, so
   no camera permission is declared (some camera apps may keep their own gallery
