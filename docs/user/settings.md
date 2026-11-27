@@ -446,8 +446,8 @@ as draft programs.
   the top of the calendar import screen each time it opens. It is never synced
   to your other devices, never put in a [backup file](./backup-portability.md)
   (enter it again after a restore), and removed from
-  [diagnostics](#diagnostics). Your device's own backup is different: it copies
-  the app's data, address included. See
+  [diagnostics](#diagnostics). Your device's own backup is different: it can
+  copy the app's data, address included. See
   [Your device's own backup](./backup-portability.md#your-devices-own-backup).
 - **Which events** — how far ahead to look: 3, 6 (the default) or 12 months.
   Repeating events are read only 30 days ahead, whatever you choose.
