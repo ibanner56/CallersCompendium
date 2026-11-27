@@ -23,6 +23,7 @@ class _FakeMarker implements NoBackupMarker {
 
   bool present;
   bool failRead = false;
+  bool failWrite = false;
 
   @override
   Future<bool> exists() async {
@@ -31,7 +32,10 @@ class _FakeMarker implements NoBackupMarker {
   }
 
   @override
-  Future<void> write() async => present = true;
+  Future<void> write() async {
+    if (failWrite) throw PlatformException(code: 'io');
+    present = true;
+  }
 }
 
 const _noticeKey = ValueKey('restored-copy-sync-notice');
@@ -106,6 +110,17 @@ void main() {
     expect(find.byKey(_noticeKey), findsOneWidget);
   });
 
+  testWidgets('a restored copy whose marker cannot be written still starts '
+      'with Device Sync off, and says why', (tester) async {
+    final appData = await syncingLibrary(flag: true);
+
+    final built = await boot(tester, appData, _FakeMarker()..failWrite = true);
+
+    expect(built(), 0);
+    expect(await appData.repositories.settings.get(kSyncEnabledKey), isFalse);
+    expect(find.byKey(_noticeKey), findsOneWidget);
+  });
+
   testWidgets('the first start after an update keeps Device Sync on, as it '
       'was, and says nothing', (tester) async {
     final appData = await syncingLibrary(flag: false);
@@ -130,8 +145,9 @@ void main() {
     expect(find.byKey(_noticeKey), findsNothing);
   });
 
-  testWidgets('a marker that cannot be read leaves Device Sync as it was',
-      (tester) async {
+  testWidgets('a marker that cannot be read leaves Device Sync as it was', (
+    tester,
+  ) async {
     final appData = await syncingLibrary(flag: true);
 
     final built = await boot(tester, appData, _FakeMarker()..failRead = true);

@@ -189,25 +189,32 @@ void main() {
       expect(await repos.settings.get(kSyncEnabledKey), isTrue);
     });
 
-    test('a restored copy whose marker cannot then be written is recognised '
-        'again next start, and stays off', () async {
+    test('a restored copy whose marker cannot then be written still says '
+        'what it did, and a sync turned back on is not turned off '
+        'again', () async {
       final (oldPhone, _) = await syncingPhone();
       final newPhone = openTestRepositories();
       await _copyLibrary(oldPhone, newPhone);
       final marker = _FakeMarker()..failWrite = true;
 
-      await expectLater(
-        checkRestoredCopy(newPhone.settings, marker),
-        throwsA(isA<PlatformException>()),
-      );
-      expect(await newPhone.settings.get(kSyncEnabledKey), isFalse);
+      final outcome = await checkRestoredCopy(newPhone.settings, marker);
 
+      expect(outcome, RestoredCopyOutcome.restoredSyncTurnedOff);
+      expect(await newPhone.settings.get(kSyncEnabledKey), isFalse);
+      expect(await newPhone.settings.get(kNoBackupMarkerWrittenKey), isNull);
+
+      // The caller turns sync back on, and a new identity is minted.
+      await newPhone.settings.set(kSyncEnabledKey, true);
+      final newId = await resolveSyncDeviceId(newPhone.settings);
       marker.failWrite = false;
+
       expect(
         await checkRestoredCopy(newPhone.settings, marker),
-        RestoredCopyOutcome.restored,
+        RestoredCopyOutcome.firstRun,
       );
       expect(marker.present, isTrue);
+      expect(await newPhone.settings.get(kSyncEnabledKey), isTrue);
+      expect(await newPhone.settings.get(kSyncDeviceIdKey), newId);
     });
   });
 
@@ -231,19 +238,25 @@ void main() {
       expect(calls, ['markerExists', 'writeMarker']);
     });
 
-    test('an empty answer to markerExists is an error, not "missing"', () async {
-      // A missing marker is what a restore looks like, so an answer that
-      // says nothing must not read as one.
-      messenger.setMockMethodCallHandler(channel, (call) async => null);
+    test(
+      'an empty answer to markerExists is an error, not "missing"',
+      () async {
+        // A missing marker is what a restore looks like, so an answer that
+        // says nothing must not read as one.
+        messenger.setMockMethodCallHandler(channel, (call) async => null);
 
-      await expectLater(ChannelNoBackupMarker().exists(), throwsStateError);
-    });
+        await expectLater(ChannelNoBackupMarker().exists(), throwsStateError);
+      },
+    );
 
-    test('a platform without the channel throws rather than answering', () async {
-      await expectLater(
-        ChannelNoBackupMarker().exists(),
-        throwsA(isA<MissingPluginException>()),
-      );
-    });
+    test(
+      'a platform without the channel throws rather than answering',
+      () async {
+        await expectLater(
+          ChannelNoBackupMarker().exists(),
+          throwsA(isA<MissingPluginException>()),
+        );
+      },
+    );
   });
 }

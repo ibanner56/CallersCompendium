@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../data/settings_keys.dart'
     show kNoBackupMarkerWrittenKey, kSyncDeviceIdKey, kSyncEnabledKey;
+import '../diagnostics/error_log.dart' show logCaughtError;
 
 /// A file this installation keeps where device backup never copies it, so a
 /// library restored from a device backup arrives without it (spec §3.3,
@@ -97,17 +98,23 @@ enum RestoredCopyOutcome {
 ///   be written when the marker could not be.
 /// - **Flag and marker present:** an ordinary start; nothing is written.
 /// - **Flag present, marker missing:** the library was carried here by a
-///   device backup. The stored device ID is erased, so the next coordinator
-///   mints a new one (`resolveSyncDeviceId`), and Device Sync is turned off
-///   until the caller turns it on again. The marker is written last, so a
-///   start interrupted part-way is recognised again next time rather than
-///   left half-done. Nothing is sent anywhere: the copied library's store
-///   address, its baseline and the old device's manifest on the store are
-///   left as they are.
+///   device backup, or restored onto this same device after a reinstall or a
+///   reset. In one transaction the stored device ID is erased, so the next
+///   coordinator mints a new one (`resolveSyncDeviceId`), Device Sync is
+///   turned off until the caller turns it on again, and the flag is removed.
+///   Then the marker and the flag are written as on a first run. If that
+///   fails, it is logged and the outcome still says what was done: with the
+///   flag gone, the next start is a first run, which writes them and changes
+///   nothing, so a sync the caller turns back on is not turned off again.
+///   Nothing is sent anywhere: the copied library's store address, its
+///   baseline and the old device's manifest on the store are left as they
+///   are.
 ///
-/// Throws if the marker cannot be read or written, or a setting cannot be;
-/// the caller logs that and starts normally. A failure therefore never turns
-/// sync off, and leaves the library flag unwritten if it was unwritten.
+/// Throws, having changed nothing, if the flag or the marker cannot be read,
+/// if the marker cannot be written on a first run, or if the restored copy's
+/// transaction fails; the caller logs that and starts with Device Sync as it
+/// was. A first run whose marker cannot be written leaves the flag
+/// unwritten, so the next start is a first run again, not a restore.
 Future<RestoredCopyOutcome> checkRestoredCopy(
   SettingsRepository settings,
   NoBackupMarker marker,
@@ -118,17 +125,24 @@ Future<RestoredCopyOutcome> checkRestoredCopy(
     return RestoredCopyOutcome.firstRun;
   }
   if (await marker.exists()) return RestoredCopyOutcome.ordinary;
-  // One transaction: the identity is erased and sync turned off together, or
-  // neither is, and a failure leaves the copy to be recognised next start.
+  // One transaction: the identity is erased, sync turned off and the flag
+  // removed together, or none of them is, and a failure leaves the copy to be
+  // recognised next start.
   final syncWasOn = await settings.transaction(() async {
     if (await settings.get(kSyncDeviceIdKey) != null) {
       await settings.remove(kSyncDeviceIdKey, permanent: true);
     }
+    await settings.remove(kNoBackupMarkerWrittenKey, permanent: true);
     if (await settings.get(kSyncEnabledKey) != true) return false;
     await settings.set(kSyncEnabledKey, false);
     return true;
   });
-  await marker.write();
+  try {
+    await marker.write();
+    await settings.set(kNoBackupMarkerWrittenKey, true);
+  } catch (error, stackTrace) {
+    logCaughtError(error, stackTrace, source: 'sync.restored_copy_marker');
+  }
   return syncWasOn
       ? RestoredCopyOutcome.restoredSyncTurnedOff
       : RestoredCopyOutcome.restored;

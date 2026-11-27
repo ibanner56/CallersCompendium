@@ -220,7 +220,10 @@ const String kSyncEndpointKey = 'sync_endpoint';
 
 /// Key used to persist the current attachment's Device Sync routing
 /// identifier. It is minted locally for each attachment, erased when the device
-/// detaches, and never adopted from a peer or included in backups.
+/// detaches, and never adopted from a peer or included in backup files. A
+/// device backup copies it with the database; on Android and iOS start-up
+/// erases a copy restored from a backup this build or a later one took
+/// (`restored_copy_check.dart`, spec §3.3).
 const String kSyncDeviceIdKey = 'sync_device_id';
 
 /// Device-local set of salted, slow verifiers for every store address this

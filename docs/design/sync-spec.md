@@ -542,12 +542,17 @@ Device Sync settings (`restored_copy_check.dart`):
    a restored copy looks like.
 2. **Flag and marker:** an ordinary start.
 3. **Flag, no marker:** a restored copy. In one transaction the client erases
-   `sync_device_id` and sets `sync_enabled` to `false`, then writes the marker,
-   and says once why Device Sync is off if it was on. The marker is written
-   last, so a start interrupted part-way is recognised again.
+   `sync_device_id`, sets `sync_enabled` to `false` and removes the flag; it
+   then writes the marker and the flag as in rule 1, and says why Device Sync
+   is off if it was on. A start interrupted before the transaction commits is
+   recognised again. If the marker cannot be written afterwards, the failure
+   is logged and the notice still shown; with the flag gone, the next start is
+   rule 1, so a sync the user has turned back on is not turned off again.
 
-A failure to read or write the marker or a setting is logged and changes
-nothing more: the start goes on with Device Sync as it was. Desktop platforms
+Any other failure to read or write the marker or a setting is logged and
+changes nothing: the start goes on with Device Sync as it was. The notice is
+shown once, at that start; an app closed before it appears does not show it
+again, and Device Sync's own section still shows that sync is off. Desktop platforms
 keep no marker and run no check; a desktop library moves by copying files or by
 the app's own backup file, and no desktop folder is known to be skipped by its
 backup tools.
@@ -561,6 +566,16 @@ current (§6.3 step 8). The identifier it gave up stays with the device the
 library came from. Nothing is sent on restore: the detach clean-up below does
 not run, and the store keeps the old device's manifest, which is that device's
 own as long as it is in use.
+
+The check cannot tell another device from the same one restored. A reinstall
+on Android, whose Auto Backup puts the database back, and a phone erased and
+restored from its own backup are treated as restored copies too, as is a new
+phone whose old one has been wiped. There the old identifier is no longer in
+use, and its manifest is the leftover the re-attach paragraph above
+describes: it occupies a device slot and counts as a peer until it is removed
+under *Other devices*, since manifests do not expire per device (rule 4's
+bound, below). That is the cost of not linking
+installations, the same one re-attaching already pays.
 
 **Known gap:** a backup taken by a build older than this one holds no flag, so
 restoring it reads as rule 1, an update, and the copy keeps the old identifier.
