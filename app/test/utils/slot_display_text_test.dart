@@ -6,8 +6,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A break is stored as the English token in every language, and reads as the
-/// translated label wherever a person sees it (maintainer decision,
-/// 2026-11-27).
+/// translated label wherever a person sees it (the maintainer's answer to
+/// question 23 of the pre-release audit's decision sheet, 2026-11-27).
 void main() {
   final de = lookupAppLocalizations(const Locale('de'));
   final en = lookupAppLocalizations(const Locale('en'));

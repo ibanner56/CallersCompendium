@@ -606,7 +606,8 @@ domain terms enter the UI — it improves both assisted and human translations.
 
 Its `register` map says how each language addresses the user, and `extract`
 puts the batch locale's line in the payload as `register`. German uses **du**
-throughout (maintainer decision, 2026-11-27); Dutch uses **je** (the majority
+throughout (the maintainer's answer to question 22 of the pre-release audit's
+decision sheet, 2026-11-27); Dutch uses **je** (an agent's call, the majority
 voice when a pre-release audit found three strings using *u*); French uses
 *vous* and Danish *du*.
 
@@ -634,7 +635,9 @@ Lists and sentences joined in Dart use the UI language's punctuation:
 `commonListSeparator` (`, `; Japanese `、`), `commonClauseSeparator` for items
 that may contain commas, and `joinSentences` (`app/lib/src/utils/l10n_joins.dart`,
 built on `commonSentencePair`) for whole sentences, which Japanese writes with
-nothing between. Don't `join(', ')` or `join(' ')` text a person reads.
+nothing between. New code shouldn't `join(', ')` or `join(' ')` text a person
+reads; older screens that still do (the dance editor, Custom Figures and import
+review, among others) have not been converted yet.
 
 ## Known limitation: system date pickers
 

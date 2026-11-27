@@ -10,7 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// `tools/ci/i18n_glossary.json` (`register` and `terms`), so a later
 /// translation can't bring back a retired wording unnoticed.
 ///
-/// German addresses the user as "du" (maintainer decision, 2026-11-27); Dutch
+/// German addresses the user as "du" (the maintainer's answer to question 22
+/// of the pre-release audit's decision sheet, 2026-11-27); Dutch
 /// as "je", the majority voice before the audit that found three "u" strings.
 void main() {
   Map<String, dynamic> load(String locale) =>

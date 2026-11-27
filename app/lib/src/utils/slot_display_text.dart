@@ -10,7 +10,8 @@ import '../data/display_defaults.dart';
 /// A break is stored as the English token [Program.breakSlotText] in every
 /// language, and that token is what the database, backups, sync, data exports
 /// and the event rules read; only what a person reads is translated (the
-/// maintainer's decision, 2026-11-27). Use this wherever a slot's text is
+/// maintainer's answer to question 23 of the pre-release audit's decision
+/// sheet, 2026-11-27). Use this wherever a slot's text is
 /// shown or printed, never where it is stored or matched.
 String? slotDisplayText(AppLocalizations l10n, ProgramSlot slot) =>
     slot.isBreak ? l10n.programsBreakSlotLabel : slot.text;

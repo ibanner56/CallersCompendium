@@ -14,8 +14,8 @@
     "ECD"
   ],
   "register": {
-    "de": "Informal: du / dich / dir / dein, and du-imperatives ('Wähle', 'Gib … ein', 'Versuche es erneut'). Never Sie / Ihnen / Ihr. Maintainer decision, 2026-11-27.",
-    "nl": "Informal: je / jouw, never u / uw (the majority voice when the pre-release audit found three 'u' strings, 2026-11).",
+    "de": "Informal: du / dich / dir / dein, and du-imperatives ('Wähle', 'Gib … ein', 'Versuche es erneut'). Never Sie / Ihnen / Ihr. The maintainer's answer to question 22 of the pre-release audit's decision sheet, 2026-11-27.",
+    "nl": "Informal: je / jouw, never u / uw (an agent's call in the pre-release audit, 2026-11: the majority voice when it found three 'u' strings).",
     "fr": "Formal: vous / votre throughout.",
     "da": "Informal: du / dig / din throughout."
   },
