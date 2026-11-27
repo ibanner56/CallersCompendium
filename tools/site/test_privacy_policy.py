@@ -50,7 +50,8 @@ def policy_words(path: Path) -> list[str]:
     autolinks; HTML tags and entities), link targets are reduced to the text a
     reader sees, and a space before punctuation is closed up, so two copies that
     say the same thing give the same words. The title is left out: the page and
-    the mirror word their headings differently on purpose.
+    the mirror word their headings differently on purpose. Link targets are
+    not compared, only the text a reader sees.
     """
     text = path.read_text(encoding="utf-8")
     if path.suffix == ".html":
