@@ -439,7 +439,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await _openAdjust(tester);
-      await tester.enterText(noteField, '');
+      // Spaces alone are an empty box: Add would refuse them too.
+      await tester.enterText(noteField, '   ');
       await tester.pumpAndSettle();
       await closings['barrier tap']!(tester);
       await tester.pumpAndSettle();
