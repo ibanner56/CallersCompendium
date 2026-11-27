@@ -208,10 +208,26 @@ The app couldn't open or get your library ready at startup. Try, in order:
 Four startup screens have no Try again: newer data, data too old to open, a backup
 that couldn't be made, and data that couldn't be moved. They offer **Copy
 details** and, except on the data-too-old screen, a link to the Releases page.
-The data-too-old screen instead leads with a **Get** button for the release
-that can update your data, with the two reset options below it under **Start
-fresh instead**. Fix the cause, then close and reopen the app; there is no
-button to check again.
+On Windows, macOS and Linux the data-too-old screen instead leads with a **Get**
+button for the release that can update your data, with the two reset options
+below it under **Start fresh instead**. Fix the cause, then close and reopen the
+app; there is no button to check again.
+
+On a phone or tablet, the data-too-old screen has no **Get** button, because
+installing that release works differently there:
+
+- **Android:** don't uninstall the app, and don't reset it. Your data is still
+  on the device, but uninstalling deletes it, and Android won't install an older
+  release over a newer one (nor the GitHub `.apk` over the Play Store build), so
+  the desktop route of installing the older release first doesn't work there.
+  Keep the app installed and choose **Copy details** when you ask for help.
+- **iPhone and iPad:** don't delete the app; that deletes your data too. In
+  TestFlight, open Caller's Compendium and look under **Previous Builds** for the
+  version the screen names. If it's listed, install it, open the app once to
+  let it update your data, then install the newest build again. TestFlight
+  offers earlier builds only for a limited time, so it may not be listed; if it
+  isn't, keep the app as it is and choose **Copy details** when you ask for
+  help.
 
 On Linux the database lives in the app's support folder whether or not your
 machine has a `Documents` folder (for example, one without `xdg-user-dirs`); see
