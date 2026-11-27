@@ -939,6 +939,55 @@ void main() {
       expect(stored.savedSearchId, 'search-gone');
     });
 
+    testWidgets('a newly chosen search deleted before Save is refused, and the '
+        "rule's own gone search is still kept for a rename", (tester) async {
+      final repos = openTestRepositories();
+      final becket = await repos.savedSearches.create(
+        name: 'Becket',
+        spec: _spec(),
+      );
+      const rule = EventRule(
+        id: 'rule-gone',
+        savedSearchId: 'search-gone',
+        quantifierName: 'atMost',
+        count: 1,
+        scopeName: 'wholeProgram',
+      );
+      await repos.eventRules.writeFromSync(rule);
+      await openEditor(tester, repos, rule);
+      await pickDropdownEntry(
+        tester,
+        find.byKey(const ValueKey('event-rule-search')),
+        'Becket',
+      );
+      await tester.pumpAndSettle();
+      // Deleted elsewhere meanwhile.
+      await repos.savedSearches.delete(becket.id);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      await pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('event-rule-saved-search-gone')),
+      );
+      expect(
+        (await repos.eventRules.get('rule-gone'))!.savedSearchId,
+        'search-gone',
+      );
+
+      // The rule's own search is still kept: a rename saves.
+      await tester.enterText(
+        find.byKey(const ValueKey('event-rule-nickname')),
+        'One per night',
+      );
+      await tester.pumpAndSettle();
+      expect(saveAction(tester), isNotNull);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      final stored = (await repos.eventRules.get('rule-gone'))!;
+      expect(stored.nickname, 'One per night');
+      expect(stored.savedSearchId, 'search-gone');
+    });
+
     testWidgets('when the saved searches cannot be read, the editor says so '
         'rather than spinning, and a rule can still be renamed', (
       tester,

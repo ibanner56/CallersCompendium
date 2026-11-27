@@ -324,6 +324,66 @@ void main() {
       expect(await liveIds(repos), [onKept.id, orphan.id, carried.id]);
     });
 
+    test('a saved search the backup holds in a form the restore refuses is '
+        'removed, and so is its rule', () async {
+      final (repos, before) = await withThreeRules();
+      final [_, onKept, orphan] = before;
+      final payload = await thisBuildWithoutRules();
+      // 'search-1' is in the backup, but not as a value this build stores.
+      ((payload['app']! as Map)['settings']
+              as Map)['${savedSearchKeyPrefix}search-1'] =
+          42;
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson(jsonEncode(payload));
+
+      expect(outcome.applied, isTrue);
+      expect(await isSavedSearchStored(repos.settings, 'search-1'), isFalse);
+      expect(outcome.removedEventRules, 1);
+      expect(await repos.eventRules.listAll(), [onKept, orphan]);
+    });
+
+    test('a settings apply that fails part way removes neither the saved '
+        'searches nor their rules, and its retry removes both', () async {
+      final db = openWidgetTestDatabase();
+      final settings = _FailingSecondSearchRemoval(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      await storeSavedSearches(repos.settings, ['search-1', 'search-2']);
+      final first = await repos.eventRules.create(
+        savedSearchId: 'search-1',
+        quantifier: EventRuleQuantifier.none,
+        scope: EventRuleScope.wholeProgram,
+      );
+      final second = await repos.eventRules.create(
+        savedSearchId: 'search-2',
+        quantifier: EventRuleQuantifier.none,
+        scope: EventRuleScope.wholeProgram,
+      );
+      final service = BackupService(repos);
+
+      final failed = await service.restoreFromJson(beforeEventRules);
+      expect(failed.applied, isTrue);
+      expect(failed.settingsFailed, isTrue);
+      // All or nothing: no search went, so no rule went either.
+      expect(failed.removedEventRules, 0);
+      expect(await liveIds(repos), [first.id, second.id]);
+      expect(await isSavedSearchStored(repos.settings, 'search-1'), isTrue);
+      expect(await isSavedSearchStored(repos.settings, 'search-2'), isTrue);
+
+      settings.failing = false;
+      final retried = await service.retryApplySettings(
+        beforeEventRules,
+        mode: RestoreMode.replace,
+      );
+      expect(retried.settingsFailed, isFalse);
+      expect(retried.removedEventRules, 2);
+      expect(await liveIds(repos), isEmpty);
+    });
+
     test('retrying the settings of a Replace restore removes the rules too, '
         'and says so', () async {
       final (repos, before) = await withThreeRules();
@@ -472,4 +532,22 @@ void main() {
       expect(read.eventRulesComplete, isFalse);
     });
   });
+}
+
+/// Settings whose restore fails on removing the second saved search while
+/// [failing] is set, so a settings apply fails part way: after one saved
+/// search is removed and before the other.
+class _FailingSecondSearchRemoval extends SettingsRepository {
+  _FailingSecondSearchRemoval(super.db);
+
+  bool failing = true;
+  var _removed = 0;
+
+  @override
+  Future<void> removeFromRestore(String key, {required DateTime at}) async {
+    if (failing && key.startsWith(savedSearchKeyPrefix) && ++_removed == 2) {
+      throw const InjectedSettingsFailure();
+    }
+    return super.removeFromRestore(key, at: at);
+  }
 }

@@ -47,6 +47,7 @@ import 'package:share_plus/share_plus.dart' show ShareResult, ShareResultStatus;
 
 import 'export/rfc4180_test_reader.dart';
 import 'support/finders.dart';
+import 'support/saved_searches.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 import 'support/noop_sync_transport.dart';
@@ -333,6 +334,43 @@ void main() {
       expect(await repos.settings.get(kLastBackupAtKey), isNull);
     },
   );
+
+  testWidgets('a restore that deletes event rules whose saved search it '
+      'removed says how many', (tester) async {
+    final source = openTestRepositories();
+    await source.dances.create(_dance('d1', 'Restored Dance'));
+    final backupJson = await BackupService(source).exportToJson();
+
+    final repos = openTestRepositories();
+    await storeSavedSearches(repos.settings, ['search-1']);
+    for (final nickname in ['First', 'Second']) {
+      await repos.eventRules.create(
+        savedSearchId: 'search-1',
+        quantifier: EventRuleQuantifier.none,
+        scope: EventRuleScope.wholeProgram,
+        nickname: nickname,
+      );
+    }
+    await _pumpGeneral(tester, repos);
+    await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('restore-paste-field')),
+      backupJson,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(await repos.eventRules.listAll(), isEmpty);
+    expect(
+      find.text(
+        'Backup restored. 2 event rules were deleted, because the backup '
+        "doesn't have their saved searches.",
+      ),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('restore via pasted container replaces content and refreshes', (
     tester,
