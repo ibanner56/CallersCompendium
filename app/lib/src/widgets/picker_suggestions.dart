@@ -172,7 +172,7 @@ class SuggestionRuleMarker extends StatelessWidget {
       container: true,
       label: l10n.suggestionWouldBreakSemantic(
         rules.length,
-        rules.map((r) => r.spoken).join('; '),
+        rules.map((r) => r.spoken).join(l10n.commonClauseSeparator),
       ),
       child: ExcludeSemantics(
         child: Row(
@@ -184,7 +184,7 @@ class SuggestionRuleMarker extends StatelessWidget {
               child: Text(
                 l10n.suggestionWouldBreak(
                   rules.length,
-                  rules.map((r) => r.title).join('; '),
+                  rules.map((r) => r.title).join(l10n.commonClauseSeparator),
                 ),
                 style: theme.textTheme.bodySmall?.copyWith(color: color),
               ),

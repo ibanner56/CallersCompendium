@@ -1251,6 +1251,28 @@
   "@settingsSyncNoticeListSeparator": {
     "description": "Separator between items in a Device Sync notice's lists: the records in settingsSyncNoticeAffected, and the counts by kind in settingsSyncNoticeNewerVersionItems (for example \"3 programs, 1 setting\"). Include any spacing your language uses."
   },
+  "commonListSeparator": ", ",
+  "@commonListSeparator": {
+    "description": "Separator between items of a list shown in running text, such as dance titles in a broken event rule or author names. Include any spacing your language uses; Japanese uses 、 with no space."
+  },
+  "commonClauseSeparator": "; ",
+  "@commonClauseSeparator": {
+    "description": "Separator between items that may themselves contain commas, such as the event rules a suggested dance would break. Include any spacing your language uses."
+  },
+  "commonSentencePair": "{first} {second}",
+  "@commonSentencePair": {
+    "description": "Two complete sentences shown together in one message. Keep the space if your language separates sentences with one; Japanese, whose sentences end in 。, writes them with nothing between.",
+    "placeholders": {
+      "first": {
+        "type": "String",
+        "example": "Added 2 programs."
+      },
+      "second": {
+        "type": "String",
+        "example": "1 program changed."
+      }
+    }
+  },
   "settingsSyncNoticeRecordNamed": "{kind} \"{name}\"",
   "@settingsSyncNoticeRecordNamed": {
     "description": "One record in the settingsSyncNoticeAffected list: its kind (a syncReviewKind* label such as \"Dance\") and its title or name as stored on this device.",
@@ -7582,6 +7604,10 @@
   "programsInsertBreakButton": "Insert break",
   "@programsInsertBreakButton": {
     "description": "Button that inserts a break slot into the program."
+  },
+  "programsBreakSlotLabel": "Break",
+  "@programsBreakSlotLabel": {
+    "description": "What a break slot reads as wherever a person sees it: the program builder, Perform, the template editor and printed or shared set lists. The stored word stays the English token 'Break' in the database, backups, sync and data exports; only this label is translated."
   },
   "programsAddADanceSheetTitle": "Add a dance",
   "@programsAddADanceSheetTitle": {

@@ -15,6 +15,7 @@ import '../screens/settings/event_rules_screen.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/l10n_joins.dart';
 import '../utils/undo_snack_bar.dart';
 import 'dirty_dialog_guard.dart';
 import 'event_rule_text.dart' show eventRuleSentence, eventRuleWarningIcon;
@@ -791,10 +792,10 @@ class _SavedSearchNoticeState extends State<SavedSearchNotice> {
     if (!mounted || !MediaQuery.supportsAnnounceOf(context)) return;
     final l10n = AppLocalizations.of(context);
     final load = widget.load;
-    final message = [
+    final message = joinSentences(l10n, [
       l10n.savedSearchNoticeTitle(load.search.name),
       for (final m in load.missing) savedSearchMissingText(l10n, m),
-    ].join(' ');
+    ]);
     SemanticsService.sendAnnouncement(
       View.of(context),
       message,
