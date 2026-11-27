@@ -1,4 +1,7 @@
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/plaintext_program_import.dart';
+import 'package:compendium_app/src/export/export_labels_l10n.dart';
+import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A deterministic id minter so slot ids are predictable in assertions.
@@ -145,6 +148,82 @@ void main() {
         ),
         throwsA(isA<AssertionError>()),
       );
+    });
+  });
+
+  // A shared or printed set list shows a break as the translated label
+  // (#2580). Pasting that list back must give the break back, in every
+  // language the app ships, and recognise no other word as one (the
+  // maintainer's answer to question 44 of the pre-release audit's decision
+  // sheet, 2026-11-27).
+  group('pasted break labels', () {
+    List<ProgramSlot> paste(String text) => buildProgramSlots(
+      parsePlaintextProgram(text, collection: const []),
+      newSlotId: _seqIds(),
+    );
+
+    for (final locale in AppLocalizations.supportedLocales) {
+      test('a list shared as text in "$locale" pastes back with its break', () {
+        final l10n = lookupAppLocalizations(locale);
+        final epoch = DateTime.utc(2026);
+        final program = Program(
+          id: 'p1',
+          title: 'Dance',
+          createdAt: epoch,
+          updatedAt: epoch,
+          slots: [
+            ProgramSlot(id: 'a', position: 0, text: 'Welcome'),
+            ProgramSlot(id: 'b', position: 1, text: Program.breakSlotText),
+            ProgramSlot(id: 'c', position: 2, text: 'Last waltz'),
+          ],
+        );
+        final shared = programToPlainText(
+          program,
+          titleFor: (_) => null,
+          labels: programExportLabels(l10n),
+          includeTitle: false,
+          includeCallerBand: false,
+          includeDateVenue: false,
+        );
+        expect(shared, contains(l10n.programsBreakSlotLabel));
+
+        final slots = paste(shared);
+
+        expect(slots.map((s) => s.isBreak), [false, true, false]);
+        expect(slots[1].text, Program.breakSlotText);
+      });
+    }
+
+    test('any case and surrounding space, in every language', () {
+      for (final locale in AppLocalizations.supportedLocales) {
+        final label = lookupAppLocalizations(locale).programsBreakSlotLabel;
+        final slots = paste(
+          '  ${label.toUpperCase()}  \n${label.toLowerCase()}',
+        );
+        expect(slots.map((s) => s.text), [
+          Program.breakSlotText,
+          Program.breakSlotText,
+        ], reason: '$locale');
+      }
+    });
+
+    test('a near-miss word stays a note', () {
+      const nearMisses = ['Pauses', 'Breaks', 'Pause!', 'Pause café', 'Pauzes'];
+      final slots = paste(nearMisses.join('\n'));
+      expect(slots.map((s) => s.isBreak), everyElement(isFalse));
+      expect(slots.map((s) => s.text), nearMisses);
+    });
+
+    test('a dance titled like a break label stays that dance', () {
+      final slots = buildProgramSlots(
+        parsePlaintextProgram(
+          'Pause',
+          collection: const [(id: 'd9', title: 'Pause')],
+        ),
+        newSlotId: _seqIds(),
+      );
+      expect(slots.single.danceId, 'd9');
+      expect(slots.single.text, isNull);
     });
   });
 }
