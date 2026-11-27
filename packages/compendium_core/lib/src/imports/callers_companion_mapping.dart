@@ -623,7 +623,9 @@ CcDanceMapping mapCallersCompanionDance(
       // An English line is read by the ECD grammar, never as a contra move
       // (ADR-006 §5.1), so its cache entry is kept apart from contra's.
       final ecd = form == DanceForm.ecd;
-      final ring = ecd ? ecdRingDancers(formation.shape) : null;
+      final ring = ecd
+          ? ecdRingDancers(formation.shape, detail: formation.detail)
+          : null;
       final bar = ecd ? barBeats.beatsPerBar : null;
       // The bars are counted after a `(8)` prefix, so look past it too, in
       // every piece the line is read as.

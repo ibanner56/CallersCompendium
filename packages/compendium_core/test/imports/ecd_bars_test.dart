@@ -923,6 +923,26 @@ void main() {
         );
         expect(ecdFormationShapes, contains(formation.shape));
       }
+      // A Becket's ring is still four dancers: "half way" is two places.
+      final circle =
+          (mapCallersCompanionDance(
+                    CcDanceRecord(
+                      name: 'B',
+                      type: 'Contra',
+                      formationFamily: 'Duple Minor',
+                      contraForm: 'Becket',
+                      fromUsrColumns: true,
+                      body: [
+                        CcBodySection(lines: ['(8) circle left halfway']),
+                      ],
+                    ),
+                    englishDances: true,
+                  ).dance.figuresSource
+                  as DecodedFigures)
+              .figures
+              .single;
+      expect(circle.move, 'ecd_circle');
+      expect(circle.params['places'], 2);
     });
 
     test('an English scatter mixer is another formation that mixes', () {

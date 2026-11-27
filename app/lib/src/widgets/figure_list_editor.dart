@@ -73,6 +73,7 @@ class FigureListEditor extends StatefulWidget {
     this.dialect,
     this.mixer = false,
     this.formationShape,
+    this.formationDetailOf,
     this.meterOf,
     this.barTimingOf,
     this.moveParamDefaults,
@@ -124,6 +125,11 @@ class FigureListEditor extends StatefulWidget {
   /// from (an English "circle half way" is two places in a duple minor,
   /// three in a triple minor; ADR-006 §7.3). Null where there is no dance.
   final FormationShape? formationShape;
+
+  /// The dance's formation detail as it stands now, which tells free-text
+  /// entry a longways set described as "Becket" is a ring of four. Null where
+  /// there is no dance.
+  final String Function()? formationDetailOf;
 
   /// The dance's tune meter as it stands now ("3/2"), which free-text entry
   /// counts an English line's bar range by (`1-4 partners set` is 8 beats in
@@ -896,6 +902,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       shorthands: widget.shorthandMappings,
       dialect: _dialect,
       formationShape: widget.formationShape,
+      formationDetail: widget.formationDetailOf?.call(),
       meter: widget.meterOf?.call(),
       timing: timing,
       startBeat: timing == null ? 0 : figureStartBeat(widget.drafts),
@@ -971,6 +978,7 @@ class _FigureListEditorState extends State<FigureListEditor>
       shorthands: widget.shorthandMappings,
       dialect: _dialect,
       formationShape: widget.formationShape,
+      formationDetail: widget.formationDetailOf?.call(),
       meter: widget.meterOf?.call(),
       timing: timing,
       startBeat: timing == null

@@ -2829,7 +2829,12 @@ ECD dance.
   which English offers too, and a Becket (`becketCw`, `becketCcw`) is
   `longways` with the detail "Becket" or "Becket CCW" before any detail it
   had (the maintainer, 27 November 2026; `ecdFormationFromContra`, so
-  **Convert English dances** reads it the same way). These formation rules belong to the English
+  **Convert English dances** reads it the same way). Its ring is still a
+  Becket's four dancers: `ecdRingDancers` reads a longways set whose detail
+  starts "Becket" as four, so "half way" is two places on import, in the
+  conversion and in free-text entry, which takes the formation detail too.
+  A Becket starts with partners side by side, neither proper nor improper, so
+  its **Starts improper** stays off (implementer's call). These formation rules belong to the English
   reading, so they hold for a dance typed English whatever the answer. Closing the question
   plans nothing. The answer is held per file bytes in an `Expando`, so
   trying a file again after a failed plan does not ask again, and the

@@ -87,7 +87,7 @@ EcdMigration migrateEcdDance({
   var converted = 0;
   List<Figure>? rewritten;
   final ecdShape = ecdFormationFromContra(formation);
-  final ringDancers = ecdRingDancers(ecdShape.shape);
+  final ringDancers = ecdRingDancers(ecdShape.shape, detail: ecdShape.detail);
   for (var i = 0; i < figures.length; i++) {
     final result = _convert(figures[i], ringDancers);
     if (result == null) continue;

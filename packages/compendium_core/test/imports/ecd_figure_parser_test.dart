@@ -499,6 +499,23 @@ void main() {
         const Formation(FormationShape.longways, detail: 'Becket CCW'),
       );
       expect(ecdFormationShapes, contains(FormationShape.longways));
+      // Its ring is a Becket's: four dancers. A plain longways set does not
+      // settle the ring.
+      expect(ecdRingDancers(FormationShape.longways, detail: 'Becket'), 4);
+      expect(
+        ecdRingDancers(FormationShape.longways, detail: 'Becket CCW; x'),
+        4,
+      );
+      expect(ecdRingDancers(FormationShape.longways), isNull);
+      expect(
+        parseFreeTextFigureEntry(
+          'circle left half way',
+          formationShape: FormationShape.longways,
+          formationDetail: 'Becket',
+          taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
+        ).single.params['places'],
+        2,
+      );
     });
 
     test('keeps a shape with no clear ECD counterpart', () {
