@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""Guard the hand-maintained privacy-policy copies."""
+"""Guard the hand-maintained privacy-policy copies.
+
+The page and its Markdown mirror must agree on their dates and, word for word,
+on everything from the effective date to the last section.
+"""
 
 from __future__ import annotations
 
+import difflib
 import html
 import re
 from datetime import datetime
@@ -38,6 +43,39 @@ def policy_text(path: Path) -> str:
     return " ".join(text.lower().split())
 
 
+def policy_words(path: Path) -> list[str]:
+    """The policy's words from its effective date to its last section.
+
+    Markup is removed (Markdown emphasis, list bullets, headings, links and
+    autolinks; HTML tags and entities), link targets are reduced to the text a
+    reader sees, and a space before punctuation is closed up, so two copies that
+    say the same thing give the same words. The title is left out: the page and
+    the mirror word their headings differently on purpose.
+    """
+    text = path.read_text(encoding="utf-8")
+    if path.suffix == ".html":
+        text = text[text.index("Effective date:") : text.index("</main>")]
+        text = html.unescape(re.sub(r"<[^>]+>", " ", text))
+    else:
+        text = text[text.index("Effective date:") :]
+        text = re.sub(r"^\s*(?:#+|-)\s+", "", text, flags=re.M)
+        text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+        text = re.sub(r"<(https?://[^>]+)>", r"\1", text)
+        text = text.replace("**", "").replace("`", "")
+    text = re.sub(r"https?://", "", text)
+    text = re.sub(r"\s+([.,;:)])", r"\1", text)
+    return text.split()
+
+
+def copies_differ(a: list[str], b: list[str]) -> list[str]:
+    """Each run of words where the two copies differ, as `mirror | page`."""
+    return [
+        f"{' '.join(a[i1:i2])!r} | {' '.join(b[j1:j2])!r}"
+        for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes()
+        if op != "equal"
+    ]
+
+
 def main() -> None:
     texts = {path: policy_text(path) for path in POLICY_FILES}
     dates = {}
@@ -70,6 +108,15 @@ def main() -> None:
             assert phrase in text, f"{path} is missing required disclosure: {phrase}"
         for phrase in FORBIDDEN_PHRASES:
             assert phrase not in text, f"{path} retains obsolete wording: {phrase}"
+
+    mirror, page = (policy_words(path) for path in POLICY_FILES)
+    differences = copies_differ(mirror, page)
+    assert not differences, (
+        "the privacy-policy copies must say the same thing word for word; "
+        "they differ at (mirror | page):\n  " + "\n  ".join(differences)
+    )
+    # Positive control: the comparison must see a one-word change.
+    assert copies_differ(mirror, [*page[:-1], "changed"]), "the word comparison sees nothing"
 
     print(
         "OK: privacy-policy copies agree on effective date "
