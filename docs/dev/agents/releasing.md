@@ -42,14 +42,15 @@ step-by-step does not prevent on its own.
   `*.yaml` to the bare app `X.Y.Z`; `tools/ci/check_app_version.py` catches a
   mismatch. A tag-prefixed or beta-suffixed literal is also wrong: the reporter
   needs the installed app build version, not a release tag.
-- **A release that first advertises a sync capability needs the server first.**
-  The server validates settings keys and record kinds through the registry it
-  is built from, so a client that publishes a newly gated key or prefix to an
-  older server gets refusals (sync-spec §6.15, "Server"). The
+- **A release whose registry adds anything shareable needs the server first.**
+  The server validates settings keys, record fields and record kinds through
+  the registry it is built from, so a client that publishes a new shareable
+  key, key prefix, field or record kind to an older server gets `422`, gated
+  by a sync capability or not, and a refused upload stops that device sharing
+  anything until the server is updated (sync-spec §6.15, "Server"; §7.2). The
   [release checklist](../release-checklist.md) already orders `deploy_server`
   before any client; check that it succeeded on **that tag's** run, not only
-  that it ran. The first release containing #2325 is such a release: it
-  advertises `savedSearches.v1` and publishes `saved_search:` keys.
+  that it ran. A self-hoster's server is not deployed by the workflow.
 - **Publish only after the provenance gate is green**, and confirm afterwards
   that the channel manifest *and* its detached signature are both live and that
   the signature verifies. A manifest without its signature makes the in-app

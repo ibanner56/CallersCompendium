@@ -708,6 +708,12 @@ from that day on that it has ended (`endOfLife` is the first unsupported day). F
   current file, and a client clears its stored notice when an authenticated
   manifest no longer covers it. Deleting an entry therefore withdraws the
   notice, and moving a date postpones it, on the next release.
+- **A floor raise waits for the date it relies on.** When a release raises
+  `kMinSupportedSchemaVersion` past builds whose end of life an entry here
+  announced, tag it on or after that entry's `endOfLife`: before it, the
+  release refuses those users' libraries ahead of the date their app showed
+  them. Nothing in the tooling compares the two dates; the release checklist
+  asks (§2, "Data safety").
 - **A release cannot retire itself.** `gen_release_metadata.py` fails the run
   for an entry whose `through` is not strictly older than the version being
   released, and for any entry the client would refuse (unknown key, a
