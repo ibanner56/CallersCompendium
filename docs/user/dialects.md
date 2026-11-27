@@ -486,7 +486,11 @@ both recognize, then flip back to your own.
   the dance community that her dances only ever be called with the role terms
   **larks** and **robins**, so the app honours that: her dances show, perform,
   print and share with larks and robins whatever your dialect calls the roles.
-  The rest of your dialect (your move names and wordings) still applies. When
+  The rest of your dialect (your move names and wordings) still applies,
+  except a move name or wording that uses a gendered role word such as
+  "ladies" or "gents": on her dances that move reads in the app's own wording
+  instead (a "ladies chain" reads as the app's chain). Your dialect itself is
+  not changed, and her dances are the only ones affected. When
   this sets your role terms aside, the dance's page says so under the
   author's name.
 - **Screen readers.** The app reads dances aloud in your dialect too — your own

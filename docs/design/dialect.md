@@ -251,11 +251,23 @@ wording, saved unchanged, reads as the default line. Imported
   and the dance's title and author names, and when `requiresLarksRobins`
   returns a copy with `lark`/`robin` role terms. It also
   drops the reader's single-dancer substitutions (`onesRole1` …, which usually
-  spell a role) and stops flagging lark and robin as discouraged. Move
-  substitutions and wordings stay the reader's, even one that holds a
-  gendered word, which a caller's own dialect may now do (ADR-006 §9.1,
-  point 7; whether her dances should drop those too is open for the
-  maintainer, and keeping them as written is the implementer's call). A dance requires it when any
+  spell a role) and stops flagging lark and robin as discouraged. A caller's
+  own dialect may hold a gendered word (ADR-006 §9.1, point 7), so on her
+  dances it also drops each move substitution, move wording and wording
+  branch that holds a gendered role word, and that move reads in the app's
+  default wording: a caller's "ladies chain" reads as the default chain. The
+  maintainer decided this (question 35 of the pre-release audit's decision
+  sheet, 2026-11-27); every other move substitution and wording stays the
+  reader's, and the stored dialect is never changed. Its words are the app's
+  own former list of gendered role words (gent, gents, gentleman, gentlemen,
+  man, men, lady, ladies, woman, women), restored privately in
+  `author_role_terms.dart` from the file #2570 removed; that choice, and
+  keeping the list's rule that "man" and "men" in a sentence are everyday
+  words in German, Danish and Dutch, were the audit's lead session's call,
+  not the maintainer's. The cost of that rule: an English wording whose only
+  role word is "man" or "men" is kept. Even when the reader's role terms
+  already say lark and robin, so the roles need no change, these wordings
+  are still dropped. A dance requires it when any
   author's name has Rachel or Rae as its first word and Fifer as its last.
   "Renewed Joy" and "If I Was Dead and It Wouldn't Go To Waste" also require it
   when no author is named (none, or only Unknown/Traditional), so a dance
