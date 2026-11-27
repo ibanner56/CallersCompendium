@@ -224,12 +224,12 @@ What a round is given and asked for:
   `AGENTS.md` and `.github/instructions/*.instructions.md` from the base into the
   job, so a PR cannot loosen the rules it is reviewed under. A PR that edits
   `SKILL.md` is reviewed under the old rubric; the new one applies from the next
-  PR. Separately, from `anthropics/claude-code-action` 1.0.277 the action
-  itself replaces `AGENTS.md` (with `CLAUDE.md`, `.claude/` and the other
-  paths in its `restore-config.ts`) in the review checkout with the base
-  branch's copy on every pull request (the default branch's instead when the
-  PR's author is not confirmed to have write access), and keeps the PR's
-  copies under
+  PR. Separately, the action itself replaces a set of config paths in the
+  review checkout with the base branch's copy on every pull request
+  (`SENSITIVE_PATHS` in its `restore-config.ts`; `.claude/` and `CLAUDE.md`
+  for a long time, `AGENTS.md` from `anthropics/claude-code-action` 1.0.277;
+  from 1.0.279 it may use the default branch instead when the PR's author is
+  not confirmed to have write access), and keeps the PR's copies under
   `.claude-pr/`. So the checkout's `AGENTS.md` is the base copy, not the
   PR's; the review reads a PR's edit to it from the diff or `.claude-pr/`.
   `claude.yml` runs the same action, so an `@claude` run on a PR that edits
@@ -343,7 +343,7 @@ Traps:
   like any change to the review workflow it gets no Claude review, so read it
   yourself before merging. Read the upstream release notes for every version
   in the range, not Dependabot's excerpt in the PR body, which it truncates:
-  #2551's excerpt stopped before the breaking 1.0.277 note (base `AGENTS.md`),
+  #2551's excerpt stopped before the 1.0.277 note (base `AGENTS.md`),
   and check each breaking note against this workflow's `claude_args`.
 - **Draft PRs and fork PRs are skipped.** Fork runs receive no secrets. For a
   draft, mark it ready (`ready_for_review` starts a round).
@@ -376,18 +376,22 @@ Traps:
 ### The tool boundary
 
 The review job passes `--allowedTools` with only `Read`, `Glob`, `Grep`,
-`Write`, `gh pr diff` and the one `gh api` call that posts the review. From
-`anthropics/claude-code-action` 1.0.273, the action starts a session that has a
-`prompt` and none of `allowed_non_write_users`, `allowed_bots`, a custom
-`ANTHROPIC_BASE_URL` or a `settings` input in **auto mode**, where a safety
-review may let through a tool call that no allow rule covers, so the list on
-its own is not a boundary (the action's `src/modes/permission-mode.ts` and
+`Write`, `gh pr diff` and the one `gh api` call that posts the review (allow
+rules in the base branch's `.claude/settings.json` are added to it; today they
+name only GitHub MCP tools, which the review has no server for). From
+`anthropics/claude-code-action` 1.0.273, the action starts its sessions in
+**auto mode**, where a safety review may let through a tool call that no allow
+rule covers, unless an input keeps the earlier default:
+`allowed_non_write_users`, `allowed_bots`, a custom `ANTHROPIC_BASE_URL`,
+`path_to_claude_code_executable`, or a `settings` input that is a file path or
+picks another mode. So the list on its own is not a boundary (the action's `src/modes/permission-mode.ts` and
 its `docs/security.md`, "Auto mode is a review, not a boundary"). The review
 workflow therefore also passes `--permission-mode default`. The action
 places the workflow's `claude_args` after its own, so that mode wins, and in
 it a call outside the list is denied, because a workflow has no one to
 approve it. Without that flag the list is advisory again. `claude.yml` sets no
-permission mode, so `@claude` runs in auto mode.
+permission mode, so `@claude` runs in auto mode (or `acceptEdits` where auto
+mode is unavailable).
 
 ## Answering findings
 
