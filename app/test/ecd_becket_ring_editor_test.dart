@@ -133,11 +133,8 @@ void main() {
 
   Future<void> typeInFigureBox(WidgetTester tester, String line) async {
     await openAddMenu(tester);
-    final figureItem = find.byKey(const ValueKey('figure-add-figure'));
-    if (figureItem.evaluate().isNotEmpty) {
-      await tester.tap(figureItem);
-      await tester.pumpAndSettle();
-    }
+    await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('figure-free-text-field')),
       line,
@@ -173,8 +170,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// The places of the one ring the saved dance holds.
-  Future<Object?> savedRingPlaces(
+  /// The moves of the saved dance, and the places of the one ring it holds.
+  Future<(List<String>, Object?)> saved(
     WidgetTester tester,
     CompendiumRepositories repos,
   ) async {
@@ -183,31 +180,46 @@ void main() {
     final dance = (await tester.runAsync(
       () => repos.dances.getById('becket'),
     ))!;
+    final figures = figuresOf(dance);
     final rings = [
-      for (final f in figuresOf(dance))
+      for (final f in figures)
         if (f.move == 'ecd_circle') f,
     ];
     expect(rings, hasLength(1));
-    return rings.single.params['places'];
+    return ([for (final f in figures) f.move], rings.single.params['places']);
   }
 
-  final paths = <String, Future<void> Function(WidgetTester)>{
-    'the figure box': (t) => typeInFigureBox(t, 'circle left half way'),
-    'an existing row\'s Move box': (t) =>
-        typeInMoveBox(t, 'circle left half way'),
-    'a ; line with a shorthand clause': (t) =>
-        typeInFigureBox(t, 'TW; circle left half way'),
-    'the Add figures from text sheet': (t) =>
-        addFromTextSheet(t, 'circle left half way'),
+  // Each path, and the moves the dance is saved with: the `;` line's are the
+  // compound's two turn singles, so it is known to have taken the
+  // shorthand-clause path rather than the figure box's own parse.
+  final paths = <String, (Future<void> Function(WidgetTester), List<String>)>{
+    'the figure box': (
+      (t) => typeInFigureBox(t, 'circle left half way'),
+      ['ecd_siding', 'ecd_circle'],
+    ),
+    'an existing row\'s Move box': (
+      (t) => typeInMoveBox(t, 'circle left half way'),
+      ['ecd_circle'],
+    ),
+    'a ; line with a shorthand clause': (
+      (t) => typeInFigureBox(t, 'TW; circle left half way'),
+      ['ecd_siding', 'ecd_turn_single', 'ecd_turn_single', 'ecd_circle'],
+    ),
+    'the Add figures from text sheet': (
+      (t) => addFromTextSheet(t, 'circle left half way'),
+      ['ecd_siding', 'ecd_circle'],
+    ),
   };
 
-  for (final MapEntry(key: path, value: type) in paths.entries) {
+  for (final MapEntry(key: path, value: (type, moves)) in paths.entries) {
     testWidgets('a Becket rings four dancers when typed in $path', (
       tester,
     ) async {
       final repos = await pump(tester, detail: 'Becket');
       await type(tester);
-      expect(await savedRingPlaces(tester, repos), 2);
+      final (savedMoves, places) = await saved(tester, repos);
+      expect(savedMoves, moves);
+      expect(places, 2);
     });
 
     testWidgets('a plain longways set does not ring four when typed in '
@@ -215,7 +227,9 @@ void main() {
       final repos = await pump(tester, detail: '');
       await type(tester);
       // The editor stores a ring it cannot size as unstated.
-      expect(await savedRingPlaces(tester, repos), isNot(2));
+      final (savedMoves, places) = await saved(tester, repos);
+      expect(savedMoves, moves);
+      expect(places, ParamVocab.unspecified);
     });
   }
 }
