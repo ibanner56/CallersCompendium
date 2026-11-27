@@ -675,6 +675,16 @@ void main() {
         repos,
         ProgramTemplateEditorScreen(template: template),
       );
+      // The saved searches are read: the subtitle is not the badge, so the
+      // one "Slot rule" heard is the icon's.
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('program-template-rule-subtitle-0')),
+            )
+            .data,
+        'Its saved search was deleted',
+      );
       expect(find.bySemanticsLabel(RegExp('Slot rule')), findsOneWidget);
       semantics.dispose();
     });
