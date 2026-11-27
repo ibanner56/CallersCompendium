@@ -47,6 +47,8 @@ class PerformAdjustSheet extends StatefulWidget {
     this.authorNameOverrides = const {},
     this.onEdited,
     this.rankSuggestions,
+    this.noteDraft = '',
+    this.onNoteDraftChanged,
   });
 
   final Program program;
@@ -89,6 +91,18 @@ class PerformAdjustSheet extends StatefulWidget {
   /// boundary reliably (mirrors [dialect]).
   final SearchEnrichment enrichment;
 
+  /// An ad-hoc note typed in an earlier opening of this sheet and not added:
+  /// the note field starts with it.
+  final String noteDraft;
+
+  /// Called with the note field's text whenever it changes, and with `''`
+  /// once the note is added. The opener keeps the latest value and passes it
+  /// back as [noteDraft] the next time it opens the sheet, so a note typed and
+  /// not yet added survives the sheet closing however it closes, without a
+  /// prompt (the maintainer's answer to question 43 of the pre-release audit's
+  /// decision sheet, 2026-11-27: nothing asks during a performance).
+  final ValueChanged<String>? onNoteDraftChanged;
+
   /// Ranks the swap sheet's results when they are ordered by suggestions
   /// (#2348): [CollectionPicker.rankSuggestions], a test seam. Null, as in
   /// the app, ranks on the picker's own worker.
@@ -111,7 +125,19 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     widget.program.grouped.isEmpty ? 0 : widget.program.grouped.length - 1,
   );
 
-  final _noteController = TextEditingController();
+  late final _noteController = TextEditingController(text: widget.noteDraft)
+    ..addListener(_reportNoteDraft);
+
+  /// The note field's text as last reported, so a selection-only change to the
+  /// controller reports nothing.
+  late String _reportedNoteDraft = widget.noteDraft;
+
+  void _reportNoteDraft() {
+    final text = _noteController.text;
+    if (text == _reportedNoteDraft) return;
+    _reportedNoteDraft = text;
+    widget.onNoteDraftChanged?.call(text);
+  }
 
   /// Records whether [_working] now differs from the program the sheet opened
   /// with, and reports it to [PerformAdjustSheet.onEdited]. Called inside each

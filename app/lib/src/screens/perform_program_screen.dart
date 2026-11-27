@@ -1196,6 +1196,12 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// performed) and hands back the edited program however it closes — Done,
   /// swipe down, barrier tap or Back; we then apply it live with undo. A sheet
   /// closed with no edits is a no-op.
+  /// An ad-hoc note typed in the Adjust sheet and not yet added, shown again
+  /// the next time the sheet opens. Kept in memory for the life of this
+  /// screen only, never persisted; `''` once the note is added or the field is
+  /// emptied.
+  String _adjustNoteDraft = '';
+
   Future<void> _openAdjustSheet() async {
     // Build the picker's search enrichment from the full saved-dialect library
     // (presets + custom) so its search resolves saved-dialect vocabulary
@@ -1221,6 +1227,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       showDragHandle: true,
       builder: (_) => PerformAdjustSheet(
         onEdited: (program) => latest = program,
+        noteDraft: _adjustNoteDraft,
+        onNoteDraftChanged: (text) => _adjustNoteDraft = text,
         program: opened,
         currentGroupIndex: _groupIndex,
         currentSlotId: _currentSlot.id,
