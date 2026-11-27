@@ -2756,7 +2756,7 @@
   "@settingsDefaultsImportTagsTitle": {
     "x-sourceSha256": "b1dd2d836caef6fe35201a4a9633de08a139ef06a2d899cf238a707968aff9b3"
   },
-  "settingsDefaultsImportTagsSubtitle": "Wordt toegevoegd aan elke nieuwe dans die een import maakt, ook dansen uit een bestand dat iemand met je heeft gedeeld. Dansen die bij het importeren van een programma voor de plekken ervan worden gemaakt, krijgen geen tags.",
+  "settingsDefaultsImportTagsSubtitle": "Wordt toegevoegd aan elke nieuwe dans die een import maakt, ook dansen uit een bestand dat iemand met je heeft gedeeld. Dansen die bij het importeren van een programma voor de slots ervan worden gemaakt, krijgen geen tags.",
   "@settingsDefaultsImportTagsSubtitle": {
     "x-sourceSha256": "c803a49bf8e714711870e4bb5dab2f5c13a4b3a046e3ed0e7098968df11254bd"
   },
@@ -2836,7 +2836,7 @@
   "@settingsDefaultsStartingFiguresTitle": {
     "x-sourceSha256": "1bffd9755117239ce75f839aff4265a5f9298efeea26aaa9f1986fbfc25de14f"
   },
-  "settingsDefaultsStartingFiguresSubtitle": "De figuren waarmee een nieuwe dans begint. Standaard acht keer stilstaan (elk 8 beats), of geen zolang vrije tekstinvoer aan staat; maak leeg voor een lege nieuwe dans. Aanpasbaar per dans.",
+  "settingsDefaultsStartingFiguresSubtitle": "De figuren waarmee een nieuwe dans begint. Standaard acht keer stilstaan (elk 8 tellen), of geen zolang vrije tekstinvoer aan staat; maak leeg voor een lege nieuwe dans. Aanpasbaar per dans.",
   "@settingsDefaultsStartingFiguresSubtitle": {
     "x-sourceSha256": "6c977376ba7d8485e571afbd397afd4c1e8ccd4fb37864e54cddb2f4176e0b2c"
   },
@@ -2980,7 +2980,7 @@
   "@authorManagerEmptyTitle": {
     "x-sourceSha256": "75d23d1484ae3f6d6e8ef8aaa5197b3620a19d4355875576269d85f13e06ddcd"
   },
-  "authorManagerEmptyBody": "Auteurs die u bij een dans vermeldt, verschijnen hier.",
+  "authorManagerEmptyBody": "Auteurs die je bij een dans vermeldt, verschijnen hier.",
   "@authorManagerEmptyBody": {
     "x-sourceSha256": "b34329476d24280955fe67598c1330188254c9fc523dcabc2453d2ac7ce26408"
   },
@@ -3008,7 +3008,7 @@
   "@sourceManagerEmptyTitle": {
     "x-sourceSha256": "95be0e356dd984c3062bb84ba3cd14473a8b66fd7326c60a635a536bb8461083"
   },
-  "sourceManagerEmptyBody": "Boeken en websites die u bij een dans citeert, verschijnen hier.",
+  "sourceManagerEmptyBody": "Boeken en websites die je bij een dans citeert, verschijnen hier.",
   "@sourceManagerEmptyBody": {
     "x-sourceSha256": "328d237e03df4619b321362a36c2cfecff063eef096fa50d41e791f8203b9943"
   },
@@ -3176,11 +3176,11 @@
   "@settingsSharingSubtitle": {
     "x-sourceSha256": "61c91bb800816a6e46ff339e821572640e37f0e0de018a560e15284720ab2137"
   },
-  "settingsGeneralMatrixExactCollisionTitle": "Alleen exacte overlap van beats markeren",
+  "settingsGeneralMatrixExactCollisionTitle": "Alleen exacte overlap van tellen markeren",
   "@settingsGeneralMatrixExactCollisionTitle": {
     "x-sourceSha256": "6877e4a9153aed977728160cf1cccaf58f10d5b1500280fb8c9c0343213f1a2e"
   },
-  "settingsGeneralMatrixExactCollisionSubtitle": "In de programmeringsmatrix wordt een herhaalde figuur tussen twee opeenvolgende dansen alleen gemarkeerd als de beats daadwerkelijk overlappen — niet alleen wanneer deze in dezelfde benoemde frase (A1, A2, B1, B2…) valt. Zet uit om elke herhaling in dezelfde frase te markeren, ook als de beats zelf niet overlappen.",
+  "settingsGeneralMatrixExactCollisionSubtitle": "In de programmeringsmatrix wordt een herhaalde figuur tussen twee opeenvolgende dansen alleen gemarkeerd als de tellen daadwerkelijk overlappen — niet alleen wanneer deze in dezelfde benoemde frase (A1, A2, B1, B2…) valt. Zet uit om elke herhaling in dezelfde frase te markeren, ook als de tellen zelf niet overlappen.",
   "@settingsGeneralMatrixExactCollisionSubtitle": {
     "x-sourceSha256": "ed4a553eae16a0d67ad5b3b9758bc3297aaae691115adcc5dd2a0d8ad4fa5b4e"
   },
@@ -3456,7 +3456,7 @@
   "@settingsGeneralTrackHistoryForAllCallersTitle": {
     "x-sourceSha256": "e2a17c48a924c46655d80157c23b97a219699dc1321f4afa460c2b3c56e3f72e"
   },
-  "settingsGeneralTrackHistoryForAllCallersSubtitle": "Als dit uit staat en er een standaardcaller is ingesteld, bevatten de callerhistorie en de aantallen programma’s die door die caller zijn geleid, plus programma’s zonder geregistreerde caller (behandeld als uw eigen). Als dit aan staat — of als er geen standaardcaller is ingesteld — wordt elk programma dat de dans bevat bijgehouden.",
+  "settingsGeneralTrackHistoryForAllCallersSubtitle": "Als dit uit staat en er een standaardcaller is ingesteld, bevatten de callerhistorie en de aantallen programma’s die door die caller zijn geleid, plus programma’s zonder geregistreerde caller (behandeld als je eigen). Als dit aan staat — of als er geen standaardcaller is ingesteld — wordt elk programma dat de dans bevat bijgehouden.",
   "@settingsGeneralTrackHistoryForAllCallersSubtitle": {
     "x-sourceSha256": "b07a802d076006a8e3c62ad016048de051cc378c847bff0a8bf97bba3dcf0b02"
   },
@@ -3832,7 +3832,7 @@
   "@backupExportTitle": {
     "x-sourceSha256": "ebeeb052d46e5af724db84aff99c4580f66032c89ad995b2cde60c85d7307359"
   },
-  "backupExportSubtitle": "Sla je hele bibliotheek op in één JSON-bestand dat je veilig kunt bewaren of naar een ander apparaat kunt verplaatsen. Het bevat je dansen, programma’s, eigen velden, dialecten, thema’s en instellingen.",
+  "backupExportSubtitle": "Sla je hele bibliotheek op in één JSON-bestand dat je veilig kunt bewaren of naar een ander apparaat kunt verplaatsen. Het bevat je dansen, programma’s, aangepaste velden, dialecten, thema’s en instellingen.",
   "@backupExportSubtitle": {
     "x-sourceSha256": "388034acb60a133b636de440c94125b571006f0329da82c064bb515397a6a6ec"
   },
@@ -4768,11 +4768,11 @@
   "@collectionFacetCalled": {
     "x-sourceSha256": "3bb8faf30715b01cb7e0fb7cdd033bcbf5912a57f46289bb2090d470b6f3c610"
   },
-  "collectionFacetNotCalled": "Niet gebeld",
+  "collectionFacetNotCalled": "Niet gecalld",
   "@collectionFacetNotCalled": {
     "x-sourceSha256": "606124ade426a3e8c2a0da3680ae9b518934979c772e0e7564630fd46e96e592"
   },
-  "collectionFacetHistoryInert": "Geldt bij Gebeld of Niet gebeld",
+  "collectionFacetHistoryInert": "Geldt bij Gecalld of Niet gecalld",
   "@collectionFacetHistoryInert": {
     "x-sourceSha256": "4f5b3dbbeda62c4bdc66382e9d23713565237140a21ed4bbb6bf72e3765e0842"
   },
@@ -4812,7 +4812,7 @@
   "@collectionFacetWithinAnyTime": {
     "x-sourceSha256": "5e7de49a40c3d7546e1c0e7a514ca92bd4c524553f6f3eadb8b9de6b35909dfe"
   },
-  "collectionFacetWithinNever": "Nooit gebeld",
+  "collectionFacetWithinNever": "Nooit gecalld",
   "@collectionFacetWithinNever": {
     "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
   },
@@ -5264,7 +5264,7 @@
   "@danceFiguresEmpty": {
     "x-sourceSha256": "8f22773e556767be04a5cee8f2df5fe2bafb16d8c8b903018a8a7e8688652b09"
   },
-  "danceFigureBeats": "{beats, plural, =1{1 beat} other{{beats} beats}}",
+  "danceFigureBeats": "{beats, plural, =1{1 tel} other{{beats} tellen}}",
   "@danceFigureBeats": {
     "x-sourceSha256": "b1c2cd5ecb9cd06da41bcdc00cc188ef57533504a89a622f5a0146c65ac22144"
   },
@@ -5844,7 +5844,7 @@
   "@programsSlotsLabel": {
     "x-sourceSha256": "4fd72c06bcff79710b0a5bd292b1f6408ec8cfa357e08566b663e4f14cbfc7f0"
   },
-  "programsSlotsHelper": "Elk slot is één plek in je setlijst: een dans, een notitie of een pauze.",
+  "programsSlotsHelper": "Elk slot is één plaats in je setlijst: een dans, een notitie of een pauze.",
   "@programsSlotsHelper": {
     "x-sourceSha256": "50b32d2e3c87ce90281b3b101b7b3798c9c79e267fbfef2f2837e296fa433f74"
   },
@@ -5859,6 +5859,10 @@
   "programsInsertBreakButton": "Pauze invoegen",
   "@programsInsertBreakButton": {
     "x-sourceSha256": "95c8ab63aad97921a22aa01bbadf09549685e570d8f49b4261cab1c1aaadfa63"
+  },
+  "programsBreakSlotLabel": "Pauze",
+  "@programsBreakSlotLabel": {
+    "x-sourceSha256": "f71081fb0af48ae614362bb396a02f189c24358d014a7daa12940aa6fc2ae29e"
   },
   "programsAddADanceSheetTitle": "Een dans toevoegen",
   "@programsAddADanceSheetTitle": {
@@ -6366,7 +6370,7 @@
   "@programsCreateDanceFromNoteMenu": {
     "x-sourceSha256": "130c7632db6a305f4db35123196b1f1e31db894531359658d03bea133395d2de"
   },
-  "programsCreatedDanceFromNoteAnnounce": "{title} aangemaakt en aan deze plek gekoppeld.",
+  "programsCreatedDanceFromNoteAnnounce": "{title} aangemaakt en aan dit slot gekoppeld.",
   "@programsCreatedDanceFromNoteAnnounce": {
     "x-sourceSha256": "185833d5023bc165f402233bb842bdddfa040302b96dd8692065efbcf62617ea"
   },
@@ -6494,7 +6498,7 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{niet aanwezig} other{aanwezig{collision, select, phrase{, herhaalt in dezelfde frase als een aangrenzende dans} beats{, deelt beats met een aangrenzende dans} other{}}{debut, select, yes{, hier geïntroduceerd} other{}}{first, select, yes{, eerste figuur van de dans} other{}}}}{phrases, select, none{} other{, frase(n): {phrases}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{niet aanwezig} other{aanwezig{collision, select, phrase{, herhaalt in dezelfde frase als een aangrenzende dans} beats{, deelt tellen met een aangrenzende dans} other{}}{debut, select, yes{, hier geïntroduceerd} other{}}{first, select, yes{, eerste figuur van de dans} other{}}}}{phrases, select, none{} other{, frase(n): {phrases}}}",
   "@programsMatrixCellSemantic": {
     "x-sourceSha256": "37e128f48a2b4849bf86f14831698b7ecce8014421f0819ff4c774f258a7f8ac"
   },
@@ -6542,7 +6546,7 @@
   "@programsMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
   },
-  "programsMatrixLegendCollisionBeats": "Deelt beats met aangrenzende dans",
+  "programsMatrixLegendCollisionBeats": "Deelt tellen met aangrenzende dans",
   "@programsMatrixLegendCollisionBeats": {
     "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
@@ -6862,7 +6866,7 @@
   "@performProgression": {
     "x-sourceSha256": "f193d07c37765ecb1de9acb1af52d788851273a68ddd8b3791e4288c5e85ef77"
   },
-  "performFigureSemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progressie} other{}}, {beats, plural, =1{1 beat} other{{beats} beats}}{hasNote, select, yes{, notitie: {note}} other{}}",
+  "performFigureSemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progressie} other{}}, {beats, plural, =1{1 tel} other{{beats} tellen}}{hasNote, select, yes{, notitie: {note}} other{}}",
   "@performFigureSemantic": {
     "x-sourceSha256": "8d80202ff6be06e607cc29eda341e32192b8990564c815166530272d593245a9"
   },
@@ -7110,7 +7114,7 @@
   "@exportSlotAuthorSuffix": {
     "x-sourceSha256": "79ac564bb32e62bcab69cdf18ff4753eae39a6616fe7569f062ab5795c484347"
   },
-  "exportBeatsLabel": "{count, plural, =1{1 beat} other{{count} beats}}",
+  "exportBeatsLabel": "{count, plural, =1{1 tel} other{{count} tellen}}",
   "@exportBeatsLabel": {
     "x-sourceSha256": "cea968646a87fe6d3b7829baf8627aa0f6250dfefffc3750240af12828a26f56"
   },
@@ -7222,7 +7226,7 @@
   "@exportMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
   },
-  "exportMatrixLegendCollisionBeats": "Deelt beats met aangrenzende dans",
+  "exportMatrixLegendCollisionBeats": "Deelt tellen met aangrenzende dans",
   "@exportMatrixLegendCollisionBeats": {
     "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
@@ -8098,15 +8102,15 @@
   "@importIssueGeneric": {
     "x-sourceSha256": "6357b3791a45d47ac5e39ecb5c8237b18e1a0ac000c65da66ae629edcda7bdee"
   },
-  "importIssueProgramEmptySlot": "Een lege plek in een programma is overgeslagen.",
+  "importIssueProgramEmptySlot": "Een leeg slot in een programma is overgeslagen.",
   "@importIssueProgramEmptySlot": {
     "x-sourceSha256": "5c9dbd0ffd0617887accdb063575f029cfe614d2ddc0da7b47718c7ddd421cdd"
   },
-  "importIssueProgramDeletedDance": "Een programma verwees naar een dans die in Caller's Companion is verwijderd; de plek is weggelaten.",
+  "importIssueProgramDeletedDance": "Een programma verwees naar een dans die in Caller's Companion is verwijderd; het slot is weggelaten.",
   "@importIssueProgramDeletedDance": {
     "x-sourceSha256": "85e690af9308604e2c749befa97c49d9911b3da55b90cacd2855403e413f5efa"
   },
-  "importIssueProgramUnresolvedDance": "Een programma verwees naar een dans die niet is geïmporteerd; de plek is als tekstplaatshouder bewaard.",
+  "importIssueProgramUnresolvedDance": "Een programma verwees naar een dans die niet is geïmporteerd; het slot is als tekstplaatshouder bewaard.",
   "@importIssueProgramUnresolvedDance": {
     "x-sourceSha256": "acb7fcbc7626e8a99be9de22ee51116dd292c336c24ec4833044d6f4907b5195"
   },
@@ -8126,11 +8130,11 @@
   "@importIssueArchiveNewerSchema": {
     "x-sourceSha256": "9b86962b90d1d14a52c0efda353106a377827ed244a142001fc923380f1bc902"
   },
-  "importIssueArchiveCustomFieldKeyConflict": "Je aangepaste veld “{label}” heeft in dit bestand een ander type of andere keuzes, dus de waarden uit het bestand komen in plaats daarvan in het veld met de sleutel “{key}”, dat wordt toegevoegd als je het nog niet hebt. Je eigen veld blijft ongewijzigd.",
+  "importIssueArchiveCustomFieldKeyConflict": "Je aangepaste veld “{label}” heeft in dit bestand een ander type of andere keuzes, dus de waarden uit het bestand komen in plaats daarvan in het veld met de sleutel “{key}”, dat wordt toegevoegd als je het nog niet hebt. Je aangepaste veld blijft ongewijzigd.",
   "@importIssueArchiveCustomFieldKeyConflict": {
     "x-sourceSha256": "9564f8cbbc1191daf14b62e22227265143784d621e03cbc394125584cf11b1fc"
   },
-  "importIssueArchiveCustomFieldKeyConflictGeneric": "Een eigen veld in dit bestand kon zijn sleutel niet gebruiken, omdat die al in gebruik is, dus de waarden komen in een veld met een genummerde sleutel.",
+  "importIssueArchiveCustomFieldKeyConflictGeneric": "Een aangepast veld in dit bestand kon zijn sleutel niet gebruiken, omdat die al in gebruik is, dus de waarden komen in een veld met een genummerde sleutel.",
   "@importIssueArchiveCustomFieldKeyConflictGeneric": {
     "x-sourceSha256": "22d76a7fcbfaf3bb7cad78c10331273e36d9607c7f5e31ddb5993ec97dbf6ef4"
   },
@@ -8250,7 +8254,7 @@
   "@importIssueFiguresUnreadable": {
     "x-sourceSha256": "54c870224bfc8a5a9a8b61defb7c1c87458db57287b8c0061bf1b2524bba2c2b"
   },
-  "importIssueBeatsUnreadable": "Een aantal beats kon niet worden gelezen; 0 gebruikt.",
+  "importIssueBeatsUnreadable": "Een aantal tellen kon niet worden gelezen; 0 gebruikt.",
   "@importIssueBeatsUnreadable": {
     "x-sourceSha256": "e0de3c1018f463211f526a6983043b4981125d87afd95fd4d17e4d1cf4686994"
   },
@@ -8766,7 +8770,7 @@
   "@danceEditorPhraseRemove": {
     "x-sourceSha256": "ac53653b0502a2963db64c69011dbd463efc6e80b1d2020418209439d3e33e52"
   },
-  "danceEditorPhraseRowsHelp": "Elke rij is een reeks gelijke frasen: hoeveel het er zijn, de maten in elke frase en de beats in een maat. De fraseopbouw hieronder verandert mee met de rijen.",
+  "danceEditorPhraseRowsHelp": "Elke rij is een reeks gelijke frasen: hoeveel het er zijn, de maten in elke frase en de tellen in een maat. De fraseopbouw hieronder verandert mee met de rijen.",
   "@danceEditorPhraseRowsHelp": {
     "x-sourceSha256": "6f0ab175d6660a4825350727f257f4d9a04f8d9236ec55aaba61f64f41cd7dca"
   },
@@ -8778,7 +8782,7 @@
   "@danceEditorPhraseRowsBarsLabel": {
     "x-sourceSha256": "895f6d494f86d0cea1bc369363139d049887e92231cafacc0a11d56157c3940e"
   },
-  "danceEditorPhraseRowsBeatsLabel": "Beats per maat",
+  "danceEditorPhraseRowsBeatsLabel": "Tellen per maat",
   "@danceEditorPhraseRowsBeatsLabel": {
     "x-sourceSha256": "f9a399427d599a2a2fb742a9c24c04063e09494590e492f5e00fe36775770c5e"
   },
@@ -8798,7 +8802,7 @@
   "@danceEditorPhraseRowsInvalid": {
     "x-sourceSha256": "136099aeff18e01fd168bc79ef22b4d6f416ab4f52bacc44c997852a7e31de66"
   },
-  "danceEditorPhraseRowsSummary": "{labels} · {beats, plural, =1{1 beat} other{{beats} beats}}",
+  "danceEditorPhraseRowsSummary": "{labels} · {beats, plural, =1{1 tel} other{{beats} tellen}}",
   "@danceEditorPhraseRowsSummary": {
     "x-sourceSha256": "20214a3d4f5e9106147b26c337e5e7e79c565f84e9d2fd7add17b4345dbd5627"
   },
@@ -8942,7 +8946,7 @@
   "@settingsWalkthroughSnippetsEmptyTitle": {
     "x-sourceSha256": "2eaca46bb56a9a6e7160dc7c94814016d56ee4b524dfcc989ae6a3c23176a34b"
   },
-  "settingsWalkthroughSnippetsEmptyBody": "Voeg beschrijvingen van doorloopstappen toe terwijl u de figuren van een dans bewerkt.",
+  "settingsWalkthroughSnippetsEmptyBody": "Voeg beschrijvingen van doorloopstappen toe terwijl je de figuren van een dans bewerkt.",
   "@settingsWalkthroughSnippetsEmptyBody": {
     "x-sourceSha256": "3c5ac18eb708b647a15b8448fd0d681ea743f557bf1abb49724a0ce43e6685ee"
   },
@@ -9286,7 +9290,7 @@
   "@danceEditorWarningsTitle": {
     "x-sourceSha256": "0e04cd10f9afd7e546e176b34b56a243d8c741198aa0bfee27d7661a370dc043"
   },
-  "validationPhraseBeatMismatch": "De figuren tellen samen {actual} beats; de fraseopbouw verwacht {expected}.",
+  "validationPhraseBeatMismatch": "De figuren komen samen op {actual} tellen; de fraseopbouw verwacht {expected}.",
   "@validationPhraseBeatMismatch": {
     "x-sourceSha256": "cbcfd5cfa1932d621756cac5a7dd64ad714b041a96c3a293ac1a3833dc29002a"
   },
@@ -9826,7 +9830,7 @@
   "@danceEditorCompoundSemantic": {
     "x-sourceSha256": "24498eb89526ea5fa53aab4ce10493fcb73caadfba10f08eb270271d88f317be"
   },
-  "danceEditorCompoundExpandsTo": "Wordt bij het opslaan van de dans {count, plural, =1{1 figuur} other{{count} figuren}} ({beats, plural, =1{1 beat} other{{beats} beats}}).",
+  "danceEditorCompoundExpandsTo": "Wordt bij het opslaan van de dans {count, plural, =1{1 figuur} other{{count} figuren}} ({beats, plural, =1{1 tel} other{{beats} tellen}}).",
   "@danceEditorCompoundExpandsTo": {
     "x-sourceSha256": "e1e59e23f7602c299e99da09509da61d362a2d51216e964a0fdf7f0d85a6732d"
   },
@@ -9838,7 +9842,7 @@
   "@danceEditorIncompleteFigure": {
     "x-sourceSha256": "a94c6fd28cd88d631dc65171fee6a1ec2665e1d82ac33275a06a7fc64d24b7f3"
   },
-  "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progressie} other{}}{hasMove, select, yes{, {beats, plural, =1{1 beat} other{{beats} beats}}} other{}}{hasNote, select, yes{, notitie: {note}} other{}}. Figuur {position} van {total}.",
+  "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progressie} other{}}{hasMove, select, yes{, {beats, plural, =1{1 tel} other{{beats} tellen}}} other{}}{hasNote, select, yes{, notitie: {note}} other{}}. Figuur {position} van {total}.",
   "@danceEditorFigureSummarySemantic": {
     "x-sourceSha256": "e6e055515213aca43227e08180eedb9332836f9adc9dff767e7e5b0d47d55858"
   },
@@ -10010,7 +10014,7 @@
   "@danceEditorMeanwhileGroupLabel": {
     "x-sourceSha256": "182377025ac57fc5f2a7008a610a8c7a268dda54f8f347f02758ccdc58a73dc1"
   },
-  "danceEditorMeanwhileGroupSemantic": "Gelijktijdige groep, {count, plural, =1{1 gelijktijdige figuur} other{{count} gelijktijdige figuren}}, {beats, plural, =1{1 gedeelde beat} other{{beats} gedeelde beats}}.",
+  "danceEditorMeanwhileGroupSemantic": "Gelijktijdige groep, {count, plural, =1{1 gelijktijdige figuur} other{{count} gelijktijdige figuren}}, {beats, plural, =1{1 gedeelde tel} other{{beats} gedeelde tellen}}.",
   "@danceEditorMeanwhileGroupSemantic": {
     "x-sourceSha256": "1e8c980ae2f65dceccb93859c9320eee887f40cd63dbbaba3c4b0e2490491f28"
   },
@@ -10070,19 +10074,19 @@
   "@danceEditorLingoStylingHelper": {
     "x-sourceSha256": "dad9477c721781411e575d8ab7388d8d97b37402d9399db55fad5096e3c992ca"
   },
-  "danceEditorBeatTotalFreeForm": "{total, plural, =1{Totaal: 1 beat} other{Totaal: {total} beats}}",
+  "danceEditorBeatTotalFreeForm": "{total, plural, =1{Totaal: 1 tel} other{Totaal: {total} tellen}}",
   "@danceEditorBeatTotalFreeForm": {
     "x-sourceSha256": "a1cfbb9bd59bce9b9b0d49d0c2b52224055e648f0c2206584d0ffb345d4b2a88"
   },
-  "danceEditorBeatTotal": "Totaal: {total} / {expected} beats",
+  "danceEditorBeatTotal": "Totaal: {total} / {expected} tellen",
   "@danceEditorBeatTotal": {
     "x-sourceSha256": "0b95fb71ebdb8fee3e19df8074f8e1c1f3ff39f076b782ca97aa6fdfc80a05aa"
   },
-  "danceEditorOverByBeats": "{beats} beats te veel",
+  "danceEditorOverByBeats": "{beats} tellen te veel",
   "@danceEditorOverByBeats": {
     "x-sourceSha256": "fb14b34c042dd89290ea0ad4b9952a7411a97a5a4ffe89784cdd1e61fddf6861"
   },
-  "danceEditorUnderByBeats": "{beats} beats te weinig",
+  "danceEditorUnderByBeats": "{beats} tellen te weinig",
   "@danceEditorUnderByBeats": {
     "x-sourceSha256": "2931d84e5fea1cad70a43acbef80c3039fe87f2242a58ee8a43148bb688e44a7"
   },
@@ -10774,7 +10778,7 @@
   "@ecdMigrationPreviewMoves": {
     "x-sourceSha256": "0f8ff9a408e38cc9f1500e27e949c83c3c8f6963cf8e6b78cb79fb06706a5e29"
   },
-  "ecdMigrationPreviewLines": "{count, plural, =1{1 niet-herkend figuur nu gelezen} other{{count} niet-herkende figuren nu gelezen}}",
+  "ecdMigrationPreviewLines": "{count, plural, =1{1 niet-herkende figuur nu gelezen} other{{count} niet-herkende figuren nu gelezen}}",
   "@ecdMigrationPreviewLines": {
     "x-sourceSha256": "fbe73fbaf73be4a53f71d06e5a43b9a94f8b0ced16824bc4465ca1cc5c54b94f"
   },
@@ -11582,7 +11586,7 @@
   "@dialectEditorMoveWordingInvalid": {
     "x-sourceSha256": "75208996f5a3de732968e35c2a456e07ae6ad7986a9e17efe461441f13108c86"
   },
-  "dialectEditorMoveWordingSaveError": "Los ongeldige sjablonen voor bewegingsformuleringen op voordat u opslaat: {figures}",
+  "dialectEditorMoveWordingSaveError": "Los ongeldige sjablonen voor bewegingsformuleringen op voordat je opslaat: {figures}",
   "@dialectEditorMoveWordingSaveError": {
     "x-sourceSha256": "bda0bd00f9f267ad6105147dd29294ce1122fb9708765a52d6dacd047c496675"
   },
@@ -11706,7 +11710,7 @@
   "@glossaryCustomUnsupportedBody": {
     "x-sourceSha256": "5a1cadea5dfe1d947a05dfeff086782cecfed7a6b18821dfdf454436be77a42e"
   },
-  "glossaryCustomExpandsTo": "Wordt uitgevouwen tot ({beats} beats)",
+  "glossaryCustomExpandsTo": "Wordt uitgevouwen tot ({beats} tellen)",
   "@glossaryCustomExpandsTo": {
     "x-sourceSha256": "1b63b35172b700aae5b91bd0436f54ff21226d2f95f529991816a3f0a7ed23ae"
   },
@@ -12142,7 +12146,7 @@
   "@compoundParamKindNumber": {
     "x-sourceSha256": "12886f9d00055adf24c40579e22d31b2b45f2023f892954ffd5567beb60825f8"
   },
-  "compoundParamKindBeats": "beats",
+  "compoundParamKindBeats": "tellen",
   "@compoundParamKindBeats": {
     "x-sourceSha256": "d5803722f3983afbfa30b24a1ea991d1b2cb78805311b360128269ef495105af"
   },
@@ -12786,7 +12790,7 @@
   "@programTemplateUntitled": {
     "x-sourceSha256": "1be215111c621aa61c875e2465020509380ba44d3e2d8d49dd273ecd57a35478"
   },
-  "programTemplateSlotCount": "{count, plural, =0{Leeg} =1{1 plek} other{{count} plekken}}",
+  "programTemplateSlotCount": "{count, plural, =0{Leeg} =1{1 slot} other{{count} slots}}",
   "@programTemplateSlotCount": {
     "x-sourceSha256": "df0ff3b27ae67a905e56ad963b150ced99e977245f78dc66bce4e845adac2c3f"
   },
@@ -12802,7 +12806,7 @@
   "@programTemplateEditorTitle": {
     "x-sourceSha256": "708c9a5c56a40ed01a39b15ffc68023028d600264f6976715639182a0943f8b6"
   },
-  "programTemplateSlotsHeader": "Plekken",
+  "programTemplateSlotsHeader": "Slots",
   "@programTemplateSlotsHeader": {
     "x-sourceSha256": "4fd72c06bcff79710b0a5bd292b1f6408ec8cfa357e08566b663e4f14cbfc7f0"
   },
@@ -13594,7 +13598,7 @@
   "@repertoirePeriodSince": {
     "x-sourceSha256": "1550794b36af0a945ddc65d95c16fbde42d2df500d5f3a232f5b1138e9b299f1"
   },
-  "repertoireTypeLabel": "Danssoort",
+  "repertoireTypeLabel": "Type",
   "@repertoireTypeLabel": {
     "x-sourceSha256": "2c004974318a3075ebadbd65e39bd0efc9bd6b1eee3f8a9c679d5c669b326ce0"
   },
@@ -13602,39 +13606,39 @@
   "@repertoireTypeAll": {
     "x-sourceSha256": "f10988e79e8d9a49f45a71ecf3f4ebe143a96eb9d83272156ab54101b3777046"
   },
-  "repertoireSummary": "Keer gebeld in deze periode: {calls}. Dansen gebeld: {called} van {total}.",
+  "repertoireSummary": "Keer gecalld in deze periode: {calls}. Dansen gecalld: {called} van {total}.",
   "@repertoireSummary": {
     "x-sourceSha256": "4a7cbbf7c87e3bc46500abc1affb3190fd2f410e54fa5e6c41b9b31665ea822f"
   },
-  "repertoireMostCalledHeader": "Vaakst gebeld",
+  "repertoireMostCalledHeader": "Vaakst gecalld",
   "@repertoireMostCalledHeader": {
     "x-sourceSha256": "f2aff79f46e584591a4f0b1fcd3131e043212b0bbb4ea84d3dae766272a149de"
   },
-  "repertoireLeastCalledHeader": "Minst gebeld (van wat je hebt gebeld)",
+  "repertoireLeastCalledHeader": "Minst gecalld (van wat je hebt gecalld)",
   "@repertoireLeastCalledHeader": {
     "x-sourceSha256": "c842c2a0183d8447f0a70e0c59646aaf2d9d3c8684b451d857353e23329781c8"
   },
-  "repertoireLeastCalledAllShown": "Elke dans die je in deze periode hebt gebeld, staat al onder Vaakst gebeld.",
+  "repertoireLeastCalledAllShown": "Elke dans die je in deze periode hebt gecalld, staat al onder Vaakst gecalld.",
   "@repertoireLeastCalledAllShown": {
     "x-sourceSha256": "5cb02281254a6fab6493c5d267f1c1f8cea8776c7876b01ef0a823e494e82def"
   },
-  "repertoireNoCalls": "Niets gebeld in deze periode.",
+  "repertoireNoCalls": "Niets gecalld in deze periode.",
   "@repertoireNoCalls": {
     "x-sourceSha256": "86745f9130fff2ca0d915327740923a147bd5234bbbf4eb3192173031b0f9858"
   },
-  "repertoireDanceCalls": "{count, plural, =1{één keer gebeld} other{{count} keer gebeld}}",
+  "repertoireDanceCalls": "{count, plural, =1{één keer gecalld} other{{count} keer gecalld}}",
   "@repertoireDanceCalls": {
     "x-sourceSha256": "45189eb3c35920001f632a177ba87dc00a38fabca66625eaf78b54446abb5f8f"
   },
-  "repertoireDanceSemantics": "{title}: {count, plural, =1{één keer gebeld} other{{count} keer gebeld}}",
+  "repertoireDanceSemantics": "{title}: {count, plural, =1{één keer gecalld} other{{count} keer gecalld}}",
   "@repertoireDanceSemantics": {
     "x-sourceSha256": "f5ea6abe5e2415a57e19493b7734fcaf50fe98414349c428ef84e8214cf4d705"
   },
-  "repertoireNeverCalledHeader": "Nooit gebeld",
+  "repertoireNeverCalledHeader": "Nooit gecalld",
   "@repertoireNeverCalledHeader": {
     "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
   },
-  "repertoireNeverCalledLabel": "Nooit gebeld",
+  "repertoireNeverCalledLabel": "Nooit gecalld",
   "@repertoireNeverCalledLabel": {
     "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
   },
@@ -13642,19 +13646,19 @@
   "@repertoireOfDances": {
     "x-sourceSha256": "76615ee1ce72d60b9f878a4576a3b3ab25c37de1a722d0ecd18aea33eb731899"
   },
-  "repertoireNeverCalledSemantics": "Nooit gebeld: {count} van {total} dansen",
+  "repertoireNeverCalledSemantics": "Nooit gecalld: {count} van {total} dansen",
   "@repertoireNeverCalledSemantics": {
     "x-sourceSha256": "8194a4a6d9fb05db1e0551fe07e9158a44c3c7cc32984263a953a5d72a630267"
   },
-  "repertoireNeverCalledDanceSemantics": "{title}: nooit gebeld",
+  "repertoireNeverCalledDanceSemantics": "{title}: nooit gecalld",
   "@repertoireNeverCalledDanceSemantics": {
     "x-sourceSha256": "5bb809f2149949c9ea5bf93daf9e454396da8da208e4cf8c10633fd5172b36c6"
   },
-  "repertoireNotCalledInPeriodLabel": "Niet gebeld in deze periode",
+  "repertoireNotCalledInPeriodLabel": "Niet gecalld in deze periode",
   "@repertoireNotCalledInPeriodLabel": {
     "x-sourceSha256": "42ec0ae23e760c9a9c39f25eb38afcb3acb55ad830325a40247c450600734b78"
   },
-  "repertoireNotCalledInPeriodSemantics": "Niet gebeld in deze periode: {count} van {total} dansen",
+  "repertoireNotCalledInPeriodSemantics": "Niet gecalld in deze periode: {count} van {total} dansen",
   "@repertoireNotCalledInPeriodSemantics": {
     "x-sourceSha256": "b889fd2f0f3ceeaa6ffd2345ee4532176a77216570a8b17879b8f472e80b81d6"
   },
@@ -13666,11 +13670,11 @@
   "@repertoireNoFigures": {
     "x-sourceSha256": "5c7385dadaa29516f1c99a78658d745b5febfea33156da79906bf887323bca0e"
   },
-  "repertoireFigureValue": "in {dances} van {total} dansen ({percent}%) · {calls, plural, =1{1 keer gebeld} other{{calls} keer gebeld}}",
+  "repertoireFigureValue": "in {dances} van {total} dansen ({percent}%) · {calls, plural, =1{1 keer gecalld} other{{calls} keer gecalld}}",
   "@repertoireFigureValue": {
     "x-sourceSha256": "427959c91687de4ae08a3efef81f129115e22eeeb1a98aecc65bb219f34a59f2"
   },
-  "repertoireFigureSemantics": "{move}: in {dances} van {total} dansen, {percent} procent; {calls, plural, =1{1 keer gebeld} other{{calls} keer gebeld}} in deze periode",
+  "repertoireFigureSemantics": "{move}: in {dances} van {total} dansen, {percent} procent; {calls, plural, =1{1 keer gecalld} other{{calls} keer gecalld}} in deze periode",
   "@repertoireFigureSemantics": {
     "x-sourceSha256": "b0911685dfaa28d6fe4fd6587bfa6632fd8c7e7447a82a0db9131880913281d0"
   },
@@ -13682,19 +13686,19 @@
   "@repertoireShowFewer": {
     "x-sourceSha256": "255beb6510e7827d37ec1cd22d080f910888ae00f29374dd9545c8b3d1fce43a"
   },
-  "repertoireAuthorsHeader": "Auteurs die je belt",
+  "repertoireAuthorsHeader": "Auteurs van wie je dansen callt",
   "@repertoireAuthorsHeader": {
     "x-sourceSha256": "03a08a6177689c82fcc0a1cfe404363104f2eb53ccb83e2165947969bb41d94b"
   },
-  "repertoireAuthorsSummary": "{count, plural, =0{Geen auteur gebeld in deze periode.} =1{1 auteur gebeld in deze periode.} other{{count} auteurs gebeld in deze periode.}}",
+  "repertoireAuthorsSummary": "{count, plural, =0{Geen auteur gecalld in deze periode.} =1{1 auteur gecalld in deze periode.} other{{count} auteurs gecalld in deze periode.}}",
   "@repertoireAuthorsSummary": {
     "x-sourceSha256": "d2660bfb610f85406c90d761e3f01e3e6e8b58d9eae6849930f84759364cbfd0"
   },
-  "repertoireShareValue": "{calls, plural, =1{1 keer gebeld} other{{calls} keer gebeld}} ({percent}%)",
+  "repertoireShareValue": "{calls, plural, =1{1 keer gecalld} other{{calls} keer gecalld}} ({percent}%)",
   "@repertoireShareValue": {
     "x-sourceSha256": "b61b0042e986ce34f28b386ed7868e08cee4a26c6bac14c0809b05c8a63dbfcb"
   },
-  "repertoireShareSemantics": "{label}: {calls, plural, =1{1 keer gebeld} other{{calls} keer gebeld}}, {percent} procent van wat in deze periode is gebeld",
+  "repertoireShareSemantics": "{label}: {calls, plural, =1{1 keer gecalld} other{{calls} keer gecalld}}, {percent} procent van wat in deze periode is gecalld",
   "@repertoireShareSemantics": {
     "x-sourceSha256": "044bc4d54d2dcc9d96418d86f9ab95849c79e5edf4710e7c4e8f1da8db2de573"
   },
@@ -13706,7 +13710,7 @@
   "@repertoireVenuesHeader": {
     "x-sourceSha256": "9b0640ebefe0b4e62b8d63d8948a9d88593e9cea25c1fd35b25a6e6b82ea841f"
   },
-  "repertoireNoRepeats": "Geen dans is in deze periode meer dan één keer op dezelfde locatie gebeld.",
+  "repertoireNoRepeats": "Geen dans is in deze periode meer dan één keer op dezelfde locatie gecalld.",
   "@repertoireNoRepeats": {
     "x-sourceSha256": "1ee83c14c00d9965edff9c7d2113aeaf23c7269f09a54b529b010feb074062cd"
   },
@@ -13718,7 +13722,7 @@
   "@repertoireVenueRepeats": {
     "x-sourceSha256": "826159fbea4aac34da9274535e7f110d30128adbf08c0a99f39adf72d185c3cf"
   },
-  "repertoireVenueSemantics": "{venue}: {count, plural, =1{1 dans meer dan één keer gebeld} other{{count} dansen meer dan één keer gebeld}}",
+  "repertoireVenueSemantics": "{venue}: {count, plural, =1{1 dans meer dan één keer gecalld} other{{count} dansen meer dan één keer gecalld}}",
   "@repertoireVenueSemantics": {
     "x-sourceSha256": "6ac25c6d56b7afe142098842bf969c16f8b147d1d7c2172c1dd1e492c9d467f2"
   },
@@ -13730,7 +13734,7 @@
   "@settingsExperimentalShowRepertoireTitle": {
     "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
   },
-  "settingsExperimentalShowRepertoireSubtitle": "Voegt Repertoire toe aan het menu Meer acties van de Collectie: je vaakst en minst gebelde dansen, wat je nooit hebt gebeld, hoe vaak figuren voorkomen, auteurs, formaties en herhalingen per locatie.",
+  "settingsExperimentalShowRepertoireSubtitle": "Voegt Repertoire toe aan het menu Meer acties van de Collectie: je vaakst en minst gecallde dansen, wat je nooit hebt gecalld, hoe vaak figuren voorkomen, auteurs, formaties en herhalingen per locatie.",
   "@settingsExperimentalShowRepertoireSubtitle": {
     "x-sourceSha256": "f537bb665c51db4ea2f7bebe359ced80907a25a71ab9fee34cf7c48159b6e946"
   },
@@ -13842,7 +13846,7 @@
   "@importCsvTargetPhrase": {
     "x-sourceSha256": "ccde59a8941c6dda4db79f6be209702d4b154bfd4b38b9161fd87a905861a101"
   },
-  "importCsvTargetNewField": "Nieuw eigen veld ({type})",
+  "importCsvTargetNewField": "Nieuw aangepast veld ({type})",
   "@importCsvTargetNewField": {
     "x-sourceSha256": "569155455b946e4dc1eba8e3f5d45cb8667f7bcd2e1429545770340d08f3296d"
   },
@@ -14074,7 +14078,7 @@
   "@savedSearchNameLabel": {
     "x-sourceSha256": "dcd1d5223f73b3a965c07e3ff5dbee3eedcfedb806686a05b9b3868a2c3d6d50"
   },
-  "savedSearchWindowNotCalled": "{count, plural, =1{Niet gebeld in de afgelopen maand} other{Niet gebeld in de afgelopen {count} maanden}}",
+  "savedSearchWindowNotCalled": "{count, plural, =1{Niet gecalld in de afgelopen maand} other{Niet gecalld in de afgelopen {count} maanden}}",
   "@savedSearchWindowNotCalled": {
     "x-sourceSha256": "807c9cf19ca86d72282c54d666d7eac4617b1f66140020d7308c0b69c635a71c"
   },
@@ -14526,7 +14530,7 @@
   "@programsSlotRuleMarker": {
     "x-sourceSha256": "5e084c9ecc80d9c39352fd4696a86c080f5c54ef225f1fcfd1ad74b08084160a"
   },
-  "programsSlotRuleMarkerAlternate": "Overtreedt een regel als hij wordt gecald",
+  "programsSlotRuleMarkerAlternate": "Overtreedt een regel als hij wordt gecalld",
   "@programsSlotRuleMarkerAlternate": {
     "x-sourceSha256": "1bd6c3d37c39df03ca7add4c643745fdfa9da22bf9ac801a12822ebf5bf593cc"
   },
@@ -14534,7 +14538,7 @@
   "@programsSlotRuleMarkerSemantic": {
     "x-sourceSha256": "92662a4a9d4482c7c42d3ef81c41bb3f59ceb60a37e6096c5334df08584b56d7"
   },
-  "programsSlotRuleMarkerAlternateSemantic": "{count, plural, =1{Overtreedt de regel als hij wordt gecald: {rules}} other{Overtreedt {count} regels als hij wordt gecald: {rules}}}",
+  "programsSlotRuleMarkerAlternateSemantic": "{count, plural, =1{Overtreedt de regel als hij wordt gecalld: {rules}} other{Overtreedt {count} regels als hij wordt gecalld: {rules}}}",
   "@programsSlotRuleMarkerAlternateSemantic": {
     "x-sourceSha256": "255b3c7c450d5eaf9d96688258f0e69616c5a0cf9f12d3edb5ef7093f94f4909"
   },
@@ -14554,11 +14558,11 @@
   "@programTemplateRulesNone": {
     "x-sourceSha256": "dc937b59892604f5a86ac96936cd7ff09e25f18ae6b758e8014a24c7fa039e91"
   },
-  "programTemplateDuplicateSearchGone": "Dupliceren is niet gelukt: de opgeslagen zoekopdracht van de plekregel “{label}” is verwijderd. Bewerk of verwijder die regel en probeer het opnieuw.",
+  "programTemplateDuplicateSearchGone": "Dupliceren is niet gelukt: de opgeslagen zoekopdracht van de slotregel “{label}” is verwijderd. Bewerk of verwijder die regel en probeer het opnieuw.",
   "@programTemplateDuplicateSearchGone": {
     "x-sourceSha256": "2b6e7b2f1c72734b0fb1bf1fa87d54326315dd009a415ae00a229c1affcb0b25"
   },
-  "programTemplateSlotRuleNotSavedSearchGone": "Die opgeslagen zoekopdracht is net verwijderd, dus de plekregel is niet opgeslagen.",
+  "programTemplateSlotRuleNotSavedSearchGone": "Die opgeslagen zoekopdracht is net verwijderd, dus de slotregel is niet opgeslagen.",
   "@programTemplateSlotRuleNotSavedSearchGone": {
     "x-sourceSha256": "6688d691e5716697612548cfe5d8de2887a3591418f7183f21ad7828ed53a456"
   },
@@ -14614,11 +14618,11 @@
   "@danceEditorSaveNeedsFigureValues": {
     "x-sourceSha256": "899a2bb2764967487b319de39f17f242eb5d834d40066036fca864e6461c7e90"
   },
-  "programTemplateAddSlotRule": "Plekregel toevoegen",
+  "programTemplateAddSlotRule": "Slotregel toevoegen",
   "@programTemplateAddSlotRule": {
     "x-sourceSha256": "271cf5d437fa079717c43d95e491024ecb32f29091b5d0071b156726b9e92f91"
   },
-  "programTemplateSlotRuleBadge": "Plekregel",
+  "programTemplateSlotRuleBadge": "Slotregel",
   "@programTemplateSlotRuleBadge": {
     "x-sourceSha256": "d3c802c982976b306a8676af4f5bc4811ecfbe9275f29e1ec1bab7a826d2f751"
   },
@@ -14630,7 +14634,7 @@
   "@programTemplateSlotRuleSearchGone": {
     "x-sourceSha256": "1f35b0852f51aa2a31e190d22496980fd15f7d64f7475bee61c2adec35264436"
   },
-  "programTemplateSlotRuleDialogTitle": "Plekregel toevoegen",
+  "programTemplateSlotRuleDialogTitle": "Slotregel toevoegen",
   "@programTemplateSlotRuleDialogTitle": {
     "x-sourceSha256": "271cf5d437fa079717c43d95e491024ecb32f29091b5d0071b156726b9e92f91"
   },
@@ -14650,7 +14654,7 @@
   "@programTemplateSlotRuleSearch": {
     "x-sourceSha256": "b0e17e59d9f6e5bc3e78c1a3e9b9d40c3238a69046c0726a97282e9e03a14703"
   },
-  "programTemplateSlotRuleNoSearches": "Een plekregel gebruikt een opgeslagen zoekopdracht. Sla eerst een zoekopdracht op in Collectie en kies die dan hier.",
+  "programTemplateSlotRuleNoSearches": "Een slotregel gebruikt een opgeslagen zoekopdracht. Sla eerst een zoekopdracht op in Collectie en kies die dan hier.",
   "@programTemplateSlotRuleNoSearches": {
     "x-sourceSha256": "593b11555624c9a3811478ab0af89b90ff566223d40fb4c0316632f47629bd61"
   },
@@ -14678,7 +14682,7 @@
   "@programsFillSearchUnresolvable": {
     "x-sourceSha256": "1e2220e52ab277618cea27a58361450b72bb87b18d1a44ec5186db48eea9a565"
   },
-  "savedSearchUsedBySlotRule": "De plekregel \"{rule}\" in het sjabloon {template}",
+  "savedSearchUsedBySlotRule": "De slotregel \"{rule}\" in het sjabloon {template}",
   "@savedSearchUsedBySlotRule": {
     "x-sourceSha256": "f6abcf8a824f0c6964fb5e3090afcdddefa07ab6e162a7585f87f491c21b8d47"
   },
@@ -14686,11 +14690,11 @@
   "@programTemplateSlotRuleSearchUnreadable": {
     "x-sourceSha256": "87719e1e721958247eb5fe51c7cf2ad911163c3c04262db39ee0daee11e71814"
   },
-  "programTemplateSlotRuleEditTitle": "Plekregel bewerken",
+  "programTemplateSlotRuleEditTitle": "Slotregel bewerken",
   "@programTemplateSlotRuleEditTitle": {
     "x-sourceSha256": "35c30e10ebe5cac90c10fca41bd916f0fcc6a4fa7cfdd58ddc485bb65f902421"
   },
-  "programTemplateSlotRuleLabelBreak": "\"Break\" markeert een pauze in het programma, dus een plekregel kan het niet als label gebruiken.",
+  "programTemplateSlotRuleLabelBreak": "\"Break\" markeert een pauze in het programma, dus een slotregel kan het niet als label gebruiken.",
   "@programTemplateSlotRuleLabelBreak": {
     "x-sourceSha256": "16e76380d1c64fee5f8228fc7f778ef0d4a2f3c4b3e214a56f7c1a83ae1467bd"
   },

@@ -8920,6 +8920,12 @@ abstract class AppLocalizations {
   /// **'Insert break'**
   String get programsInsertBreakButton;
 
+  /// What a break slot reads as wherever a person sees it: the program builder, Perform, the template editor and printed or shared set lists. The stored word stays the English token 'Break' in the database, backups, sync and data exports; only this label is translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Break'**
+  String get programsBreakSlotLabel;
+
   /// Title of the bottom sheet for picking a dance to add to the program.
   ///
   /// In en, this message translates to:

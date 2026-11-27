@@ -5829,6 +5829,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsInsertBreakButton => 'Indsæt pause';
 
   @override
+  String get programsBreakSlotLabel => 'Pause';
+
+  @override
   String get programsAddADanceSheetTitle => 'Tilføj en dans';
 
   @override

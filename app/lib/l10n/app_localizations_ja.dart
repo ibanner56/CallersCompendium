@@ -5573,6 +5573,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsInsertBreakButton => 'ブレイクを挿入';
 
   @override
+  String get programsBreakSlotLabel => 'ブレイク';
+
+  @override
   String get programsAddADanceSheetTitle => 'ダンスを追加';
 
   @override

@@ -5789,6 +5789,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsInsertBreakButton => 'Insert break';
 
   @override
+  String get programsBreakSlotLabel => 'Break';
+
+  @override
   String get programsAddADanceSheetTitle => 'Add a dance';
 
   @override

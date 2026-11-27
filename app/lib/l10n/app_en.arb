@@ -7583,6 +7583,10 @@
   "@programsInsertBreakButton": {
     "description": "Button that inserts a break slot into the program."
   },
+  "programsBreakSlotLabel": "Break",
+  "@programsBreakSlotLabel": {
+    "description": "What a break slot reads as wherever a person sees it: the program builder, Perform, the template editor and printed or shared set lists. The stored word stays the English token 'Break' in the database, backups, sync and data exports; only this label is translated."
+  },
   "programsAddADanceSheetTitle": "Add a dance",
   "@programsAddADanceSheetTitle": {
     "description": "Title of the bottom sheet for picking a dance to add to the program."

@@ -32,7 +32,7 @@
   "@settingsDefaultsModifierTitle": {
     "x-sourceSha256": "e953fe49deb48c17949122234454ce594d54e7211a133235929ad5e15d76f5e7"
   },
-  "settingsDefaultsModifierSubtitle": "Die Figuren, die beim Hinzufügen eines Modifier-Containers eingefügt werden. Leeren Sie die Einstellung für zwei leere Figuren; eine konfigurierte Figur erhält eine leere Begleitfigur.",
+  "settingsDefaultsModifierSubtitle": "Die Figuren, die beim Hinzufügen eines Modifier-Containers eingefügt werden. Leere die Einstellung für zwei leere Figuren; eine konfigurierte Figur erhält eine leere Begleitfigur.",
   "@settingsDefaultsModifierSubtitle": {
     "x-sourceSha256": "59243c9062bcdd632ba22b74111ef1096a94ab93de5d7ad21889567dca460763"
   },
@@ -220,7 +220,7 @@
   "@migrationBelowFloorHeadline": {
     "x-sourceSha256": "1d2b566481c81781760f0547504ebc01146c2d99b8a81830b4cafc02e2be4eb6"
   },
-  "migrationBelowFloorBody": "Ihre Daten können wiederhergestellt werden. Installieren Sie {bridgeTag}, öffnen Sie die App einmal, damit sie Ihre Daten aktualisiert, und installieren Sie dann diese Version erneut.\n\nWenn Sie lieber neu starten möchten, nutzen Sie die Optionen unten — Ihre aktuellen Daten gehen dabei verloren.",
+  "migrationBelowFloorBody": "Deine Daten können wiederhergestellt werden. Installiere {bridgeTag}, öffne die App einmal, damit sie deine Daten aktualisiert, und installiere dann diese Version erneut.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.",
   "@migrationBelowFloorBody": {
     "x-sourceSha256": "6855c6b21e03dea3850d71a05c79c42f710923c44dfb9f02f392e81939616c9d"
   },
@@ -260,7 +260,7 @@
   "@migrationBelowFloorResetConfirmTitle": {
     "x-sourceSha256": "2f7a735e115f11330333129d2c453d179dcbc181796146d3f05cc8fa4b1ee647"
   },
-  "migrationBelowFloorResetConfirmBody": "Eine Sicherung wurde gespeichert. Das Zurücksetzen ersetzt Ihre aktuellen Daten durch eine neue, leere Datenbank.",
+  "migrationBelowFloorResetConfirmBody": "Eine Sicherung wurde gespeichert. Das Zurücksetzen ersetzt deine aktuellen Daten durch eine neue, leere Datenbank.",
   "@migrationBelowFloorResetConfirmBody": {
     "x-sourceSha256": "380245670b11bff5a6dc169f52e1b22fda1a6cdc5ecc8efd7c69be982cd57f43"
   },
@@ -292,19 +292,19 @@
   "@confirmDeleteTitle": {
     "x-sourceSha256": "18b77e44e6898151b7172a74c3c5a4753a684f1e7bedc2cc22de452bd60d1480"
   },
-  "confirmDeleteBody": "„{itemLabel}“ wird gelöscht. Sie können dies rückgängig machen.",
+  "confirmDeleteBody": "„{itemLabel}“ wird gelöscht. Du kannst dies rückgängig machen.",
   "@confirmDeleteBody": {
     "x-sourceSha256": "1982c62c17d7cede6a6d990e3bdd12866764df6b625654975ff5e3747d9cf404"
   },
-  "confirmDeleteDancesBody": "{count, plural, =1{1 Tanz wird gelöscht. Sie können dies rückgängig machen.} other{{count} Tänze werden gelöscht. Sie können dies rückgängig machen.}}",
+  "confirmDeleteDancesBody": "{count, plural, =1{1 Tanz wird gelöscht. Du kannst dies rückgängig machen.} other{{count} Tänze werden gelöscht. Du kannst dies rückgängig machen.}}",
   "@confirmDeleteDancesBody": {
     "x-sourceSha256": "5bf4789578375243769bbeaa1a924d2dfe8584634cac8e15d22e0a36e5aa0519"
   },
-  "confirmDeleteDancesNotShownBody": "{count, plural, =1{1 Tanz wird gelöscht. Ihre Suche blendet ihn aus. Sie können dies rückgängig machen.} other{{count} Tänze werden gelöscht, davon {notShown} durch Ihre Suche ausgeblendet. Sie können dies rückgängig machen.}}",
+  "confirmDeleteDancesNotShownBody": "{count, plural, =1{1 Tanz wird gelöscht. Deine Suche blendet ihn aus. Du kannst dies rückgängig machen.} other{{count} Tänze werden gelöscht, davon {notShown} durch deine Suche ausgeblendet. Du kannst dies rückgängig machen.}}",
   "@confirmDeleteDancesNotShownBody": {
     "x-sourceSha256": "5eec5a5f7dd5f0845c6736bb763c8017983643cfaf238442db0a9c103f98044f"
   },
-  "confirmDeleteProgramHistoryBody": "„{itemLabel}“ wird gelöscht. {count, plural, =1{1 Tanz verliert dieses Programm aus seinem Calling-Verlauf.} other{{count} Tänze verlieren dieses Programm aus ihrem Calling-Verlauf.}} Sie können dies rückgängig machen.",
+  "confirmDeleteProgramHistoryBody": "„{itemLabel}“ wird gelöscht. {count, plural, =1{1 Tanz verliert dieses Programm aus seinem Calling-Verlauf.} other{{count} Tänze verlieren dieses Programm aus ihrem Calling-Verlauf.}} Du kannst dies rückgängig machen.",
   "@confirmDeleteProgramHistoryBody": {
     "x-sourceSha256": "30fad0b16608ed5989e0126025b129fb748e6a345ffb2fa0fff3849c477de3d8"
   },
@@ -1676,7 +1676,7 @@
   "@settingsAppLanguageTitle": {
     "x-sourceSha256": "b8352b44a588721c19f491395bd2841fe6f32d25633be40b7a7e0d7d482726d5"
   },
-  "settingsAppLanguageSubtitle": "Wählen Sie die Sprache der App-Oberfläche.",
+  "settingsAppLanguageSubtitle": "Wähle die Sprache der App-Oberfläche.",
   "@settingsAppLanguageSubtitle": {
     "x-sourceSha256": "de31c0895fc03de63c9afcbd80770a686778ecb67d57b074fe93dd02497ae51f"
   },
@@ -1688,7 +1688,7 @@
   "@settingsAboutUserGuideTitle": {
     "x-sourceSha256": "86a2a9ba70bc0260ff9c22d7613e8370450e1b41177832912a82e2c33ea43301"
   },
-  "settingsAboutUserGuideSubtitle": "Lesen Sie die integrierten Anleitungen – Erste Schritte, Dialekte, Importe und mehr. Funktioniert offline.",
+  "settingsAboutUserGuideSubtitle": "Lies die integrierten Anleitungen – Erste Schritte, Dialekte, Importe und mehr. Funktioniert offline.",
   "@settingsAboutUserGuideSubtitle": {
     "x-sourceSha256": "78a7528a17a9e76a0bf0862f68cf76f56bb97560568ab172afb67240b4ccbbae"
   },
@@ -1696,7 +1696,7 @@
   "@settingsAboutLicenseHeader": {
     "x-sourceSha256": "c011d6097bfbc8e936280addcf2e3e7d06ea2223ffd596973191b800a7035c32"
   },
-  "settingsAboutLicenseBody": "Caller's Compendium ist freie Software, lizenziert unter der GNU Affero General Public License, Version 3 (AGPL-3.0-only). Sie dürfen es unter dieser Lizenz frei verwenden, studieren, teilen und modifizieren. Da die AGPL es vorschreibt, wird der vollständige entsprechende Quellcode jedem angeboten, der die App verwendet.",
+  "settingsAboutLicenseBody": "Caller's Compendium ist freie Software, lizenziert unter der GNU Affero General Public License, Version 3 (AGPL-3.0-only). Du darfst es unter dieser Lizenz frei verwenden, studieren, teilen und modifizieren. Da die AGPL es vorschreibt, wird der vollständige entsprechende Quellcode jedem angeboten, der die App verwendet.",
   "@settingsAboutLicenseBody": {
     "x-sourceSha256": "9fa6164da3b1321e88eef455f315af0b68837a3956b0fb7372dc8425399f0317"
   },
@@ -1776,7 +1776,7 @@
   "@settingsUpdatesCheckNowTitle": {
     "x-sourceSha256": "f26f3275e735bdf6268532ca7cbea3887c9adad21d8df74e84b2bc7791475c0d"
   },
-  "settingsUpdatesStatusIdle": "Sie verwenden Version {version}.",
+  "settingsUpdatesStatusIdle": "Du verwendest Version {version}.",
   "@settingsUpdatesStatusIdle": {
     "x-sourceSha256": "67bd8612dce7947e65b7d3909268a7c8e531cdb4a69fd77950d74e967125f7ee"
   },
@@ -1784,11 +1784,11 @@
   "@settingsUpdatesStatusChecking": {
     "x-sourceSha256": "ec963ffc911b840134fc738b41a8bb0493489c402a4a761efd36c16dea7d984b"
   },
-  "settingsUpdatesStatusNoUpdate": "Kein Update gefunden. Sie verwenden Version {version}.",
+  "settingsUpdatesStatusNoUpdate": "Kein Update gefunden. Du verwendest Version {version}.",
   "@settingsUpdatesStatusNoUpdate": {
     "x-sourceSha256": "2e9757f1fa4493e49072e28ddaa942cd7f19700bddac93e8e4455bf517eeb743"
   },
-  "settingsUpdatesStatusCouldNotCheck": "Die Suche nach Updates war gerade nicht möglich. Sie verwenden Version {version}.",
+  "settingsUpdatesStatusCouldNotCheck": "Die Suche nach Updates war gerade nicht möglich. Du verwendest Version {version}.",
   "@settingsUpdatesStatusCouldNotCheck": {
     "x-sourceSha256": "c48a2169576267eccc74760ea9cd1555f18e83690ef1e5b2024c6dc179250c68"
   },
@@ -1796,7 +1796,7 @@
   "@settingsUpdatesStatusNewerFormat": {
     "x-sourceSha256": "bb2639b21578780a6e05295a5e4cc63e255d0652c55f34d9f2426b34d4e66d4a"
   },
-  "settingsUpdatesStatusAvailable": "Version {version} ist verfügbar. Sehen Sie das Banner für weitere Details.",
+  "settingsUpdatesStatusAvailable": "Version {version} ist verfügbar. Sieh dir das Banner für weitere Details an.",
   "@settingsUpdatesStatusAvailable": {
     "x-sourceSha256": "5d1e28c66662c008396804936f693e48053546929db2a1e30cd27e3f8e725ac3"
   },
@@ -1828,7 +1828,7 @@
   "@settingsUpdatesAutoStoreSubtitle": {
     "x-sourceSha256": "3a7d703804b7f49cf78065166a77bb567810a90345b58a283ded6683be7986b0"
   },
-  "settingsUpdatesPrivacyNote": "Die Update-Prüfung lädt über HTTPS nur eine kleine Versionsdatei herunter – es werden keinerlei Daten über Sie, Ihr Gerät oder Ihre Nutzung übertragen. Es wird nichts automatisch heruntergeladen oder installiert: Sie entscheiden, wann ein Update heruntergeladen wird, es wird vor dem Öffnen verifiziert, und Ihr Systeminstallationsprogramm schließt die Installation ab.",
+  "settingsUpdatesPrivacyNote": "Die Update-Prüfung lädt über HTTPS nur eine kleine Versionsdatei herunter – es werden keinerlei Daten über dich, dein Gerät oder deine Nutzung übertragen. Es wird nichts automatisch heruntergeladen oder installiert: du entscheidest, wann ein Update heruntergeladen wird, es wird vor dem Öffnen verifiziert, und dein Systeminstallationsprogramm schließt die Installation ab.",
   "@settingsUpdatesPrivacyNote": {
     "x-sourceSha256": "c8815fc787434dbbc8184498535e50532203e8bebe25e8ea4febae05cf99aafb"
   },
@@ -1856,7 +1856,7 @@
   "@settingsUpdatesHandoffTitle": {
     "x-sourceSha256": "ef9d769cb3fd0c21736dc4167ec2063e8e67868117bcbff1c4018bb4c66f3cb2"
   },
-  "settingsUpdatesHandoffSubtitle": "Das verifizierte Update wird an Ihr System übergeben…",
+  "settingsUpdatesHandoffSubtitle": "Das verifizierte Update wird an dein System übergeben…",
   "@settingsUpdatesHandoffSubtitle": {
     "x-sourceSha256": "7de0164c39b5cd107042edf39be90343c9c3c5df1085440eea265f2212ff563c"
   },
@@ -1864,11 +1864,11 @@
   "@settingsUpdatesCompletedTitle": {
     "x-sourceSha256": "d4b9c87fa75dc0055af157709cb89ec7c974d0d7a173d23b2328d376bef126df"
   },
-  "settingsUpdatesCompletedSubtitle": "Folgen Sie den Anweisungen Ihres Systeminstallationsprogramms, um die Aktualisierung abzuschließen.",
+  "settingsUpdatesCompletedSubtitle": "Folge den Anweisungen deines Systeminstallationsprogramms, um die Aktualisierung abzuschließen.",
   "@settingsUpdatesCompletedSubtitle": {
     "x-sourceSha256": "69204c06f5c560809547d4862cd5a9723a584cda50b3011cb52fba9e06eec356"
   },
-  "settingsUpdatesCompletedSubtitleRevealed": "Verifiziert und im Dateimanager angezeigt – führen Sie das Installationsprogramm aus, um die Aktualisierung abzuschließen.",
+  "settingsUpdatesCompletedSubtitleRevealed": "Verifiziert und im Dateimanager angezeigt – führe das Installationsprogramm aus, um die Aktualisierung abzuschließen.",
   "@settingsUpdatesCompletedSubtitleRevealed": {
     "x-sourceSha256": "952d932120ca0b26a5aa5bcecb8341f972d6503efcae02b96aa38ecfb1103d41"
   },
@@ -1876,11 +1876,11 @@
   "@settingsUpdatesMacosReadyTitle": {
     "x-sourceSha256": "853c6a3cc7ff193c1f6ace227245030ed64f215f93d38c2291562649d3f1a6a7"
   },
-  "settingsUpdatesMacosReadySubtitle": "Ihr Update ist bereit. Binden Sie das Disk-Image ein und schließen Sie die App, damit Sie sie im Ordner „Programme“ ersetzen können.",
+  "settingsUpdatesMacosReadySubtitle": "Dein Update ist bereit. Binde das Disk-Image ein und schließe die App, damit du sie im Ordner „Programme“ ersetzen kannst.",
   "@settingsUpdatesMacosReadySubtitle": {
     "x-sourceSha256": "005d5b6d4026d34cd4bb0a4ede76c2fd391bd3598b5fcfd2b21103f543100223"
   },
-  "settingsUpdatesStoreTitle": "Updates kommen aus Ihrem App-Store",
+  "settingsUpdatesStoreTitle": "Updates kommen aus deinem App-Store",
   "@settingsUpdatesStoreTitle": {
     "x-sourceSha256": "53e9be4c9dadaca5e7677a817a615dd6d698146fe548efd09d346ebfa4afc5ad"
   },
@@ -1892,7 +1892,7 @@
   "@settingsUpdatesPortableTitle": {
     "x-sourceSha256": "47aa3322aff392868cd8336d0caa2bcf41e7f1bc6d13b0ece461f5408f4c00ae"
   },
-  "settingsUpdatesPortableSubtitle": "Diese Kopie läuft aus einem entpackten Archiv, daher kann die App das Update nicht für Sie installieren. Laden Sie das neue zip oder tar.gz vom Release herunter und entpacken Sie es.",
+  "settingsUpdatesPortableSubtitle": "Diese Kopie läuft aus einem entpackten Archiv, daher kann die App das Update nicht für dich installieren. Lade das neue zip oder tar.gz vom Release herunter und entpacke es.",
   "@settingsUpdatesPortableSubtitle": {
     "x-sourceSha256": "e81b7be2d5f5dea10b985580086853594ffb5da78c8fbaeb9ffc55c926863fb7"
   },
@@ -2024,7 +2024,7 @@
   "@themeScreenClearSearchTooltip": {
     "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
   },
-  "themeScreenNoMatches": "Keine Designs entsprechen Ihrer Suche.",
+  "themeScreenNoMatches": "Keine Designs entsprechen deiner Suche.",
   "@themeScreenNoMatches": {
     "x-sourceSha256": "32c5f0cd590d2ee36063a7db9d610bcd10d3236c04877c33ae755d8ff1235695"
   },
@@ -2492,7 +2492,7 @@
   "@settingsAppearanceColourDanceTitle": {
     "x-sourceSha256": "a3cfa97e6d2eb429ec709302b29e9cbe9a6f54d1c2682bf293ebe2f4393a12ee"
   },
-  "settingsAppearanceColourDanceSubtitle": "Eine spielerische Überraschung: Wenn Sie einen Tanz öffnen, dessen Titel einen Farbnamen enthält – wie Baby Rose oder Blue Boy –, wird seine Ansicht in dieser Farbe getönt. Standardmäßig deaktiviert, und es weicht zurück, wenn ein Hochkontrast-Design aktiv ist, damit die Lesbarkeit immer gewährleistet bleibt.",
+  "settingsAppearanceColourDanceSubtitle": "Eine spielerische Überraschung: Wenn du einen Tanz öffnest, dessen Titel einen Farbnamen enthält – wie Baby Rose oder Blue Boy –, wird seine Ansicht in dieser Farbe getönt. Standardmäßig deaktiviert, und es weicht zurück, wenn ein Hochkontrast-Design aktiv ist, damit die Lesbarkeit immer gewährleistet bleibt.",
   "@settingsAppearanceColourDanceSubtitle": {
     "x-sourceSha256": "77705ddecab35b76d2ffd219af0973aa4276877a088bcda32dc90131e2eb6482"
   },
@@ -2640,7 +2640,7 @@
   "@settingsDefaultsCanonicalTitle": {
     "x-sourceSha256": "befaeb6d65d4ce394b461aa5bb7f03f2090f47c63c139de5874d0180529e0886"
   },
-  "settingsDefaultsCanonicalSubtitle": "Wenn Kanonischer Figurentext aktiviert ist, wird ein Tanz mit kanonischen Rollen- und Bewegungsnamen statt Ihrem aktiven Dialekt geöffnet. Wenn es deaktiviert ist, werden Details in Ihrem aktiven Dialekt geöffnet und diese Einstellung bleibt erhalten.",
+  "settingsDefaultsCanonicalSubtitle": "Wenn Kanonischer Figurentext aktiviert ist, wird ein Tanz mit kanonischen Rollen- und Bewegungsnamen statt deinem aktiven Dialekt geöffnet. Wenn es deaktiviert ist, werden Details in deinem aktiven Dialekt geöffnet und diese Einstellung bleibt erhalten.",
   "@settingsDefaultsCanonicalSubtitle": {
     "x-sourceSha256": "9cb58d4d250e5cdbed4498e9ce089565a361d376f60a50e4c943fb6dad7fb30a"
   },
@@ -2648,7 +2648,7 @@
   "@settingsDefaultsCollectionCardHeader": {
     "x-sourceSha256": "0360d68fefdd2a1560b644ce130d12e2da0b812a606418620013b5ab566d9a3c"
   },
-  "settingsDefaultsCollectionCardSubtitle": "Wählen Sie aus, welche Details in jeder Tanzzeile erscheinen. Standardmäßig werden alle Felder angezeigt.",
+  "settingsDefaultsCollectionCardSubtitle": "Wähle aus, welche Details in jeder Tanzzeile erscheinen. Standardmäßig werden alle Felder angezeigt.",
   "@settingsDefaultsCollectionCardSubtitle": {
     "x-sourceSha256": "c136d8381e6bd1fccc8a3442907f30a208d678a2b227df7a3d85fbd1a961e10d"
   },
@@ -2656,7 +2656,7 @@
   "@settingsDefaultsCollectionCardAuthors": {
     "x-sourceSha256": "2c00c9aaa72c717ad6d901a09c4d698a68b2e9740be3769e0af7d6bd85d72d5d"
   },
-  "settingsDefaultsCollectionCardCalledCount": "Anzahl der Aufrufe",
+  "settingsDefaultsCollectionCardCalledCount": "Mal gecallt",
   "@settingsDefaultsCollectionCardCalledCount": {
     "x-sourceSha256": "e0c644a5a8a8ae852914e97c694268a3d717aa8dd8ccd0b6e0e2e08b841f4f6b"
   },
@@ -2744,7 +2744,7 @@
   "@settingsDefaultsCollectionFiltersHeader": {
     "x-sourceSha256": "06981cabadd70feb8e1965e99b8ed513b175f6e2a6969fd306738c7408177797"
   },
-  "settingsDefaultsCollectionFiltersSubtitle": "Wählen Sie aus, welche Filter erscheinen, wenn Sie die Sammlung filtern und wenn Sie Tänze für ein Programm auswählen. Standardmäßig werden alle Filter angezeigt. Beim Ausblenden eines Filters wird seine Auswahl zurückgesetzt.",
+  "settingsDefaultsCollectionFiltersSubtitle": "Wähle aus, welche Filter erscheinen, wenn du die Sammlung filterst und wenn du Tänze für ein Programm auswählst. Standardmäßig werden alle Filter angezeigt. Beim Ausblenden eines Filters wird seine Auswahl zurückgesetzt.",
   "@settingsDefaultsCollectionFiltersSubtitle": {
     "x-sourceSha256": "fe9b11fa483a593aae54741b5b3cb3abc94b60c4f1575d98df4c16d55b9b5022"
   },
@@ -2756,7 +2756,7 @@
   "@settingsDefaultsImportTagsTitle": {
     "x-sourceSha256": "b1dd2d836caef6fe35201a4a9633de08a139ef06a2d899cf238a707968aff9b3"
   },
-  "settingsDefaultsImportTagsSubtitle": "Wird jedem neuen Tanz hinzugefügt, den ein Import anlegt, auch Tänzen aus einer Datei, die dir jemand geteilt hat. Tänze, die beim Import eines Programms für seine Plätze angelegt werden, erhalten keine Tags.",
+  "settingsDefaultsImportTagsSubtitle": "Wird jedem neuen Tanz hinzugefügt, den ein Import anlegt, auch Tänzen aus einer Datei, die dir jemand geteilt hat. Tänze, die beim Import eines Programms für seine Slots angelegt werden, erhalten keine Tags.",
   "@settingsDefaultsImportTagsSubtitle": {
     "x-sourceSha256": "c803a49bf8e714711870e4bb5dab2f5c13a4b3a046e3ed0e7098968df11254bd"
   },
@@ -2772,7 +2772,7 @@
   "@settingsDefaultsFreeTextEntryTitle": {
     "x-sourceSha256": "bbb4d246761e2b71f24e54ea73f6b4ce05eba3a244080456a1546573b669b9d1"
   },
-  "settingsDefaultsFreeTextEntrySubtitle": "Wenn aktiviert, können Sie beim Hinzufügen einer neuen Figur diese als eine Zeile eingeben (z. B. „neighbor balance & swing“) statt sie Feld für Feld aufzubauen, und eine in die Bewegung einer bestehenden Figur eingegebene Zeile ersetzt diese Figur, wenn Sie die Eingabetaste drücken. Die Zeile wird in Figuren umgewandelt; Text, den die App nicht lesen kann, wird als nicht erkannte Figur gespeichert, die Sie später korrigieren können. Neue Tänze beginnen ohne Figuren, sofern Sie keine Startfiguren gespeichert haben.",
+  "settingsDefaultsFreeTextEntrySubtitle": "Wenn aktiviert, kannst du beim Hinzufügen einer neuen Figur diese als eine Zeile eingeben (z. B. „neighbor balance & swing“) statt sie Feld für Feld aufzubauen, und eine in die Bewegung einer bestehenden Figur eingegebene Zeile ersetzt diese Figur, wenn du die Eingabetaste drückst. Die Zeile wird in Figuren umgewandelt; Text, den die App nicht lesen kann, wird als nicht erkannte Figur gespeichert, die du später korrigieren kannst. Neue Tänze beginnen ohne Figuren, sofern du keine Startfiguren gespeichert hast.",
   "@settingsDefaultsFreeTextEntrySubtitle": {
     "x-sourceSha256": "285d6cd7a37828cef8b40ff921653f50e8979ac8e10e6224b0bd3927f2a7277d"
   },
@@ -2780,7 +2780,7 @@
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
     "x-sourceSha256": "1d163c476d946d3bcc7fa0c001b99114d7f53588e73341294a86e20043e32357"
   },
-  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Wenn aktiviert, wird die Schlagzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Schlagzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Schlagzahl nur automatisch geändert, wenn Sie eine Balance-Option ein- oder ausschalten; dabei werden 4 Schläge hinzugefügt oder entfernt.",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Wenn aktiviert, wird die Schlagzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Schlagzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von dir bearbeitete Schlagzahl nur automatisch geändert, wenn du eine Balance-Option ein- oder ausschaltest; dabei werden 4 Schläge hinzugefügt oder entfernt.",
   "@settingsDefaultsAggressiveBeatsUpdateSubtitle": {
     "x-sourceSha256": "7ee476b3ea2b7dd326088903cfc362916fb09b7f97f971fe513b538252ce2934"
   },
@@ -2852,7 +2852,7 @@
   "@settingsDefaultsUserFiguresSubtitle": {
     "x-sourceSha256": "6853e95f54ece28e4809273bcf102442a37a821b7397d27bdaa2cff3f1d48be3"
   },
-  "settingsDefaultsMoveDefaultsSubtitle": "Bevorzugte Parameterwerte, die beim Einfügen einer Bewegung während der Tanzeingabe angewendet werden. Diese überschreiben die integrierten Standardwerte der Bewegung; Sie können anschließend noch jeden Parameter der Figur ändern. Nicht gesetzte Bewegungen und Parameter verwenden die integrierten Standardwerte.",
+  "settingsDefaultsMoveDefaultsSubtitle": "Bevorzugte Parameterwerte, die beim Einfügen einer Bewegung während der Tanzeingabe angewendet werden. Diese überschreiben die integrierten Standardwerte der Bewegung; du kannst anschließend noch jeden Parameter der Figur ändern. Nicht gesetzte Bewegungen und Parameter verwenden die integrierten Standardwerte.",
   "@settingsDefaultsMoveDefaultsSubtitle": {
     "x-sourceSha256": "eb0ef63bbf86910d132d779d7a5c8fffd8bd0a40e61515ca13daea08204729e3"
   },
@@ -2904,7 +2904,7 @@
   "@settingsAppearanceTagColoursTitle": {
     "x-sourceSha256": "b60b09fd646a943ea15b1faf80c695e4729fd2d05f2c875c935903438d79d93c"
   },
-  "settingsAppearanceTagColoursSubtitle": "Geben Sie einem Tag eine eigene Farbe, damit es auf Tanzkarten und in den Tanzdetails hervorsticht. Der Name des Tags wird immer mit angezeigt, sodass Tags auch ohne Farbe lesbar bleiben.",
+  "settingsAppearanceTagColoursSubtitle": "Gib einem Tag eine eigene Farbe, damit es auf Tanzkarten und in den Tanzdetails hervorsticht. Der Name des Tags wird immer mit angezeigt, sodass Tags auch ohne Farbe lesbar bleiben.",
   "@settingsAppearanceTagColoursSubtitle": {
     "x-sourceSha256": "fac4e606137946a7de38fe329f99b3f8135962e61129f97c732a423a8e988cf4"
   },
@@ -2912,7 +2912,7 @@
   "@settingsTagColoursEmptyTitle": {
     "x-sourceSha256": "b57d852b14d2e38612945e5dcf23300b0aa89204445807e5f383f4998583081c"
   },
-  "settingsTagColoursEmptyBody": "Fügen Sie einem Tanz ein Tag hinzu, dann erscheint es hier.",
+  "settingsTagColoursEmptyBody": "Füge einem Tanz ein Tag hinzu, dann erscheint es hier.",
   "@settingsTagColoursEmptyBody": {
     "x-sourceSha256": "07ebb2bde2097613e4b8b97adf2fecc82040b392cc84919411f05e231260aaec"
   },
@@ -2980,7 +2980,7 @@
   "@authorManagerEmptyTitle": {
     "x-sourceSha256": "75d23d1484ae3f6d6e8ef8aaa5197b3620a19d4355875576269d85f13e06ddcd"
   },
-  "authorManagerEmptyBody": "Autoren, die Sie bei einem Tanz angeben, erscheinen hier.",
+  "authorManagerEmptyBody": "Autoren, die du bei einem Tanz angibst, erscheinen hier.",
   "@authorManagerEmptyBody": {
     "x-sourceSha256": "b34329476d24280955fe67598c1330188254c9fc523dcabc2453d2ac7ce26408"
   },
@@ -3008,7 +3008,7 @@
   "@sourceManagerEmptyTitle": {
     "x-sourceSha256": "95be0e356dd984c3062bb84ba3cd14473a8b66fd7326c60a635a536bb8461083"
   },
-  "sourceManagerEmptyBody": "Bücher und Websites, die Sie bei einem Tanz zitieren, erscheinen hier.",
+  "sourceManagerEmptyBody": "Bücher und Websites, die du bei einem Tanz zitierst, erscheinen hier.",
   "@sourceManagerEmptyBody": {
     "x-sourceSha256": "328d237e03df4619b321362a36c2cfecff063eef096fa50d41e791f8203b9943"
   },
@@ -3036,7 +3036,7 @@
   "@libraryManagerSortByDanceCount": {
     "x-sourceSha256": "19061832d72037a6a8ab06f44ed0433c00c8abad911a629f9939860bb7fe84ae"
   },
-  "libraryManagerNoMatches": "Nichts passt zu Ihrer Suche.",
+  "libraryManagerNoMatches": "Nichts passt zu deiner Suche.",
   "@libraryManagerNoMatches": {
     "x-sourceSha256": "6701dfede769d7ad8e1c50718e3147d14d959b7c1838040c8e976b6a494170a9"
   },
@@ -3076,7 +3076,7 @@
   "@libraryManagerMergeOfferOneRenamed": {
     "x-sourceSha256": "45b4e455a0b183ba6f92f878161e60bed975eb7941b22594cebc535f909c8794"
   },
-  "libraryManagerMergeOfferSeveral": "Mehrere Einträge heißen bereits „{name}“. Wählen Sie den, mit dem „{from}“ zusammengeführt wird; die anderen werden ebenfalls damit zusammengeführt.",
+  "libraryManagerMergeOfferSeveral": "Mehrere Einträge heißen bereits „{name}“. Wähle den, mit dem „{from}“ zusammengeführt wird; die anderen werden ebenfalls damit zusammengeführt.",
   "@libraryManagerMergeOfferSeveral": {
     "x-sourceSha256": "b2bb651a0135ef88e09929d2513d7350e099469de3f4ec5adea6ef76cae34be2"
   },
@@ -3140,7 +3140,7 @@
   "@settingsGeneralVenueEntityModeTitle": {
     "x-sourceSha256": "bb8d0aebdf216ffe41c658cd29db5dad7bcbdbb213e93e7fa1c39dc9249c66a2"
   },
-  "settingsGeneralVenueEntityModeSubtitle": "Veranstaltungsorte in wiederverwendbare Einträge mit Adresse, Kontakten und Terminen umwandeln, die von vielen Programmen geteilt und zentral bearbeitet werden können. Wenn deaktiviert, ist der Veranstaltungsort eines Programms ein einfaches Freitextfeld. Das Umschalten ist verlustfrei – Ihr eingetippter Veranstaltungsort und alle verknüpften Einträge bleiben erhalten.",
+  "settingsGeneralVenueEntityModeSubtitle": "Veranstaltungsorte in wiederverwendbare Einträge mit Adresse, Kontakten und Terminen umwandeln, die von vielen Programmen geteilt und zentral bearbeitet werden können. Wenn deaktiviert, ist der Veranstaltungsort eines Programms ein einfaches Freitextfeld. Das Umschalten ist verlustfrei – dein eingetippter Veranstaltungsort und alle verknüpften Einträge bleiben erhalten.",
   "@settingsGeneralVenueEntityModeSubtitle": {
     "x-sourceSha256": "8845c70c42e0fe6937717323e57774526317e44b4b1e18ef0087d2d440ae4123"
   },
@@ -3204,7 +3204,7 @@
   "@settingsMatrixColumnsHeader": {
     "x-sourceSha256": "97677d73528538ac01a2289458bc8a0e7a0fd937d5306437fc4b6cd98b617f94"
   },
-  "settingsMatrixColumnsSubtitle": "Ordnen Sie die Spalten der Programmiermatrix neu an, benennen Sie sie um oder entfernen Sie sie. Änderungen gelten für jedes Programm.",
+  "settingsMatrixColumnsSubtitle": "Ordne die Spalten der Programmiermatrix neu an, benenne sie um oder entferne sie. Änderungen gelten für jedes Programm.",
   "@settingsMatrixColumnsSubtitle": {
     "x-sourceSha256": "a923fcb0980209c9171fbe9fee4cf1f3a2c4f704731a92a6237411706b6bd13c"
   },
@@ -3356,7 +3356,7 @@
   "@settingsGeneralAutoSizePerformSubtitle": {
     "x-sourceSha256": "374076544dee2c6b2dd1d60aa28c5ffa118b3d3d09d76c614a6649fa0cf89970"
   },
-  "settingsShowIndividualPerformTimerTitle": "Timer beim Perform eines einzelnen Tanzes anzeigen",
+  "settingsShowIndividualPerformTimerTitle": "Timer im Perform-Modus für einen einzelnen Tanz anzeigen",
   "@settingsShowIndividualPerformTimerTitle": {
     "x-sourceSha256": "db8ce7d40d2984da90d9f787414aab63db6b2e2bcef167b6775bafe6ff09678b"
   },
@@ -3372,11 +3372,11 @@
   "@settingsConfirmPerformExitSubtitle": {
     "x-sourceSha256": "0f27a7a06bb52d7aa2277ff3e8eef107574ab8acfa4e4500775c3fc66b74201b"
   },
-  "settingsShowProgramSlotCallerNotesTitle": "Caller-Notizen beim Perform eines Programms anzeigen",
+  "settingsShowProgramSlotCallerNotesTitle": "Caller-Notizen im Perform-Modus für ein Programm anzeigen",
   "@settingsShowProgramSlotCallerNotesTitle": {
     "x-sourceSha256": "9772a5705de8fe02664aeb2faeb944f5f18bd277da2f287906b71f6200cefe69"
   },
-  "settingsShowProgramSlotCallerNotesSubtitle": "Zeigt nicht leere Caller-Notizen pro Slot über dem Tanztitel an, wenn du ein Programm im Perform-Modus aufrufst.",
+  "settingsShowProgramSlotCallerNotesSubtitle": "Zeigt nicht leere Caller-Notizen pro Slot über dem Tanztitel an, wenn du ein Programm im Perform-Modus callst.",
   "@settingsShowProgramSlotCallerNotesSubtitle": {
     "x-sourceSha256": "d3d7906907ed4a49509bad69a58ec24c1e2e2eacadece45075e7131c881e964a"
   },
@@ -3456,7 +3456,7 @@
   "@settingsGeneralTrackHistoryForAllCallersTitle": {
     "x-sourceSha256": "e2a17c48a924c46655d80157c23b97a219699dc1321f4afa460c2b3c56e3f72e"
   },
-  "settingsGeneralTrackHistoryForAllCallersSubtitle": "Wenn aus und ein Standard-Caller festgelegt ist, enthalten Calling-Verlauf und Zählungen Programme, die von diesem Caller geleitet wurden, sowie Programme ohne eingetragenen Caller (die als Ihre eigenen gezählt werden). Wenn ein — oder wenn kein Standard-Caller festgelegt ist — wird jedes Programm erfasst, das den Tanz enthält.",
+  "settingsGeneralTrackHistoryForAllCallersSubtitle": "Wenn aus und ein Standard-Caller festgelegt ist, enthalten Calling-Verlauf und Zählungen Programme, die von diesem Caller geleitet wurden, sowie Programme ohne eingetragenen Caller (die als deine eigenen gezählt werden). Wenn an — oder wenn kein Standard-Caller festgelegt ist — wird jedes Programm erfasst, das den Tanz enthält.",
   "@settingsGeneralTrackHistoryForAllCallersSubtitle": {
     "x-sourceSha256": "b07a802d076006a8e3c62ad016048de051cc378c847bff0a8bf97bba3dcf0b02"
   },
@@ -3464,7 +3464,7 @@
   "@settingsProgramVenueCallCountTitle": {
     "x-sourceSha256": "fdf9b29bd90c4ed9bfad0d1d18525a867fb36abb1e2d5058d7b9a4cfdf57df39"
   },
-  "settingsProgramVenueCallCountSubtitle": "Die wichtigsten Veranstaltungsorte anzeigen, an denen ein Tanz mehr als einmal aufgerufen wurde. „Nicht anzeigen“ wählen, um diese Übersicht auszublenden.",
+  "settingsProgramVenueCallCountSubtitle": "Die wichtigsten Veranstaltungsorte anzeigen, an denen ein Tanz mehr als einmal gecallt wurde. „Nicht anzeigen“ wählen, um diese Übersicht auszublenden.",
   "@settingsProgramVenueCallCountSubtitle": {
     "x-sourceSha256": "161907d288566116679c4485c34c1f0ef718e636ac1c6cc980e9368ce6689437"
   },
@@ -3544,7 +3544,7 @@
   "@settingsGeneralUndoPromptTitle": {
     "x-sourceSha256": "7f397daeec86ec261af3848f27c9d22fc72ea50ce0fd8e0569b97f7b18f8279b"
   },
-  "settingsGeneralUndoPromptSubtitle": "Wie lange der Hinweis „Rückgängig“ nach dem Löschen oder Ändern sichtbar bleibt. Er bleibt auch, solange Sie mit dem Zeiger darauf zeigen oder ihn mit der Tastatur ansteuern.",
+  "settingsGeneralUndoPromptSubtitle": "Wie lange der Hinweis „Rückgängig“ nach dem Löschen oder Ändern sichtbar bleibt. Er bleibt auch, solange du mit dem Zeiger darauf zeigst oder ihn mit der Tastatur ansteuerst.",
   "@settingsGeneralUndoPromptSubtitle": {
     "x-sourceSha256": "a7413035c721cf3d6997e91ef4a1752303c1a97eed468990f59020ff3b97686b"
   },
@@ -3564,7 +3564,7 @@
   "@settingsGeneralSoftDeleteRetentionTitle": {
     "x-sourceSha256": "aaab206bb2bd76b9b2eda37429503ddfb39529ad8b6c8f145391ffb39865246b"
   },
-  "settingsGeneralSoftDeleteRetentionSubtitle": "Gelöschte Tänze und Programme werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. Mit der Gerätesynchronisierung gilt das auf all Ihren Geräten: Ein geteilter Eintrag wird überall geleert, nur ein kleiner Löschvermerk bleibt. „Nie“ behält sie, bis Sie sie manuell bereinigen.",
+  "settingsGeneralSoftDeleteRetentionSubtitle": "Gelöschte Tänze und Programme werden so lange aufbewahrt, bevor sie beim App-Start dauerhaft entfernt werden. Mit der Gerätesynchronisierung gilt das auf all deinen Geräten: Ein geteilter Eintrag wird überall geleert, nur ein kleiner Löschvermerk bleibt. „Nie“ behält sie, bis du sie manuell bereinigst.",
   "@settingsGeneralSoftDeleteRetentionSubtitle": {
     "x-sourceSha256": "6c4f9fdb230a5e41d5afc9b1d4d34e6fe145156254be79776a35fe1fbdb48151"
   },
@@ -3580,7 +3580,7 @@
   "@syncReviewSettingsTitle": {
     "x-sourceSha256": "691b69af17f63a161f53c0d188d596093053776abfd6d2fa0b4ffd91794382c3"
   },
-  "syncReviewSettingsSubtitle": "Entscheiden Sie, wie Konflikte zwischen Ihren Geräten gelöst werden, die die Synchronisierung nicht selbst klären kann.",
+  "syncReviewSettingsSubtitle": "Entscheide, wie Konflikte zwischen deinen Geräten gelöst werden, die die Synchronisierung nicht selbst klären kann.",
   "@syncReviewSettingsSubtitle": {
     "x-sourceSha256": "fb18d5040b56ff91ba08fb4faccd65fd99a3a407157709c3f068ae860db0c3f7"
   },
@@ -3688,7 +3688,7 @@
   "@syncReviewMergeDiscardsContactsBody": {
     "x-sourceSha256": "06ee9ce99d3730bb22c62dadee3392abe1ae13ea664a6f8e8b9b9ad83e970f11"
   },
-  "syncReviewCounterpartDeleted": "Der andere Datensatz wurde gelöscht, daher lassen sich die beiden nicht zusammenführen. Verwenden Sie „Beide behalten“, um ihm einen anderen Namen zu geben.",
+  "syncReviewCounterpartDeleted": "Der andere Datensatz wurde gelöscht, daher lassen sich die beiden nicht zusammenführen. Verwende „Beide behalten“, um ihm einen anderen Namen zu geben.",
   "@syncReviewCounterpartDeleted": {
     "x-sourceSha256": "ee67d01915bb78e2fb0e9807b3bd8289011168db99a3123c411e1ec7083ee5df"
   },
@@ -3744,7 +3744,7 @@
   "@settingsGeneralImportHeader": {
     "x-sourceSha256": "2cff9baabf56ca002610e113bc94deb6ededddfc3c130365b6e88ed5195bf774"
   },
-  "settingsGeneralImportDancesSubtitle": "Tänze aus einer Caller's Compendium JSON-Datei in Ihre Sammlung importieren. Sie überprüfen jeden Tanz und bestätigen, bevor etwas hinzugefügt wird.",
+  "settingsGeneralImportDancesSubtitle": "Tänze aus einer Caller's Compendium JSON-Datei in deine Sammlung importieren. Du überprüfst jeden Tanz und bestätigst, bevor etwas hinzugefügt wird.",
   "@settingsGeneralImportDancesSubtitle": {
     "x-sourceSha256": "4e8cd89ead18732f1dba206589efddc5df63f8b52587c08f979bfcecb98a7029"
   },
@@ -3768,7 +3768,7 @@
   "@settingsGeneralEcdMigrationTitle": {
     "x-sourceSha256": "d9775b54e95a37e98b9294d1d74a61f4f6323b05b6981526d9a9ff3970a6de1b"
   },
-  "settingsGeneralEcdMigrationSubtitle": "Englische Country Dances, die gespeichert wurden, bevor die App englische Figuren kannte, verwenden noch Contra-Bewegungen. Wandeln Sie die Bewegungen um, die im englischen Tanz dasselbe bedeuten, lesen Sie nicht erkannte Figuren erneut und geben Sie jedem Tanz seine englische Formation. Sie wählen die Tänze aus und bestätigen, bevor sich etwas ändert.",
+  "settingsGeneralEcdMigrationSubtitle": "Englische Country Dances, die gespeichert wurden, bevor die App englische Figuren kannte, verwenden noch Contra-Bewegungen. Wandle die Bewegungen um, die im englischen Tanz dasselbe bedeuten, lies nicht erkannte Figuren erneut und gib jedem Tanz seine englische Formation. Du wählst die Tänze aus und bestätigst, bevor sich etwas ändert.",
   "@settingsGeneralEcdMigrationSubtitle": {
     "x-sourceSha256": "dece8f801d5b40c99ab8f8f8af2f13b8a277d070785b61f212600abea783899b"
   },
@@ -3792,15 +3792,15 @@
   "@backupRestoreIntegrityFailed": {
     "x-sourceSha256": "d703f8d4fb16f7ada0434c839ecee87ed7c822484198760a766705996941022d"
   },
-  "backupRestoreIncompatibleVersion": "Diese Sicherung enthält Elemente, die diese App-Version nicht lesen kann (sie stammt möglicherweise von einer neueren Version), daher wurde die Wiederherstellung abgebrochen. Ihre Daten sind unverändert.",
+  "backupRestoreIncompatibleVersion": "Diese Sicherung enthält Elemente, die diese App-Version nicht lesen kann (sie stammt möglicherweise von einer neueren Version), daher wurde die Wiederherstellung abgebrochen. Deine Daten sind unverändert.",
   "@backupRestoreIncompatibleVersion": {
     "x-sourceSha256": "91cebd18d5b71ae24a466ad06e6825c35c69f0bd6ed16fc0c7e4e75c1bf47c68"
   },
-  "backupRestoreMissingAppSection": "Diese Sicherung enthält Ihre App-Einstellungen, Designs und Dialekte nicht und kann Ihre aktuellen Daten daher nicht ersetzen. Die Wiederherstellung wurde abgebrochen. Ihre Daten sind unverändert.",
+  "backupRestoreMissingAppSection": "Diese Sicherung enthält deine App-Einstellungen, Designs und Dialekte nicht und kann deine aktuellen Daten daher nicht ersetzen. Die Wiederherstellung wurde abgebrochen. Deine Daten sind unverändert.",
   "@backupRestoreMissingAppSection": {
     "x-sourceSha256": "9e3485e2f20158bae696e724b4a55b994b844318c7c27c827ab8125d60ebae9f"
   },
-  "backupRestoreInvalidFile": "Wiederherstellung fehlgeschlagen: Die Datei ist keine gültige Sicherung. Ihre Daten sind unverändert.",
+  "backupRestoreInvalidFile": "Wiederherstellung fehlgeschlagen: Die Datei ist keine gültige Sicherung. Deine Daten sind unverändert.",
   "@backupRestoreInvalidFile": {
     "x-sourceSha256": "0c5e97241e94cd45d0deaa203216594b06f2561c8f017282adcefc77dcab19d4"
   },
@@ -3876,7 +3876,7 @@
   "@backupReminderMonthly": {
     "x-sourceSha256": "9b11f6b707d2a03e0265465f32520bc1bc213de121de958539662d0ec1453fcb"
   },
-  "backupOverdueHint": "Es ist schon eine Weile her seit Ihrer letzten Sicherung – erwägen Sie, jetzt eine zu exportieren.",
+  "backupOverdueHint": "Es ist schon eine Weile her seit deiner letzten Sicherung – erwäge, jetzt eine zu exportieren.",
   "@backupOverdueHint": {
     "x-sourceSha256": "4ad654a10e666f795dc18c962c83cf76605c5ed9239968decc5b91107cb976e8"
   },
@@ -3896,7 +3896,7 @@
   "@backupRestoreDialogBody": {
     "x-sourceSha256": "81f0d533aa26652bb9a779bfdfaaf16fdd7996387d70a516ee3537b847546bf9"
   },
-  "backupRestoreDialogSyncNote": "Dieses Gerät ist mit der Gerätesynchronisierung verbunden. Alles, was die Gerätesynchronisierung überträgt und nach dieser Sicherung auf einem Gerät geändert wurde, mit dem Sie synchronisieren, kommt bei der nächsten Synchronisierung von diesem Gerät zurück – auch hier vorgenommene und bereits synchronisierte Änderungen. Alles andere erhält die Version der Sicherung.",
+  "backupRestoreDialogSyncNote": "Dieses Gerät ist mit der Gerätesynchronisierung verbunden. Alles, was die Gerätesynchronisierung überträgt und nach dieser Sicherung auf einem Gerät geändert wurde, mit dem du synchronisierst, kommt bei der nächsten Synchronisierung von diesem Gerät zurück – auch hier vorgenommene und bereits synchronisierte Änderungen. Alles andere erhält die Version der Sicherung.",
   "@backupRestoreDialogSyncNote": {
     "x-sourceSha256": "79ad56b6871d887a13d6c4c1c2625aad3c140d3b98ef2845e174d1c7fd56c995"
   },
@@ -3920,7 +3920,7 @@
   "@backupFileSummary": {
     "x-sourceSha256": "d3ca7f78a56484717b1cbd4241cfaccd2f4218c5a2fa31aef25f4a04498a15f6"
   },
-  "backupFileUnreadable": "Diese Datei sieht nicht wie eine lesbare Sicherung aus ({size} MB). Beim Ersetzen erfahren Sie, warum sie sich nicht wiederherstellen lässt.",
+  "backupFileUnreadable": "Diese Datei sieht nicht wie eine lesbare Sicherung aus ({size} MB). Beim Ersetzen erfährst du, warum sie sich nicht wiederherstellen lässt.",
   "@backupFileUnreadable": {
     "x-sourceSha256": "04a82a832fe8002275a7c27c5f3547dc0a009e0ed8c5f4d66eedd819dcee2dbc"
   },
@@ -3928,7 +3928,7 @@
   "@backupFileClearAction": {
     "x-sourceSha256": "83b12c2216efb4fdc924e1deb5182e905e4926ed0c1c324d467107f46d5a26a9"
   },
-  "backupFileTooLarge": "Diese Datei ist zu groß für eine Caller’s-Compendium-Sicherung ({sizeMb} MB; Grenze {limitMb} MB). Ihre Daten bleiben unverändert.",
+  "backupFileTooLarge": "Diese Datei ist zu groß für eine Caller’s-Compendium-Sicherung ({sizeMb} MB; Grenze {limitMb} MB). Deine Daten bleiben unverändert.",
   "@backupFileTooLarge": {
     "x-sourceSha256": "ab07d740afd2da7fb4666cc1582d933fbb9b7ac576af1f96ac6a309360aca0e3"
   },
@@ -3936,7 +3936,7 @@
   "@backupExportTooLarge": {
     "x-sourceSha256": "31c69deb5ba84f6b87c6bd895c4a9d4c66dc970186c6bb60fb63092fddd55ff1"
   },
-  "backupExportDiskFull": "Es ist nicht genug Speicherplatz frei, um diese Sicherung zu ersetzen ({neededMb} MB benötigt; {freeMb} MB frei), daher wurde nichts gespeichert. Ihre frühere Sicherung bleibt unverändert.",
+  "backupExportDiskFull": "Es ist nicht genug Speicherplatz frei, um diese Sicherung zu ersetzen ({neededMb} MB benötigt; {freeMb} MB frei), daher wurde nichts gespeichert. Deine frühere Sicherung bleibt unverändert.",
   "@backupExportDiskFull": {
     "x-sourceSha256": "891f8cc1f6aa387d25f0ac96f04536ea5ef0d34348c4e4e344d9f86a90220382"
   },
@@ -3996,7 +3996,7 @@
   "@diagnosticsHeader": {
     "x-sourceSha256": "268f14bbfe119c1e92150583af960a086d7db9619a097f8aa72ff6779842f610"
   },
-  "diagnosticsIntro": "Wenn etwas schiefgeht, zeichnet die App einen technischen Hinweis in einem lokalen Protokoll auf diesem Gerät auf, um das Problem zu diagnostizieren. Es wird nie übermittelt – es gibt keine Telemetrie. Sie können es exportieren, um es einem Fehlerbericht beizufügen, oder es jederzeit löschen.",
+  "diagnosticsIntro": "Wenn etwas schiefgeht, zeichnet die App einen technischen Hinweis in einem lokalen Protokoll auf diesem Gerät auf, um das Problem zu diagnostizieren. Es wird nie übermittelt – es gibt keine Telemetrie. Du kannst es exportieren, um es einem Fehlerbericht beizufügen, oder es jederzeit löschen.",
   "@diagnosticsIntro": {
     "x-sourceSha256": "a3e5925306cd45ae149c3b2a4ce315e1b2abcecf7ac9a842df0e0178d2f00844"
   },
@@ -4008,7 +4008,7 @@
   "@diagnosticsReadFailedTitle": {
     "x-sourceSha256": "a3e7e51f053d49ad040a3c684d672cdfc7825bf3996eb98c27e2479f58999fce"
   },
-  "diagnosticsReadFailedSubtitle": "Das lokale Protokoll ist auf diesem Gerät möglicherweise nicht zugänglich. Sie können trotzdem versuchen, es zu exportieren oder zu löschen.",
+  "diagnosticsReadFailedSubtitle": "Das lokale Protokoll ist auf diesem Gerät möglicherweise nicht zugänglich. Du kannst trotzdem versuchen, es zu exportieren oder zu löschen.",
   "@diagnosticsReadFailedSubtitle": {
     "x-sourceSha256": "e00892ee8045e68abded988a0a22cf5408afe9dcdfeceace296acecc812dd9b4"
   },
@@ -4024,11 +4024,11 @@
   "@diagnosticsExportHeader": {
     "x-sourceSha256": "3664895579f0a7e68c4aa09c91316e20239bc74499010e6423ece40cad7c28f7"
   },
-  "diagnosticsFullDetailTitle": "Vollständige Details einschließen (kann Ihre Inhalte enthalten)",
+  "diagnosticsFullDetailTitle": "Vollständige Details einschließen (kann deine Inhalte enthalten)",
   "@diagnosticsFullDetailTitle": {
     "x-sourceSha256": "2421ccaa83c9d22ffcdbee6e8e2a67afe9ae0a21ce9c37f7c7d89818a3673314"
   },
-  "diagnosticsFullDetailSubtitle": "Standardmäßig deaktiviert. Wenn deaktiviert, entfernt der Export Ihre Inhalte, Dateipfade, E-Mails und Telefonnummern.",
+  "diagnosticsFullDetailSubtitle": "Standardmäßig deaktiviert. Wenn deaktiviert, entfernt der Export deine Inhalte, Dateipfade, E-Mails und Telefonnummern.",
   "@diagnosticsFullDetailSubtitle": {
     "x-sourceSha256": "c6015f0933a8820f29216d69cccbb4ff7ca159e62750e1ffd7f5fe293ff2a5c2"
   },
@@ -4076,7 +4076,7 @@
   "@commonDiscardChangesTitle": {
     "x-sourceSha256": "85bcf41666a53691403e5143716318c50c069dbdd8fde2e2cc589d210f177c06"
   },
-  "commonDiscardChangesBody": "Sie haben nicht gespeicherte Änderungen.",
+  "commonDiscardChangesBody": "Du hast nicht gespeicherte Änderungen.",
   "@commonDiscardChangesBody": {
     "x-sourceSha256": "4e0a43240e6e697718531c9e4c7b7f1337c9b29f03fc9a316f3ab0649d2bd091"
   },
@@ -4412,7 +4412,7 @@
   "@commonCantBeUndone": {
     "x-sourceSha256": "17ad35c384c68419f9fee9cc08687c47e418a995a1f9fd03ae2b2e71136c6f31"
   },
-  "importGapMessage": "Dieser Aufruf wurde nicht erkannt – genau wie geschrieben als nicht erkannte Figur gespeichert.",
+  "importGapMessage": "Dieser Call wurde nicht erkannt – genau wie geschrieben als nicht erkannte Figur gespeichert.",
   "@importGapMessage": {
     "x-sourceSha256": "4c1caea011cd1716425d8dce711b383f61113702f996d342c1289f0ad12ef82b"
   },
@@ -4464,7 +4464,7 @@
   "@collectionSortRecentlyAdded": {
     "x-sourceSha256": "96ec5d338ae3cc5f788b7d5bbf86e0fb8d258d00cc2d6945329ca8b1df5a3959"
   },
-  "collectionSortLastCalled": "Zuletzt aufgerufen",
+  "collectionSortLastCalled": "Zuletzt gecallt",
   "@collectionSortLastCalled": {
     "x-sourceSha256": "24fb737feb68379299f98d7b270bbfbeb2e932508142fc147ad552e680eac1b5"
   },
@@ -4580,19 +4580,19 @@
   "@collectionDuplicatedSnack": {
     "x-sourceSha256": "1e8abaccfd4d132fe2f88a47470b52b6877382f7f0dbd132e013442a426db6b5"
   },
-  "collectionEmptyBody": "Fügen Sie einen Tanz hinzu oder importieren Sie einen, um loszulegen – oder aktivieren Sie oben die Online-Suche, um aus einer Online-Quelle zu importieren.",
+  "collectionEmptyBody": "Füge einen Tanz hinzu oder importiere einen, um loszulegen – oder aktiviere oben die Online-Suche, um aus einer Online-Quelle zu importieren.",
   "@collectionEmptyBody": {
     "x-sourceSha256": "7604daeeb118f95e9a4422b2efb266011a37a55b91dd0059c9acc8a26227bddc"
   },
-  "collectionEmptyTitle": "Ihre Sammlung ist leer",
+  "collectionEmptyTitle": "Deine Sammlung ist leer",
   "@collectionEmptyTitle": {
     "x-sourceSha256": "0f86ba83481174dfb5610d2b5df22c92b9cbdc189881b5a4610067ea3756c5ba"
   },
-  "collectionImportCardTitle": "Bringen Sie Ihre Tänze mit",
+  "collectionImportCardTitle": "Bring deine Tänze mit",
   "@collectionImportCardTitle": {
     "x-sourceSha256": "170bbd223c5b8378ad829c259498938702a9e30e61d2babf1d250e4a136cfafd"
   },
-  "collectionImportCardBody": "Importieren Sie Tänze, die Sie bereits haben, oder schreiben Sie Ihren ersten. „The Baby Rose“ liegt als Beispiel zum Umsehen bei.",
+  "collectionImportCardBody": "Importiere Tänze, die du bereits hast, oder schreibe deinen ersten. „The Baby Rose“ liegt als Beispiel zum Umsehen bei.",
   "@collectionImportCardBody": {
     "x-sourceSha256": "649231300ea8176cd514a89b53a1a09c17b3841fc09ce91fe4957c980d954fdf"
   },
@@ -4636,7 +4636,7 @@
   "@collectionSearchError": {
     "x-sourceSha256": "1399b15e3a7aa1feb3aa0456a1ac71be613a75b142b0ab85e2e46ee8ff09a703"
   },
-  "collectionNoResults": "Keine Tänze entsprechen Ihrer Suche.",
+  "collectionNoResults": "Keine Tänze entsprechen deiner Suche.",
   "@collectionNoResults": {
     "x-sourceSha256": "44b122acd0e5486398b40bf76075bd427d6a16973600373450e4c2c374f48317"
   },
@@ -4724,11 +4724,11 @@
   "@collectionSelectDanceLabel": {
     "x-sourceSha256": "feaae900731e9dded3fc892156f7b644d0e954bc7dc721a0e37174375281ee33"
   },
-  "collectionCalledBadge": "aufgerufen ×{count}",
+  "collectionCalledBadge": "gecallt ×{count}",
   "@collectionCalledBadge": {
     "x-sourceSha256": "fd459e1ff69128391990a06ff3815b46479e95b62712393f23167fb2ac383f22"
   },
-  "collectionCalledBadgeSemantic": "{count, plural, =1{1-mal aufgerufen} other{{count}-mal aufgerufen}}",
+  "collectionCalledBadgeSemantic": "{count, plural, =1{1-mal gecallt} other{{count}-mal gecallt}}",
   "@collectionCalledBadgeSemantic": {
     "x-sourceSha256": "4139e9f7325f076e6cc87e3ffac9d64feec7af9eadbeb0f7fb64c5e999e9a0c0"
   },
@@ -4744,7 +4744,7 @@
   "@collectionSplitEmptyTitle": {
     "x-sourceSha256": "b9d5b1296e8a17bbee5613fa81a16b26c5bf7d7972494921ccc10c528e60d00e"
   },
-  "collectionSplitEmptySubtitle": "Wählen Sie einen Tanz aus der Liste, um seine Details anzuzeigen.",
+  "collectionSplitEmptySubtitle": "Wähle einen Tanz aus der Liste, um seine Details anzuzeigen.",
   "@collectionSplitEmptySubtitle": {
     "x-sourceSha256": "ae7a66fb0ce43d27e1d101578f529de3308849f926cfcbc4d3da44c5af25c4a1"
   },
@@ -4764,15 +4764,15 @@
   "@collectionFacetCallStatus": {
     "x-sourceSha256": "c031a28388c659300d676a3d5637c3824e7e7ef28ae0c47cbf75e35b1eb700f1"
   },
-  "collectionFacetCalled": "Aufgerufen",
+  "collectionFacetCalled": "Gecallt",
   "@collectionFacetCalled": {
     "x-sourceSha256": "3bb8faf30715b01cb7e0fb7cdd033bcbf5912a57f46289bb2090d470b6f3c610"
   },
-  "collectionFacetNotCalled": "Nicht aufgerufen",
+  "collectionFacetNotCalled": "Nicht gecallt",
   "@collectionFacetNotCalled": {
     "x-sourceSha256": "606124ade426a3e8c2a0da3680ae9b518934979c772e0e7564630fd46e96e592"
   },
-  "collectionFacetHistoryInert": "Gilt mit Aufgerufen oder Nicht aufgerufen",
+  "collectionFacetHistoryInert": "Gilt mit Gecallt oder Nicht gecallt",
   "@collectionFacetHistoryInert": {
     "x-sourceSha256": "4f5b3dbbeda62c4bdc66382e9d23713565237140a21ed4bbb6bf72e3765e0842"
   },
@@ -4812,7 +4812,7 @@
   "@collectionFacetWithinAnyTime": {
     "x-sourceSha256": "5e7de49a40c3d7546e1c0e7a514ca92bd4c524553f6f3eadb8b9de6b35909dfe"
   },
-  "collectionFacetWithinNever": "Nie aufgerufen",
+  "collectionFacetWithinNever": "Nie gecallt",
   "@collectionFacetWithinNever": {
     "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
   },
@@ -5040,7 +5040,7 @@
   "@collectionQueryRemoveGroup": {
     "x-sourceSha256": "a4c0a38caee81f596a62a60d44a1ff293e5c35aebf89cf9ac3f5b60a4e5d1a8e"
   },
-  "collectionQueryEmptyGroup": "Noch keine Bedingungen – fügen Sie unten eine hinzu.",
+  "collectionQueryEmptyGroup": "Noch keine Bedingungen – füge unten eine hinzu.",
   "@collectionQueryEmptyGroup": {
     "x-sourceSha256": "f684ef3c5a7991e3d0a669d491628df709128d3f91b10d8cc8ce67de0ac93c14"
   },
@@ -5164,7 +5164,7 @@
   "@collectionBatchLevelConfirm": {
     "x-sourceSha256": "b6f6f3ad07b3c05fa0bbbbf2e3d257ff1e3e31a83efbe2c9369cd008594f94e0"
   },
-  "collectionBatchTagEmptyAdd": "Noch keine Tags. Erstellen Sie unten einen.",
+  "collectionBatchTagEmptyAdd": "Noch keine Tags. Erstelle unten einen.",
   "@collectionBatchTagEmptyAdd": {
     "x-sourceSha256": "2aa83d35274272814ffd3b0cb620545be550a47082b02a32a3b93a023ff8f7e6"
   },
@@ -5232,7 +5232,7 @@
   "@collectionBatchClearTunesConfirmTitle": {
     "x-sourceSha256": "40c8654efa304fd0798a2afa3cccb4b47ee53657e0e7ecf23f8575b32a048675"
   },
-  "collectionBatchClearTunesConfirmBody": "Dadurch werden alle Melodien von den ausgewählten Tänzen entfernt. Sie können dies danach rückgängig machen.",
+  "collectionBatchClearTunesConfirmBody": "Dadurch werden alle Melodien von den ausgewählten Tänzen entfernt. Du kannst dies danach rückgängig machen.",
   "@collectionBatchClearTunesConfirmBody": {
     "x-sourceSha256": "07aed2873b8393344cef1d1a604b00f5327c966c515fc2b44552e7425fe5d86e"
   },
@@ -5252,7 +5252,7 @@
   "@collectionBatchCustomFieldEmpty": {
     "x-sourceSha256": "f8ecd533946565c7d036fb9ed7f77019622635fec94e7d4bbe2021734554cdfe"
   },
-  "collectionBatchCustomFieldNumberInvalid": "Geben Sie eine Zahl ein",
+  "collectionBatchCustomFieldNumberInvalid": "Gib eine Zahl ein",
   "@collectionBatchCustomFieldNumberInvalid": {
     "x-sourceSha256": "8bc1221bdfa46edb036dfe7af226972bac43f055d050d6ff1d117512872044ff"
   },
@@ -5464,11 +5464,11 @@
   "@danceCallingHistoryEmpty": {
     "x-sourceSha256": "05283fd1209490c845bc66f2df15365833619fea0568f7aed1fb95e7de1d67b0"
   },
-  "danceCallingHistoryError": "Der Ansageverlauf konnte nicht geladen werden. Es wurde nichts geändert. Versuche es erneut.",
+  "danceCallingHistoryError": "Der Calling-Verlauf konnte nicht geladen werden. Es wurde nichts geändert. Versuche es erneut.",
   "@danceCallingHistoryError": {
     "x-sourceSha256": "6fd4c38aaf09f9e6346e81d53d4316cccd03bc7f638fc3b71133b1bd900d7947"
   },
-  "danceVenueCallCount": "{count, plural, =1{1-mal an {venue} aufgerufen} other{{count}-mal an {venue} aufgerufen}}",
+  "danceVenueCallCount": "{count, plural, =1{1-mal an {venue} gecallt} other{{count}-mal an {venue} gecallt}}",
   "@danceVenueCallCount": {
     "x-sourceSha256": "0046b9ca011ff24c3e6640bd63f208089cd477cee692ff4cceccdcf06ca835e1"
   },
@@ -5516,7 +5516,7 @@
   "@danceOpenProgramSemantic": {
     "x-sourceSha256": "ac9dc7d84be297484bafef672b35209e7ed6bd2f9bb2e73580e9ebde7bf2aca4"
   },
-  "danceHalfStatsFirstHalf": "{count, plural, =1{1-mal in der ersten Hälfte aufgerufen} other{{count}-mal in der ersten Hälfte aufgerufen}}",
+  "danceHalfStatsFirstHalf": "{count, plural, =1{1-mal in der ersten Hälfte gecallt} other{{count}-mal in der ersten Hälfte gecallt}}",
   "@danceHalfStatsFirstHalf": {
     "x-sourceSha256": "3efe62a8d2f8fb81914295b63d0f199cae90a012cd8a7a4ff01d91d73a9ccd8f"
   },
@@ -5568,7 +5568,7 @@
   "@programsEmptyTitle": {
     "x-sourceSha256": "6520322086cba9c19005de7386188582481bdb1e18b2049e4ea58cd1f2a7343a"
   },
-  "programsAddToProgramEmptyBody": "Erstellen Sie ein Programm, um eine Setliste aufzubauen.",
+  "programsAddToProgramEmptyBody": "Erstelle ein Programm, um eine Setliste aufzubauen.",
   "@programsAddToProgramEmptyBody": {
     "x-sourceSha256": "62110bb5b682bc17ab1a8654ec6e65ed3c2ce01926b5e90f8e14e750ac0ab59c"
   },
@@ -5676,7 +5676,7 @@
   "@programsMarkedAllPerformed": {
     "x-sourceSha256": "a0e7b24dff1bf9be7eefcb614d794bcdd53eab1576cf977fe3070ccdbf76762b"
   },
-  "programsMarkedAllPerformedExceptAlternates": "Alle Tänze außer Alternativen als aufgeführt markiert. Markieren Sie eine Alternative selbst, wenn Sie sie aufgerufen haben.",
+  "programsMarkedAllPerformedExceptAlternates": "Alle Tänze außer Alternativen als aufgeführt markiert. Markiere eine Alternative selbst, wenn du sie gecallt hast.",
   "@programsMarkedAllPerformedExceptAlternates": {
     "x-sourceSha256": "08a8256620a4cffa6d30dd9cab22983d46fe20c5f9d9024d3780368cb60d0017"
   },
@@ -5684,7 +5684,7 @@
   "@programsMarkedAllPerformedSetStatus": {
     "x-sourceSha256": "1ebf7244ed74255d35173bc284d75f422d7ed311ed7e882a776c1648c694dce2"
   },
-  "programsMarkedAllPerformedExceptAlternatesSetStatus": "Alle Tänze außer Alternativen als aufgeführt markiert und den Status auf Aufgeführt gesetzt. Markieren Sie eine Alternative selbst, wenn Sie sie aufgerufen haben.",
+  "programsMarkedAllPerformedExceptAlternatesSetStatus": "Alle Tänze außer Alternativen als aufgeführt markiert und den Status auf Aufgeführt gesetzt. Markiere eine Alternative selbst, wenn du sie gecallt hast.",
   "@programsMarkedAllPerformedExceptAlternatesSetStatus": {
     "x-sourceSha256": "24986b5a297d93c532027de52734b64b2972c2aab6abe1514b245dcec4077a86"
   },
@@ -5752,7 +5752,7 @@
   "@programsDiscardTitle": {
     "x-sourceSha256": "85bcf41666a53691403e5143716318c50c069dbdd8fde2e2cc589d210f177c06"
   },
-  "programsDiscardBody": "Sie haben nicht gespeicherte Änderungen an diesem Programm.",
+  "programsDiscardBody": "Du hast nicht gespeicherte Änderungen an diesem Programm.",
   "@programsDiscardBody": {
     "x-sourceSha256": "baf583e76c770a29919e32a5452d7b370be025a59d5bfbc565c06d2c4d79eb79"
   },
@@ -5768,15 +5768,15 @@
   "@programsDraftTitle": {
     "x-sourceSha256": "f8edaa9e0057bb34546a11141b0d6f77e0d42d3081e18c82d76e62c6b64d2b1a"
   },
-  "programsDraftBody": "Sie haben einen nicht gespeicherten Entwurf für dieses Programm. Möchten Sie ihn wiederherstellen?",
+  "programsDraftBody": "Du hast einen nicht gespeicherten Entwurf für dieses Programm. Möchtest du ihn wiederherstellen?",
   "@programsDraftBody": {
     "x-sourceSha256": "c7f0f1a362476a5fd3dc3339ad8b7208aebe3d297ff8e4c340e9f28f40070aa8"
   },
-  "programsDraftAnotherNewProgramBody": "Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Programms, „{title}“. Möchten Sie ihn wiederherstellen, statt ein neues zu beginnen?",
+  "programsDraftAnotherNewProgramBody": "Du hast einen nicht gespeicherten Entwurf eines anderen neuen Programms, „{title}“. Möchtest du ihn wiederherstellen, statt ein neues zu beginnen?",
   "@programsDraftAnotherNewProgramBody": {
     "x-sourceSha256": "7c77e7feaec8c841cdf34bd00ba6899421569e5841f14ac06629c5aa6ae7a9f7"
   },
-  "programsDraftAnotherNewProgramUntitledBody": "Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Programms, noch ohne Titel. Möchten Sie ihn wiederherstellen, statt ein neues zu beginnen?",
+  "programsDraftAnotherNewProgramUntitledBody": "Du hast einen nicht gespeicherten Entwurf eines anderen neuen Programms, noch ohne Titel. Möchtest du ihn wiederherstellen, statt ein neues zu beginnen?",
   "@programsDraftAnotherNewProgramUntitledBody": {
     "x-sourceSha256": "2ad41d85f235c3184fcf33a6400608446a19671bfcec3d592f0431761cb670d3"
   },
@@ -5844,7 +5844,7 @@
   "@programsSlotsLabel": {
     "x-sourceSha256": "4fd72c06bcff79710b0a5bd292b1f6408ec8cfa357e08566b663e4f14cbfc7f0"
   },
-  "programsSlotsHelper": "Jeder Slot ist ein Platz in deiner Setliste: ein Tanz, eine Notiz oder eine Pause.",
+  "programsSlotsHelper": "Jeder Slot ist eine Stelle in deiner Setliste: ein Tanz, eine Notiz oder eine Pause.",
   "@programsSlotsHelper": {
     "x-sourceSha256": "50b32d2e3c87ce90281b3b101b7b3798c9c79e267fbfef2f2837e296fa433f74"
   },
@@ -5859,6 +5859,10 @@
   "programsInsertBreakButton": "Pause einfügen",
   "@programsInsertBreakButton": {
     "x-sourceSha256": "95c8ab63aad97921a22aa01bbadf09549685e570d8f49b4261cab1c1aaadfa63"
+  },
+  "programsBreakSlotLabel": "Pause",
+  "@programsBreakSlotLabel": {
+    "x-sourceSha256": "f71081fb0af48ae614362bb396a02f189c24358d014a7daa12940aa6fc2ae29e"
   },
   "programsAddADanceSheetTitle": "Tanz hinzufügen",
   "@programsAddADanceSheetTitle": {
@@ -5972,7 +5976,7 @@
   "@programsVenueHint": {
     "x-sourceSha256": "5c385fec0eb7781d589de7f0c12b4872a8698a331ce491318dc63a77493b802f"
   },
-  "programsVenueLinkedHint": "Auch mit gespeichertem Veranstaltungsort verknüpft: {venueName}. Aktivieren Sie wiederverwendbare Veranstaltungsorte in den Einstellungen, um ihn anzuzeigen oder zu ändern.",
+  "programsVenueLinkedHint": "Auch mit gespeichertem Veranstaltungsort verknüpft: {venueName}. Aktiviere wiederverwendbare Veranstaltungsorte in den Einstellungen, um ihn anzuzeigen oder zu ändern.",
   "@programsVenueLinkedHint": {
     "x-sourceSha256": "f8ffda9be56a8a7b6b8045ca0007eeebdad592f909986f18971ac75af17b9d94"
   },
@@ -5980,7 +5984,7 @@
   "@programsVenueLinkedHintFallbackName": {
     "x-sourceSha256": "fed004229391efe203c1899573117cfb72338c75091b166b565afc0ba3e9d048"
   },
-  "programsVenueLegacyTextHint": "Zuvor eingegebener Veranstaltungsort: „{venueText}“. Verknüpfen Sie unten einen gespeicherten Veranstaltungsort, um wiederverwendbare Details zu nutzen – Ihr eingetippter Veranstaltungsort bleibt erhalten.",
+  "programsVenueLegacyTextHint": "Zuvor eingegebener Veranstaltungsort: „{venueText}“. Verknüpfe unten einen gespeicherten Veranstaltungsort, um wiederverwendbare Details zu nutzen – dein eingetippter Veranstaltungsort bleibt erhalten.",
   "@programsVenueLegacyTextHint": {
     "x-sourceSha256": "5a4f944932a944c89e477138ad1231768950db792b54ae79693e236a0fcebb78"
   },
@@ -6032,11 +6036,11 @@
   "@programsStatusFieldLabel": {
     "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
   },
-  "programsStatusHelper": "Wenn Sie eine Änderung zu Aufgeführt speichern, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert. Wenn Sie den Status zurücksetzen, bleiben die Markierungen erhalten.",
+  "programsStatusHelper": "Wenn du eine Änderung zu Aufgeführt speicherst, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert. Wenn du den Status zurücksetzt, bleiben die Markierungen erhalten.",
   "@programsStatusHelper": {
     "x-sourceSha256": "13c213fc0bb92d21e225a5bd47a860397774df1e549a8472cac026618c228027"
   },
-  "programsStatusHelperMarkAllSetsStatus": "Wenn Sie eine Änderung zu Aufgeführt speichern, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert, und „Alle als aufgeführt markieren“ setzt diesen Status. Wenn Sie den Status zurücksetzen, bleiben die Markierungen erhalten.",
+  "programsStatusHelperMarkAllSetsStatus": "Wenn du eine Änderung zu Aufgeführt speicherst, werden alle nicht markierten Tänze außer Alternativen als aufgeführt markiert, und „Alle als aufgeführt markieren“ setzt diesen Status. Wenn du den Status zurücksetzt, bleiben die Markierungen erhalten.",
   "@programsStatusHelperMarkAllSetsStatus": {
     "x-sourceSha256": "fc80bbf8e47a656eb66ce43ecdea30aa25cc819b5d5b6c4020ed1d6ca2954dac"
   },
@@ -6126,7 +6130,7 @@
   "@programsListLoadError": {
     "x-sourceSha256": "d91384fddc90ed5456a9dd63e365a1af966b1592be2c6de1597992164501d6ea"
   },
-  "programsListEmptyBody": "Erstellen Sie hier Setlisten für Ihre Veranstaltungen. Erstellen Sie Ihr erstes Programm, um loszulegen.",
+  "programsListEmptyBody": "Erstelle hier Setlisten für deine Veranstaltungen. Erstelle dein erstes Programm, um loszulegen.",
   "@programsListEmptyBody": {
     "x-sourceSha256": "ff56d4c33f7922abf4d4bfa250dc63518b46a2853c1c8e88d515525c6639bc83"
   },
@@ -6146,7 +6150,7 @@
   "@programsSummaryUnavailable": {
     "x-sourceSha256": "10af1ae6a434d276944201651b4f8a3179190f970c9d72af0aefc3b09fddf18c"
   },
-  "programsPerformDisabledTooltip": "Fügen Sie mindestens einen Slot hinzu, um dieses Programm aufzuführen",
+  "programsPerformDisabledTooltip": "Füge mindestens einen Slot hinzu, um dieses Programm aufzuführen",
   "@programsPerformDisabledTooltip": {
     "x-sourceSha256": "71d80a53d7da9afe973316eac630839c24268a6df1ce365a2166e18248549f22"
   },
@@ -6170,7 +6174,7 @@
   "@programsSetListHeader": {
     "x-sourceSha256": "2bdbaeaf4dad5019b3e017aae262fab73e2b630c3e675a2e8fcf0beb5daf11e8"
   },
-  "programsSummaryEmptySetList": "Noch keine Slots – öffnen Sie den Builder, um Tänze hinzuzufügen.",
+  "programsSummaryEmptySetList": "Noch keine Slots – öffne den Builder, um Tänze hinzuzufügen.",
   "@programsSummaryEmptySetList": {
     "x-sourceSha256": "fc27512d49a7c5d1cba0f3d62033088f8047872f8d0137a777e9e59b5994a84d"
   },
@@ -6214,7 +6218,7 @@
   "@programsSlotEditorEmptyTitle": {
     "x-sourceSha256": "05c8dfd4d97ab5937e7b58dcd79b3fd9824cd8c95b6d8bdbaac0878835012af4"
   },
-  "programsSlotEditorEmptyBody": "Fügen Sie einen Tanz oder eine Notiz hinzu, um loszulegen.",
+  "programsSlotEditorEmptyBody": "Füge einen Tanz oder eine Notiz hinzu, um loszulegen.",
   "@programsSlotEditorEmptyBody": {
     "x-sourceSha256": "12ebd0ccad6baf42b8ddf27f8bbf1cb345e7fdb180053039140046b22d801a20"
   },
@@ -6370,11 +6374,11 @@
   "@programsCreatedDanceFromNoteAnnounce": {
     "x-sourceSha256": "185833d5023bc165f402233bb842bdddfa040302b96dd8692065efbcf62617ea"
   },
-  "programsSlotTextRequiredError": "Geben Sie Text für diesen Slot ein.",
+  "programsSlotTextRequiredError": "Gib Text für diesen Slot ein.",
   "@programsSlotTextRequiredError": {
     "x-sourceSha256": "1c0e5fc9580be7db71f729f64c019f19ab9a9c8ea4908b8e3c71acb485f64088"
   },
-  "programsWholeNumberError": "Geben Sie eine ganze Zahl ≥ 0 ein.",
+  "programsWholeNumberError": "Gib eine ganze Zahl ≥ 0 ein.",
   "@programsWholeNumberError": {
     "x-sourceSha256": "c91b551b040ae8b7ea22c1fdb42f25eb55570de02c0991d9ed1868ee5c9cf7ce"
   },
@@ -6566,11 +6570,11 @@
   "@performExitTitle": {
     "x-sourceSha256": "05f34c2fcc32861d8d4f88635e026ddb3e728884f72be8249bb370eadf3338dd"
   },
-  "performExitBody": "Perform verlassen? Ihr Platz und die laufende Uhr werden gespeichert, sodass Sie dort weitermachen können, wo Sie aufgehört haben.",
+  "performExitBody": "Perform verlassen? Dein Platz und die laufende Uhr werden gespeichert, sodass du dort weitermachen kannst, wo du aufgehört hast.",
   "@performExitBody": {
     "x-sourceSha256": "432007a3c48d257c1346100918b110e8c22e660455d2a3f58c466cea7f8162c4"
   },
-  "performDanceExitBody": "Perform verlassen? Beim Perform eines einzelnen Tanzes wird Ihr Platz nicht gespeichert, daher beginnt es beim nächsten Mal von vorn.",
+  "performDanceExitBody": "Perform verlassen? Im Perform-Modus für einen einzelnen Tanz wird dein Platz nicht gespeichert, daher beginnt es beim nächsten Mal von vorn.",
   "@performDanceExitBody": {
     "x-sourceSha256": "b6ff050aa1203d57274da113489f60011a83823c770fecebb5acf6c6413ff667"
   },
@@ -6598,7 +6602,7 @@
   "@performBpmSemantic": {
     "x-sourceSha256": "77614a2a52ad6471ffeb8c3212f4696fd22e0c9593c883e4bb63091fdcfe04bf"
   },
-  "performNoTempoSemantic": "Noch kein Tempo eingestellt. Tippen Sie auf das Ziel, um ein Tempo festzulegen.",
+  "performNoTempoSemantic": "Noch kein Tempo eingestellt. Tippe auf das Ziel, um ein Tempo festzulegen.",
   "@performNoTempoSemantic": {
     "x-sourceSha256": "5cf2246b24906f07684a381ffecc9ba23f2e0dbed5a33e169ac89a1a03f387c7"
   },
@@ -6870,7 +6874,7 @@
   "@programsSelectTitle": {
     "x-sourceSha256": "2b137269273534985950c5947c8bf18898442138618a5b255f2de0ab2483fe16"
   },
-  "programsSelectBody": "Wählen Sie ein Programm aus der Liste oder erstellen Sie ein neues.",
+  "programsSelectBody": "Wähle ein Programm aus der Liste oder erstelle ein neues.",
   "@programsSelectBody": {
     "x-sourceSha256": "9879b3a436b1ed03aef6ebe1d1a8a1847cd94d26809a6c901e5b4542f2360d6f"
   },
@@ -6974,7 +6978,7 @@
   "@exportJsonDialogTitle": {
     "x-sourceSha256": "ff25653ee9e47f2a68ebc26cc2431ae8edc54c7b8305d1283357c64ae7cfb087"
   },
-  "exportJsonDialogMessage": "Wählen Sie, wie diese JSON-Datei bereitgestellt werden soll.",
+  "exportJsonDialogMessage": "Wähle, wie diese JSON-Datei bereitgestellt werden soll.",
   "@exportJsonDialogMessage": {
     "x-sourceSha256": "66fb82a14bf9e6f1cb38d2b337866225990ee2409e525be8b42155155074be38"
   },
@@ -7234,7 +7238,7 @@
   "@exportVenueContactTitle": {
     "x-sourceSha256": "5cbc948b44d3c600fcf7ced1e286d801edb7918a3cd61dd27d16a254ff99edb2"
   },
-  "exportVenueContactBody": "Dies sind persönliche Kontaktdaten des Veranstaltungsortes. Sie werden aus diesem Export ausgelassen, es sei denn, Sie entscheiden sich, sie einzuschließen.",
+  "exportVenueContactBody": "Dies sind persönliche Kontaktdaten des Veranstaltungsortes. Sie werden aus diesem Export ausgelassen, es sei denn, du entscheidest dich, sie einzuschließen.",
   "@exportVenueContactBody": {
     "x-sourceSha256": "c5e642561797d2dea88d0359e93645030d13de6b4695d5233e7123f862eca066"
   },
@@ -7318,7 +7322,7 @@
   "@collectionOnlineSearchHintTitle": {
     "x-sourceSha256": "623da0dbca6aeba450a345fdc0f37a180e39c14c830637d1eab26bf158d8438f"
   },
-  "onlineNoResults": "Keine Tänze auf {source} entsprechen Ihrer Suche.",
+  "onlineNoResults": "Keine Tänze auf {source} entsprechen deiner Suche.",
   "@onlineNoResults": {
     "x-sourceSha256": "dbd10ef3ae537da49bacbaa1d51ba7efabf6ed872599da3fb36c0c7f4648362a"
   },
@@ -7346,11 +7350,11 @@
   "@onlineImportUndoKeptChanged": {
     "x-sourceSha256": "8d822645712cbee80a667a24f960d58f9f8cb59aef3ed465d37e68d423ed30d4"
   },
-  "onlineImportAlreadyInCollection": "„{title}“ ist bereits in Ihrer Sammlung.",
+  "onlineImportAlreadyInCollection": "„{title}“ ist bereits in deiner Sammlung.",
   "@onlineImportAlreadyInCollection": {
     "x-sourceSha256": "1f09833ffab5f1b87829b3eddd2c3c82d5e5bfb6a71e01d6f29831d749d221f6"
   },
-  "onlineImportVariationDialogBody": "Titel und Autor dieses Tanzes stimmen mit „{existingTitle}“ überein, aber seine Figuren unterscheiden sich. Wie möchten Sie ihn importieren?",
+  "onlineImportVariationDialogBody": "Titel und Autor dieses Tanzes stimmen mit „{existingTitle}“ überein, aber seine Figuren unterscheiden sich. Wie möchtest du ihn importieren?",
   "@onlineImportVariationDialogBody": {
     "x-sourceSha256": "5ef033841d0f53a2e975dbc01478c2ca04f2fa4ea20427bf735f2430a80c618c"
   },
@@ -7362,15 +7366,15 @@
   "@onlineImportVariationDialogActionLink": {
     "x-sourceSha256": "7a89241607bf07561ac5217d1fead66bc5c4636e6f94a7608108da241cd65443"
   },
-  "onlineImportVariationDialogLinkWarning": "Ihre Version von „{existingTitle}“ wird durch den Online-Eintrag ersetzt — einschließlich ihres Titels, ihrer Figuren, Notizen und Tags. Sie behält Ihre Bewertung, Ihre benutzerdefinierten Felder, ihren Platz in Ihren Programmen und ihren Calling-Verlauf.",
+  "onlineImportVariationDialogLinkWarning": "Deine Version von „{existingTitle}“ wird durch den Online-Eintrag ersetzt — einschließlich ihres Titels, ihrer Figuren, Notizen und Tags. Sie behält deine Bewertung, deine benutzerdefinierten Felder, ihren Platz in deinen Programmen und ihren Calling-Verlauf.",
   "@onlineImportVariationDialogLinkWarning": {
     "x-sourceSha256": "1056677505f70fcc93e4c1e610f1c824a31479de32f29cacbe8fbec1213fcb8c"
   },
-  "onlineImportCrossSourceDuplicateDialogTitle": "Sie haben diesen Tanz bereits",
+  "onlineImportCrossSourceDuplicateDialogTitle": "Du hast diesen Tanz bereits",
   "@onlineImportCrossSourceDuplicateDialogTitle": {
     "x-sourceSha256": "5c16452183521ffb00bc920b0e8ed470e4e94ff9b52c0fc34d0a7fdf3ebde745"
   },
-  "onlineImportCrossSourceDuplicateDialogBody": "Ihre Sammlung enthält „{existingTitle}“ bereits. Beide Versionen haben dieselbe Abfolge von Bewegungen.",
+  "onlineImportCrossSourceDuplicateDialogBody": "Deine Sammlung enthält „{existingTitle}“ bereits. Beide Versionen haben dieselbe Abfolge von Bewegungen.",
   "@onlineImportCrossSourceDuplicateDialogBody": {
     "x-sourceSha256": "c45f669de91f48793a838bd0481355ec1fdda1bfce0d2f1217e7ea24914f7166"
   },
@@ -7378,15 +7382,15 @@
   "@onlineImportCrossSourceDuplicateDialogActionDuplicate": {
     "x-sourceSha256": "9bad404a2973e7d0e6de960f720c661c2b18063abf4b865dd34bf2faac2a9029"
   },
-  "onlineImportPossibleMatchDialogTitle": "Haben Sie diesen Tanz bereits?",
+  "onlineImportPossibleMatchDialogTitle": "Hast du diesen Tanz bereits?",
   "@onlineImportPossibleMatchDialogTitle": {
     "x-sourceSha256": "eb996ac93dc2a9064a9fe9d58a8b4cc5a9f79a0f0c66c7259e76b14cf7f6d802"
   },
-  "onlineImportPossibleMatchDialogBody": "„{incomingTitle}“ ist möglicherweise ein Tanz, den Sie bereits unter einem anderen Titel haben. Wählen Sie den Tanz, der durch diese Version ersetzt werden soll, oder importieren Sie diesen als neuen Tanz.",
+  "onlineImportPossibleMatchDialogBody": "„{incomingTitle}“ ist möglicherweise ein Tanz, den du bereits unter einem anderen Titel hast. Wähle den Tanz, der durch diese Version ersetzt werden soll, oder importiere diesen als neuen Tanz.",
   "@onlineImportPossibleMatchDialogBody": {
     "x-sourceSha256": "c23d4f0bdd76d65aa431c58419d8a497eca0ed5d84d68e16e2ebee368fc2b303"
   },
-  "onlineImportPossibleMatchDialogLinkWarning": "Der Tanz, den Sie auswählen, wird durch den Online-Eintrag ersetzt — einschließlich seines Titels, seiner Figuren, Notizen und Tags. Er behält Ihre Bewertung, Ihre benutzerdefinierten Felder, seinen Platz in Ihren Programmen und seinen Calling-Verlauf.",
+  "onlineImportPossibleMatchDialogLinkWarning": "Der Tanz, den du auswählst, wird durch den Online-Eintrag ersetzt — einschließlich seines Titels, seiner Figuren, Notizen und Tags. Er behält deine Bewertung, deine benutzerdefinierten Felder, seinen Platz in deinen Programmen und seinen Calling-Verlauf.",
   "@onlineImportPossibleMatchDialogLinkWarning": {
     "x-sourceSha256": "198184a9f1d632e4877e2a250b04522e9893cd1161387dea8599a936ec044ef6"
   },
@@ -7486,7 +7490,7 @@
   "@importContraDbListError": {
     "x-sourceSha256": "54932b4b3ad317856cf05986fa7a5c43ae26aeb5645676d116d3eb437703dd0d"
   },
-  "importContraDbSearchPrompt": "Geben Sie einen Teil eines Programmnamens ein, um ContraDB zu durchsuchen.",
+  "importContraDbSearchPrompt": "Gib einen Teil eines Programmnamens ein, um ContraDB zu durchsuchen.",
   "@importContraDbSearchPrompt": {
     "x-sourceSha256": "84dd8bdf6b371c3a808eaccad52641265412bfee6fe0007003f363fabfb62f77"
   },
@@ -7522,7 +7526,7 @@
   "@importContraDbFetchGenericError": {
     "x-sourceSha256": "b7c0a887c3c73ad674cfa9bca5800a152d5939acd0530ad2730bee49f96915ce"
   },
-  "importContraDbPastePrompt": "Fügen Sie oben eine ContraDB-Programm-URL ein und tippen Sie auf „Programm abrufen“.",
+  "importContraDbPastePrompt": "Füge oben eine ContraDB-Programm-URL ein und tippe auf „Programm abrufen“.",
   "@importContraDbPastePrompt": {
     "x-sourceSha256": "96aa8d2109e517a157e8eedf134312561c299cfdd016ba57db606154da335713"
   },
@@ -7538,7 +7542,7 @@
   "@importContraDbProgramProgress": {
     "x-sourceSha256": "fbd8c6778031827ce8acc922cd76181fe6253462e1d474d5c914aeb69c1f37e0"
   },
-  "importContraDbProgramConnectionFailed": "Die Online-Archive konnten nicht erreicht werden, daher wurde nichts importiert. Versuchen Sie es erneut, sobald Sie online sind.",
+  "importContraDbProgramConnectionFailed": "Die Online-Archive konnten nicht erreicht werden, daher wurde nichts importiert. Versuche es erneut, sobald du online bist.",
   "@importContraDbProgramConnectionFailed": {
     "x-sourceSha256": "f90475f594f9aed9601b28b34b6f6d2095c8803fd86711035ca6238ac629e0f9"
   },
@@ -7586,11 +7590,11 @@
   "@importTitleListDancesLabel": {
     "x-sourceSha256": "7eef2f0500e10e18a40c1722a5342bebb6a786d12beb6b69d1a4109b45621648"
   },
-  "importTitleListDancesHint": "Fügen Sie einen Tanztitel pro Zeile ein.\nNicht erkannte Zeilen werden als Notizen gespeichert.",
+  "importTitleListDancesHint": "Füge einen Tanztitel pro Zeile ein.\nNicht erkannte Zeilen werden als Notizen gespeichert.",
   "@importTitleListDancesHint": {
     "x-sourceSha256": "d6ce0547d04e63c028124877a24836648f23afefe4f7ce54de409c50e3ea6c51"
   },
-  "importTitleListEmptyHint": "Fügen Sie oben eine Titelliste ein, um eine Vorschau des Programms zu sehen.",
+  "importTitleListEmptyHint": "Füge oben eine Titelliste ein, um eine Vorschau des Programms zu sehen.",
   "@importTitleListEmptyHint": {
     "x-sourceSha256": "75e998aca9a29b6b77b3abcdd44960de212844814614d03cac4d9519016e968c"
   },
@@ -7634,7 +7638,7 @@
   "@importPlaintextResolvedLinked": {
     "x-sourceSha256": "1419cd7e44ccda1131261da7617c9e873071b64a1940d8efb5023cd96ff58d32"
   },
-  "importPlaintextResolveConnectionFailed": "Die Suche nach Titeln wurde nach einem Verbindungsfehler abgebrochen{linked, plural, =0{.} =1{ – {linked} Titel online verknüpft.} other{ – {linked} Titel online verknüpft.}} Versuchen Sie es mit dem Rest erneut, sobald Sie online sind.",
+  "importPlaintextResolveConnectionFailed": "Die Suche nach Titeln wurde nach einem Verbindungsfehler abgebrochen{linked, plural, =0{.} =1{ – {linked} Titel online verknüpft.} other{ – {linked} Titel online verknüpft.}} Versuche es mit dem Rest erneut, sobald du online bist.",
   "@importPlaintextResolveConnectionFailed": {
     "x-sourceSha256": "08a1ca27be4823f896e736886923c6ca1f07a5b4d10fd58689932a6a14a43eee"
   },
@@ -7714,7 +7718,7 @@
   "@importSourceLabelTitleList": {
     "x-sourceSha256": "ef3427022d2dccebc56c37f13523d97c2d95e98a884a487007b112159955597e"
   },
-  "importReviewTitleListSubtitle": "Fügen Sie einen Tanztitel pro Zeile ein. Jeder Titel wird zur Prüfung aufgeführt — die bereits vorhandenen werden angezeigt, aber nie erneut importiert, und nichts wird Ihrer Sammlung hinzugefügt, bevor Sie bestätigen.",
+  "importReviewTitleListSubtitle": "Füge einen Tanztitel pro Zeile ein. Jeder Titel wird zur Prüfung aufgeführt — die bereits vorhandenen werden angezeigt, aber nie erneut importiert, und nichts wird deiner Sammlung hinzugefügt, bevor du bestätigst.",
   "@importReviewTitleListSubtitle": {
     "x-sourceSha256": "bfcf9b06a1eca4251196b45f81ac10b044f7f7993178eadbf36ea076db3048de"
   },
@@ -7730,11 +7734,11 @@
   "@importReviewTitleListDuplicates": {
     "x-sourceSha256": "572e699a910422ee893e9e03f9649fbbf42c3c1b8a3bdb84514f0403ec343ce9"
   },
-  "importTitleListTooManyTitles": "Das sind {count} Titel. Importieren Sie bis zu {max} auf einmal.",
+  "importTitleListTooManyTitles": "Das sind {count} Titel. Importiere bis zu {max} auf einmal.",
   "@importTitleListTooManyTitles": {
     "x-sourceSha256": "810583c8238c2a62f0761e17ed150877c4b611485e506caea5db2bd632620881"
   },
-  "importTitleListTextTooLong": "Dieser eingefügte Text ist zu lang, um als Liste von Titeln gelesen zu werden. Versuchen Sie es mit einer kürzeren Liste.",
+  "importTitleListTextTooLong": "Dieser eingefügte Text ist zu lang, um als Liste von Titeln gelesen zu werden. Versuche es mit einer kürzeren Liste.",
   "@importTitleListTextTooLong": {
     "x-sourceSha256": "e007aa216cfbe5a6e4f55a8571855f40b01fd94136a9c873eccf5bbb122759ae"
   },
@@ -7778,7 +7782,7 @@
   "@importReviewTitleListAmbiguous": {
     "x-sourceSha256": "8230a822286c32eb258d0ddcd3096a7404f6800f78a3ed9db0f147ffdc7949d4"
   },
-  "importReviewTitleListOwned": "{count, plural, =1{1 bereits in Ihrer Sammlung} other{{count} bereits in Ihrer Sammlung}}",
+  "importReviewTitleListOwned": "{count, plural, =1{1 bereits in deiner Sammlung} other{{count} bereits in deiner Sammlung}}",
   "@importReviewTitleListOwned": {
     "x-sourceSha256": "072d9a081e67bab0b9cb3b84928f86726fdf0788d475110ddd406b389d71c98b"
   },
@@ -7786,15 +7790,15 @@
   "@importReviewTitleListNotFound": {
     "x-sourceSha256": "08530aa2d73ef53a78148bfaec4f36b0d6765bdd14150018c086d2b9306830c9"
   },
-  "importReviewTitleListOwnedBy": "Sie haben diesen Tanz bereits, von {authors}.",
+  "importReviewTitleListOwnedBy": "Du hast diesen Tanz bereits, von {authors}.",
   "@importReviewTitleListOwnedBy": {
     "x-sourceSha256": "1e23857399d50c14c4f896be42d3e20374751cc9fcf0444afcde327e1b8f76a4"
   },
-  "importReviewTitleListOwnedUnknownAuthor": "Sie haben diesen Tanz bereits.",
+  "importReviewTitleListOwnedUnknownAuthor": "Du hast diesen Tanz bereits.",
   "@importReviewTitleListOwnedUnknownAuthor": {
     "x-sourceSha256": "b2246fb2ac987f1c064da211f2b9c8601c68ada2e29e5b4d453c5a98519beacd"
   },
-  "importReviewTitleListOwnedMany": "Sie haben {count} Tänze mit diesem Titel.",
+  "importReviewTitleListOwnedMany": "Du hast {count} Tänze mit diesem Titel.",
   "@importReviewTitleListOwnedMany": {
     "x-sourceSha256": "6c46316870713735cdbaaea0cdef762899f979c8280df095225bf664d013452e"
   },
@@ -7806,7 +7810,7 @@
   "@importTitleListReasonNoExactMatch": {
     "x-sourceSha256": "fd1c6017a7039bcef192b8e3762f1d9ccc4ec89a07ec5dac4c49a831eb7a8752"
   },
-  "importTitleListReasonMultipleExactMatches": "Mehrere Tänze tragen genau diesen Titel, daher ist nicht klar, welchen Sie meinten.",
+  "importTitleListReasonMultipleExactMatches": "Mehrere Tänze tragen genau diesen Titel, daher ist nicht klar, welchen du meintest.",
   "@importTitleListReasonMultipleExactMatches": {
     "x-sourceSha256": "c5395201b8789f9f92415dcb527994e2d7cbb9929e7c0412ec00d1e1e3b1e036"
   },
@@ -7814,11 +7818,11 @@
   "@importTitleListReasonFetchError": {
     "x-sourceSha256": "ecae5ed3ce32059d5c7945d151090682262a6333f9d6b37db20b09d683223f23"
   },
-  "importTitleListReasonConnectionFailed": "The Caller's Box konnte nicht erreicht werden – prüfen Sie Ihre Verbindung.",
+  "importTitleListReasonConnectionFailed": "The Caller's Box konnte nicht erreicht werden – prüfe deine Verbindung.",
   "@importTitleListReasonConnectionFailed": {
     "x-sourceSha256": "b2f14ee793acdd3ebc63858fbbced0521fd7b93e2ef88468e55c83b72f16c82c"
   },
-  "importTitleListConnectionBanner": "Die Suche nach Titeln wurde nach einem Verbindungsfehler abgebrochen. Die Titel, die bereits in Ihrer Sammlung sind, werden aufgelistet; versuchen Sie es mit dem Rest, sobald Sie online sind.",
+  "importTitleListConnectionBanner": "Die Suche nach Titeln wurde nach einem Verbindungsfehler abgebrochen. Die Titel, die bereits in deiner Sammlung sind, werden aufgelistet; versuche es mit dem Rest, sobald du online bist.",
   "@importTitleListConnectionBanner": {
     "x-sourceSha256": "8d7abfdefdb0a4afe928e30565457f26e95c48bdcc55b5a77dc1a6efe93a2524"
   },
@@ -7826,11 +7830,11 @@
   "@importTitleListReasonLineTooLong": {
     "x-sourceSha256": "2e83f669234c65baeae1145f525ec623f4537bdc02ee680f78f20594d4e3c52d"
   },
-  "importReviewTitleListNothingToImport": "Hier gibt es nichts zu importieren — jeder Titel ist entweder bereits in Ihrer Sammlung oder konnte nicht gefunden werden.",
+  "importReviewTitleListNothingToImport": "Hier gibt es nichts zu importieren — jeder Titel ist entweder bereits in deiner Sammlung oder konnte nicht gefunden werden.",
   "@importReviewTitleListNothingToImport": {
     "x-sourceSha256": "573b7bf479cfc5e816dc0f035aaf9810a90dfd751197f0eef00728f88d53dbb7"
   },
-  "importReviewSummaryAlreadyOwned": "Bereits in Ihrer Sammlung: {count}",
+  "importReviewSummaryAlreadyOwned": "Bereits in deiner Sammlung: {count}",
   "@importReviewSummaryAlreadyOwned": {
     "x-sourceSha256": "d45a0aced35cdca490a96bed94ed0ae5ee743f1be4051bcec6d2f41d060ca7e7"
   },
@@ -7838,7 +7842,7 @@
   "@importReviewSummaryNotFound": {
     "x-sourceSha256": "a658a2cf71fcefd9a21232220c6359b409285b680caf4a2638238c2597e919b2"
   },
-  "importErrorFileTooLarge": "Die Datei überschreitet das Limit von {megabytes} MB. Wählen Sie eine kleinere Datei und versuchen Sie es erneut.",
+  "importErrorFileTooLarge": "Die Datei überschreitet das Limit von {megabytes} MB. Wähle eine kleinere Datei und versuche es erneut.",
   "@importErrorFileTooLarge": {
     "x-sourceSha256": "a6a1b89f26d0a94639f9d7be61e1d044667eeb39a97439aa3d7b97e51ac24e09"
   },
@@ -7874,7 +7878,7 @@
   "@importScanDanceCode": {
     "x-sourceSha256": "6d0de32ac3ed5523e61de52943c3e9e755f341c1baf566dbbc97667ca15de7f7"
   },
-  "importScanNoCode": "Im Bild wurde kein Tanzcode gefunden. Achten Sie darauf, dass der ganze Code darauf und scharf ist.",
+  "importScanNoCode": "Im Bild wurde kein Tanzcode gefunden. Achte darauf, dass der ganze Code darauf und scharf ist.",
   "@importScanNoCode": {
     "x-sourceSha256": "1ae463d735b602f8bcc4152e17ddb801d51543b7f5600324a2b58b2d1fc9651b"
   },
@@ -7886,15 +7890,15 @@
   "@importDanceCodePicture": {
     "x-sourceSha256": "be81c72bb0d507302ebe60ba264cb2761e661821bb7d098ec7c323bbbaca4e3c"
   },
-  "importScanTooLarge": "Dieses Bild ist größer als {limit} MB und wurde daher nicht gelesen. Wählen Sie ein kleineres.",
+  "importScanTooLarge": "Dieses Bild ist größer als {limit} MB und wurde daher nicht gelesen. Wähle ein kleineres.",
   "@importScanTooLarge": {
     "x-sourceSha256": "1bb69766d216ed5cb9684a05e78700f2dbb36387e7357e871b9d03fec1dcb7ab"
   },
-  "importScanNoCamera": "Dieses Gerät hat keine Kamera-App für das Foto. Wählen Sie stattdessen „Tanzcode aus einem Bild…“.",
+  "importScanNoCamera": "Dieses Gerät hat keine Kamera-App für das Foto. Wähle stattdessen „Tanzcode aus einem Bild…“.",
   "@importScanNoCamera": {
     "x-sourceSha256": "e0a95d0123c05ffc934149ea728b928edb8fd4a60e3fb77831a9b7711cfa4766"
   },
-  "importScanCameraOff": "Der Kamerazugriff ist für Caller's Compendium ausgeschaltet. Um einen Code zu scannen, schalten Sie ihn in der App „Einstellungen“ ein.",
+  "importScanCameraOff": "Der Kamerazugriff ist für Caller's Compendium ausgeschaltet. Um einen Code zu scannen, schalte ihn in der App „Einstellungen“ ein.",
   "@importScanCameraOff": {
     "x-sourceSha256": "869f1f26a4aeb36d0d17ccd4cf21bbb313746189f5a00e0abdacd705a7decd6c"
   },
@@ -7926,7 +7930,7 @@
   "@importErrorUnsupportedSharedLink": {
     "x-sourceSha256": "e9aa5483ef48bad5bbe043ff4eb792f2808d548b017c557e40b9da634263220f"
   },
-  "importErrorTooManyRedirects": "Diese URL wurde zu oft umgeleitet. Öffnen Sie sie in einem Browser, um die endgültige Adresse zu finden, und verwenden Sie stattdessen diese.",
+  "importErrorTooManyRedirects": "Diese URL wurde zu oft umgeleitet. Öffne sie in einem Browser, um die endgültige Adresse zu finden, und verwende stattdessen diese.",
   "@importErrorTooManyRedirects": {
     "x-sourceSha256": "27ff194bd853e2a3b69c8ee2f1d28d833af3f778e360d07df42a33ffacbb4d4e"
   },
@@ -7934,35 +7938,35 @@
   "@importErrorResponseTooLarge": {
     "x-sourceSha256": "6c2ecfb2da6b786c81572bf9302fade1ecaaa75cf62bfc594546a314a053fb9a"
   },
-  "importErrorEmptyUrl": "Geben Sie eine URL zum Importieren ein.",
+  "importErrorEmptyUrl": "Gib eine URL zum Importieren ein.",
   "@importErrorEmptyUrl": {
     "x-sourceSha256": "cf6a6cb29bc3355e2fc5b91bd71efcb779a86771d7e54fd72d9dae5bc76eaf3a"
   },
-  "importErrorTimeout": "Die Anfrage hat nach {seconds} s das Zeitlimit überschritten. Überprüfen Sie die URL und Ihre Verbindung, dann versuchen Sie es erneut.",
+  "importErrorTimeout": "Die Anfrage hat nach {seconds} s das Zeitlimit überschritten. Überprüfe die URL und deine Verbindung, dann versuche es erneut.",
   "@importErrorTimeout": {
     "x-sourceSha256": "4ac6a5d55d71db8c19d041c9cc645fb703ebd12f32a8d3ead3d091d16b603251"
   },
-  "importErrorUnreachable": "Diese URL konnte nicht erreicht werden. Überprüfen Sie die URL und Ihre Verbindung, dann versuchen Sie es erneut.",
+  "importErrorUnreachable": "Diese URL konnte nicht erreicht werden. Überprüfe die URL und deine Verbindung, dann versuche es erneut.",
   "@importErrorUnreachable": {
     "x-sourceSha256": "4ff73e66000d3cb577a1030f0c711e303fbe17ee653f5fa99a2eb24cd13313e6"
   },
-  "importErrorHttpStatus": "Der Server hat eine unerwartete Antwort gesendet (Code {status}). Überprüfen Sie die URL und versuchen Sie es erneut.",
+  "importErrorHttpStatus": "Der Server hat eine unerwartete Antwort gesendet (Code {status}). Überprüfe die URL und versuche es erneut.",
   "@importErrorHttpStatus": {
     "x-sourceSha256": "d715f5158f6bd8fa30f8c229bd5399d31c3f58e410f55d6af83b6d795ddfb640"
   },
-  "importErrorHttpNotFound": "Unter dieser Adresse wurde nichts gefunden. Überprüfen Sie die URL und versuchen Sie es erneut.",
+  "importErrorHttpNotFound": "Unter dieser Adresse wurde nichts gefunden. Überprüfe die URL und versuche es erneut.",
   "@importErrorHttpNotFound": {
     "x-sourceSha256": "cf5585489bba75ba3b41e367615410f6f6e71954601ab06dfb9b2d5112499d7d"
   },
-  "importErrorHttpBusy": "Der Server ist ausgelastet oder hat Probleme. Versuchen Sie es in einer Minute erneut.",
+  "importErrorHttpBusy": "Der Server ist ausgelastet oder hat Probleme. Versuche es in einer Minute erneut.",
   "@importErrorHttpBusy": {
     "x-sourceSha256": "cd5dacb33010b3a35f2d93fff910b4574b7973956786e47c3de9e465830886ec"
   },
-  "importErrorEmptyResponse": "Die URL hat eine leere Antwort geliefert. Prüfen Sie, ob der Link auf die Daten verweist, die Sie importieren möchten, und versuchen Sie es erneut.",
+  "importErrorEmptyResponse": "Die URL hat eine leere Antwort geliefert. Prüfe, ob der Link auf die Daten verweist, die du importieren möchtest, und versuche es erneut.",
   "@importErrorEmptyResponse": {
     "x-sourceSha256": "e4ebf590be59fc1c96250e01b1de6c9c868d171db953062cff138dda7d27d8a9"
   },
-  "importErrorCallersBoxEmptyInput": "Geben Sie eine Caller's Box-Tanz-URL oder -ID zum Importieren ein.",
+  "importErrorCallersBoxEmptyInput": "Gib eine Caller's Box-Tanz-URL oder -ID zum Importieren ein.",
   "@importErrorCallersBoxEmptyInput": {
     "x-sourceSha256": "4903ac452d3a7b43fb9ff3327f1427700addfaccf824d1c7ef63e79b8e588399"
   },
@@ -7978,39 +7982,39 @@
   "@importErrorCallersBoxUnsupportedHost": {
     "x-sourceSha256": "c6569642ee20586fd6f2f645907007b739941c7bb3969bc9d1924125083f26a6"
   },
-  "importErrorCallersBoxEmptySearch": "Geben Sie einen Titel oder Phrase-Figuren ein, um The Caller's Box zu durchsuchen.",
+  "importErrorCallersBoxEmptySearch": "Gib einen Titel oder Phrase-Figuren ein, um The Caller's Box zu durchsuchen.",
   "@importErrorCallersBoxEmptySearch": {
     "x-sourceSha256": "de498ee8e0e593d834bdab0c8d9da0fbecd0d4e3cc47dceaee8854e2c13cae7c"
   },
-  "importErrorSearchTimeout": "Die Suche hat nach {seconds} s das Zeitlimit überschritten. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.",
+  "importErrorSearchTimeout": "Die Suche hat nach {seconds} s das Zeitlimit überschritten. Überprüfe deine Verbindung, dann versuche es erneut.",
   "@importErrorSearchTimeout": {
     "x-sourceSha256": "30d8b712d13edb18b6ecff299f36250d33878848b47092fd59789cfebe8a0d1b"
   },
-  "importErrorCallersBoxUnreachable": "The Caller's Box konnte nicht erreicht werden. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.",
+  "importErrorCallersBoxUnreachable": "The Caller's Box konnte nicht erreicht werden. Überprüfe deine Verbindung, dann versuche es erneut.",
   "@importErrorCallersBoxUnreachable": {
     "x-sourceSha256": "f140c354812d376da6d72cf268e505b4657f1081aacf9a0fb754263af7f8a8ad"
   },
-  "importErrorCallersBoxTimeout": "The Caller's Box hat nicht innerhalb von {seconds} s geantwortet. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.",
+  "importErrorCallersBoxTimeout": "The Caller's Box hat nicht innerhalb von {seconds} s geantwortet. Überprüfe deine Verbindung, dann versuche es erneut.",
   "@importErrorCallersBoxTimeout": {
     "x-sourceSha256": "9d7846853da91e8277a64ca524ade77a3693f216aa515f63ff765ada4ccee1d8"
   },
-  "importErrorCallersBoxHttpStatus": "The Caller's Box hat eine unerwartete Antwort gesendet (Code {status}). Versuchen Sie es in einer Minute erneut.",
+  "importErrorCallersBoxHttpStatus": "The Caller's Box hat eine unerwartete Antwort gesendet (Code {status}). Versuche es in einer Minute erneut.",
   "@importErrorCallersBoxHttpStatus": {
     "x-sourceSha256": "b3f7c0b4214ce8134864c95f5b46449073251df4514a4e53a2487515992bcb96"
   },
-  "importErrorCallersBoxHttpNotFound": "The Caller's Box hat keinen Tanz mit dieser ID. Überprüfen Sie die Nummer oder den Link und versuchen Sie es erneut.",
+  "importErrorCallersBoxHttpNotFound": "The Caller's Box hat keinen Tanz mit dieser ID. Überprüfe die Nummer oder den Link und versuche es erneut.",
   "@importErrorCallersBoxHttpNotFound": {
     "x-sourceSha256": "5c0fca4555523554af37924604d4925fb297fd770112d0c38b994ab3a996adb7"
   },
-  "importErrorCallersBoxHttpBusy": "The Caller's Box ist gerade ausgelastet. Versuchen Sie es in einer Minute erneut.",
+  "importErrorCallersBoxHttpBusy": "The Caller's Box ist gerade ausgelastet. Versuche es in einer Minute erneut.",
   "@importErrorCallersBoxHttpBusy": {
     "x-sourceSha256": "ef9121c399cb511f779ceb91e4d81f4a7ed45218ddd9ba53307adfddb5af194e"
   },
-  "importErrorCallersBoxEmptyPage": "The Caller's Box gab eine leere Seite zurück. Versuchen Sie es in einer Minute erneut.",
+  "importErrorCallersBoxEmptyPage": "The Caller's Box gab eine leere Seite zurück. Versuche es in einer Minute erneut.",
   "@importErrorCallersBoxEmptyPage": {
     "x-sourceSha256": "9fba7474fa1b6258006abf1acf072787f11554498664d4bb62194726a50b26ce"
   },
-  "importErrorCallersBoxNoDance": "The Caller's Box hat keinen importierbaren Tanz geliefert. Überprüfen Sie die ID oder den Link und versuchen Sie es erneut.",
+  "importErrorCallersBoxNoDance": "The Caller's Box hat keinen importierbaren Tanz geliefert. Überprüfe die ID oder den Link und versuche es erneut.",
   "@importErrorCallersBoxNoDance": {
     "x-sourceSha256": "69b4b9c5e620a36ae8e0f964a15acd814b17a24c3c5ffb5bffebc3082031cdc0"
   },
@@ -8030,7 +8034,7 @@
   "@importErrorContraDbUnsupportedAdvanced": {
     "x-sourceSha256": "42862901a0a7909f2ae974441f520d33d531c9f3103518110d2a57883e1e9dc8"
   },
-  "importErrorContraDbEmptyDanceInput": "Geben Sie eine ContraDB-Tanz-URL oder -ID zum Importieren ein.",
+  "importErrorContraDbEmptyDanceInput": "Gib eine ContraDB-Tanz-URL oder -ID zum Importieren ein.",
   "@importErrorContraDbEmptyDanceInput": {
     "x-sourceSha256": "5aaddefa8c5f26cf63296ed62556451c87d6e6d52742e4e4f14952d37c6a2a20"
   },
@@ -8042,7 +8046,7 @@
   "@importErrorContraDbMissingDanceId": {
     "x-sourceSha256": "9cfcaeb879fa57fbafd4f2600c2b892743753a90cb0acf486a2c92a45898f56f"
   },
-  "importErrorContraDbEmptyProgramInput": "Geben Sie eine ContraDB-Programm-URL oder -ID zum Importieren ein.",
+  "importErrorContraDbEmptyProgramInput": "Gib eine ContraDB-Programm-URL oder -ID zum Importieren ein.",
   "@importErrorContraDbEmptyProgramInput": {
     "x-sourceSha256": "1f7fcdbcc88d8ead45b07290c1fdc43c3edd90226c9d09147957882ea36ab70a"
   },
@@ -8062,31 +8066,31 @@
   "@importErrorContraDbUnsupportedHost": {
     "x-sourceSha256": "c288905fc02c1a12840d0fa5e6a07e7e94a90702b06f1122dd22516a88eb1813"
   },
-  "importErrorContraDbUnreachable": "ContraDB konnte nicht erreicht werden. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.",
+  "importErrorContraDbUnreachable": "ContraDB konnte nicht erreicht werden. Überprüfe deine Verbindung, dann versuche es erneut.",
   "@importErrorContraDbUnreachable": {
     "x-sourceSha256": "244e23d8cd2f627e2bc5c60af4e9d9a3d5bcf43152d28f683fc07065e72e5215"
   },
-  "importErrorContraDbTimeout": "ContraDB hat nicht innerhalb von {seconds} s geantwortet. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.",
+  "importErrorContraDbTimeout": "ContraDB hat nicht innerhalb von {seconds} s geantwortet. Überprüfe deine Verbindung, dann versuche es erneut.",
   "@importErrorContraDbTimeout": {
     "x-sourceSha256": "d4aadc1ceede37108fa57deef785079fe132c4df86a3c9a917afe6af7d5133f7"
   },
-  "importErrorContraDbHttpStatus": "ContraDB hat eine unerwartete Antwort gesendet (Code {status}). Versuchen Sie es in einer Minute erneut.",
+  "importErrorContraDbHttpStatus": "ContraDB hat eine unerwartete Antwort gesendet (Code {status}). Versuche es in einer Minute erneut.",
   "@importErrorContraDbHttpStatus": {
     "x-sourceSha256": "ec8a61907d7f12028ab1d0237a8f3cb417fce327e342ef38ca8c63840d7ca3d8"
   },
-  "importErrorContraDbHttpNotFound": "ContraDB hat keinen Tanz mit dieser ID. Überprüfen Sie die Nummer oder den Link und versuchen Sie es erneut.",
+  "importErrorContraDbHttpNotFound": "ContraDB hat keinen Tanz mit dieser ID. Überprüfe die Nummer oder den Link und versuche es erneut.",
   "@importErrorContraDbHttpNotFound": {
     "x-sourceSha256": "3ba27cd63d8a86ee41d992b2e969cbeb9ea9b55540ca11fbb4751801c147bc69"
   },
-  "importErrorContraDbHttpBusy": "ContraDB ist gerade ausgelastet. Versuchen Sie es in einer Minute erneut.",
+  "importErrorContraDbHttpBusy": "ContraDB ist gerade ausgelastet. Versuche es in einer Minute erneut.",
   "@importErrorContraDbHttpBusy": {
     "x-sourceSha256": "923274ccd7fb39ac46b2245d51f2f34c8ce4d6aab066c8de342148315ab7e1c6"
   },
-  "importErrorContraDbEmptyResponse": "ContraDB gab eine leere Antwort zurück. Versuchen Sie es in einer Minute erneut.",
+  "importErrorContraDbEmptyResponse": "ContraDB gab eine leere Antwort zurück. Versuche es in einer Minute erneut.",
   "@importErrorContraDbEmptyResponse": {
     "x-sourceSha256": "f5c8c3340f0e8fb2dc09beba859d7a07117129830ee607df9a2af687b3941e11"
   },
-  "importErrorContraDbNoDance": "ContraDB hat keinen importierbaren Tanz geliefert. Überprüfen Sie die ID oder den Link und versuchen Sie es erneut.",
+  "importErrorContraDbNoDance": "ContraDB hat keinen importierbaren Tanz geliefert. Überprüfe die ID oder den Link und versuche es erneut.",
   "@importErrorContraDbNoDance": {
     "x-sourceSha256": "91da0d90fa3c2d68e6337c5e9cc943420670c6922daa786c2a2f9b6acfd3a815"
   },
@@ -8102,11 +8106,11 @@
   "@importIssueProgramEmptySlot": {
     "x-sourceSha256": "5c9dbd0ffd0617887accdb063575f029cfe614d2ddc0da7b47718c7ddd421cdd"
   },
-  "importIssueProgramDeletedDance": "Ein Programm verwies auf einen Tanz, der in Caller's Companion gelöscht wurde; der Platz wurde weggelassen.",
+  "importIssueProgramDeletedDance": "Ein Programm verwies auf einen Tanz, der in Caller's Companion gelöscht wurde; der Slot wurde weggelassen.",
   "@importIssueProgramDeletedDance": {
     "x-sourceSha256": "85e690af9308604e2c749befa97c49d9911b3da55b90cacd2855403e413f5efa"
   },
-  "importIssueProgramUnresolvedDance": "Ein Programm verwies auf einen Tanz, der nicht importiert wurde; der Platz wurde als Text-Platzhalter beibehalten.",
+  "importIssueProgramUnresolvedDance": "Ein Programm verwies auf einen Tanz, der nicht importiert wurde; der Slot wurde als Text-Platzhalter beibehalten.",
   "@importIssueProgramUnresolvedDance": {
     "x-sourceSha256": "acb7fcbc7626e8a99be9de22ee51116dd292c336c24ec4833044d6f4907b5195"
   },
@@ -8126,7 +8130,7 @@
   "@importIssueArchiveNewerSchema": {
     "x-sourceSha256": "9b86962b90d1d14a52c0efda353106a377827ed244a142001fc923380f1bc902"
   },
-  "importIssueArchiveCustomFieldKeyConflict": "Ihr benutzerdefiniertes Feld „{label}“ hat in dieser Datei einen anderen Typ oder andere Auswahlwerte, daher kommen die Werte der Datei dafür stattdessen in das Feld mit dem Schlüssel „{key}“, das angelegt wird, falls Sie es noch nicht haben. Ihr Feld bleibt unverändert.",
+  "importIssueArchiveCustomFieldKeyConflict": "Dein benutzerdefiniertes Feld „{label}“ hat in dieser Datei einen anderen Typ oder andere Auswahlwerte, daher kommen die Werte der Datei dafür stattdessen in das Feld mit dem Schlüssel „{key}“, das angelegt wird, falls du es noch nicht hast. Dein Feld bleibt unverändert.",
   "@importIssueArchiveCustomFieldKeyConflict": {
     "x-sourceSha256": "9564f8cbbc1191daf14b62e22227265143784d621e03cbc394125584cf11b1fc"
   },
@@ -8210,7 +8214,7 @@
   "@importIssueUnmappedLevel": {
     "x-sourceSha256": "c67c87215f761056ad09b0b93662684a17946b9701707ae76de07e7d8da9d300"
   },
-  "importIssueNewLevel": "Das Niveau „{level}“ wird zu Ihren Schwierigkeitsgraden hinzugefügt.",
+  "importIssueNewLevel": "Das Niveau „{level}“ wird zu deinen Schwierigkeitsgraden hinzugefügt.",
   "@importIssueNewLevel": {
     "x-sourceSha256": "729544c1bfa2d5d65bce4fe453728cb6f2c605c6550c4d4f1f45b1eb8f45ff77"
   },
@@ -8218,11 +8222,11 @@
   "@importIssueUnmappedProgression": {
     "x-sourceSha256": "bf5c9c7e01441d77b244f2143ddb4265dcef50ce141739fb57d062a139cdba86"
   },
-  "importIssueBarsMeterUnstated": "Dieser Tanz zählt in Takten, nennt aber keine Taktart, daher wurde jeder Takt als 2 Schläge gezählt. Prüfen Sie die Zählungen.",
+  "importIssueBarsMeterUnstated": "Dieser Tanz zählt in Takten, nennt aber keine Taktart, daher wurde jeder Takt als 2 Schläge gezählt. Prüfe die Zählungen.",
   "@importIssueBarsMeterUnstated": {
     "x-sourceSha256": "c5a034e9d32006995c2a5565b567e500f8eaac762943f9fde54b3e9554d145d9"
   },
-  "importIssueBarsMeterMixed": "Dieser Tanz zählt in Takten, nennt aber Taktarten mit unterschiedlicher Taktlänge, daher wurde jeder Takt als 2 Schläge gezählt. Prüfen Sie die Zählungen.",
+  "importIssueBarsMeterMixed": "Dieser Tanz zählt in Takten, nennt aber Taktarten mit unterschiedlicher Taktlänge, daher wurde jeder Takt als 2 Schläge gezählt. Prüfe die Zählungen.",
   "@importIssueBarsMeterMixed": {
     "x-sourceSha256": "044e9303e3fac0fe97aa2b5ab81f6987a2dd83bf7e777dae12c439d55751df6a"
   },
@@ -8358,7 +8362,7 @@
   "@importReviewFileReady": {
     "x-sourceSha256": "3b785af06b03677999e52f1303cf130749e038d707c0a5e707dbb42384623d97"
   },
-  "importReviewGenericSubtitle": "Wählen Sie eine Datei aus, fügen Sie deren Inhalt ein oder rufen Sie sie von einer URL ab. Ihrer Sammlung wird nichts hinzugefügt, bis Sie überprüfen und bestätigen.",
+  "importReviewGenericSubtitle": "Wähle eine Datei aus, füge deren Inhalt ein oder rufe sie von einer URL ab. Deiner Sammlung wird nichts hinzugefügt, bis du überprüfst und bestätigst.",
   "@importReviewGenericSubtitle": {
     "x-sourceSha256": "d54f8d39c19f7ed3fea3e7892447ba7510c9137facf9aaa9e560bad89212e96c"
   },
@@ -8478,11 +8482,11 @@
   "@importReviewOptionDuplicate": {
     "x-sourceSha256": "b4ed3ed8907b60111f687f32d121971db2fd9cf7381dce15d89d00295559c2f1"
   },
-  "importReviewPossibleMatch": "Mögliche Übereinstimmung — wählen Sie, wie importiert werden soll:",
+  "importReviewPossibleMatch": "Mögliche Übereinstimmung — wähle, wie importiert werden soll:",
   "@importReviewPossibleMatch": {
     "x-sourceSha256": "7ee5b6b8742356f4ce77e8ee288919c91abd3a8f38aa3769aebd59c349c5bde6"
   },
-  "importReviewPossibleTitleMatch": "Möglicherweise ein Tanz, den Sie bereits unter einem anderen Titel haben — wählen Sie, wie importiert werden soll:",
+  "importReviewPossibleTitleMatch": "Möglicherweise ein Tanz, den du bereits unter einem anderen Titel hast — wähle, wie importiert werden soll:",
   "@importReviewPossibleTitleMatch": {
     "x-sourceSha256": "cf6adaa989c54db756c4f1dde8166ae0aa2e5889d024d12569508b37967317a7"
   },
@@ -8594,7 +8598,7 @@
   "@importUsrEnglishTitle": {
     "x-sourceSha256": "4ccb8d548911fe8a939c5c7baf01eb8662cb28fe120d64ae579dcdeb47928c7e"
   },
-  "importUsrEnglishBody": "Caller's Companion führt englische Country Dances oft als Contra. Enthält diese Datei englische Tänze, werden sie mit englischen Figuren, Aufstellungen und Taktzählungen gelesen, und ein als Square geführter Tanz wird zu einem englischen Tanz in einem Square-Set.",
+  "importUsrEnglishBody": "Caller's Companion führt englische Country Dances oft als Contra. Enthält diese Datei englische Tänze, werden sie mit englischen Figuren, Formationen und Taktzählungen gelesen, und ein als Square geführter Tanz wird zu einem englischen Tanz in einem Square-Set.",
   "@importUsrEnglishBody": {
     "x-sourceSha256": "722d3f38bf7d6258d236dd5203b0244c02c53754f979386f44bd588cd6061304"
   },
@@ -8810,11 +8814,11 @@
   "@danceEditorFiguresSection": {
     "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"
   },
-  "danceEditorFiguresHelp": "Geben Sie eine Bewegung ein (z. B. „sw“ → swing) und drücken Sie Eingabe, um sie mit Standardwerten hinzuzufügen; Text, den die App nicht lesen kann, wird eine nicht erkannte Figur.",
+  "danceEditorFiguresHelp": "Gib eine Bewegung ein (z. B. „sw“ → swing) und drücke Eingabe, um sie mit Standardwerten hinzuzufügen; Text, den die App nicht lesen kann, wird eine nicht erkannte Figur.",
   "@danceEditorFiguresHelp": {
     "x-sourceSha256": "0c0a8a2d3fd6e6bfb1ac1e798e43e4e101138f5711ca5a3584cbc21948dd93fc"
   },
-  "danceEditorFiguresHelpFreeText": "Fügen Sie eine Figur hinzu, indem Sie eine ganze Zeile eingeben (z. B. „neighbor balance & swing“) und die Eingabetaste drücken. Eine in die Bewegung einer bestehenden Figur eingegebene Zeile ersetzt diese Figur. Text, den die App nicht lesen kann, wird eine nicht erkannte Figur.",
+  "danceEditorFiguresHelpFreeText": "Füge eine Figur hinzu, indem du eine ganze Zeile eingibst (z. B. „neighbor balance & swing“) und die Eingabetaste drückst. Eine in die Bewegung einer bestehenden Figur eingegebene Zeile ersetzt diese Figur. Text, den die App nicht lesen kann, wird eine nicht erkannte Figur.",
   "@danceEditorFiguresHelpFreeText": {
     "x-sourceSha256": "016d5e6b127b54bb6731d7c3e9487ecd260334d5a531a5a4b656ffa081b650fe"
   },
@@ -8830,11 +8834,11 @@
   "@danceEditorHookLabel": {
     "x-sourceSha256": "536ff5051d2541c9be5975c589b2b2bfecd85c1eb316522080db20c2bf27ccee"
   },
-  "danceEditorHookHint": "Einzeiliges „Warum diesen Tanz aufrufen“",
+  "danceEditorHookHint": "Einzeiliges „Warum diesen Tanz callen“",
   "@danceEditorHookHint": {
     "x-sourceSha256": "9ec0f63c05da0d610b7fa421036366aa0fa9ed9548f0b548d4868e4ed5b1de3b"
   },
-  "danceEditorHookHelper": "Warum du diesen Tanz ansagen würdest, in einer Zeile. Das kann auf Ansagekarten und in dem erscheinen, was du teilst.",
+  "danceEditorHookHelper": "Warum du diesen Tanz callen würdest, in einer Zeile. Das kann auf Calling-Karten und in dem erscheinen, was du teilst.",
   "@danceEditorHookHelper": {
     "x-sourceSha256": "509f0b93edaed19c9c8aa51a9f67c10afcf6719adff4f1a6c07937ed4d3bdff7"
   },
@@ -8942,7 +8946,7 @@
   "@settingsWalkthroughSnippetsEmptyTitle": {
     "x-sourceSha256": "2eaca46bb56a9a6e7160dc7c94814016d56ee4b524dfcc989ae6a3c23176a34b"
   },
-  "settingsWalkthroughSnippetsEmptyBody": "Fügen Sie Beschreibungen für Ablaufschritte hinzu, während Sie die Figuren eines Tanzes bearbeiten.",
+  "settingsWalkthroughSnippetsEmptyBody": "Füge Beschreibungen für Ablaufschritte hinzu, während du die Figuren eines Tanzes bearbeitest.",
   "@settingsWalkthroughSnippetsEmptyBody": {
     "x-sourceSha256": "3c5ac18eb708b647a15b8448fd0d681ea743f557bf1abb49724a0ce43e6685ee"
   },
@@ -9290,7 +9294,7 @@
   "@validationPhraseBeatMismatch": {
     "x-sourceSha256": "cbcfd5cfa1932d621756cac5a7dd64ad714b041a96c3a293ac1a3833dc29002a"
   },
-  "validationSequenceExceedsPhrase": "Eine Sequenz in Figur {position} hat {actual} Beats und ist länger als ihre Phrase ({limit} Beats).",
+  "validationSequenceExceedsPhrase": "Eine Sequenz in Figur {position} hat {actual} Schläge und ist länger als ihre Phrase ({limit} Schläge).",
   "@validationSequenceExceedsPhrase": {
     "x-sourceSha256": "a286391f4293c584271c4e05681091eec316b8b18f3abc18ecda2152600446d4"
   },
@@ -9478,15 +9482,15 @@
   "@danceEditorUnsavedDraftTitle": {
     "x-sourceSha256": "f8edaa9e0057bb34546a11141b0d6f77e0d42d3081e18c82d76e62c6b64d2b1a"
   },
-  "danceEditorUnsavedDraftMessage": "Sie haben einen nicht gespeicherten Entwurf für diesen Tanz. Möchten Sie ihn wiederherstellen?",
+  "danceEditorUnsavedDraftMessage": "Du hast einen nicht gespeicherten Entwurf für diesen Tanz. Möchtest du ihn wiederherstellen?",
   "@danceEditorUnsavedDraftMessage": {
     "x-sourceSha256": "4361737050c69693981e562c818bb6e1759d9787f3c3063b7c5a24110ff4bd05"
   },
-  "danceEditorUnsavedNewDanceDraftMessage": "Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Tanzes, „{title}“. Möchten Sie ihn wiederherstellen, statt einen neuen zu beginnen?",
+  "danceEditorUnsavedNewDanceDraftMessage": "Du hast einen nicht gespeicherten Entwurf eines anderen neuen Tanzes, „{title}“. Möchtest du ihn wiederherstellen, statt einen neuen zu beginnen?",
   "@danceEditorUnsavedNewDanceDraftMessage": {
     "x-sourceSha256": "4e61a324a0b6f57fcd5ee0b436de90a962bcd92e9ee01be671e6fe0c6e6a9f37"
   },
-  "danceEditorUnsavedNewDanceDraftUntitledMessage": "Sie haben einen nicht gespeicherten Entwurf eines anderen neuen Tanzes, noch ohne Titel. Möchten Sie ihn wiederherstellen, statt einen neuen zu beginnen?",
+  "danceEditorUnsavedNewDanceDraftUntitledMessage": "Du hast einen nicht gespeicherten Entwurf eines anderen neuen Tanzes, noch ohne Titel. Möchtest du ihn wiederherstellen, statt einen neuen zu beginnen?",
   "@danceEditorUnsavedNewDanceDraftUntitledMessage": {
     "x-sourceSha256": "cc94ad5921a82b7a09da9609d23e294e7143bbf350f0726fb70299e73c9003e9"
   },
@@ -9494,7 +9498,7 @@
   "@danceEditorUnsavedDraftSavedAt": {
     "x-sourceSha256": "0a54afbff697740ab32849f748b479e07b7e7368e5d94fa21defb9d187ca2092"
   },
-  "danceEditorUnsavedDraftChangedSince": "Dieser Tanz wurde geändert, seit der Entwurf gespeichert wurde. Wenn Sie den Entwurf wiederherstellen, werden diese Änderungen ersetzt.",
+  "danceEditorUnsavedDraftChangedSince": "Dieser Tanz wurde geändert, seit der Entwurf gespeichert wurde. Wenn du den Entwurf wiederherstellst, werden diese Änderungen ersetzt.",
   "@danceEditorUnsavedDraftChangedSince": {
     "x-sourceSha256": "3a7cbbf1fc29a4de9fc4d7ddfd2d0542dba59459363b98374e564ac0ff457703"
   },
@@ -9510,7 +9514,7 @@
   "@danceEditorDiscardChangesTitle": {
     "x-sourceSha256": "85bcf41666a53691403e5143716318c50c069dbdd8fde2e2cc589d210f177c06"
   },
-  "danceEditorDiscardChangesMessage": "Sie haben nicht gespeicherte Änderungen an diesem Tanz.",
+  "danceEditorDiscardChangesMessage": "Du hast nicht gespeicherte Änderungen an diesem Tanz.",
   "@danceEditorDiscardChangesMessage": {
     "x-sourceSha256": "299daecbe692529188db787be238fdfdc49eb1bd3f5bc48202f0ad2c24ea4b9a"
   },
@@ -9598,15 +9602,15 @@
   "@danceEditorSourceAuthorEditorLabel": {
     "x-sourceSha256": "08edba25251936241358acfa7dadffa1117fcc0ee755bb8c90e87fbbe43a4615"
   },
-  "danceEditorEnterWholeNumber": "Geben Sie eine ganze Zahl ein",
+  "danceEditorEnterWholeNumber": "Gib eine ganze Zahl ein",
   "@danceEditorEnterWholeNumber": {
     "x-sourceSha256": "fe2bee1488b5adebef4c40d9ff750003c6c07fbf65bc152fe1060b462f427287"
   },
-  "danceEditorEnterPositiveYear": "Geben Sie ein positives Jahr ein",
+  "danceEditorEnterPositiveYear": "Gib ein positives Jahr ein",
   "@danceEditorEnterPositiveYear": {
     "x-sourceSha256": "e7644e0f1f4655c3b0445af11d65a33e98019c8583f577f1d063a95e9f62a32f"
   },
-  "danceEditorAddedFigureChooseMove": "Figur {count} hinzugefügt. Wählen Sie eine Bewegung.",
+  "danceEditorAddedFigureChooseMove": "Figur {count} hinzugefügt. Wähle eine Bewegung.",
   "@danceEditorAddedFigureChooseMove": {
     "x-sourceSha256": "a55203e3d7a95ecfc8b1bd1beb9be9626ba195001a147b498c769f83f9db6464"
   },
@@ -9626,15 +9630,15 @@
   "@danceEditorCollapsedFigureAnnouncement": {
     "x-sourceSha256": "a6da5e4854025d628854b834ab577b860e9adfb0adc882e4a1529bf7da4344da"
   },
-  "danceEditorTypeFigureAnnouncement": "Geben Sie eine Figur ein und drücken Sie Eingabe, um sie hinzuzufügen.",
+  "danceEditorTypeFigureAnnouncement": "Gib eine Figur ein und drücke Eingabe, um sie hinzuzufügen.",
   "@danceEditorTypeFigureAnnouncement": {
     "x-sourceSha256": "6e79b14acebce619661dbe4568ca7be28d3755a35bf3f86da7e2636df5393af1"
   },
-  "danceEditorFreeTextFiguresAddedAnnouncement": "{count, plural, =1{1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.} other{{count} Figuren hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.}}",
+  "danceEditorFreeTextFiguresAddedAnnouncement": "{count, plural, =1{1 Figur hinzugefügt. Gib eine weitere ein oder drücke Escape, um zu beenden.} other{{count} Figuren hinzugefügt. Gib eine weitere ein oder drücke Escape, um zu beenden.}}",
   "@danceEditorFreeTextFiguresAddedAnnouncement": {
     "x-sourceSha256": "c4d66c29eef8a2480eeff9c01651a491f5f23569bc7a17aa9f6d79d0e522c6ed"
   },
-  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, =1{1 Figur hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Hinzufügen beenden“, wenn Sie fertig sind.} other{{count} Figuren hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Hinzufügen beenden“, wenn Sie fertig sind.}}",
+  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, =1{1 Figur hinzugefügt. Gib eine weitere ein oder wähle „Hinzufügen beenden“, wenn du fertig bist.} other{{count} Figuren hinzugefügt. Gib eine weitere ein oder wähle „Hinzufügen beenden“, wenn du fertig bist.}}",
   "@danceEditorFreeTextFiguresAddedConfirmation": {
     "x-sourceSha256": "492ea68521c3329c5c4c55e7a94ffcd161f61c8240efbc69ae6d9bccc84aca55"
   },
@@ -9662,7 +9666,7 @@
   "@danceEditorAddFirstFigure": {
     "x-sourceSha256": "4e2d518f1046529fbe94dd568d4b60aaa54fbbf9dd1034975088d1e97bd89701"
   },
-  "danceEditorCutBanner": "„{figure}“ wurde ausgeschnitten – tippen Sie auf Einfügen, um sie zu platzieren.",
+  "danceEditorCutBanner": "„{figure}“ wurde ausgeschnitten – tippe auf Einfügen, um sie zu platzieren.",
   "@danceEditorCutBanner": {
     "x-sourceSha256": "36168c242626d252ad4bbd1d38a58013f7ebd756d3062219d54b1c954766b552"
   },
@@ -9698,11 +9702,11 @@
   "@figureTextSheetTitle": {
     "x-sourceSha256": "16fe82c061e1e702e837551405086ab2837909dd63cca58d58f9203a4325a493"
   },
-  "figureTextSheetHelp": "Geben Sie eine Figur pro Zeile ein oder fügen Sie sie ein, z. B. „(8) neighbor balance & swing“. Jede Zeile wird so gelesen, wie das Bewegungsfeld eine eingegebene Zeile bei eingeschalteter Freitexteingabe liest, auch wenn sie ausgeschaltet ist. Nichts wird gespeichert, bevor Sie den Tanz speichern.",
+  "figureTextSheetHelp": "Gib eine Figur pro Zeile ein oder füge sie ein, z. B. „(8) neighbor balance & swing“. Jede Zeile wird so gelesen, wie das Bewegungsfeld eine eingegebene Zeile bei eingeschalteter Freitexteingabe liest, auch wenn sie ausgeschaltet ist. Nichts wird gespeichert, bevor du den Tanz speicherst.",
   "@figureTextSheetHelp": {
     "x-sourceSha256": "b70b8b6217d32cf7ede39377160bdf83e8c8bdc955157327c679396a147589ac"
   },
-  "figureTextSheetHelpDropsLabels": "Geben Sie eine Figur pro Zeile ein oder fügen Sie sie ein, z. B. „A1 (8) neighbor balance & swing“. Eine Phrasenbezeichnung wie A1 am Zeilenanfang wird weggelassen, und jede Zeile wird so gelesen, wie das Bewegungsfeld eine eingegebene Zeile bei eingeschalteter Freitexteingabe liest, auch wenn sie ausgeschaltet ist. Nichts wird gespeichert, bevor Sie den Tanz speichern.",
+  "figureTextSheetHelpDropsLabels": "Gib eine Figur pro Zeile ein oder füge sie ein, z. B. „A1 (8) neighbor balance & swing“. Eine Phrasenbezeichnung wie A1 am Zeilenanfang wird weggelassen, und jede Zeile wird so gelesen, wie das Bewegungsfeld eine eingegebene Zeile bei eingeschalteter Freitexteingabe liest, auch wenn sie ausgeschaltet ist. Nichts wird gespeichert, bevor du den Tanz speicherst.",
   "@figureTextSheetHelpDropsLabels": {
     "x-sourceSha256": "b7c9b5a463322917bfc2bc008a83faba9c4b6e26fe2ec7f5853b365d025d033e"
   },
@@ -9714,7 +9718,7 @@
   "@figureTextSheetSummary": {
     "x-sourceSha256": "8d628e840de30c093887423e7f1d919896e3bb934d2e8856bdf02ba9d3673733"
   },
-  "figureTextSheetUnrecognizedSummary": "{count, plural, =1{1 Zeile wird nicht erkannt. Sie wird als nicht erkannte Figur mit ihrem Text hinzugefügt, damit Sie sie korrigieren können.} other{{count} Zeilen werden nicht erkannt. Sie werden als nicht erkannte Figuren mit ihrem Text hinzugefügt, damit Sie sie korrigieren können.}}",
+  "figureTextSheetUnrecognizedSummary": "{count, plural, =1{1 Zeile wird nicht erkannt. Sie wird als nicht erkannte Figur mit ihrem Text hinzugefügt, damit du sie korrigieren kannst.} other{{count} Zeilen werden nicht erkannt. Sie werden als nicht erkannte Figuren mit ihrem Text hinzugefügt, damit du sie korrigieren kannst.}}",
   "@figureTextSheetUnrecognizedSummary": {
     "x-sourceSha256": "c8437f40374bbc82b0a64d4ff94ab7ce5f2748c5d770c23cdbf0dc43431520ac"
   },
@@ -9726,15 +9730,15 @@
   "@figureTextSheetLineUnrecognized": {
     "x-sourceSha256": "bc1388947433658b1995ad75b92db5183b3fcedb17225879f503b202423529e6"
   },
-  "figureTextSheetTooLong": "Das sind mehr als {max} Zeichen, mehr als auf einmal gelesen werden kann. Es wird nichts hinzugefügt. Fügen Sie den Text in Teilen hinzu.",
+  "figureTextSheetTooLong": "Das sind mehr als {max} Zeichen, mehr als auf einmal gelesen werden kann. Es wird nichts hinzugefügt. Füge den Text in Teilen hinzu.",
   "@figureTextSheetTooLong": {
     "x-sourceSha256": "7fa1be36660f7294a0e3098d01851077618d38453897a1c033bf072b2b93c5d7"
   },
-  "figureTextSheetTooManyLines": "Das sind mehr als {max} Zeilen, mehr als auf einmal gelesen werden kann. Es wird nichts hinzugefügt. Fügen Sie den Text in Teilen hinzu.",
+  "figureTextSheetTooManyLines": "Das sind mehr als {max} Zeilen, mehr als auf einmal gelesen werden kann. Es wird nichts hinzugefügt. Füge den Text in Teilen hinzu.",
   "@figureTextSheetTooManyLines": {
     "x-sourceSha256": "7905bde0cab940e87a1c4f3d237e0642b7d323190936e1280a368ecf679835cf"
   },
-  "figureTextSheetLineTooLong": "Eine Zeile ist länger als {max} Zeichen, mehr als als eine Figurenzeile gelesen werden kann. Es wird nichts hinzugefügt. Teilen Sie sie in mehrere Zeilen auf.",
+  "figureTextSheetLineTooLong": "Eine Zeile ist länger als {max} Zeichen, mehr als als eine Figurenzeile gelesen werden kann. Es wird nichts hinzugefügt. Teile sie in mehrere Zeilen auf.",
   "@figureTextSheetLineTooLong": {
     "x-sourceSha256": "788a83f3a7ef068c39e41cd604a9ce2936d1f2332e956c9d27d823ba1f93a847"
   },
@@ -9750,7 +9754,7 @@
   "@figureTextSheetTakePhoto": {
     "x-sourceSha256": "996e6a73eaebe70299816a9a45e7e3500ea67c91cd79d32a4db00cd843c66285"
   },
-  "figureTextSheetCameraOff": "Der Kamerazugriff ist für Caller's Compendium ausgeschaltet. Um ein Foto aufzunehmen, schalten Sie ihn in der App „Einstellungen“ ein.",
+  "figureTextSheetCameraOff": "Der Kamerazugriff ist für Caller's Compendium ausgeschaltet. Um ein Foto aufzunehmen, schalte ihn in der App „Einstellungen“ ein.",
   "@figureTextSheetCameraOff": {
     "x-sourceSha256": "b3137ffbc39ab7a39fe6ad06a490bb1ed2ae15728d8a11625dda3bd3724d79e2"
   },
@@ -9766,11 +9770,11 @@
   "@figureTextSheetImageEnglishOnly": {
     "x-sourceSha256": "bd0891d06fd0e811fafa2c4d42d4ead78224080a6bdb22ad36a59bdd8fe4ae8d"
   },
-  "figureTextSheetImageTooLarge": "Dieses Bild ist größer als {limit} MB und wurde deshalb nicht gelesen. Wählen Sie ein kleineres.",
+  "figureTextSheetImageTooLarge": "Dieses Bild ist größer als {limit} MB und wurde deshalb nicht gelesen. Wähle ein kleineres.",
   "@figureTextSheetImageTooLarge": {
     "x-sourceSha256": "1bb69766d216ed5cb9684a05e78700f2dbb36387e7357e871b9d03fec1dcb7ab"
   },
-  "figureTextSheetImageTooManyPixels": "Dieses Bild hat zu viele Pixel, um gelesen zu werden. Wählen Sie ein kleineres oder schneiden Sie es zu.",
+  "figureTextSheetImageTooManyPixels": "Dieses Bild hat zu viele Pixel, um gelesen zu werden. Wähle ein kleineres oder schneide es zu.",
   "@figureTextSheetImageTooManyPixels": {
     "x-sourceSha256": "b50a0545135cdaba32030e933955ed45f156fdb1f439a92ec17de47fc8cd4fbd"
   },
@@ -9934,19 +9938,19 @@
   "@danceEditorSequenceGroupLabel": {
     "x-sourceSha256": "7e4967a5972cb2a9a45945a1f8f1df5edaa478ec05637dd024badf9f3001a4a5"
   },
-  "danceEditorSequenceGroupSemantic": "Sequenz-Gruppe, {count, plural, =1{1 Figur} other{{count} Figuren}} nacheinander, insgesamt {beats, plural, =1{1 Beat} other{{beats} Beats}}.",
+  "danceEditorSequenceGroupSemantic": "Sequenz-Gruppe, {count, plural, =1{1 Figur} other{{count} Figuren}} nacheinander, insgesamt {beats, plural, =1{1 Schlag} other{{beats} Schläge}}.",
   "@danceEditorSequenceGroupSemantic": {
     "x-sourceSha256": "6c9161a37b5d51850e47b10e53cd288ec44e7216c6b5ac18fdbb93a8520cad11"
   },
-  "danceEditorSequenceTotalBeats": "{beats, plural, =1{Insgesamt 1 Beat} other{Insgesamt {beats} Beats}}",
+  "danceEditorSequenceTotalBeats": "{beats, plural, =1{Insgesamt 1 Schlag} other{Insgesamt {beats} Schläge}}",
   "@danceEditorSequenceTotalBeats": {
     "x-sourceSha256": "5939821f14dca9d0edb89c7b340aed8f7f16bc24d1b4d9b2a185dbf77b5e63c8"
   },
-  "danceEditorSequenceOverPhrase": "Diese Sequenz hat {beats} Beats und ist länger als ihre Phrase ({limit} Beats).",
+  "danceEditorSequenceOverPhrase": "Diese Sequenz hat {beats} Schläge und ist länger als ihre Phrase ({limit} Schläge).",
   "@danceEditorSequenceOverPhrase": {
     "x-sourceSha256": "69cda6e549a9dcffe8757f73f11f9057bfa2efacfbdc94aebdf92038bd4ec4fe"
   },
-  "danceEditorSequencePhraseFull": "Diese Figuren füllen ihre Phrase ({limit} Beats).",
+  "danceEditorSequencePhraseFull": "Diese Figuren füllen ihre Phrase ({limit} Schläge).",
   "@danceEditorSequencePhraseFull": {
     "x-sourceSha256": "89db3e55065d6ae3a82bab01094b25566f20c3664c162e50bc59565cf263ad92"
   },
@@ -9974,7 +9978,7 @@
   "@danceEditorModifierGroupLabel": {
     "x-sourceSha256": "5fbaec7eb90bb422be9b4c33a4dc92db129cae61869384f857c3779a7d09d10b"
   },
-  "danceEditorModifierGroupSemantic": "Modifier-Gruppe, {count, plural, =1{1 Figur} other{{count} Figuren}}, {beats, plural, =1{1 Beat} other{{beats} Beats}}.",
+  "danceEditorModifierGroupSemantic": "Modifier-Gruppe, {count, plural, =1{1 Figur} other{{count} Figuren}}, {beats, plural, =1{1 Schlag} other{{beats} Schläge}}.",
   "@danceEditorModifierGroupSemantic": {
     "x-sourceSha256": "cd51d1dc40abb37be2cffa2a77bcd1e183374a5c89b26312f31a2223b03784f5"
   },
@@ -10106,7 +10110,7 @@
   "@danceEditorParamClearTooltip": {
     "x-sourceSha256": "228a87717b50bd2f4db06933e7ccb5e5761dcad5e502f4cafec84504056b2f16"
   },
-  "danceEditorIntParamRangeError": "Geben Sie eine ganze Zahl von {min} bis {max} ein",
+  "danceEditorIntParamRangeError": "Gib eine ganze Zahl von {min} bis {max} ein",
   "@danceEditorIntParamRangeError": {
     "x-sourceSha256": "806e77b408cf208760573c7bec1aafa1126aa7bf4834511c4b1f8da07a56bca6"
   },
@@ -10154,11 +10158,11 @@
   "@updateBannerPreparingInstaller": {
     "x-sourceSha256": "042739fa10aac04079b724575a4c5121469bd2b0fe29c859601d2f7bb0842dcc"
   },
-  "updateBannerCompletedRevealed": "{appName} {version} heruntergeladen und verifiziert – das Installationsprogramm wurde in Ihrem Dateimanager angezeigt. Führen Sie es aus, um die Aktualisierung abzuschließen.",
+  "updateBannerCompletedRevealed": "{appName} {version} heruntergeladen und verifiziert – das Installationsprogramm wurde in deinem Dateimanager angezeigt. Führe es aus, um die Aktualisierung abzuschließen.",
   "@updateBannerCompletedRevealed": {
     "x-sourceSha256": "9e9ab0e06c7e1966db6d3a1c36a4c7b8a9075c691310c7c44a8446f291de5de9"
   },
-  "updateBannerCompletedManual": "{appName} {version} heruntergeladen – folgen Sie dem Installationsprogramm, um die Aktualisierung abzuschließen.",
+  "updateBannerCompletedManual": "{appName} {version} heruntergeladen – folge dem Installationsprogramm, um die Aktualisierung abzuschließen.",
   "@updateBannerCompletedManual": {
     "x-sourceSha256": "7541e377878528425ab97b6a7e561c260a9aaea0dc1e8ebad023f00461908bb6"
   },
@@ -10174,7 +10178,7 @@
   "@updateDownloadFailureDestination": {
     "x-sourceSha256": "f5bc011f822ce2823e471fbcbf4ce2297e07e7d330fe84bc64c47b47fb135580"
   },
-  "updateDownloadFailureDestinationOccupied": "An diesem Ort befindet sich bereits etwas. Wählen Sie einen anderen Namen oder Ordner oder verwenden Sie „Release ansehen“.",
+  "updateDownloadFailureDestinationOccupied": "An diesem Ort befindet sich bereits etwas. Wähle einen anderen Namen oder Ordner oder verwende „Release ansehen“.",
   "@updateDownloadFailureDestinationOccupied": {
     "x-sourceSha256": "6e229e0b5a454738aa5ed4b7c9be061458a5b9cc33a75efcd7151e50c8c8c82e"
   },
@@ -10182,7 +10186,7 @@
   "@updateDownloadFailureIncomplete": {
     "x-sourceSha256": "4ba5a8ccec8caaf779d2008d9e510347d592364f28bdc1d1bb7732cdb4359d59"
   },
-  "updateDownloadFailureRefusedHost": "Der Update-Download wurde abgelehnt, weil er auf einen unerwarteten Speicherort verwies. Verwenden Sie „Release ansehen“, um das Update manuell herunterzuladen.",
+  "updateDownloadFailureRefusedHost": "Der Update-Download wurde abgelehnt, weil er auf einen unerwarteten Speicherort verwies. Verwende „Release ansehen“, um das Update manuell herunterzuladen.",
   "@updateDownloadFailureRefusedHost": {
     "x-sourceSha256": "af76ad7165b28b47a2ef175e7d69052fe819a2a89e1277e072d98f49a4ed5b86"
   },
@@ -10202,7 +10206,7 @@
   "@updateDownloadFailureUnwritable": {
     "x-sourceSha256": "a48ae1266e6918458ff228ad25ea7864f6b84520431cb76955002cafb469cd69"
   },
-  "updateDownloadFailureChecksumMismatch": "Das heruntergeladene Update hat die Sicherheitsprüfung nicht bestanden und wurde gelöscht. Versuchen Sie es erneut oder verwenden Sie „Release ansehen“, um es manuell herunterzuladen.",
+  "updateDownloadFailureChecksumMismatch": "Das heruntergeladene Update hat die Sicherheitsprüfung nicht bestanden und wurde gelöscht. Versuche es erneut oder verwende „Release ansehen“, um es manuell herunterzuladen.",
   "@updateDownloadFailureChecksumMismatch": {
     "x-sourceSha256": "fd5ee9a51a1cfa972b2e7d7d4639983d9c280f09e012ad3228186c819fa08e8f"
   },
@@ -10226,7 +10230,7 @@
   "@startupEcdConvertTitle": {
     "x-sourceSha256": "14c396e470af8b6a3ac8bd1169e886744a07c3143169bc8a454bce93ec390c43"
   },
-  "startupEcdConvertMessage": "Möchten Sie alle nicht-englischen Tänze in Ihrer Sammlung mit dem Tag „ECD“ in englische Tänze umwandeln?",
+  "startupEcdConvertMessage": "Möchtest du alle nicht-englischen Tänze in deiner Sammlung mit dem Tag „ECD“ in englische Tänze umwandeln?",
   "@startupEcdConvertMessage": {
     "x-sourceSha256": "d3206bd75890125ecc2d3bc309b8a7d41fa9248e3bfa53cd9d6aaf0151bd2b6c"
   },
@@ -10258,7 +10262,7 @@
   "@updateBannerAvailable": {
     "x-sourceSha256": "b2629b4df990988fe59d8935dcfcbd5f764d98a3d395cf45c050d82fa94e6e6f"
   },
-  "updateBannerPortable": "Eine neuere Version von {appName} ({version}) ist verfügbar. Dies ist eine portable Kopie – laden Sie das neue zip oder tar.gz vom Release herunter.",
+  "updateBannerPortable": "Eine neuere Version von {appName} ({version}) ist verfügbar. Dies ist eine portable Kopie – lade das neue zip oder tar.gz vom Release herunter.",
   "@updateBannerPortable": {
     "x-sourceSha256": "aadaf3b38beb0a611010e02e3994fad057ac5a933a5b3d1d22674d2d167ceba0"
   },
@@ -10310,7 +10314,7 @@
   "@updateMacosReadyTitle": {
     "x-sourceSha256": "09b6fb9311759d9e4168b54d599963d9d9eab9b2efb4ebdcdbb1b4abe71d19fc"
   },
-  "updateMacosReadyBody": "Das Update wurde überprüft. „Jetzt aktualisieren“ öffnet das Disk-Image und schließt Caller's Compendium, damit Sie die App im Ordner „Programme“ ersetzen können.",
+  "updateMacosReadyBody": "Das Update wurde überprüft. „Jetzt aktualisieren“ öffnet das Disk-Image und schließt Caller's Compendium, damit du die App im Ordner „Programme“ ersetzen kannst.",
   "@updateMacosReadyBody": {
     "x-sourceSha256": "8230ec5164a04b24a1e6c3d6d3d2a1403dd219e3fde998235c83f7b99c8f4785"
   },
@@ -10430,7 +10434,7 @@
   "@shorthandMappingsTitle": {
     "x-sourceSha256": "6f5ff0b92387ef25b6fc9fcb3f26f31b8e74ac953fd6f80b0662a6947c45e901"
   },
-  "shorthandMappingsIntro": "Abkürzungen ermöglichen es Ihnen, bei der Freitexteingabe einen kurzen Token einzugeben, der zu einer oder mehreren hier eingerichteten Figuren erweitert wird.",
+  "shorthandMappingsIntro": "Abkürzungen ermöglichen es dir, bei der Freitexteingabe einen kurzen Token einzugeben, der zu einer oder mehreren hier eingerichteten Figuren erweitert wird.",
   "@shorthandMappingsIntro": {
     "x-sourceSha256": "fd5dd93068a8f09e4e68fc507ab11f1e336aaf50a8037b3cbedd93fb03eefa8f"
   },
@@ -10442,7 +10446,7 @@
   "@shorthandMappingsEmptyTitle": {
     "x-sourceSha256": "c298e5dd6190ec4a26aa33f7fa693fee0fc7e01bba0fb8102b9c6869c2c2d304"
   },
-  "shorthandMappingsEmptyBody": "Wählen Sie „Neue Abkürzung“, um eine hinzuzufügen.",
+  "shorthandMappingsEmptyBody": "Wähle „Neue Abkürzung“, um eine hinzuzufügen.",
   "@shorthandMappingsEmptyBody": {
     "x-sourceSha256": "bb5b8084f4ddeb2a166b5941dcb7ae94af674e0e09030fe50be364b84a5daaa1"
   },
@@ -10518,11 +10522,11 @@
   "@shorthandEditorTokenLabel": {
     "x-sourceSha256": "4bf5835a1350d7d2b5665b96b14f7231b5c1a848d88b9160b117aa22f32c3980"
   },
-  "shorthandEditorTokenHelper": "Geben Sie diese exakte Zeile bei der Freitexteingabe ein, um die untenstehenden Figuren einzufügen. Groß-/Kleinschreibung wird nicht berücksichtigt.",
+  "shorthandEditorTokenHelper": "Gib diese exakte Zeile bei der Freitexteingabe ein, um die untenstehenden Figuren einzufügen. Groß-/Kleinschreibung wird nicht berücksichtigt.",
   "@shorthandEditorTokenHelper": {
     "x-sourceSha256": "2ce1c061c62ddcba5d051d4664436be8fbd481b6c11b27b32586824f618f1d4f"
   },
-  "shorthandEditorTokenShadowsFigure": "Die Eingabe von „{token}“ fügt bereits von selbst eine Figur ein. Wenn Sie diese Abkürzung speichern, fügt die Eingabe stattdessen das ein, was Sie hier festgelegt haben. Sie können sie trotzdem speichern.",
+  "shorthandEditorTokenShadowsFigure": "Die Eingabe von „{token}“ fügt bereits von selbst eine Figur ein. Wenn du diese Abkürzung speicherst, fügt die Eingabe stattdessen das ein, was du hier festgelegt hast. Du kannst sie trotzdem speichern.",
   "@shorthandEditorTokenShadowsFigure": {
     "x-sourceSha256": "3b73b5185219dec5e1ee3cc9de4b614613efa9f1e2905333cddf61ba5a09670a"
   },
@@ -10534,7 +10538,7 @@
   "@shorthandEditorExpandsToHelp": {
     "x-sourceSha256": "a20166bd4de38f8bc6dfb1489796c45878922a0f366728434664fce81d6d44af"
   },
-  "shorthandEditorErrorEmpty": "Geben Sie ein Abkürzungs-Token ein.",
+  "shorthandEditorErrorEmpty": "Gib ein Abkürzungs-Token ein.",
   "@shorthandEditorErrorEmpty": {
     "x-sourceSha256": "45a0699d0440e81ca7bc6ece0120045640159a5d8e6739eec37c5fda4d851db8"
   },
@@ -10550,7 +10554,7 @@
   "@shorthandEditorErrorDuplicateHidden": {
     "x-sourceSha256": "7e3ee1d83196cfbd629298030de3866e4a983082c6b7fc1f5a0312d316091c27"
   },
-  "shorthandEditorErrorNoFigures": "Fügen Sie mindestens eine Figur hinzu, zu der diese Abkürzung erweitert werden soll.",
+  "shorthandEditorErrorNoFigures": "Füge mindestens eine Figur hinzu, zu der diese Abkürzung erweitert werden soll.",
   "@shorthandEditorErrorNoFigures": {
     "x-sourceSha256": "35363a122b3e910c9c6e0317b77c43c92231c5d2bbbb845ebd5ede6b20b2b3c8"
   },
@@ -10558,11 +10562,11 @@
   "@importShorthandSeedTitle": {
     "x-sourceSha256": "240d279779cfe7e446e97edcb26b82ec557618460aae5afd309ed63f3f20d73d"
   },
-  "importShorthandSeedIntro": "Die Call-Schaltflächen Ihrer Caller's Companion-Datei können zu Figur-Abkürzungen werden. Wählen Sie die gewünschten aus; jede wird zu den gezeigten Figuren erweitert. Nichts wird hinzugefügt, bevor Sie bestätigen, und Ihre vorhandenen Abkürzungen werden nie überschrieben.",
+  "importShorthandSeedIntro": "Die Call-Schaltflächen deiner Caller's Companion-Datei können zu Figur-Abkürzungen werden. Wähle die gewünschten aus; jede wird zu den gezeigten Figuren erweitert. Nichts wird hinzugefügt, bevor du bestätigst, und deine vorhandenen Abkürzungen werden nie überschrieben.",
   "@importShorthandSeedIntro": {
     "x-sourceSha256": "29289e78ade963207c0bdfbba0cab4a49af3b3dd04ee11021c272f6cc73378ca"
   },
-  "importShorthandSeedAvailableHeader": "Aus Ihren Call-Schaltflächen",
+  "importShorthandSeedAvailableHeader": "Aus deinen Call-Schaltflächen",
   "@importShorthandSeedAvailableHeader": {
     "x-sourceSha256": "782ebe790d1427c536352612bdd6ee32f48cea1b8074e6499919ac9e867fbab3"
   },
@@ -10646,7 +10650,7 @@
   "@importShorthandSeedComplete": {
     "x-sourceSha256": "4b16fa73556a34ddd3b3e99d44b7d17d04410503bd5b3f367c763e98d681f8aa"
   },
-  "importShorthandSeedUnreadableNote": "{count, plural, =1{1 Aufruf-Schaltfläche wurde ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.} other{{count} Aufruf-Schaltflächen wurden ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.}}",
+  "importShorthandSeedUnreadableNote": "{count, plural, =1{1 Call-Schaltfläche wurde ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.} other{{count} Call-Schaltflächen wurden ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.}}",
   "@importShorthandSeedUnreadableNote": {
     "x-sourceSha256": "0ec6d6e0d9fbfd5fc20298be7553040b5c2ad552b7114d7c8e7e5d97e77e2e28"
   },
@@ -10670,7 +10674,7 @@
   "@themeEditorContrastAllPass": {
     "x-sourceSha256": "3526148d3eec7db5e89497fd44aae49f37df648165e297b90378a5827d8ad240"
   },
-  "themeEditorContrastFailing": "{count, plural, =1{1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.} other{{count} Kontrastpaare unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.}}",
+  "themeEditorContrastFailing": "{count, plural, =1{1 Kontrastpaar unterhalb von WCAG AA. Du kannst trotzdem speichern, aber einiger Text könnte schwer lesbar sein.} other{{count} Kontrastpaare unterhalb von WCAG AA. Du kannst trotzdem speichern, aber einiger Text könnte schwer lesbar sein.}}",
   "@themeEditorContrastFailing": {
     "x-sourceSha256": "61b8535e31ee1a77c1b76417f564a9d45f32b7e6460cfc3bbb0f153c6d47d874"
   },
@@ -10710,7 +10714,7 @@
   "@reparseConfirmTitle": {
     "x-sourceSha256": "916df060629bfa63cab06226e6bba78c949e70efb4185b11cf48c355f3983643"
   },
-  "reparseConfirmBody": "Dadurch werden {figureCount, plural, =1{1 Figur} other{{figureCount} Figuren}} in {danceCount, plural, =1{1 Tanz} other{{danceCount} Tänzen}} erneut geprüft. Ihre Tags, Bewertungen, Notizen und alles andere bei jedem Tanz bleiben exakt erhalten. Dies ersetzt nur Figuren, die jetzt eine bekannte Bewegung erkennen.",
+  "reparseConfirmBody": "Dadurch werden {figureCount, plural, =1{1 Figur} other{{figureCount} Figuren}} in {danceCount, plural, =1{1 Tanz} other{{danceCount} Tänzen}} erneut geprüft. Deine Tags, Bewertungen, Notizen und alles andere bei jedem Tanz bleiben exakt erhalten. Dies ersetzt nur Figuren, die jetzt eine bekannte Bewegung erkennen.",
   "@reparseConfirmBody": {
     "x-sourceSha256": "d844a10ea886eafd0e4255081864704d63617c33a29087f789a08eb53b62ae64"
   },
@@ -10734,7 +10738,7 @@
   "@reparseScreenTitle": {
     "x-sourceSha256": "09986bfa1a3b540109bfbffa20fb6b90fe81a71981346b4804a92291624bb393"
   },
-  "reparseIntro": "Verbesserte Figurenerkennung kann {figureCount, plural, =1{1 Figur} other{{figureCount} Figuren}} in {danceCount, plural, =1{1 Tanz} other{{danceCount} Tänzen}} aktualisieren. Prüfen Sie unten, dann bestätigen – nichts ändert sich, bis Sie es tun, und alle Ihre Tags, Bewertungen und Notizen bleiben erhalten.",
+  "reparseIntro": "Verbesserte Figurenerkennung kann {figureCount, plural, =1{1 Figur} other{{figureCount} Figuren}} in {danceCount, plural, =1{1 Tanz} other{{danceCount} Tänzen}} aktualisieren. Prüfe unten, dann bestätige – nichts ändert sich, bis du es tust, und alle deine Tags, Bewertungen und Notizen bleiben erhalten.",
   "@reparseIntro": {
     "x-sourceSha256": "737df52db51313372af2268e3830207a5c447a3c16a05beebb547dc4dea57eb7"
   },
@@ -10750,7 +10754,7 @@
   "@reparseEmptyTitle": {
     "x-sourceSha256": "9910cf9819c9274188fb2439654fd7e87eaa19ad256978bbd5f0fbf76af06ea8"
   },
-  "reparseEmptyBody": "Keine Ihrer nicht erkannten Figuren aus Importen kann derzeit als bekannte Bewegung erkannt werden. Schauen Sie nach einem zukünftigen Update wieder nach, das die Figurenerkennung verbessert.",
+  "reparseEmptyBody": "Keine deiner nicht erkannten Figuren aus Importen kann derzeit als bekannte Bewegung erkannt werden. Schau nach einem zukünftigen Update wieder nach, das die Figurenerkennung verbessert.",
   "@reparseEmptyBody": {
     "x-sourceSha256": "f179b8c35ee69e7e7decd522e78822d7d8b6401b7abb2902e5add07270ac76a0"
   },
@@ -10766,7 +10770,7 @@
   "@ecdMigrationScreenTitle": {
     "x-sourceSha256": "d9775b54e95a37e98b9294d1d74a61f4f6323b05b6981526d9a9ff3970a6de1b"
   },
-  "ecdMigrationIntro": "{danceCount, plural, =1{1 englischer Tanz verwendet} other{{danceCount} englische Tänze verwenden}} noch Contra-Bewegungen, nicht erkannte Figuren oder eine Contra-Formation. Wählen Sie die Tänze zum Umwandeln aus und bestätigen Sie dann. Eine Bewegung ohne klare englische Entsprechung bleibt, wie sie ist.",
+  "ecdMigrationIntro": "{danceCount, plural, =1{1 englischer Tanz verwendet} other{{danceCount} englische Tänze verwenden}} noch Contra-Bewegungen, nicht erkannte Figuren oder eine Contra-Formation. Wähle die Tänze zum Umwandeln aus und bestätige dann. Eine Bewegung ohne klare englische Entsprechung bleibt, wie sie ist.",
   "@ecdMigrationIntro": {
     "x-sourceSha256": "6f23acc161ddf9f456a5ec4b1019189fe79399382860a9d48e41118c5ea70325"
   },
@@ -10790,7 +10794,7 @@
   "@ecdMigrationConfirmTitle": {
     "x-sourceSha256": "d521ef97fc49216d751ebb1e92a36235526ba4266712d8adf5c4ece626205271"
   },
-  "ecdMigrationConfirmBody": "Dies ändert die Figuren und die Formation von {danceCount, plural, =1{1 Tanz} other{{danceCount} Tänzen}}. Tags, Bewertungen, Notizen und alles andere bleiben erhalten. Dies kann nicht rückgängig gemacht werden, daher sollten Sie vorher eine Sicherung erstellen.",
+  "ecdMigrationConfirmBody": "Dies ändert die Figuren und die Formation von {danceCount, plural, =1{1 Tanz} other{{danceCount} Tänzen}}. Tags, Bewertungen, Notizen und alles andere bleiben erhalten. Dies kann nicht rückgängig gemacht werden, daher solltest du vorher eine Sicherung erstellen.",
   "@ecdMigrationConfirmBody": {
     "x-sourceSha256": "9ddc48f2bad456b7159fee8e61bed0d76513bd74b92d3c91f13bc509e3165a4f"
   },
@@ -10814,19 +10818,19 @@
   "@ecdMigrationEmptyTitle": {
     "x-sourceSha256": "b7c23f259a172035b76ed38b0e714919ae88cad43edf86eb78f5924518dbfd92"
   },
-  "ecdMigrationEmptyBody": "Keiner Ihrer englischen Country Dances enthält etwas, das sich umwandeln lässt. Eine Figur ohne klare englische Bedeutung bleibt, wie sie ist.",
+  "ecdMigrationEmptyBody": "Keiner deiner englischen Country Dances enthält etwas, das sich umwandeln lässt. Eine Figur ohne klare englische Bedeutung bleibt, wie sie ist.",
   "@ecdMigrationEmptyBody": {
     "x-sourceSha256": "b99c1dcb3eed2321fe2e92547b49b61af21d454dea9df1c96927105a3c2b91f4"
   },
-  "ecdMigrationErrorTitle": "Ihre englischen Tänze konnten nicht geprüft werden",
+  "ecdMigrationErrorTitle": "Deine englischen Tänze konnten nicht geprüft werden",
   "@ecdMigrationErrorTitle": {
     "x-sourceSha256": "1a7715832f03dbfc860a97d03640b9113b20255c907b08dfffdd938636d60169"
   },
-  "customFieldsDeleteInUse": "„{label}“ kann nicht gelöscht werden: noch in {count, plural, =1{1 Tanz} other{{count} Tänzen}} verwendet. Entfernen Sie zuerst den Wert aus allen Tänzen.",
+  "customFieldsDeleteInUse": "„{label}“ kann nicht gelöscht werden: noch in {count, plural, =1{1 Tanz} other{{count} Tänzen}} verwendet. Entferne zuerst den Wert aus allen Tänzen.",
   "@customFieldsDeleteInUse": {
     "x-sourceSha256": "3216847c71408f8c115cc0f639621a7a700926cf3c3d29fe2bcce0948156a556"
   },
-  "customFieldsDeleteFailed": "„{label}“ konnte nicht gelöscht werden. Versuchen Sie es erneut.",
+  "customFieldsDeleteFailed": "„{label}“ konnte nicht gelöscht werden. Versuche es erneut.",
   "@customFieldsDeleteFailed": {
     "x-sourceSha256": "0a9687d09317172625c68b565f464f85b4f69dff8f22cec58db3c02959c8ce04"
   },
@@ -10854,7 +10858,7 @@
   "@customFieldsEmptyTitle": {
     "x-sourceSha256": "eb0a32b078be55d376bfd04a93ef16a0d09af2870d60cc67cc2fb73624ffe142"
   },
-  "customFieldsEmptyBody": "Wählen Sie „Neues Feld“, um eines hinzuzufügen.",
+  "customFieldsEmptyBody": "Wähle „Neues Feld“, um eines hinzuzufügen.",
   "@customFieldsEmptyBody": {
     "x-sourceSha256": "13e90aa1be43a16a07cc2efda674430838dad199d222b6d48f1181f21d655948"
   },
@@ -10882,7 +10886,7 @@
   "@customFieldsTypeChoice": {
     "x-sourceSha256": "efa0389ac6fce142eaa954880c31388c79313347d00430eeca0bf713cfd84570"
   },
-  "customFieldsValidatorMinChoice": "Fügen Sie mindestens eine Auswahl hinzu",
+  "customFieldsValidatorMinChoice": "Füge mindestens eine Auswahl hinzu",
   "@customFieldsValidatorMinChoice": {
     "x-sourceSha256": "c3e9f6f907d6be83a467a5fc690a788d1ca2a1b36051a4860b48774c6ae06919"
   },
@@ -10990,15 +10994,15 @@
   "@customFieldsShareable": {
     "x-sourceSha256": "9805204a2ac39637da9026930ca8cec225d8cb9c85d51561a7e0dea778405826"
   },
-  "customFieldsShareableSubtitle": "Die Werte dieses Feldes werden beim Teilen mit Ihrer Sammlung übertragen; Sicherungen enthalten sie immer",
+  "customFieldsShareableSubtitle": "Die Werte dieses Feldes werden beim Teilen mit deiner Sammlung übertragen; Sicherungen enthalten sie immer",
   "@customFieldsShareableSubtitle": {
     "x-sourceSha256": "f89851c1dbfaf17c932b15cf7846fe2ac405f7897b2c2d411e5eef72f4378f0d"
   },
-  "customFieldsSharingNoticeTitle": "Benutzerdefinierte Felder werden mit Ihrer Sammlung übertragen",
+  "customFieldsSharingNoticeTitle": "Benutzerdefinierte Felder werden mit deiner Sammlung übertragen",
   "@customFieldsSharingNoticeTitle": {
     "x-sourceSha256": "809665c936b4d5704b0f62203370969b74f9250e74ab322d91378def0e3c74a1"
   },
-  "customFieldsSharingNoticeBody": "Die Inhalte aller benutzerdefinierten Felder, die Sie erstellen, werden in Ihren Sicherungen eingeschlossen. Wenn Sie Ihre Sammlung teilen, deaktivieren Sie „Beim Teilen einschließen“ in den Einstellungen des Feldes, um es privat zu halten.",
+  "customFieldsSharingNoticeBody": "Die Inhalte aller benutzerdefinierten Felder, die du erstellst, werden in deinen Sicherungen eingeschlossen. Wenn du deine Sammlung teilst, deaktiviere „Beim Teilen einschließen“ in den Einstellungen des Feldes, um es privat zu halten.",
   "@customFieldsSharingNoticeBody": {
     "x-sourceSha256": "5d0563d1a447693421b4d9aa9ed1fb112ad5e57cd39a7833fe0d808e0a5bf0ed"
   },
@@ -11038,7 +11042,7 @@
   "@dialectEditorRole2": {
     "x-sourceSha256": "6327196c0652b56d3eb4a767556710ba24cb356a90f5067f0089edfe40590c4c"
   },
-  "dialectEditorRolesHelp": "Lassen Sie eine Rolle leer, um den kanonischen Begriff zu verwenden. Der Plural wird abgeleitet, wenn er weggelassen wird.",
+  "dialectEditorRolesHelp": "Lass eine Rolle leer, um den kanonischen Begriff zu verwenden. Der Plural wird abgeleitet, wenn er weggelassen wird.",
   "@dialectEditorRolesHelp": {
     "x-sourceSha256": "2a41b0504ccaa2063dcdd41f4df32a7c6074fd4195d32eea26f32f82d5ef39cc"
   },
@@ -11050,7 +11054,7 @@
   "@dialectEditorPlural": {
     "x-sourceSha256": "18fb6be3366c80c25a86199df82c9980ecc0b5730337647e8053f0f9bbac3287"
   },
-  "dialectEditorMoveSubHint": "Ersetzung (verwenden Sie %S für die Händigkeit)",
+  "dialectEditorMoveSubHint": "Ersetzung (verwende %S für die Händigkeit)",
   "@dialectEditorMoveSubHint": {
     "x-sourceSha256": "84b26f13f88b120ad27d8525d2bd777fc71b4d2d6f9c5895f1f89bafc1873c5b"
   },
@@ -11146,7 +11150,7 @@
   "@recentlyDeletedRestore": {
     "x-sourceSha256": "a76e13b9839270eb73ed11417f7d8acca55df0ad52065799361631d0fff74f27"
   },
-  "recentlyDeletedPurgeKept": "Aufbewahrt bis Sie es löschen",
+  "recentlyDeletedPurgeKept": "Aufbewahrt bis du es löschst",
   "@recentlyDeletedPurgeKept": {
     "x-sourceSha256": "29d344f488fbcbdbbdc8e17d8d6358128afea550a4c66dd889dd374a6e0b5350"
   },
@@ -11166,7 +11170,7 @@
   "@recentlyDeletedLoadingPrograms": {
     "x-sourceSha256": "5e35d16593be736bddd9635655f6897d77d2696d387b38b6b4158a02780f1a65"
   },
-  "recentlyDeletedEmptyDancesKept": "Keine zuletzt gelöschten Tänze. Gelöschte Tänze werden hier aufbewahrt, bis Sie sie entfernen.",
+  "recentlyDeletedEmptyDancesKept": "Keine zuletzt gelöschten Tänze. Gelöschte Tänze werden hier aufbewahrt, bis du sie entfernst.",
   "@recentlyDeletedEmptyDancesKept": {
     "x-sourceSha256": "a3f3faea21c3f1c2176008ceae5166442771b15046aa305cba1dab9469e4c7a2"
   },
@@ -11178,7 +11182,7 @@
   "@recentlyDeletedEmptyDancesRetention": {
     "x-sourceSha256": "ed259a1e507ab7aafe8b31e0154bbc6629056bd7e20d128ad9bb9d224e65e625"
   },
-  "recentlyDeletedEmptyProgramsKept": "Keine zuletzt gelöschten Programme. Gelöschte Programme werden hier aufbewahrt, bis Sie sie entfernen.",
+  "recentlyDeletedEmptyProgramsKept": "Keine zuletzt gelöschten Programme. Gelöschte Programme werden hier aufbewahrt, bis du sie entfernst.",
   "@recentlyDeletedEmptyProgramsKept": {
     "x-sourceSha256": "70d6ca549c9508826d8399dce037d8e1334cbbbb33d896cdeeabc656b63a36cc"
   },
@@ -11186,7 +11190,7 @@
   "@recentlyDeletedEmptyProgramsRetention": {
     "x-sourceSha256": "d8d9e042cb37149061af9d04b38e8b6e285c14757a1a174797a6b03d7542dced"
   },
-  "recentlyDeletedRestoredDance": "„{title}“ in Ihre Sammlung wiederhergestellt.",
+  "recentlyDeletedRestoredDance": "„{title}“ in deine Sammlung wiederhergestellt.",
   "@recentlyDeletedRestoredDance": {
     "x-sourceSha256": "b7467d8b6764d486c999497324bba06af62e12526512d34652493277c37c8d13"
   },
@@ -11214,7 +11218,7 @@
   "@venueManagerClearSearchTooltip": {
     "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
   },
-  "venueManagerEmptyBody": "Fügen Sie hier einen hinzu oder über ein Programm, wenn wiederverwendbare Veranstaltungsorte aktiviert sind.",
+  "venueManagerEmptyBody": "Füge hier einen hinzu oder über ein Programm, wenn wiederverwendbare Veranstaltungsorte aktiviert sind.",
   "@venueManagerEmptyBody": {
     "x-sourceSha256": "ed699db880ba60a725bb3cf6140ac4ae71a6868601fdb168df1390ca9a263361"
   },
@@ -11222,7 +11226,7 @@
   "@venueManagerEmptyTitle": {
     "x-sourceSha256": "fc1231d8a1a94773b4ea5d9463bff9be4e6d56c62f65360f54f56db1c9224cfb"
   },
-  "venueManagerNoMatches": "Keine Veranstaltungsorte entsprechen Ihrer Suche.",
+  "venueManagerNoMatches": "Keine Veranstaltungsorte entsprechen deiner Suche.",
   "@venueManagerNoMatches": {
     "x-sourceSha256": "e940556921b9a433f18671d65cec482b884d67d4c9898e9c44dd3db74ba67d9c"
   },
@@ -11230,7 +11234,7 @@
   "@venueLinkOfferTitle": {
     "x-sourceSha256": "86afa285ba0117e339f6459d01613537807434f2ba87823f515bb8ce85a63cfd"
   },
-  "venueLinkOfferBody": "Bei einigen Programmen ist ein Veranstaltungsort als Text eingetragen, der zu einem Veranstaltungsort-Eintrag passt. Wenn Sie sie verknüpfen, zählt die Ansageliste sie als einen Ort. Der eingetragene Text bleibt erhalten.",
+  "venueLinkOfferBody": "Bei einigen Programmen ist ein Veranstaltungsort als Text eingetragen, der zu einem Veranstaltungsort-Eintrag passt. Wenn du sie verknüpfst, zählt der Calling-Verlauf sie als einen Ort. Der eingetragene Text bleibt erhalten.",
   "@venueLinkOfferBody": {
     "x-sourceSha256": "51f75c042050f5a79ba5f14516a49da5b3bf3d2f11225d81acffb37a5b7b00f8"
   },
@@ -11250,7 +11254,7 @@
   "@venueLinkOfferDone": {
     "x-sourceSha256": "431a1aa3f4e20271f7a7aece28cd1fb67ebe75cda7f2b539844ec62712c7a0bb"
   },
-  "venueManagerDeleteBlocked": "„{name}“ kann nicht gelöscht werden, solange er noch mit einem Programm verknüpft ist. Ändern oder entfernen Sie zuerst den Veranstaltungsort bei diesen Programmen.",
+  "venueManagerDeleteBlocked": "„{name}“ kann nicht gelöscht werden, solange er noch mit einem Programm verknüpft ist. Ändere oder entferne zuerst den Veranstaltungsort bei diesen Programmen.",
   "@venueManagerDeleteBlocked": {
     "x-sourceSha256": "adffd15a2b32566e5d76fc774797be1b0647817c84ab0023e2ce82307dd552b6"
   },
@@ -11418,15 +11422,15 @@
   "@danceReimportLinkOrId": {
     "x-sourceSha256": "d11c418833369a0f046ecc8e438f3c1f2dbf32dc517594c373d932dce5816843"
   },
-  "danceReimportNoResults": "Keine passenden Tänze gefunden. Versuchen Sie es mit einem Link oder einer ID, wählen Sie eine andere Quelle oder versuchen Sie es später erneut.",
+  "danceReimportNoResults": "Keine passenden Tänze gefunden. Versuche es mit einem Link oder einer ID, wähle eine andere Quelle oder versuche es später erneut.",
   "@danceReimportNoResults": {
     "x-sourceSha256": "d376f992d5047e3db51b0ade48dab85068e5a998fa8739045fb385ac82e22c8a"
   },
-  "danceReimportFiguresUnavailable": "Diese Quelle hat die Figuren dieses Tanzes nicht geliefert, daher kann Ihre Choreografie nicht aktualisiert werden. Ihr Tanz wurde nicht geändert.",
+  "danceReimportFiguresUnavailable": "Diese Quelle hat die Figuren dieses Tanzes nicht geliefert, daher kann deine Choreografie nicht aktualisiert werden. Dein Tanz wurde nicht geändert.",
   "@danceReimportFiguresUnavailable": {
     "x-sourceSha256": "f53f91859db3df99c2425776c182ed07014adb0f3af936bb625e56258e0b8152"
   },
-  "danceReimportChooseResult": "Wählen Sie den Tanz zum erneuten Importieren",
+  "danceReimportChooseResult": "Wähle den Tanz zum erneuten Importieren",
   "@danceReimportChooseResult": {
     "x-sourceSha256": "5b6c732424d926b66bbbcdb72df1718462dfe44c72edb5edef4a0fb9ba148257"
   },
@@ -11434,7 +11438,7 @@
   "@danceReimportProgramArchive": {
     "x-sourceSha256": "d0bbbd3df72fe76a854b2fccf8395c7d8dc2e071c36afcec6be15242887f8a6f"
   },
-  "danceReimportInvalidJson": "Wählen Sie eine gültige Datei mit genau einem Tanz.",
+  "danceReimportInvalidJson": "Wähle eine gültige Datei mit genau einem Tanz.",
   "@danceReimportInvalidJson": {
     "x-sourceSha256": "e860ca218ed99bfa69e97648c237c49b5c6b94f45d3b9a84da29b0e76e5ab268"
   },
@@ -11454,7 +11458,7 @@
   "@danceReimportTargetMissing": {
     "x-sourceSha256": "a7fa7158d909cc3495b34beac015092677355e05077a53e14e161e9c5b2f6113"
   },
-  "danceReimportTargetChanged": "Dieser Tanz wurde geändert, bevor er aktualisiert werden konnte. Überprüfen Sie ihn und versuchen Sie es erneut.",
+  "danceReimportTargetChanged": "Dieser Tanz wurde geändert, bevor er aktualisiert werden konnte. Überprüfe ihn und versuche es erneut.",
   "@danceReimportTargetChanged": {
     "x-sourceSha256": "7213bdad9aa2abba7fd089889171b48ce5c3d80ecc5a5760c1881cf8c4a6125a"
   },
@@ -11486,7 +11490,7 @@
   "@publishedCollectionsOffline": {
     "x-sourceSha256": "554007e915d2e8f1977dc371673250a0244333a60ecadc0afe059a5546f9901d"
   },
-  "publishedCollectionsNeedsNewerApp": "Diese veröffentlichten Sammlungen benötigen eine neuere App-Version. Aktualisieren Sie die App, um sie zu sehen.",
+  "publishedCollectionsNeedsNewerApp": "Diese veröffentlichten Sammlungen benötigen eine neuere App-Version. Aktualisiere die App, um sie zu sehen.",
   "@publishedCollectionsNeedsNewerApp": {
     "x-sourceSha256": "0cad4410562e2480c61c29e63be41b3101e5d9562c150eeb28db9e393e98f213"
   },
@@ -11582,7 +11586,7 @@
   "@dialectEditorMoveWordingInvalid": {
     "x-sourceSha256": "75208996f5a3de732968e35c2a456e07ae6ad7986a9e17efe461441f13108c86"
   },
-  "dialectEditorMoveWordingSaveError": "Beheben Sie ungültige Vorlagen für Bewegungsformulierungen, bevor Sie speichern: {figures}",
+  "dialectEditorMoveWordingSaveError": "Behebe ungültige Vorlagen für Bewegungsformulierungen, bevor du speicherst: {figures}",
   "@dialectEditorMoveWordingSaveError": {
     "x-sourceSha256": "bda0bd00f9f267ad6105147dd29294ce1122fb9708765a52d6dacd047c496675"
   },
@@ -11742,7 +11746,7 @@
   "@glossaryNotesEditTitle": {
     "x-sourceSha256": "55576676783c7f797f5a83c9db47604a670d315864ecd6d00ea49e2661dd378b"
   },
-  "glossaryNotesHint": "Wie du sie ansagst, worauf zu achten ist…",
+  "glossaryNotesHint": "Wie du sie callst, worauf zu achten ist…",
   "@glossaryNotesHint": {
     "x-sourceSha256": "2ebb2baa1b27d06ecfc064ccef91f84ec3cbd6b5b4ab0590f6dba78a11360788"
   },
@@ -12558,7 +12562,7 @@
   "@callingCardHelpBlockAuthors": {
     "x-sourceSha256": "e731cc93fac58c222da22ce8c93e02f6dc3eb996c4c38c275f0d79337d3c5290"
   },
-  "callingCardHelpBlockFormation": "Die Aufstellung, etwa Improper oder Becket.",
+  "callingCardHelpBlockFormation": "Die Formation, etwa Improper oder Becket.",
   "@callingCardHelpBlockFormation": {
     "x-sourceSha256": "af51087792efe9413a9bcc497b7ecd6c998447c5f1e0be602386fcbfcbd2dfc2"
   },
@@ -12566,7 +12570,7 @@
   "@callingCardHelpBlockLevel": {
     "x-sourceSha256": "cc745f2a1c5def9eddb4feb48fdc54d44af4baf5d94cdb399b4f8cb81d732629"
   },
-  "callingCardHelpBlockMeta": "Aufstellung, Niveau, Mixer, Status und Phrase in einer Zeile, jeweils mit Bezeichnung.",
+  "callingCardHelpBlockMeta": "Formation, Niveau, Mixer, Status und Phrase in einer Zeile, jeweils mit Bezeichnung.",
   "@callingCardHelpBlockMeta": {
     "x-sourceSha256": "1928a9d33c4ba8624ec07f3fca1ea6e98c0a289f9874f6f63a0307d616555f75"
   },
@@ -12786,7 +12790,7 @@
   "@programTemplateUntitled": {
     "x-sourceSha256": "1be215111c621aa61c875e2465020509380ba44d3e2d8d49dd273ecd57a35478"
   },
-  "programTemplateSlotCount": "{count, plural, =0{Leer} =1{1 Eintrag} other{{count} Einträge}}",
+  "programTemplateSlotCount": "{count, plural, =0{Leer} =1{1 Slot} other{{count} Slots}}",
   "@programTemplateSlotCount": {
     "x-sourceSha256": "df0ff3b27ae67a905e56ad963b150ced99e977245f78dc66bce4e845adac2c3f"
   },
@@ -12802,7 +12806,7 @@
   "@programTemplateEditorTitle": {
     "x-sourceSha256": "708c9a5c56a40ed01a39b15ffc68023028d600264f6976715639182a0943f8b6"
   },
-  "programTemplateSlotsHeader": "Einträge",
+  "programTemplateSlotsHeader": "Slots",
   "@programTemplateSlotsHeader": {
     "x-sourceSha256": "4fd72c06bcff79710b0a5bd292b1f6408ec8cfa357e08566b663e4f14cbfc7f0"
   },
@@ -12854,11 +12858,11 @@
   "@suggestionFactorMatrixVarietyHelp": {
     "x-sourceSha256": "d24a8fb5e03bc9371ce6c64750efafeb8b4c1b66e8c6502c5d6fc0e182c0c130"
   },
-  "suggestionFactorFormationBalanceTitle": "Ausgewogene Aufstellungen",
+  "suggestionFactorFormationBalanceTitle": "Ausgewogene Formationen",
   "@suggestionFactorFormationBalanceTitle": {
     "x-sourceSha256": "948e1d3e1cdc9b6021bfc1d18583bd5255d779d66b6c2775b82975a76199e3b3"
   },
-  "suggestionFactorFormationBalanceHelp": "Meidet die Aufstellung des Tanzes davor und Aufstellungen, die im Programm schon oft vorkommen.",
+  "suggestionFactorFormationBalanceHelp": "Meidet die Formation des Tanzes davor und Formationen, die im Programm schon oft vorkommen.",
   "@suggestionFactorFormationBalanceHelp": {
     "x-sourceSha256": "6a8cdbd5cb6482373bb9474f3e88ef810f87eb8106168e5959d11d46cd71a73f"
   },
@@ -12874,7 +12878,7 @@
   "@suggestionFactorVenueRecencyTitle": {
     "x-sourceSha256": "695ce122f13868364f32404dc8bf658286a18a8168914591881880a5b45cfc88"
   },
-  "suggestionFactorVenueRecencyHelp": "Meidet Tänze, die kürzlich am Veranstaltungsort des Programms aufgerufen wurden. Ein Programm ohne Veranstaltungsort überspringt diesen Punkt.",
+  "suggestionFactorVenueRecencyHelp": "Meidet Tänze, die kürzlich am Veranstaltungsort des Programms gecallt wurden. Ein Programm ohne Veranstaltungsort überspringt diesen Punkt.",
   "@suggestionFactorVenueRecencyHelp": {
     "x-sourceSha256": "11b30f2796d45e9bac0ab91ea99dc57051f6b699cec686c046501ad8881c5a1b"
   },
@@ -12962,15 +12966,15 @@
   "@suggestionReasonEasierThanCurve": {
     "x-sourceSha256": "0ec02fe61e2576ea49c5ab923aa6507e3cf8ab1f5bd49da2a5f47f8709500794"
   },
-  "suggestionReasonCalledHereRecently": "Am {date} in {venue} aufgerufen",
+  "suggestionReasonCalledHereRecently": "Am {date} in {venue} gecallt",
   "@suggestionReasonCalledHereRecently": {
     "x-sourceSha256": "af5572c0e82afa15c2d3f95f515a934ac7c8afc2d5cbece3a6e57e5f71cb7436"
   },
-  "suggestionReasonNotCalledHereSince": "Seit {date} nicht in {venue} aufgerufen",
+  "suggestionReasonNotCalledHereSince": "Seit {date} nicht in {venue} gecallt",
   "@suggestionReasonNotCalledHereSince": {
     "x-sourceSha256": "e466d0974ce9f1bd4e09e69e485c46539a2a3f9757a46f31f6415e47df5b9788"
   },
-  "suggestionReasonNeverCalledHere": "Noch nie in {venue} aufgerufen",
+  "suggestionReasonNeverCalledHere": "Noch nie in {venue} gecallt",
   "@suggestionReasonNeverCalledHere": {
     "x-sourceSha256": "6e54fa550b125ed9913ef8406f6d1336d4f2053ec4c82061cc7975d9b1d3e797"
   },
@@ -13594,7 +13598,7 @@
   "@repertoirePeriodSince": {
     "x-sourceSha256": "1550794b36af0a945ddc65d95c16fbde42d2df500d5f3a232f5b1138e9b299f1"
   },
-  "repertoireTypeLabel": "Tanzart",
+  "repertoireTypeLabel": "Typ",
   "@repertoireTypeLabel": {
     "x-sourceSha256": "2c004974318a3075ebadbd65e39bd0efc9bd6b1eee3f8a9c679d5c669b326ce0"
   },
@@ -13602,39 +13606,39 @@
   "@repertoireTypeAll": {
     "x-sourceSha256": "f10988e79e8d9a49f45a71ecf3f4ebe143a96eb9d83272156ab54101b3777046"
   },
-  "repertoireSummary": "Aufrufe in diesem Zeitraum: {calls}. Aufgerufene Tänze: {called} von {total}.",
+  "repertoireSummary": "Mal gecallt in diesem Zeitraum: {calls}. Gecallte Tänze: {called} von {total}.",
   "@repertoireSummary": {
     "x-sourceSha256": "4a7cbbf7c87e3bc46500abc1affb3190fd2f410e54fa5e6c41b9b31665ea822f"
   },
-  "repertoireMostCalledHeader": "Am häufigsten aufgerufen",
+  "repertoireMostCalledHeader": "Am häufigsten gecallt",
   "@repertoireMostCalledHeader": {
     "x-sourceSha256": "f2aff79f46e584591a4f0b1fcd3131e043212b0bbb4ea84d3dae766272a149de"
   },
-  "repertoireLeastCalledHeader": "Am seltensten aufgerufen (unter den aufgerufenen)",
+  "repertoireLeastCalledHeader": "Am seltensten gecallt (unter den gecallten)",
   "@repertoireLeastCalledHeader": {
     "x-sourceSha256": "c842c2a0183d8447f0a70e0c59646aaf2d9d3c8684b451d857353e23329781c8"
   },
-  "repertoireLeastCalledAllShown": "Jeder Tanz, den du in diesem Zeitraum aufgerufen hast, steht schon unter „Am häufigsten aufgerufen“.",
+  "repertoireLeastCalledAllShown": "Jeder Tanz, den du in diesem Zeitraum gecallt hast, steht schon unter „Am häufigsten gecallt“.",
   "@repertoireLeastCalledAllShown": {
     "x-sourceSha256": "5cb02281254a6fab6493c5d267f1c1f8cea8776c7876b01ef0a823e494e82def"
   },
-  "repertoireNoCalls": "Keine gezählten Aufrufe in diesem Zeitraum.",
+  "repertoireNoCalls": "In diesem Zeitraum nichts gecallt.",
   "@repertoireNoCalls": {
     "x-sourceSha256": "86745f9130fff2ca0d915327740923a147bd5234bbbf4eb3192173031b0f9858"
   },
-  "repertoireDanceCalls": "{count, plural, =1{einmal aufgerufen} other{{count}-mal aufgerufen}}",
+  "repertoireDanceCalls": "{count, plural, =1{einmal gecallt} other{{count}-mal gecallt}}",
   "@repertoireDanceCalls": {
     "x-sourceSha256": "45189eb3c35920001f632a177ba87dc00a38fabca66625eaf78b54446abb5f8f"
   },
-  "repertoireDanceSemantics": "{title}: {count, plural, =1{einmal aufgerufen} other{{count}-mal aufgerufen}}",
+  "repertoireDanceSemantics": "{title}: {count, plural, =1{einmal gecallt} other{{count}-mal gecallt}}",
   "@repertoireDanceSemantics": {
     "x-sourceSha256": "f5ea6abe5e2415a57e19493b7734fcaf50fe98414349c428ef84e8214cf4d705"
   },
-  "repertoireNeverCalledHeader": "Nie aufgerufen",
+  "repertoireNeverCalledHeader": "Nie gecallt",
   "@repertoireNeverCalledHeader": {
     "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
   },
-  "repertoireNeverCalledLabel": "Nie aufgerufen",
+  "repertoireNeverCalledLabel": "Nie gecallt",
   "@repertoireNeverCalledLabel": {
     "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
   },
@@ -13642,19 +13646,19 @@
   "@repertoireOfDances": {
     "x-sourceSha256": "76615ee1ce72d60b9f878a4576a3b3ab25c37de1a722d0ecd18aea33eb731899"
   },
-  "repertoireNeverCalledSemantics": "Nie aufgerufen: {count} von {total} Tänzen",
+  "repertoireNeverCalledSemantics": "Nie gecallt: {count} von {total} Tänzen",
   "@repertoireNeverCalledSemantics": {
     "x-sourceSha256": "8194a4a6d9fb05db1e0551fe07e9158a44c3c7cc32984263a953a5d72a630267"
   },
-  "repertoireNeverCalledDanceSemantics": "{title}: nie aufgerufen",
+  "repertoireNeverCalledDanceSemantics": "{title}: nie gecallt",
   "@repertoireNeverCalledDanceSemantics": {
     "x-sourceSha256": "5bb809f2149949c9ea5bf93daf9e454396da8da208e4cf8c10633fd5172b36c6"
   },
-  "repertoireNotCalledInPeriodLabel": "In diesem Zeitraum nicht aufgerufen",
+  "repertoireNotCalledInPeriodLabel": "In diesem Zeitraum nicht gecallt",
   "@repertoireNotCalledInPeriodLabel": {
     "x-sourceSha256": "42ec0ae23e760c9a9c39f25eb38afcb3acb55ad830325a40247c450600734b78"
   },
-  "repertoireNotCalledInPeriodSemantics": "In diesem Zeitraum nicht aufgerufen: {count} von {total} Tänzen",
+  "repertoireNotCalledInPeriodSemantics": "In diesem Zeitraum nicht gecallt: {count} von {total} Tänzen",
   "@repertoireNotCalledInPeriodSemantics": {
     "x-sourceSha256": "b889fd2f0f3ceeaa6ffd2345ee4532176a77216570a8b17879b8f472e80b81d6"
   },
@@ -13666,11 +13670,11 @@
   "@repertoireNoFigures": {
     "x-sourceSha256": "5c7385dadaa29516f1c99a78658d745b5febfea33156da79906bf887323bca0e"
   },
-  "repertoireFigureValue": "in {dances} von {total} Tänzen ({percent} %) · {calls, plural, =1{1 Aufruf} other{{calls} Aufrufe}}",
+  "repertoireFigureValue": "in {dances} von {total} Tänzen ({percent} %) · {calls, plural, =1{einmal gecallt} other{{calls}-mal gecallt}}",
   "@repertoireFigureValue": {
     "x-sourceSha256": "427959c91687de4ae08a3efef81f129115e22eeeb1a98aecc65bb219f34a59f2"
   },
-  "repertoireFigureSemantics": "{move}: in {dances} von {total} Tänzen, {percent} Prozent; {calls, plural, =1{1 Aufruf} other{{calls} Aufrufe}} in diesem Zeitraum",
+  "repertoireFigureSemantics": "{move}: in {dances} von {total} Tänzen, {percent} Prozent; {calls, plural, =1{einmal gecallt} other{{calls}-mal gecallt}} in diesem Zeitraum",
   "@repertoireFigureSemantics": {
     "x-sourceSha256": "b0911685dfaa28d6fe4fd6587bfa6632fd8c7e7447a82a0db9131880913281d0"
   },
@@ -13682,19 +13686,19 @@
   "@repertoireShowFewer": {
     "x-sourceSha256": "255beb6510e7827d37ec1cd22d080f910888ae00f29374dd9545c8b3d1fce43a"
   },
-  "repertoireAuthorsHeader": "Autoren, die du aufrufst",
+  "repertoireAuthorsHeader": "Autoren, deren Tänze du callst",
   "@repertoireAuthorsHeader": {
     "x-sourceSha256": "03a08a6177689c82fcc0a1cfe404363104f2eb53ccb83e2165947969bb41d94b"
   },
-  "repertoireAuthorsSummary": "{count, plural, =0{Kein Autor in diesem Zeitraum aufgerufen.} =1{1 Autor in diesem Zeitraum aufgerufen.} other{{count} Autoren in diesem Zeitraum aufgerufen.}}",
+  "repertoireAuthorsSummary": "{count, plural, =0{Kein Autor in diesem Zeitraum gecallt.} =1{1 Autor in diesem Zeitraum gecallt.} other{{count} Autoren in diesem Zeitraum gecallt.}}",
   "@repertoireAuthorsSummary": {
     "x-sourceSha256": "d2660bfb610f85406c90d761e3f01e3e6e8b58d9eae6849930f84759364cbfd0"
   },
-  "repertoireShareValue": "{calls, plural, =1{1 Aufruf} other{{calls} Aufrufe}} ({percent} %)",
+  "repertoireShareValue": "{calls, plural, =1{einmal gecallt} other{{calls}-mal gecallt}} ({percent} %)",
   "@repertoireShareValue": {
     "x-sourceSha256": "b61b0042e986ce34f28b386ed7868e08cee4a26c6bac14c0809b05c8a63dbfcb"
   },
-  "repertoireShareSemantics": "{label}: {calls, plural, =1{1 Aufruf} other{{calls} Aufrufe}}, {percent} Prozent der Aufrufe in diesem Zeitraum",
+  "repertoireShareSemantics": "{label}: {calls, plural, =1{einmal gecallt} other{{calls}-mal gecallt}}, {percent} Prozent aller Calls in diesem Zeitraum",
   "@repertoireShareSemantics": {
     "x-sourceSha256": "044bc4d54d2dcc9d96418d86f9ab95849c79e5edf4710e7c4e8f1da8db2de573"
   },
@@ -13706,7 +13710,7 @@
   "@repertoireVenuesHeader": {
     "x-sourceSha256": "9b0640ebefe0b4e62b8d63d8948a9d88593e9cea25c1fd35b25a6e6b82ea841f"
   },
-  "repertoireNoRepeats": "In diesem Zeitraum wurde kein Tanz an einem Veranstaltungsort mehr als einmal aufgerufen.",
+  "repertoireNoRepeats": "In diesem Zeitraum wurde kein Tanz an einem Veranstaltungsort mehr als einmal gecallt.",
   "@repertoireNoRepeats": {
     "x-sourceSha256": "1ee83c14c00d9965edff9c7d2113aeaf23c7269f09a54b529b010feb074062cd"
   },
@@ -13718,7 +13722,7 @@
   "@repertoireVenueRepeats": {
     "x-sourceSha256": "826159fbea4aac34da9274535e7f110d30128adbf08c0a99f39adf72d185c3cf"
   },
-  "repertoireVenueSemantics": "{venue}: {count, plural, =1{1 Tanz mehr als einmal aufgerufen} other{{count} Tänze mehr als einmal aufgerufen}}",
+  "repertoireVenueSemantics": "{venue}: {count, plural, =1{1 Tanz mehr als einmal gecallt} other{{count} Tänze mehr als einmal gecallt}}",
   "@repertoireVenueSemantics": {
     "x-sourceSha256": "6ac25c6d56b7afe142098842bf969c16f8b147d1d7c2172c1dd1e492c9d467f2"
   },
@@ -13730,7 +13734,7 @@
   "@settingsExperimentalShowRepertoireTitle": {
     "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
   },
-  "settingsExperimentalShowRepertoireSubtitle": "Fügt dem Menü „Weitere Aktionen“ der Sammlung „Repertoire“ hinzu: deine am häufigsten und seltensten aufgerufenen Tänze, was du nie aufgerufen hast, Häufigkeit der Figuren, Autoren, Formationen und Wiederholungen je Veranstaltungsort.",
+  "settingsExperimentalShowRepertoireSubtitle": "Fügt dem Menü „Weitere Aktionen“ der Sammlung „Repertoire“ hinzu: deine am häufigsten und seltensten gecallten Tänze, was du nie gecallt hast, Häufigkeit der Figuren, Autoren, Formationen und Wiederholungen je Veranstaltungsort.",
   "@settingsExperimentalShowRepertoireSubtitle": {
     "x-sourceSha256": "f537bb665c51db4ea2f7bebe359ced80907a25a71ab9fee34cf7c48159b6e946"
   },
@@ -13742,11 +13746,11 @@
   "@importCsvPickFile": {
     "x-sourceSha256": "3bb43e45815cd926a5fdc5fc234a382e7ca35f88ece0d4f9d4ea4abf1a867690"
   },
-  "importSourceLabelTextDocument": "Ihre eigene Text- oder Markdown-Datei",
+  "importSourceLabelTextDocument": "Deine eigene Text- oder Markdown-Datei",
   "@importSourceLabelTextDocument": {
     "x-sourceSha256": "b82e1c3bc4a3756645ff8d0db9a4fc78dc203aee7daa42b21ef3de1476a7a06a"
   },
-  "importTextHint": "Wählen Sie eine .txt- oder .md-Datei. Beginnen Sie jeden Tanz mit einer Überschrift (## Title) oder mit seinem Titel nach einer Leerzeile. Schreiben Sie Angaben in „Label: value“-Zeilen (Formation: Improper) und eine Figur pro Zeile (A1 (8) Neighbor swing).",
+  "importTextHint": "Wähle eine .txt- oder .md-Datei. Beginne jeden Tanz mit einer Überschrift (## Title) oder mit seinem Titel nach einer Leerzeile. Schreibe Angaben in „Label: value“-Zeilen (Formation: Improper) und eine Figur pro Zeile (A1 (8) Neighbor swing).",
   "@importTextHint": {
     "x-sourceSha256": "d179b5ab74145d2de4bfe01f731e2c4e284b6a18d318ca80c1b34b338f68740a"
   },
@@ -13758,7 +13762,7 @@
   "@importTextMapTitle": {
     "x-sourceSha256": "51d6189c02562c2748d7e81b93a37a6c83fc22cd6b38375a3074171e93c79acd"
   },
-  "importTextMapIntro": "Wählen Sie, was jede Bezeichnung in Ihrer Datei enthält. Eine Bezeichnung, die kein Feld übernimmt, bleibt mit ihrem Namen in den Calling-Notizen; wählen Sie Ignorieren, um sie wegzulassen. Nichts wird hinzugefügt, bevor Sie prüfen und bestätigen.",
+  "importTextMapIntro": "Wähle, was jede Bezeichnung in deiner Datei enthält. Eine Bezeichnung, die kein Feld übernimmt, bleibt mit ihrem Namen in den Calling-Notizen; wähle Ignorieren, um sie wegzulassen. Nichts wird hinzugefügt, bevor du prüfst und bestätigst.",
   "@importTextMapIntro": {
     "x-sourceSha256": "c164ccec57083360c7aeee87a0ad5beaeae0dc2c31076d3609876c69f715f269"
   },
@@ -13778,11 +13782,11 @@
   "@importTextTargetLabelledNotes": {
     "x-sourceSha256": "81e01305126cd88776779264c7195ec7477be4a8b5e43192e472e9f68ae75f73"
   },
-  "importTextNotUtf8": "Diese Datei ist nicht als UTF-8-Text gespeichert, daher würden Umlaute und Akzente falsch ankommen. Speichern Sie sie erneut als UTF-8-Text und wählen Sie diese Datei.",
+  "importTextNotUtf8": "Diese Datei ist nicht als UTF-8-Text gespeichert, daher würden Umlaute und Akzente falsch ankommen. Speichere sie erneut als UTF-8-Text und wähle diese Datei.",
   "@importTextNotUtf8": {
     "x-sourceSha256": "db5198188221007b4dd964bf20367e624a06d33b5901c420135bc60edb6b1fde"
   },
-  "importTextTooManyDances": "Diese Datei enthält mehr als {limit} Tänze. Teilen Sie sie in kleinere Dateien auf.",
+  "importTextTooManyDances": "Diese Datei enthält mehr als {limit} Tänze. Teile sie in kleinere Dateien auf.",
   "@importTextTooManyDances": {
     "x-sourceSha256": "b1f27144df9b89a96fc21d765465283b574c5162a69bea582ec4878d2bd9b0cc"
   },
@@ -13842,7 +13846,7 @@
   "@importCsvTargetPhrase": {
     "x-sourceSha256": "ccde59a8941c6dda4db79f6be209702d4b154bfd4b38b9161fd87a905861a101"
   },
-  "importCsvTargetNewField": "Neues eigenes Feld ({type})",
+  "importCsvTargetNewField": "Neues benutzerdefiniertes Feld ({type})",
   "@importCsvTargetNewField": {
     "x-sourceSha256": "569155455b946e4dc1eba8e3f5d45cb8667f7bcd2e1429545770340d08f3296d"
   },
@@ -14074,11 +14078,11 @@
   "@savedSearchNameLabel": {
     "x-sourceSha256": "dcd1d5223f73b3a965c07e3ff5dbee3eedcfedb806686a05b9b3868a2c3d6d50"
   },
-  "savedSearchWindowNotCalled": "{count, plural, =1{Im letzten Monat nicht aufgerufen} other{In den letzten {count} Monaten nicht aufgerufen}}",
+  "savedSearchWindowNotCalled": "{count, plural, =1{Im letzten Monat nicht gecallt} other{In den letzten {count} Monaten nicht gecallt}}",
   "@savedSearchWindowNotCalled": {
     "x-sourceSha256": "807c9cf19ca86d72282c54d666d7eac4617b1f66140020d7308c0b69c635a71c"
   },
-  "savedSearchWindowCalled": "{count, plural, =1{Im letzten Monat aufgerufen} other{In den letzten {count} Monaten aufgerufen}}",
+  "savedSearchWindowCalled": "{count, plural, =1{Im letzten Monat gecallt} other{In den letzten {count} Monaten gecallt}}",
   "@savedSearchWindowCalled": {
     "x-sourceSha256": "8d8eeb142c430ef9c1b2d4902074b3f1c3f5ab9cb5882f557d51df9d866573d2"
   },
@@ -14170,11 +14174,11 @@
   "@savedSearchMissingSourceUnnamed": {
     "x-sourceSha256": "14562eb9cc6b3ab02965861d8c1a30aad18d39795c8f1061bb7e79af10fb55ad"
   },
-  "savedSearchMissingLevel": "Die Stufe {name}, die gelöscht wurde",
+  "savedSearchMissingLevel": "Das Niveau {name}, das gelöscht wurde",
   "@savedSearchMissingLevel": {
     "x-sourceSha256": "0116ead5d5fe5eba9203955aa80fd10ef1a4c8d0646b8ed0be34fec305fe0b99"
   },
-  "savedSearchMissingLevelUnnamed": "Eine Stufe, die gelöscht wurde",
+  "savedSearchMissingLevelUnnamed": "Ein Niveau, das gelöscht wurde",
   "@savedSearchMissingLevelUnnamed": {
     "x-sourceSha256": "089493891b22ad308b2e6a0e2834bfba7e8d8faeeffce6c3d9012e6022479d86"
   },
@@ -14262,7 +14266,7 @@
   "@settingsExperimentalEventRulesTitle": {
     "x-sourceSha256": "b58dcf951431f292c232f744b09ebea18e50d9c5dfafdb94846f3f2b726e7100"
   },
-  "settingsExperimentalEventRulesSubtitle": "Füge einem Programm Regeln hinzu, etwa keine zwei Becket-Tänze hintereinander, und der Editor warnt dich, wenn das Programm eine davon verletzt. Warnungen hindern dich nie am Speichern oder Ansagen.",
+  "settingsExperimentalEventRulesSubtitle": "Füge einem Programm Regeln hinzu, etwa keine zwei Becket-Tänze hintereinander, und der Editor warnt dich, wenn das Programm eine davon verletzt. Warnungen hindern dich nie am Speichern oder Callen.",
   "@settingsExperimentalEventRulesSubtitle": {
     "x-sourceSha256": "cdf5099cd19f4ba2b15871f20cdf82395343a0d42cd8220c8668b575b3375b45"
   },
@@ -14518,7 +14522,7 @@
   "@programsRuleBreachDances": {
     "x-sourceSha256": "6d33d28560f0c987753657b9be07d9ce7b3602d922be2a546ad2fe40bd338433"
   },
-  "programsRuleBreachIfCalled": "Wenn du {title} ansagst",
+  "programsRuleBreachIfCalled": "Wenn du {title} callst",
   "@programsRuleBreachIfCalled": {
     "x-sourceSha256": "6b5060e44ea3f23f96d7774b0e00341f02b23beee156dd32428923a7e1f46887"
   },
@@ -14526,7 +14530,7 @@
   "@programsSlotRuleMarker": {
     "x-sourceSha256": "5e084c9ecc80d9c39352fd4696a86c080f5c54ef225f1fcfd1ad74b08084160a"
   },
-  "programsSlotRuleMarkerAlternate": "Verletzt eine Regel, wenn angesagt",
+  "programsSlotRuleMarkerAlternate": "Verletzt eine Regel, wenn gecallt",
   "@programsSlotRuleMarkerAlternate": {
     "x-sourceSha256": "1bd6c3d37c39df03ca7add4c643745fdfa9da22bf9ac801a12822ebf5bf593cc"
   },
@@ -14534,7 +14538,7 @@
   "@programsSlotRuleMarkerSemantic": {
     "x-sourceSha256": "92662a4a9d4482c7c42d3ef81c41bb3f59ceb60a37e6096c5334df08584b56d7"
   },
-  "programsSlotRuleMarkerAlternateSemantic": "{count, plural, =1{Verletzt die Regel, wenn angesagt: {rules}} other{Verletzt {count} Regeln, wenn angesagt: {rules}}}",
+  "programsSlotRuleMarkerAlternateSemantic": "{count, plural, =1{Verletzt die Regel, wenn gecallt: {rules}} other{Verletzt {count} Regeln, wenn gecallt: {rules}}}",
   "@programsSlotRuleMarkerAlternateSemantic": {
     "x-sourceSha256": "255b3c7c450d5eaf9d96688258f0e69616c5a0cf9f12d3edb5ef7093f94f4909"
   },
@@ -14554,11 +14558,11 @@
   "@programTemplateRulesNone": {
     "x-sourceSha256": "dc937b59892604f5a86ac96936cd7ff09e25f18ae6b758e8014a24c7fa039e91"
   },
-  "programTemplateDuplicateSearchGone": "Duplizieren nicht möglich: Die gespeicherte Suche der Eintragsregel „{label}“ wurde gelöscht. Bearbeite oder entferne diese Regel und versuche es dann erneut.",
+  "programTemplateDuplicateSearchGone": "Duplizieren nicht möglich: Die gespeicherte Suche der Slot-Regel „{label}“ wurde gelöscht. Bearbeite oder entferne diese Regel und versuche es dann erneut.",
   "@programTemplateDuplicateSearchGone": {
     "x-sourceSha256": "2b6e7b2f1c72734b0fb1bf1fa87d54326315dd009a415ae00a229c1affcb0b25"
   },
-  "programTemplateSlotRuleNotSavedSearchGone": "Diese gespeicherte Suche wurde gerade gelöscht, deshalb wurde die Eintragsregel nicht gespeichert.",
+  "programTemplateSlotRuleNotSavedSearchGone": "Diese gespeicherte Suche wurde gerade gelöscht, deshalb wurde die Slot-Regel nicht gespeichert.",
   "@programTemplateSlotRuleNotSavedSearchGone": {
     "x-sourceSha256": "6688d691e5716697612548cfe5d8de2887a3591418f7183f21ad7828ed53a456"
   },
@@ -14614,11 +14618,11 @@
   "@danceEditorSaveNeedsFigureValues": {
     "x-sourceSha256": "899a2bb2764967487b319de39f17f242eb5d834d40066036fca864e6461c7e90"
   },
-  "programTemplateAddSlotRule": "Eintragsregel hinzufügen",
+  "programTemplateAddSlotRule": "Slot-Regel hinzufügen",
   "@programTemplateAddSlotRule": {
     "x-sourceSha256": "271cf5d437fa079717c43d95e491024ecb32f29091b5d0071b156726b9e92f91"
   },
-  "programTemplateSlotRuleBadge": "Eintragsregel",
+  "programTemplateSlotRuleBadge": "Slot-Regel",
   "@programTemplateSlotRuleBadge": {
     "x-sourceSha256": "d3c802c982976b306a8676af4f5bc4811ecfbe9275f29e1ec1bab7a826d2f751"
   },
@@ -14630,7 +14634,7 @@
   "@programTemplateSlotRuleSearchGone": {
     "x-sourceSha256": "1f35b0852f51aa2a31e190d22496980fd15f7d64f7475bee61c2adec35264436"
   },
-  "programTemplateSlotRuleDialogTitle": "Eintragsregel hinzufügen",
+  "programTemplateSlotRuleDialogTitle": "Slot-Regel hinzufügen",
   "@programTemplateSlotRuleDialogTitle": {
     "x-sourceSha256": "271cf5d437fa079717c43d95e491024ecb32f29091b5d0071b156726b9e92f91"
   },
@@ -14650,7 +14654,7 @@
   "@programTemplateSlotRuleSearch": {
     "x-sourceSha256": "b0e17e59d9f6e5bc3e78c1a3e9b9d40c3238a69046c0726a97282e9e03a14703"
   },
-  "programTemplateSlotRuleNoSearches": "Eine Eintragsregel verwendet eine gespeicherte Suche. Speichere zuerst eine Suche in der Sammlung und wähle sie dann hier.",
+  "programTemplateSlotRuleNoSearches": "Eine Slot-Regel verwendet eine gespeicherte Suche. Speichere zuerst eine Suche in der Sammlung und wähle sie dann hier.",
   "@programTemplateSlotRuleNoSearches": {
     "x-sourceSha256": "593b11555624c9a3811478ab0af89b90ff566223d40fb4c0316632f47629bd61"
   },
@@ -14678,7 +14682,7 @@
   "@programsFillSearchUnresolvable": {
     "x-sourceSha256": "1e2220e52ab277618cea27a58361450b72bb87b18d1a44ec5186db48eea9a565"
   },
-  "savedSearchUsedBySlotRule": "Die Eintragsregel „{rule}“ in der Vorlage {template}",
+  "savedSearchUsedBySlotRule": "Die Slot-Regel „{rule}“ in der Vorlage {template}",
   "@savedSearchUsedBySlotRule": {
     "x-sourceSha256": "f6abcf8a824f0c6964fb5e3090afcdddefa07ab6e162a7585f87f491c21b8d47"
   },
@@ -14686,11 +14690,11 @@
   "@programTemplateSlotRuleSearchUnreadable": {
     "x-sourceSha256": "87719e1e721958247eb5fe51c7cf2ad911163c3c04262db39ee0daee11e71814"
   },
-  "programTemplateSlotRuleEditTitle": "Eintragsregel bearbeiten",
+  "programTemplateSlotRuleEditTitle": "Slot-Regel bearbeiten",
   "@programTemplateSlotRuleEditTitle": {
     "x-sourceSha256": "35c30e10ebe5cac90c10fca41bd916f0fcc6a4fa7cfdd58ddc485bb65f902421"
   },
-  "programTemplateSlotRuleLabelBreak": "„Break“ markiert eine Pause im Programm, daher kann eine Eintragsregel es nicht als Bezeichnung verwenden.",
+  "programTemplateSlotRuleLabelBreak": "„Break“ markiert eine Pause im Programm, daher kann eine Slot-Regel es nicht als Bezeichnung verwenden.",
   "@programTemplateSlotRuleLabelBreak": {
     "x-sourceSha256": "16e76380d1c64fee5f8228fc7f778ef0d4a2f3c4b3e214a56f7c1a83ae1467bd"
   },

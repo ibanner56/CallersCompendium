@@ -27,7 +27,7 @@ void main() {
           'du / dich / dir / dein',
       // To call a dance is "callen" (gecallt), as Settings already said;
       // "aufrufen" reads as opening a page.
-      RegExp(r'aufgerufen|[Aa]ufrufe?n?\b|aufrufst|[Aa]ufrufzahl'):
+      RegExp(r'[Aa]ufgerufen|[Aa]ufrufe?n?\b|aufrufst|[Aa]ufrufzahl|[Aa]nsag'):
           'callen / gecallt',
       RegExp(r'\bBeats?\b'): 'Schlag / Schläge',
       RegExp(r'Perform eines'): 'im Perform-Modus',
@@ -48,38 +48,96 @@ void main() {
     'ja': {RegExp(r'休憩'): 'ブレイク'},
   };
 
-  // German "Sie" or "Ihr" opening a sentence can mean "they" or "her"; those
-  // keys are named here with what the word means, and must still have one.
-  const sentenceInitial = <String, String>{};
+  // German "Sie" or "Ihre" opening a sentence can mean "they", "it" or
+  // "its"; each key where it does is named here, and must still have one.
+  // A formal "Sie" opening a sentence in any other key still fails.
+  const sentenceInitial = <String, String>{
+    'figureTextSheetUnrecognizedSummary': 'Sie: they, it or its',
+    'backupExportSubtitle': 'Sie: they, it or its',
+    'danceEditorCompoundUnavailable': 'Sie: they, it or its',
+    'danceEditorFiguresUnreadable': 'Sie: they, it or its',
+    'danceEditorTunesUnreadable': 'Sie: they, it or its',
+    'danceEditorUnrecognizedMoveReadOnly': 'Sie: they, it or its',
+    'eventRuleAttentionSearchGone': 'Ihre: they, it or its',
+    'eventRuleAttentionUnresolvable': 'Ihre: they, it or its',
+    'exportCsvDialogMessage': 'Sie: they, it or its',
+    'exportVenueContactBody': 'Sie: they, it or its',
+    'glossaryCustomDeleteBody': 'Sie: they, it or its',
+    'glossaryCustomDeleteUses': 'Sie: they, it or its',
+    'importCcTermsFailed': 'Sie: they, it or its',
+    'importFileNotText': 'Sie: they, it or its',
+    'importReviewReimportWarning': 'Ihre: they, it or its',
+    'importUserFiguresNameTaken': 'Ihr: they, it or its',
+    'importUserFiguresUseTheirs': 'Ihre: they, it or its',
+    'onlineImportVariationDialogLinkWarning': 'Sie: they, it or its',
+    'programTemplateSlotRuleSearchGone': 'Ihre: they, it or its',
+    'programTemplateSlotRuleSearchUnreadable': 'Ihre: they, it or its',
+    'programsFillSearchUnreadable': 'Sie: they, it or its',
+    'savedSearchInUseBody': 'Sie: they, it or its',
+    'savedSearchUnreadableBody': 'Sie: they, it or its',
+    'settingsAboutFontsBody': 'Ihre: they, it or its',
+    'settingsSyncNoticeAwaitingDevice': 'Sie: they, it or its',
+    'settingsSyncNoticeKeptNewerItems': 'Sie: they, it or its',
+    'settingsSyncNoticePeerNotTaking': 'Sie: they, it or its',
+    'settingsSyncPairingCompleteFailed': 'Sie: they, it or its',
+    'userFigureSwitchConfirmUses': 'Sie: they, it or its',
+    'validationOtherFormFigures': 'Sie: they, it or its',
+  };
 
-  // Locale -> (English pattern, locale pattern, the word to use): where the
-  // English names the thing, the translation must not use the retired word.
-  final terms = <String, List<(RegExp, RegExp, String)>>{
+  // Locale -> the words that must not translate what the English names. A
+  // "slot" in a move-wording template is a placeholder, not a program slot,
+  // so those keys are left out of the slot rule.
+  final notWordingSlot = RegExp(r'^(?!dialectEditorMoveWording|wordingIssue)');
+  final slot = RegExp(r'\b[Ss]lots?\b');
+  final programKey = RegExp(r'^program');
+  final terms = <String, List<_Term>>{
     'de': [
-      (RegExp(r'\b[Ss]lots?\b'), RegExp(r'Eintr[aä]g|Pl[aä]tz'), 'Slot'),
-      (RegExp(r'\b[Ll]evels?\b'), RegExp(r'Stufe'), 'Niveau'),
-      (RegExp(r'[Ff]ormations?\b'), RegExp(r'Aufstellung'), 'Formation'),
-      (RegExp(r'custom field'), RegExp(r'eigene[sn]? Feld'), 'benutzerdefiniertes Feld'),
-      (RegExp(r'\b[Tt]ypes?\b'), RegExp(r'Tanzart'), 'Typ'),
+      _Term(
+        slot,
+        RegExp(r'Eintr[aä]g|Pl[aä]tz(?!halter)'),
+        'Slot',
+        keys: notWordingSlot,
+      ),
+      _Term(RegExp(r'\b[Ll]evels?\b'), RegExp(r'Stufe'), 'Niveau'),
+      _Term(RegExp(r'[Ff]ormations?\b'), RegExp(r'Aufstellung'), 'Formation'),
+      _Term(
+        RegExp(r'custom field'),
+        RegExp(r'eigene[sn]? Feld'),
+        'benutzerdefiniertes Feld',
+      ),
+      _Term(RegExp(r'\b[Tt]ypes?\b'), RegExp(r'Tanzart'), 'Typ'),
     ],
     'da': [
-      (RegExp(r'\b[Ss]lots?\b'), RegExp(r'[Pp]lads'), 'slot'),
-      (RegExp(r'\b[Tt]ypes?\b'), RegExp(r'Danseform'), 'type'),
+      _Term(slot, RegExp(r'[Pp]lads(?!holder)'), 'slot', keys: notWordingSlot),
+      _Term(RegExp(r'\b[Tt]ypes?\b'), RegExp(r'Danseform'), 'type'),
     ],
     'fr': [
-      (RegExp(r'\b[Ss]lots?\b'), RegExp(r'[Ee]mplacement'), 'créneau'),
-      (RegExp(r'Custom Figures'), RegExp(r'vos figures'), 'figures personnalisées'),
+      _Term(slot, RegExp(r'[Ee]mplacement'), 'créneau', keys: notWordingSlot),
+      // "Étiquette" stays where the English says label.
+      _Term(RegExp(r'\b[Tt]ags?\b'), RegExp(r'[ÉéEe]tiquette'), 'tag'),
+      _Term(
+        RegExp(r'Custom Figures'),
+        RegExp(r'vos figures'),
+        'figures personnalisées',
+      ),
     ],
     'nl': [
-      (RegExp(r'\b[Ss]lots?\b'), RegExp(r'\b[Pp]lek'), 'slot'),
-      (RegExp(r'\b[Bb]eats?\b'), RegExp(r'\b[Tt]ellen\b'), 'beats'),
-      (RegExp(r'custom field'), RegExp(r'eigen veld'), 'aangepast veld'),
-      (RegExp(r'\b[Tt]ypes?\b'), RegExp(r'Danssoort'), 'type'),
+      _Term(slot, RegExp(r'\b[Pp]lek'), 'slot', keys: notWordingSlot),
+      // userFigureEditorParamNames lists reserved names typed in English.
+      _Term(
+        RegExp(r'\b[Bb]eats?\b'),
+        RegExp(r'\b[Bb]eats?\b'),
+        'tellen',
+        keys: RegExp(r'^(?!userFigureEditorParamNames$)'),
+      ),
+      _Term(RegExp(r'custom field'), RegExp(r'eigen veld'), 'aangepast veld'),
+      _Term(RegExp(r'\b[Tt]ypes?\b'), RegExp(r'Danssoort'), 'type'),
     ],
     'ja': [
-      (RegExp(r'\b[Ss]lots?\b'), RegExp(r'枠'), 'スロット'),
-      (RegExp(r'\b[Nn]otes?\b'), RegExp(r'メモ'), 'ノート'),
-      (RegExp(r'[Ff]ormations?\b'), RegExp(r'隊形'), 'フォーメーション'),
+      _Term(slot, RegExp(r'枠'), 'スロット', keys: notWordingSlot),
+      // In the program builder a note slot is a ノート, as its buttons say.
+      _Term(RegExp(r'\b[Nn]otes?\b'), RegExp(r'メモ'), 'ノート', keys: programKey),
+      _Term(RegExp(r'[Ff]ormations?\b'), RegExp(r'隊形'), 'フォーメーション'),
     ],
   };
 
@@ -89,6 +147,7 @@ void main() {
     'de': [
       'Wählen Sie die Tänze',
       'Am häufigsten aufgerufen',
+      'Der Ansageverlauf',
       '{actual} Beats',
       'Timer beim Perform eines einzelnen Tanzes anzeigen',
     ],
@@ -111,8 +170,8 @@ void main() {
       'Tanzart',
     ],
     'da': ['Pladser', 'Danseform'],
-    'fr': ['Emplacements', 'Copier dans vos figures'],
-    'nl': ['Plekken', 'Tellen per maat', 'Nieuw eigen veld', 'Danssoort'],
+    'fr': ['Emplacements', '1 étiquette', 'Copier dans vos figures'],
+    'nl': ['Plekken', '{beats} beats te veel', 'Nieuw eigen veld', 'Danssoort'],
     'ja': ['枠', 'メモ', '隊形のバランス'],
   };
 
@@ -127,11 +186,11 @@ void main() {
       }
     });
     terms.forEach((locale, rules) {
-      for (final (_, pattern, _) in rules) {
+      for (final rule in rules) {
         expect(
-          termExamples[locale]!.any(pattern.hasMatch),
+          termExamples[locale]!.any(rule.word.hasMatch),
           isTrue,
-          reason: '[$locale] no example matches $pattern',
+          reason: '[$locale] no example matches ${rule.word}',
         );
       }
     });
@@ -140,8 +199,10 @@ void main() {
   test('translations keep one form of address and retired wordings out', () {
     final offenders = <String>[];
     retired.forEach((locale, patterns) {
-      load(locale).forEach((key, value) {
-        if (key.startsWith('@') || value is! String) return;
+      load(locale).forEach((key, raw) {
+        if (key.startsWith('@') || raw is! String) return;
+        // Product names keep their straight apostrophe in every language.
+        final value = _words(raw).replaceAll("Caller's", 'Caller');
         patterns.forEach((pattern, use) {
           for (final m in pattern.allMatches(value)) {
             if (locale == 'de' &&
@@ -175,13 +236,16 @@ void main() {
     final en = load('en');
     final offenders = <String>[];
     terms.forEach((locale, rules) {
-      load(locale).forEach((key, value) {
-        if (key.startsWith('@') || value is! String) return;
+      load(locale).forEach((key, raw) {
+        if (key.startsWith('@') || raw is! String) return;
+        final value = _words(raw);
         final source = en[key];
         if (source is! String) return;
-        for (final (english, word, use) in rules) {
-          if (english.hasMatch(source) && word.hasMatch(value)) {
-            offenders.add('[$locale] $key: "$value" — use "$use"');
+        for (final rule in rules) {
+          if (rule.keys.hasMatch(key) &&
+              rule.english.hasMatch(source) &&
+              rule.word.hasMatch(value)) {
+            offenders.add('[$locale] $key: "$value" — use "${rule.use}"');
           }
         }
       });
@@ -190,8 +254,25 @@ void main() {
   });
 }
 
+/// [value] without ICU argument names and select or plural keywords
+/// (`{beats}`, `beats{`), which are code, not words a person reads.
+String _words(String value) =>
+    value.replaceAll(RegExp(r'\{\s*\w+|\b\w+\{'), '{');
+
 /// Whether [index] in [value] starts the text or follows a sentence end.
 bool _opensSentence(String value, int index) {
   final before = value.substring(0, index).trimRight();
-  return before.isEmpty || RegExp(r'[.!?:„"“]$').hasMatch(before);
+  return before.isEmpty || RegExp(r'[.!?:„"“{]$').hasMatch(before);
+}
+
+/// Where the English matches [english] (in a key matching [keys]), the
+/// translation must not match [word]; [use] is the word that replaces it.
+class _Term {
+  _Term(this.english, this.word, this.use, {RegExp? keys})
+    : keys = keys ?? RegExp('');
+
+  final RegExp english;
+  final RegExp word;
+  final String use;
+  final RegExp keys;
 }

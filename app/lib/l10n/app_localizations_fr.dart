@@ -5899,6 +5899,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsInsertBreakButton => 'Insérer une pause';
 
   @override
+  String get programsBreakSlotLabel => 'Pause';
+
+  @override
   String get programsAddADanceSheetTitle => 'Ajouter une danse';
 
   @override

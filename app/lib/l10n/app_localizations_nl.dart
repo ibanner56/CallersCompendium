@@ -5862,6 +5862,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsInsertBreakButton => 'Pauze invoegen';
 
   @override
+  String get programsBreakSlotLabel => 'Pauze';
+
+  @override
   String get programsAddADanceSheetTitle => 'Een dans toevoegen';
 
   @override
