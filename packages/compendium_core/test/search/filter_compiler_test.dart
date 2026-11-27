@@ -925,14 +925,41 @@ void main() {
         null,
         contraTaxonomy,
       ).compile(const FullTextFilter('do si do Kaynor'));
+      // The keyword reads as the move's name, and as typed too, for text a
+      // caller typed (pre-release audit B-04).
       expect(c.binds, [
         '"dosido"',
+        '"do si do"',
         '$raw : ("do si do")',
         ..._music('do si do'),
         '"Kaynor"',
         '$raw : ("Kaynor")',
         ..._music('Kaynor'),
       ]);
+    });
+
+    test('a square name that crosses a contra phrase is also read as '
+        'contra alone splits it (pre-release audit B-04)', () {
+      // "allemande right" is a square call's name; "right left through" is
+      // contra's. Contra alone (v0.10.0-beta) read "allemande" and "right
+      // left through"; the stretch also matches as that.
+      final c = FilterCompiler(null, null, shippedTaxonomies.anyForm).compile(
+        const FullTextFilter(
+          'allemande right left through',
+          scope: FullTextScope.figure,
+        ),
+      );
+      expect(
+        c.binds,
+        containsAllInOrder(['"allemande"', '"right left through"']),
+      );
+      final contraOnly = FilterCompiler(null, null, contraTaxonomy).compile(
+        const FullTextFilter(
+          'allemande right left through',
+          scope: FullTextScope.figure,
+        ),
+      );
+      expect(contraOnly.binds, ['"allemande"', '"right left through"']);
     });
 
     test('a role of several words stays one word', () {
@@ -1036,18 +1063,15 @@ void main() {
         null,
         contraTaxonomy,
       ).compile(const FullTextFilter('buzz'));
-      // Canonical side: the taxonomy name the figure text holds; raw side:
-      // the word as typed. Then the same word without the dialect's meaning,
-      // ORed, so "buzz" still finds what it found before (FIND-4 adds).
+      // Canonical side: the taxonomy name the figure text holds, then the
+      // same word without the dialect's meaning, ORed, so "buzz" still finds
+      // what it found before (FIND-4 adds); raw side: the word as typed.
       expect(c.binds, [
         '"swing"',
-        '$raw : ("buzz")',
-        ..._music('buzz'),
         '"buzz"',
         '$raw : ("buzz")',
         ..._music('buzz'),
       ]);
-      expect(c.sql, contains(') OR ('));
     });
 
     test('a dialect move name of several words is one word; a role word '
@@ -1078,7 +1102,12 @@ void main() {
           ).compile(
             const FullTextFilter('gypsy dance', scope: FullTextScope.figure),
           );
-      expect(c.binds, ['"shoulder round"', '"shoulder round dance"']);
+      // The last form is the words as typed (pre-release audit B-04).
+      expect(c.binds, [
+        '"shoulder round"',
+        '"shoulder round dance"',
+        '"gypsy dance"',
+      ]);
     });
 
     test('without a taxonomy the word is searched as typed', () {

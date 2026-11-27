@@ -809,10 +809,31 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
     lays several dance forms together, the moves of its own form win a name
     or keyword that another form also uses: a search over every dance reads
     "hey" as contra does, and an ECD dance's taxonomy reads it as ECD does
-    (ADR-006).
+    (ADR-006). A keyword adds a meaning too, rather than replacing the
+    words: the word also matches with no move name or keyword rewritten
+    (its role words still made tokens), ORed, because text a caller typed (a
+    custom line, an imported line the parser did not recognize) is stored as
+    written. So "docey doe" finds a line typed "Docey doe your corner" as
+    well as a structured do si do, in a dance of any form, and "balance in
+    the ring" finds a square's balance in the ring though "ring" is a
+    keyword of the circle (pre-release audit B-04, B-03). A phrase kept
+    whole only by an English or square move's name or keyword ("turn by the
+    hand", "hand turn", "right and left thru") also matches when its words
+    all match on their own, as v0.10.0-beta, which searched with contra's
+    taxonomy alone, read it: "turn by the hand" and "hand turn" still find a
+    line typed "Neighbors turn by the right hand". Where such a phrase
+    crosses one of contra's, that stretch of the query matches either way it
+    splits. Contra's own names and keywords, those added since v0.10.0-beta
+    included ("cast off", "hand cast"), still count as one phrase (the audit
+    lead's call; rejected: splitting every keyword, which would loosen "do
+    si do"; splitting only the square calls' phrases, which would leave
+    English ones hiding contra text; and a frozen list of v0.10.0-beta's
+    phrases, which would need upkeep).
 
   A term of several words — a role ("Lady Birds"), a move ("do si do") or a
-  dialect's move name — stays one word, so its spaces must still match.
+  dialect's move name — stays one word, so its spaces must still match (a
+  phrase kept whole only by an English or square move's name or keyword also
+  matches word by word, as above).
   Each word then picks its own index (one or two characters: the token-prefix
   `dance_fts`; more: the trigram `dance_substring_fts`), and in All fields
   matches its canonical form in any column **or** its typed form in the

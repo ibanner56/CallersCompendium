@@ -462,11 +462,13 @@ final Taxonomy squareTaxonomy = Taxonomy(
       params: {
         'who': _who,
         'whom': _whom,
-        // A full courtesy turn at the end: 12 beats (§7.1).
+        // A full courtesy turn at the end: 12 beats (§7.1). It shows as
+        // "with a full turn" (the renderer's flag words), so it reads and
+        // searches apart from a plain one.
         'fullTurn': const ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': _beats(8),
       },
-      renderTemplate: '{who} {move} {whom}',
+      renderTemplate: '{who} {move} {whom} {fullTurn}',
       searchKeywords: const ['right and left thru'],
       goodBeats: const [8, 12],
       paramBeats: const ParamBeats(
