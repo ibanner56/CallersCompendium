@@ -415,13 +415,15 @@ class _DialectRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return RadioListTile<String>(
       value: dialect.name,
-      title: Row(
+      // A Wrap, so a translated badge wider than the space beside the name
+      // moves under it instead of overflowing on a narrow screen.
+      title: Wrap(
+        spacing: AppSpacing.xs,
+        runSpacing: AppSpacing.xxxs,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Flexible(child: Text(dialect.name)),
-          if (isPreset) ...[
-            const SizedBox(width: AppSpacing.xs),
-            _presetBadge(theme, l10n),
-          ],
+          Text(dialect.name),
+          if (isPreset) _presetBadge(theme, l10n),
         ],
       ),
       subtitle: _dialectSubtitle(dialect),

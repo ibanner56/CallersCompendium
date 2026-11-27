@@ -744,33 +744,31 @@ void main() {
       }
     });
 
-    testWidgets(
-      'a preset row fits a 320 dp screen at 2x text in German, Dutch and Danish',
-      (tester) async {
-        for (final locale in const [Locale('de'), Locale('nl'), Locale('da')]) {
-          await _pumpSettings(
-            tester,
-            locale: locale,
-            textScale: 2,
-            surfaceSize: const Size(320, 4000),
-          );
-          await tester.tap(find.byKey(const ValueKey('settings-nav-dialect')));
-          await tester.pumpAndSettle();
-          final preset = Dialect.presets.first;
-          await tester.scrollUntilVisible(
-            find.byKey(ValueKey('dialect-preset-badge-${preset.name}')),
-            200,
-            scrollable: find.byType(Scrollable).last,
-          );
-          await tester.pumpAndSettle();
-          expect(
-            find.byKey(ValueKey('dialect-preset-badge-${preset.name}')),
-            findsOneWidget,
-          );
-          expect(tester.takeException(), isNull, reason: '$locale');
-        }
-      },
-    );
+    for (final locale in const [Locale('de'), Locale('nl'), Locale('da')]) {
+      testWidgets('a preset row fits a 320 dp screen at 2x text in $locale', (
+        tester,
+      ) async {
+        await _pumpSettings(
+          tester,
+          locale: locale,
+          textScale: 2,
+          surfaceSize: const Size(320, 4000),
+        );
+        await tester.tap(find.byKey(const ValueKey('settings-nav-dialect')));
+        await tester.pumpAndSettle();
+        final badge = find.byKey(
+          ValueKey('dialect-preset-badge-${Dialect.presets.first.name}'),
+        );
+        await tester.scrollUntilVisible(
+          badge,
+          200,
+          scrollable: find.byType(Scrollable).last,
+        );
+        await tester.pumpAndSettle();
+        expect(badge, findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
 
     testWidgets('only role-neutral presets are offered (no gendered presets)', (
       tester,
