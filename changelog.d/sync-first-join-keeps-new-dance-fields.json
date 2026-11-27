@@ -8,7 +8,7 @@
   },
   "core": {
     "fixed": [
-      "mergeDanceCandidates (fresh-attach dedupe and a review's Merge) takes meter, musicalKey, interpretedOn, barnesReference, formation.improper and the square fields from the latest copy only when that copy holds at least one field added after v0.10.0-beta (those, alternateTitles or interpreterIds); otherwise each comes from the most recent copy that holds it. A latest copy from an older build cannot know them, so it used to clear them all (sync-spec §6.7, \"Which copy speaks for them\"). Wire bodies and content hashes are unchanged."
+      "mergeDanceCandidates (fresh-attach dedupe and a review's Merge) takes meter, musicalKey, interpretedOn, barnesReference, formation.improper and the square fields from the latest copy (for barnesReference and formation.improper, the latest copy of the merged dance's form) only when that copy holds at least one field added after v0.10.0-beta (those, alternateTitles or interpreterIds); otherwise each comes from the most recent copy that holds it. A latest copy from an older build cannot know them, so it used to clear them all (sync-spec §6.7, \"Which copy speaks for them\"). Wire bodies and content hashes are unchanged."
     ]
   }
 }
