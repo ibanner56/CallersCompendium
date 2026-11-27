@@ -19,6 +19,7 @@ import '../model/tag.dart';
 import '../model/user_glossary.dart';
 import '../model/venue.dart';
 import '../imports/dedupe.dart';
+import '../search/saved_search.dart';
 import '../privacy/data_classification.dart';
 import '../privacy/settings_registry.dart';
 import '../serialization/archive_entity_codec.dart';
@@ -4417,9 +4418,12 @@ final class CompendiumSyncStorage
     final resolvedId = keepId
         ? candidate.blob.id
         : _resolveInMap(candidate.blob.id, byKind);
-    final body = rewriteSyncInboundReferences(candidate.blob.body, aliases);
+    var body = rewriteSyncInboundReferences(candidate.blob.body, aliases);
     if (candidate.blob.kind != SyncRecordKind.setting) {
       body['id'] = resolvedId;
+    } else if (candidate.blob.deletedAt == null &&
+        candidate.blob.id.startsWith(savedSearchKeyPrefix)) {
+      body = _remapInboundSavedSearch(candidate.blob.id, body, aliases);
     }
     return _candidateWithBody(
       candidate,
@@ -4432,6 +4436,36 @@ final class CompendiumSyncStorage
               current: candidate.blob.updatedAt,
             ),
     );
+  }
+
+  /// [body] of the inbound saved search [key] with every id [aliases] merged
+  /// away read as its survivor, as this device's own saved searches were
+  /// rewritten when it merged them (§6.6, "The remap"): a peer's search that
+  /// still names a loser, sent before that peer saw the merge or in the batch
+  /// that brings it, is stored naming the survivor. [body] itself when the
+  /// search names no loser, or when this build cannot read it (it is then
+  /// read through the alias while that lasts, as on the merging device).
+  Map<String, Object?> _remapInboundSavedSearch(
+    String key,
+    Map<String, Object?> body,
+    Map<SyncRecordKind, Map<String, String>> aliases,
+  ) {
+    final id = key.substring(savedSearchKeyPrefix.length);
+    final read = SavedSearch.decode(id, body['value']).value;
+    if (read == null) return body;
+    var spec = read.spec;
+    for (final MapEntry(key: kind, value: byId) in aliases.entries) {
+      if (byId.isEmpty) continue;
+      final moved = spec.movingReferences(kind, {
+        for (final losingId in byId.keys)
+          losingId: _resolveInMap(losingId, byId),
+      });
+      if (moved != null) spec = moved;
+    }
+    if (identical(spec, read.spec)) return body;
+    final json = SavedSearch(id: id, name: read.name, spec: spec).toJson();
+    if (SavedSearch.decodeAsStored(id, json).value == null) return body;
+    return {...body, 'value': json};
   }
 
   SyncMergeCandidate _rewriteCandidateIdentity(
@@ -4576,6 +4610,13 @@ final class CompendiumSyncStorage
       losingId: losingId,
       survivingId: target,
     );
+    // The saved searches name tags, authors, levels and custom fields by id,
+    // and follow the survivor as they do in a user's merge
+    // (`ReferenceEditRepository.merge`): each is an edit of its own, stamped
+    // past its own stamp and published (§6.6, "The remap"). Left naming the
+    // loser, a search would read as the survivor only until the alias is
+    // retired, and then report a deletion nobody made.
+    await repositories.savedSearches.moveReferences(kind, {losingId: target});
     _naturalKeyIndex?.removeId(kind, losingId);
     final byKind = aliases.putIfAbsent(kind, () => <String, String>{});
     for (final entry in byKind.entries.toList()) {

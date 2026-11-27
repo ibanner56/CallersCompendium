@@ -237,6 +237,16 @@ class SettingsRepository {
     return row == null ? null : jsonDecode(row.valueJson);
   }
 
+  /// When the live value for [key] was last written (its `updated_at`), or
+  /// null when it is unset or carries no stamp.
+  Future<DateTime?> updatedAtOf(String key) async {
+    final row =
+        await (_db.select(_db.settings)
+              ..where((t) => t.key.equals(key) & t.deletedAt.isNull()))
+            .getSingleOrNull();
+    return row?.updatedAt?.toUtc();
+  }
+
   Future<bool> contains(String key) async {
     final row =
         await (_db.select(_db.settings)

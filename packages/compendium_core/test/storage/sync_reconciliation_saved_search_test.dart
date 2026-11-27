@@ -292,14 +292,15 @@ void main() {
       SavedSearch(id: 's1', name: 'Workshop dances', spec: localSpec()),
       at: aheadSecond,
     );
+    // One merge, so one rewrite (each merge is an edit of its own).
     await const SyncApplyEngine().apply(
-      candidates: inboundSurvivors(),
+      candidates: [candidate(SyncRecordKind.tag, inboundTag.id, inboundTag)],
       storage: storage,
     );
-    expect(
-      (await repositories.savedSearches.get('s1'))!.spec.toJson(),
-      survivorSpec().toJson(),
-    );
+    final facets =
+        (await repositories.savedSearches.get('s1'))!.spec.toJson()['facets']!
+            as Map;
+    expect(facets['tagIds'], [inboundTag.id]);
     expect(await storedStamp('s1'), aheadSecond.add(existenceStampTick));
   });
 
