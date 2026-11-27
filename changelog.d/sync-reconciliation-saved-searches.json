@@ -1,0 +1,14 @@
+{
+  "id": "sync-reconciliation-saved-searches",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "With Device Sync on, if two of your devices each had a tag, author, level or custom field with the same name before they synced, a saved search that used the one Device Sync merged away now uses the one it kept, on all your devices. It used to keep working for a while and then say it used a tag (or author, level or custom field) that was deleted, though you had deleted nothing."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Natural-key reconciliation (sync-spec §6.6, \"The remap\") now rewrites every live saved search this build can read from a losing tag, author, difficulty level or custom field id to the survivor, as ReferenceEditRepository.merge does, and remaps an inbound saved search that names a losing id id_aliases holds. Each rewrite is stamped one tick past the search's own updatedAt or now, whichever is later, and published. SavedSearchSpec.movingReferences now also moves the Level filter and the custom-field filters; SavedSearchRepository.moveReferences stamps each rewrite that way when given no at; SettingsRepository.updatedAtOf reads a live setting's stamp."
+    ]
+  }
+}

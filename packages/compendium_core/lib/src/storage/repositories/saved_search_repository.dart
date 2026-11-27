@@ -1,6 +1,7 @@
 import '../../search/saved_search.dart';
 import '../../sync/sync_record_kind.dart';
 import '../../util/uuid.dart';
+import '../existence.dart';
 import 'settings_repository.dart';
 
 /// Most live saved searches [SavedSearchRepository.create] will let a device
@@ -247,8 +248,15 @@ class SavedSearchRepository {
 
   /// Reads every [kind] reference in [moves] (losing id → surviving id) as
   /// the survivor in every live saved search that names one, as one edit each
-  /// (a merge of tags, authors or sources). Returns what it rewrote, for
-  /// [restoreRewrites].
+  /// (a user's merge of tags, authors or sources, or a merge sync's
+  /// natural-key reconciliation applies, which also merges levels and custom
+  /// fields). Returns what it rewrote, for [restoreRewrites].
+  ///
+  /// Each rewrite is stamped [at] (a user's merge passes its own time). With
+  /// no [at], each is stamped one tick past its search's own stamp or now,
+  /// whichever is later ([nextExistenceStamp]), as sync's reconciliation
+  /// bumps a dance whose references it moved: the rewrite then supersedes the
+  /// copy every peer holds, even one stamped ahead of this device's clock.
   ///
   /// A saved search this build cannot read (a newer format, a hostile value)
   /// is left byte for byte as it is: it cannot be rewritten without being
@@ -271,7 +279,16 @@ class SavedSearchRepository {
       if (spec == null) continue;
       final json = SavedSearch(id: id, name: read.name, spec: spec).toJson();
       if (SavedSearch.decodeAsStored(id, json).value == null) continue;
-      await _settings.set(key, json, at: at);
+      await _settings.set(
+        key,
+        json,
+        at:
+            at ??
+            nextExistenceStamp(
+              now: DateTime.now().toUtc(),
+              current: await _settings.updatedAtOf(key),
+            ),
+      );
       rewrites.add(
         SavedSearchRewrite(
           id: id,

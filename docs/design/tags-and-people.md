@@ -265,10 +265,11 @@ The steps run in one transaction:
    rows) is rewritten to name the survivor, as an ordinary edit of its own
    settings value (`SavedSearchRepository.moveReferences`, called from
    `ReferenceEditRepository.merge` after the per-loser steps 2 to 6, so the
-   tag manager, the reference manager and the author flow all get it). This
-   is a **user's** merge only: a merge that sync's own reconciliation applies
-   (§6.6) rewrites the dances' joins but not this device's saved searches, so
-   such a search is read through the alias until it is retired.
+   tag manager, the reference manager and the author flow all get it). A
+   merge that sync's own reconciliation applies (sync-spec §6.6, "The remap")
+   rewrites this device's saved searches too, and a saved search a peer sends
+   still naming a loser, each stamped past the search's own stamp and
+   published.
    - A concurrent edit of the same saved search on a peer (a rename, say)
      meets the rewrite by the usual per-key stamp rule: the later write wins
      the whole value.
@@ -558,7 +559,7 @@ wire change.
   - A dance that cites both keeps the survivor's citation. **Recommendation:**
     an empty `page` or `number` on that citation takes the loser's. Rejected
     alternative: drop the loser's citation whole, which is what
-    `_rewriteLocalReferences` does today (`sync_storage.dart:5334-5361`).
+    `rewriteLocalReferences` (`reference_rewrite.dart`) does on its own.
     *As built by T3 (2026-10-30):* the citation kept takes the page and number
     of the merged-into source's citation, filled from the others' when empty;
     see "What T3 built" under [The manager screens](#the-manager-screens).
