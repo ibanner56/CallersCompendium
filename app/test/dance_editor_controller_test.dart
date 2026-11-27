@@ -156,6 +156,226 @@ void main() {
     });
   });
 
+  // Pre-release audit finding A2-01: a Meter typed on an English dance with
+  // unnamed phrases changed the beats in a bar (ADR-006: the Meter is the rule
+  // for bars) but left each phrase 16 beats long.
+  group('the Meter sets the beats to the bar of unnamed English phrases', () {
+    Future<DanceEditorController> openEnglish(
+      CompendiumRepositories repos, {
+      DanceForm form = DanceForm.ecd,
+      String meter = '',
+      String phraseStructure = '',
+    }) async {
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Triple Time',
+          form: form,
+          formation: Formation(
+            form == DanceForm.ecd
+                ? FormationShape.dupleMinor
+                : FormationShape.dupleImproper,
+          ),
+          meter: meter,
+          phraseStructure: phraseStructure,
+          // Eight figures of 4 bars of 3/2: the ordinary 32-bar tune.
+          figures: [
+            for (var i = 0; i < 8; i++)
+              testFigure(move: 'ecd_set', params: {'beats': 12}),
+          ],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        debounce: testDebounce,
+      );
+      await controller.load(
+        dance: await repos.dances.getById('d1'),
+        fieldDefs: const [],
+      );
+      return controller;
+    }
+
+    List<String> labels(DanceEditorController controller) => [
+      for (final f in controller.buildDance().sectionedFigures) f.label,
+    ];
+
+    Iterable<String> codes(DanceEditorController controller) =>
+        controller.warnings.map((w) => w.code);
+
+    test('typing 3/2 writes the structure an import writes, so a 32-bar dance '
+        'fits its phrases; one Undo takes back both', () async {
+      final repos = openTestRepositories();
+      final controller = await openEnglish(repos);
+      addTearDown(controller.dispose);
+      // 96 beats against the standard 64: the warning the fix removes.
+      expect(codes(controller), contains('phrase_overflow'));
+
+      controller.meterController.text = '3/2';
+      controller.onMeterChanged();
+      expect(controller.phraseController.text, '4*8*3');
+      expect(codes(controller), isNot(contains('phrase_overflow')));
+      expect(labels(controller), [
+        'A1',
+        'A1',
+        'A2',
+        'A2',
+        'B1',
+        'B1',
+        'B2',
+        'B2',
+      ]);
+
+      controller.undo();
+      expect(controller.meterController.text, '');
+      expect(controller.phraseController.text, '');
+      controller.redo();
+      expect(controller.meterController.text, '3/2');
+      expect(controller.phraseController.text, '4*8*3');
+    });
+
+    test('a Meter typed again after an Undo sets the phrases again', () async {
+      final repos = openTestRepositories();
+      final controller = await openEnglish(repos);
+      addTearDown(controller.dispose);
+      controller.meterController.text = '3/2';
+      controller.onMeterChanged();
+      expect(controller.phraseController.text, '4*8*3');
+      controller.undo();
+      expect(controller.phraseController.text, '');
+      controller.meterController.text = '3/2';
+      controller.onMeterChanged();
+      expect(controller.phraseController.text, '4*8*3');
+    });
+
+    test('a Meter back in two beats to the bar gives the standard structure '
+        'again', () async {
+      final repos = openTestRepositories();
+      final controller = await openEnglish(
+        repos,
+        meter: '3/2',
+        phraseStructure: '4*8*3',
+      );
+      addTearDown(controller.dispose);
+      controller.meterController.text = '2/2';
+      controller.onMeterChanged();
+      expect(controller.phraseController.text, '');
+    });
+
+    test('every part of a uniform unnamed structure keeps its phrases and '
+        'bars', () async {
+      final repos = openTestRepositories();
+      final controller = await openEnglish(
+        repos,
+        meter: '2/2',
+        phraseStructure: '3*8*2 + 1*4*2',
+      );
+      addTearDown(controller.dispose);
+      controller.meterController.text = '4/4';
+      controller.onMeterChanged();
+      expect(controller.phraseController.text, '3*8*4 + 1*4*4');
+    });
+
+    test('an unnamed structure whose parts differ in beats to the bar is '
+        'kept', () async {
+      final repos = openTestRepositories();
+      final controller = await openEnglish(
+        repos,
+        meter: '3/4',
+        phraseStructure: '2*8*3 + 1*8*2',
+      );
+      addTearDown(controller.dispose);
+      controller.meterController.text = '2/4';
+      controller.onMeterChanged();
+      expect(controller.phraseController.text, '2*8*3 + 1*8*2');
+    });
+
+    test('a Meter that states the same beats to the bar as before keeps the '
+        'structure a caller set', () async {
+      final repos = openTestRepositories();
+      // Set to 2 beats a bar by hand under a Meter of 3/4.
+      final controller = await openEnglish(
+        repos,
+        meter: '3/4',
+        phraseStructure: '6*8*2',
+      );
+      addTearDown(controller.dispose);
+      controller.meterController.text = '3/4 waltz';
+      controller.onMeterChanged();
+      expect(controller.phraseController.text, '6*8*2');
+      // Nor does choosing English again for a dance that already is.
+      controller.setForm(DanceForm.ecd);
+      expect(controller.phraseController.text, '6*8*2');
+    });
+
+    test('a Meter typed before the dance is made English sets the phrases '
+        'when it becomes English, in the same undo step', () async {
+      final repos = openTestRepositories();
+      final controller = await openEnglish(repos);
+      addTearDown(controller.dispose);
+      controller.setForm(DanceForm.contra);
+      controller.meterController.text = '3/2';
+      controller.onMeterChanged();
+      expect(controller.phraseController.text, '');
+      controller.setForm(DanceForm.ecd);
+      expect(controller.phraseController.text, '4*8*3');
+      controller.undo();
+      expect(controller.form, DanceForm.contra);
+      expect(controller.phraseController.text, '');
+    });
+
+    test('changing the type away from English and back leaves phrases the '
+        'Meter left alone (ADR-006 §9.2 point 8)', () async {
+      final repos = openTestRepositories();
+      // Set to 2 beats a bar by hand under a Meter of 3/4.
+      final controller = await openEnglish(
+        repos,
+        meter: '3/4',
+        phraseStructure: '6*8*2',
+      );
+      addTearDown(controller.dispose);
+      controller.setForm(DanceForm.contra);
+      controller.setForm(DanceForm.ecd);
+      expect(controller.phraseController.text, '6*8*2');
+      // A Meter edited while it was contra that ends where it started is no
+      // change either.
+      controller.setForm(DanceForm.contra);
+      controller.meterController.text = '2/2';
+      controller.onMeterChanged();
+      controller.meterController.text = '3/4';
+      controller.onMeterChanged();
+      controller.setForm(DanceForm.ecd);
+      expect(controller.phraseController.text, '6*8*2');
+    });
+
+    test('a contra dance saved with a Meter takes its beats when it is made '
+        'English', () async {
+      final repos = openTestRepositories();
+      final controller = await openEnglish(
+        repos,
+        form: DanceForm.contra,
+        meter: '3/2',
+      );
+      addTearDown(controller.dispose);
+      controller.setForm(DanceForm.ecd);
+      expect(controller.phraseController.text, '4*8*3');
+    });
+
+    test('a contra dance\'s structure is not the Meter\'s to set', () async {
+      final repos = openTestRepositories();
+      final controller = await openEnglish(repos);
+      addTearDown(controller.dispose);
+      controller.setForm(DanceForm.contra);
+      controller.meterController.text = '3/2';
+      controller.onMeterChanged();
+      expect(controller.phraseController.text, '');
+    });
+  });
+
   group('an undecodable transcription survives editing (#1347)', () {
     /// Loads a dance whose [column] holds text the decoder cannot read.
     /// Parameterised because the figures and tunes preservation rules are two
