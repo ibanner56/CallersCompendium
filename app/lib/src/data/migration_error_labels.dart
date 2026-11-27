@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart' show MaterialLocalizations;
+import 'package:flutter/material.dart'
+    show MaterialLocalizations, TargetPlatform;
 
 import '../../l10n/app_localizations.dart';
 import 'migration_guard.dart';
@@ -26,10 +27,55 @@ String databaseDowngradeMessage(AppLocalizations l10n) =>
 String databaseBelowFloorHeadline(AppLocalizations l10n) =>
     l10n.migrationBelowFloorHeadline;
 
-/// Terminal-screen body for a [DatabaseBelowFloorError]. [bridgeTag] is the
-/// release tag of the migration-bridge release to recommend.
-String databaseBelowFloorBody(AppLocalizations l10n, String bridgeTag) =>
-    l10n.migrationBelowFloorBody(bridgeTag);
+/// Where the below-floor recovery screen sends the caller, which depends on
+/// how the app is installed on that platform (pre-release audit finding F-01).
+enum BelowFloorRoute {
+  /// Windows, macOS and Linux: install the bridge release from its release
+  /// page, open it once, then install this version again.
+  desktop,
+
+  /// Android refuses to install an older release over a newer one, and
+  /// uninstalling to make room deletes the library, so the desktop route would
+  /// lose the data: the screen says not to uninstall or reset.
+  android,
+
+  /// iPhone and iPad: the app comes only from TestFlight, and the release page
+  /// has no iOS download, so the screen points to TestFlight's earlier builds.
+  ios,
+}
+
+/// The [BelowFloorRoute] for [platform]. Anything that is not Android or iOS
+/// (including Fuchsia) takes the desktop route, as it did before the split.
+BelowFloorRoute belowFloorRouteFor(TargetPlatform platform) =>
+    switch (platform) {
+      TargetPlatform.android => BelowFloorRoute.android,
+      TargetPlatform.iOS => BelowFloorRoute.ios,
+      TargetPlatform.fuchsia ||
+      TargetPlatform.linux ||
+      TargetPlatform.macOS ||
+      TargetPlatform.windows => BelowFloorRoute.desktop,
+    };
+
+/// The version number TestFlight shows for the release tagged [bridgeTag]: its
+/// `X.Y.Z` core without the leading `v` or a `-beta` suffix (the iOS build's
+/// version is the pubspec's, which carries neither). A tag that does not start
+/// with a version core is returned unchanged.
+String bridgeVersionForTestFlight(String bridgeTag) =>
+    RegExp(r'^v?(\d+\.\d+\.\d+)').firstMatch(bridgeTag)?.group(1) ?? bridgeTag;
+
+/// Terminal-screen body for a [DatabaseBelowFloorError] on [route].
+/// [bridgeTag] is the release tag of the migration-bridge release to recommend.
+String databaseBelowFloorBody(
+  AppLocalizations l10n,
+  String bridgeTag, {
+  BelowFloorRoute route = BelowFloorRoute.desktop,
+}) => switch (route) {
+  BelowFloorRoute.desktop => l10n.migrationBelowFloorBody(bridgeTag),
+  BelowFloorRoute.android => l10n.migrationBelowFloorBodyAndroid(bridgeTag),
+  BelowFloorRoute.ios => l10n.migrationBelowFloorBodyIos(
+    bridgeVersionForTestFlight(bridgeTag),
+  ),
+};
 
 /// Terminal-screen label for the primary button that opens the release page
 /// of [bridgeTag], the version that can update the old data.
