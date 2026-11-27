@@ -12,6 +12,8 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
+import 'package:compendium_app/src/widgets/advanced_query_builder.dart';
+import 'package:compendium_app/src/widgets/by_phrase_panel.dart';
 
 import '../support/l10n_harness.dart';
 import '../support/screen_size.dart';
@@ -275,6 +277,78 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+
+    // The row is pinned so the search can be changed without scrolling back
+    // up (docs/user/collection.md): a tool opened from far down the list
+    // must open where it can be seen and used, below the row.
+    for (final (tool, content) in [
+      ('filters-panel', find.text('Contra')),
+      (
+        'by-phrase-panel',
+        find
+            .descendant(
+              of: find.byType(ByPhrasePanel),
+              matching: find.byWidgetPredicate(
+                (widget) => '${widget.key}'.contains("'by-phrase-"),
+              ),
+            )
+            .first,
+      ),
+      (
+        'advanced-panel',
+        find
+            .descendant(
+              of: find.byType(AdvancedQueryBuilder),
+              matching: find.byType(PopupMenuButton<String>),
+            )
+            .first,
+      ),
+    ]) {
+      testWidgets('opening $tool from the pinned row while scrolled brings '
+          'it into view below the row', (tester) async {
+        await _pump(tester, extraDances: 60);
+        await scrollFar(tester);
+        expect(find.text('Chorus Jig'), findsNothing);
+        final toolsRect = tester.getRect(find.byKey(ValueKey(tool)));
+
+        await tester.tap(find.byKey(ValueKey(tool)));
+        await tester.pumpAndSettle();
+
+        expect(content, findsOneWidget);
+        final top = tester.getRect(content).top;
+        expect(top, greaterThanOrEqualTo(toolsRect.bottom));
+        expect(top, lessThan(844 / 2));
+        expect(content.hitTestable(), findsOneWidget);
+        // The row itself stayed where it was.
+        expect(tester.getRect(find.byKey(ValueKey(tool))), toolsRect);
+      });
+    }
+
+    testWidgets('closing a tool while scrolled does not move the list', (
+      tester,
+    ) async {
+      await _pump(tester, extraDances: 60);
+      await tester.tap(find.byKey(const ValueKey('filters-panel')));
+      await tester.pumpAndSettle();
+      await scrollFar(tester);
+      final position = tester
+          .state<ScrollableState>(
+            find
+                .descendant(
+                  of: find.byType(CustomScrollView),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          )
+          .position;
+      final before = position.pixels;
+      expect(before, greaterThan(1000));
+
+      await tester.tap(find.byKey(const ValueKey('filters-panel')));
+      await tester.pumpAndSettle();
+
+      expect(position.pixels, before);
     });
 
     testWidgets('on a short screen at large text, the tools scroll away so '
