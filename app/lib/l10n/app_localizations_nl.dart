@@ -3862,6 +3862,19 @@ class AppLocalizationsNl extends AppLocalizations {
   String get backupRestored => 'Back-up hersteld.';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count avondregels zijn verwijderd, omdat de back-up hun opgeslagen zoekopdrachten niet bevat.',
+      one:
+          '1 avondregel is verwijderd, omdat de back-up de opgeslagen zoekopdracht ervan niet bevat.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed =>
       'De back-up kon niet worden hersteld. Probeer het opnieuw.';
 

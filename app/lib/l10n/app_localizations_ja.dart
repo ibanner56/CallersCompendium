@@ -3646,6 +3646,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupRestored => 'バックアップを復元しました。';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'バックアップに保存した検索がないため、イベントルールを$count件削除しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed => 'バックアップを復元できませんでした。もう一度お試しください。';
 
   @override

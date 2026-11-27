@@ -3836,6 +3836,19 @@ class AppLocalizationsDa extends AppLocalizations {
   String get backupRestored => 'Sikkerhedskopi gendannet.';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count aftenregler blev slettet, fordi sikkerhedskopien ikke har deres gemte søgninger.',
+      one:
+          '1 aftenregel blev slettet, fordi sikkerhedskopien ikke har dens gemte søgning.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed =>
       'Kunne ikke gendanne sikkerhedskopien. Prøv igen.';
 

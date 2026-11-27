@@ -3856,6 +3856,10 @@
   "@backupRestored": {
     "x-sourceSha256": "40383528e1b1ee32fcfe833921c4fe7e010762a1628901658710f272a0b15e7e"
   },
+  "backupRestoreRemovedEventRules": "{count, plural, =1{1 avondregel is verwijderd, omdat de back-up de opgeslagen zoekopdracht ervan niet bevat.} other{{count} avondregels zijn verwijderd, omdat de back-up hun opgeslagen zoekopdrachten niet bevat.}}",
+  "@backupRestoreRemovedEventRules": {
+    "x-sourceSha256": "57482705cc04a138371124f81fb2de69bc1b1aa2ae3970a69b43451f810fa927"
+  },
   "backupRestoreFailed": "De back-up kon niet worden hersteld. Probeer het opnieuw.",
   "@backupRestoreFailed": {
     "x-sourceSha256": "5e6ce844a9bcd105a5f921edc09bdc9aa05e89f90dbb31d960508ea9e585df3f"

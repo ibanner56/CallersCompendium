@@ -37,6 +37,7 @@ import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../export/csv_export.dart';
 import '../../widgets/dances_csv_export_action.dart';
+import '../../utils/l10n_joins.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/settings_action_row.dart';
@@ -407,9 +408,13 @@ class _GeneralSectionState extends State<GeneralSection> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            outcome.hasErrors
-                ? l10n.backupRestoreSkippedProblems(outcome.errors.length)
-                : l10n.backupRestored,
+            _withRemovedEventRules(
+              l10n,
+              outcome,
+              outcome.hasErrors
+                  ? l10n.backupRestoreSkippedProblems(outcome.errors.length)
+                  : l10n.backupRestored,
+            ),
           ),
         ),
       );
@@ -425,6 +430,20 @@ class _GeneralSectionState extends State<GeneralSection> {
       _restoreOperationInFlight = false;
     }
   }
+
+  /// [message], then, when the restore deleted event rules whose saved search
+  /// it removed ([BackupRestoreOutcome.removedEventRules]), how many: a Replace
+  /// says what it removed beyond what the backup replaces.
+  static String _withRemovedEventRules(
+    AppLocalizations l10n,
+    BackupRestoreOutcome outcome,
+    String message,
+  ) => outcome.removedEventRules == 0
+      ? message
+      : joinSentences(l10n, [
+          message,
+          l10n.backupRestoreRemovedEventRules(outcome.removedEventRules),
+        ]);
 
   /// Serializes the database restore with any coordinator-backed sync pass.
   ///
@@ -536,9 +555,13 @@ class _GeneralSectionState extends State<GeneralSection> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            outcome.hasErrors
-                ? l10n.backupRestoreSkippedProblems(outcome.errors.length)
-                : l10n.backupRestoreSettingsRetried,
+            _withRemovedEventRules(
+              l10n,
+              outcome,
+              outcome.hasErrors
+                  ? l10n.backupRestoreSkippedProblems(outcome.errors.length)
+                  : l10n.backupRestoreSettingsRetried,
+            ),
           ),
         ),
       );

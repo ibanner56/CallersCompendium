@@ -5902,6 +5902,12 @@ abstract class AppLocalizations {
   /// **'Backup restored.'**
   String get backupRestored;
 
+  /// Second sentence of the snackbar after a backup restore (or its settings retry) that deleted event rules (Experimental): rules kept because the backup holds no rules, whose saved search the restore removed. Joined after backupRestored, backupRestoreSkippedProblems or backupRestoreSettingsRetried.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 event rule was deleted, because the backup doesn\'t have its saved search.} other{{count} event rules were deleted, because the backup doesn\'t have their saved searches.}}'**
+  String backupRestoreRemovedEventRules(int count);
+
   /// Snackbar shown when backup restore fails unexpectedly. The raw exception is logged separately, not shown in the UI.
   ///
   /// In en, this message translates to:

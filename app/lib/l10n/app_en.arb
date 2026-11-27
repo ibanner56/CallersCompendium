@@ -4803,6 +4803,16 @@
   "@backupRestored": {
     "description": "Snackbar confirming a backup restore completed without skipped problems."
   },
+  "backupRestoreRemovedEventRules": "{count, plural, =1{1 event rule was deleted, because the backup doesn't have its saved search.} other{{count} event rules were deleted, because the backup doesn't have their saved searches.}}",
+  "@backupRestoreRemovedEventRules": {
+    "description": "Second sentence of the snackbar after a backup restore (or its settings retry) that deleted event rules (Experimental): rules kept because the backup holds no rules, whose saved search the restore removed. Joined after backupRestored, backupRestoreSkippedProblems or backupRestoreSettingsRetried.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "backupRestoreFailed": "Couldn't restore the backup. Try again.",
   "@backupRestoreFailed": {
     "description": "Snackbar shown when backup restore fails unexpectedly. The raw exception is logged separately, not shown in the UI."

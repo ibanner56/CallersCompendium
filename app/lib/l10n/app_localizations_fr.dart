@@ -3895,6 +3895,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get backupRestored => 'Sauvegarde restaurée.';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count règles de soirée ont été supprimées, car la sauvegarde ne contient pas leurs recherches enregistrées.',
+      one:
+          '1 règle de soirée a été supprimée, car la sauvegarde ne contient pas sa recherche enregistrée.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed =>
       'Impossible de restaurer la sauvegarde. Réessayez.';
 

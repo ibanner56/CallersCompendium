@@ -495,7 +495,7 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
         saved = (await repos.eventRules.get(existing.id))!;
       }
       navigator.pop(saved);
-    } on SavedSearchGone {
+    } on SavedSearchGone catch (gone) {
       // diagnostics: silent — expected, not a fault: the saved search was deleted after the editor opened (#2529); the editor says so and offers the searches that are left.
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -507,10 +507,11 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
       setState(() {
         _saving = false;
         // Cleared now, not only once the list is read again, so a second tap
-        // cannot try the same search. A kept search goes too: refused, it is
-        // no longer the stored rule's (a sync changed it meanwhile).
+        // cannot try the same search. The kept search goes only when it was
+        // the one refused: it is then no longer the stored rule's (a sync
+        // changed that meanwhile). A newly chosen search refused leaves it.
         _searchId = null;
-        _keptSearchId = null;
+        if (gone.id == _keptSearchId) _keptSearchId = null;
       });
       await _read();
     } on EventRuleInvalid catch (error, stackTrace) {

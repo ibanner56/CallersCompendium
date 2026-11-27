@@ -3804,6 +3804,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupRestored => 'Backup restored.';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count event rules were deleted, because the backup doesn\'t have their saved searches.',
+      one:
+          '1 event rule was deleted, because the backup doesn\'t have its saved search.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed => 'Couldn\'t restore the backup. Try again.';
 
   @override

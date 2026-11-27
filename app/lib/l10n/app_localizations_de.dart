@@ -3871,6 +3871,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get backupRestored => 'Sicherung wiederhergestellt.';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Abendregeln wurden gelöscht, weil die Sicherung ihre gespeicherten Suchen nicht enthält.',
+      one:
+          '1 Abendregel wurde gelöscht, weil die Sicherung ihre gespeicherte Suche nicht enthält.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed =>
       'Die Sicherung konnte nicht wiederhergestellt werden. Versuche es erneut.';
 

@@ -883,11 +883,14 @@ class BackupService {
   /// - every rule, when the backup's rules section was read whole: it
   ///   replaces the rules itself.
   ///
-  /// Run before the saved searches are removed, in one transaction, so a
-  /// retried settings apply ([retryApplySettings]) after a failure part way
-  /// never finds a search removed and its rule still kept. Deleted softly at
-  /// the backup's time, as [_applyEventRules] deletes, so the deletion syncs
-  /// and a peer's newer copy still wins (SYNC-1).
+  /// [_applyAppSettings] runs this in one transaction with the removal of the
+  /// settings the backup lacks, so a failure part way removes neither the
+  /// rules nor their searches, and a retried settings apply
+  /// ([retryApplySettings]) finds and counts them all. (A backed-up search
+  /// whose value the schema refuses is removed later, by the re-apply; if
+  /// that fails first, its rule is gone and the retry removes the search.)
+  /// Deleted softly at the backup's time, as [_applyEventRules] deletes, so
+  /// the deletion syncs and a peer's newer copy still wins (SYNC-1).
   Future<int> _deleteRulesOfRemovedSearches(
     BackupReadResult read,
     Iterable<String> storedKeys,
@@ -966,17 +969,21 @@ class BackupService {
     if (read.hasSettingsSection) {
       final existing = await settings.all();
       final backedUp = doc.settings.keys.toSet();
-      if (mode == RestoreMode.replace) {
-        tally.removedEventRules += await _deleteRulesOfRemovedSearches(
-          read,
-          existing.keys,
-        );
-      }
-      for (final key in existing.keys) {
-        if (!isBackupEligibleSettingKey(key)) continue;
-        if (backedUp.contains(key)) continue;
-        await remove(key);
-      }
+      // The rules whose saved search goes, and the settings the backup
+      // lacks, saved searches among them, in one transaction: a failure part
+      // way removes neither, so a retry finds them all and counts them.
+      final removedRules = await settings.transaction(() async {
+        final removed = mode == RestoreMode.replace
+            ? await _deleteRulesOfRemovedSearches(read, existing.keys)
+            : 0;
+        for (final key in existing.keys) {
+          if (!isBackupEligibleSettingKey(key)) continue;
+          if (backedUp.contains(key)) continue;
+          await remove(key);
+        }
+        return removed;
+      });
+      tally.removedEventRules += removedRules;
     }
 
     // Dialect library: rewrite the custom list and the active ref, plus keep the
