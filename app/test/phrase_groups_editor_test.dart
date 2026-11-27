@@ -131,6 +131,26 @@ void main() {
       );
     });
 
+    testWidgets('each field names its row to a screen reader '
+        '(pre-release audit finding B-11)', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await _pump(tester, text: '3*8*2 + 1*4*2');
+      for (final row in [0, 1]) {
+        for (final (name, label) in const [
+          ('phrases', 'Phrases'),
+          ('bars', 'Bars per phrase'),
+          ('beats', 'Beats per bar'),
+        ]) {
+          expect(
+            tester.getSemantics(_field(row, name)).label,
+            'Row ${row + 1}\n$label',
+            reason: 'row $row, $name',
+          );
+        }
+      }
+      semantics.dispose();
+    });
+
     testWidgets('and nothing shows while the stored text does not parse', (
       tester,
     ) async {

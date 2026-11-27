@@ -821,6 +821,36 @@ void main() {
         );
       });
 
+      test('takes no square set from a .USR description that only mentions '
+          'one past a shape of its own (pre-release audit finding B-06)', () {
+        Formation formationOf(String own) => mapped(
+          CcDanceRecord(
+            name: 'Set',
+            type: 'Contra',
+            formationOther: own,
+            fromUsrColumns: true,
+          ),
+        ).formation;
+        for (final (own, shapeFrom) in const [
+          ('Sicilian circle; square through to start', 'Sicilian circle'),
+          ('longways, not a square', 'longways'),
+        ]) {
+          final formation = formationOf(own);
+          expect(formation.shape, isNot(FormationShape.square), reason: own);
+          expect(formation.shape, formationOf(shapeFrom).shape, reason: own);
+          expect(formation.detail, contains(own), reason: own);
+        }
+        // A description that starts by naming a square set is still one,
+        // whatever else it says.
+        expect(
+          formationOf('Square of four couples, proper'),
+          const Formation(
+            FormationShape.square,
+            detail: 'Square of four couples, proper',
+          ),
+        );
+      });
+
       test('keeps a square\'s start and direction in the detail', () {
         final dance = mapped(
           CcDanceRecord(
