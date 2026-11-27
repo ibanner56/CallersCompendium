@@ -1625,11 +1625,11 @@ class DanceEditorController extends ChangeNotifier {
   /// Pushes the current editor state onto the undo stack immediately.
   /// No-op while [_applyingSnapshot] is true (prevents undo-of-undo loops)
   /// and before the initial load completes.
-  void pushUndoNow() => _pushUndoNow(debounced: false);
+  void pushUndoNow() => _pushUndoStep(debounced: false);
 
   /// [pushUndoNow], for an edit of its own ([debounced] false) or for typing
   /// that was waiting out the debounce ([debounced] true).
-  void _pushUndoNow({required bool debounced}) {
+  void _pushUndoStep({required bool debounced}) {
     _undoTimer?.cancel();
     if (!_applyingSnapshot && _loaded) {
       _undoStack.push(captureSnapshot());
@@ -1657,7 +1657,7 @@ class DanceEditorController extends ChangeNotifier {
   /// far.
   void _flushPendingUndoPush() {
     if (!(_undoTimer?.isActive ?? false)) return;
-    _pushUndoNow(debounced: true);
+    _pushUndoStep(debounced: true);
     // The cancelled timer would have refreshed canUndo/canRedo, and a redo
     // this push empties returns before its own notify.
     _notify();
