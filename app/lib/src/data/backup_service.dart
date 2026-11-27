@@ -248,10 +248,21 @@ class BackupRestoreOutcome {
     this.settingsFailed = false,
     this.newerSchema = false,
     this.missingAppSection = false,
+    this.removedEventRules = 0,
   });
 
   final List<ArchiveError> errors;
   final List<String> warnings;
+
+  /// How many event rules a Replace restore deleted because it removed the
+  /// saved search each one used. A backup with no event-rules section (one
+  /// made before event rules, or by this build while there were none) says
+  /// nothing about the rules, so the restore keeps them; it does replace the
+  /// saved searches, and a kept rule whose search it removed would name a
+  /// search that is gone. A rule whose search was gone before the restore,
+  /// or that the backup holds, is not counted or removed. Always 0 for a
+  /// Merge restore, which removes no rule.
+  final int removedEventRules;
 
   /// Whether the restore actually wrote to live data. `false` means the backup
   /// was rejected before anything was touched (a fatal envelope error such as
