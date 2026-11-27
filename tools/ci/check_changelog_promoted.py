@@ -12,12 +12,16 @@ The sync wire, ECD taxonomy and square taxonomy versions are gated elsewhere
 line here.
 
 release.yml runs this on the tag. ``--release-prep`` runs the same check
-earlier, in PR CI: when ``changelog.d`` holds no pending fragment (the state a
-release-preparation PR leaves), it reads the version from ``app/pubspec.yaml``
-and the previous release from the newest ``v*`` tag merged into ``HEAD``, so a
-missing Data / Migrations line fails the PR instead of the tag. While any
-fragment is pending it passes without judging, because the tree is not a
-release yet. It needs the tags in the checkout, and exits 2 without one.
+earlier, in PR CI. It reads the version from ``app/pubspec.yaml`` and the
+previous release from the newest ``v*`` tag merged into ``HEAD``, and judges the
+tree as that release when either ``changelog.d`` holds no pending fragment (the
+state a release-preparation PR leaves) or the app version's ``X.Y.Z`` differs
+from that tag's (a preparation PR that a fragment from ``main`` reached through
+the merge ref), so a missing Data / Migrations line fails the PR instead of the
+tag. Otherwise it passes without judging. Right after a release no fragment is
+pending, so any changelog PR is judged; its failure then says that a non-release
+PR needs a fragment. It needs the tags, and exits 2 without one unless
+``--allow-missing-tags`` (preflight in a shallow clone) makes it skip.
 """
 
 from __future__ import annotations
@@ -406,6 +410,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--version")
     parser.add_argument(
+        "--allow-missing-tags",
+        action="store_true",
+        help="with --release-prep: skip, with a notice, when no v* tag is "
+        "reachable (a shallow local clone); CI never passes this",
+    )
+    parser.add_argument(
         "--release-prep",
         action="store_true",
         help="PR CI mode: pass while fragments are pending; otherwise default "
@@ -435,20 +445,35 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--version is required unless --release-prep is given")
 
     try:
+        no_fragment_hint = False
         if args.release_prep:
             pending = fragment_paths(args.fragments)
-            if pending:
-                print(
-                    f"OK: {len(pending)} changelog fragment(s) pending, so this "
-                    "is not a release-preparation tree; nothing to judge yet."
-                )
-                return 0
             if args.version is None:
                 args.version = _pubspec_version(PUBSPEC)
             if args.previous_ref is None:
-                args.previous_ref = _newest_merged_release_tag()
+                try:
+                    args.previous_ref = _newest_merged_release_tag()
+                except ValueError as error:
+                    if not args.allow_missing_tags:
+                        raise
+                    print(f"OK (skipped): {error}")
+                    return 0
+            core = _core_version(args.version)
+            previous = _release_core(args.previous_ref)
+            moved = previous is None or core != ".".join(map(str, previous))
+            # A moved app version is a release-preparation tree even if a
+            # fragment reached it from main after the branch drained
+            # changelog.d; the tag would fail on that fragment too.
+            if pending and not moved:
+                print(
+                    f"OK: {len(pending)} changelog fragment(s) pending and the app "
+                    f"version ({core}) is {args.previous_ref}'s, so this is not a "
+                    "release-preparation tree; nothing to judge yet."
+                )
+                return 0
+            no_fragment_hint = not moved
             print(
-                f"Release-preparation tree: judging ## [{_core_version(args.version)}] "
+                f"Release-preparation tree: judging ## [{core}] "
                 f"against {args.previous_ref}."
             )
         errors = validate(
@@ -466,6 +491,17 @@ def main(argv: list[str] | None = None) -> int:
     if errors:
         for error in errors:
             print(f"::error::{error}", file=sys.stderr)
+        if no_fragment_hint:
+            # Right after a release changelog.d is empty, so every changelog PR
+            # is judged as if it prepared the next one.
+            print(
+                f"::error::changelog.d holds no fragment, so this tree was judged "
+                f"as a release of {args.version}. If this is not a "
+                "release-preparation PR, the change that moved a version or "
+                "added a repair marker needs a changelog.d fragment saying so; "
+                "add one, with its Data / Migrations entry.",
+                file=sys.stderr,
+            )
         return 1
     print(
         "OK: CHANGELOG compilation, heading count, and schema/taxonomy/repair "

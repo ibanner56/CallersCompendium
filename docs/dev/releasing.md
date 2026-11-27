@@ -232,10 +232,11 @@ and produces no Android artifact.
    orders fragment IDs, prevents duplicate category headings, and `check_changelog_promoted.py`
    rejects a tagged commit with pending fragments or a duplicate app heading.
    PR CI runs that same check on this PR (`--release-prep`, in the
-   `CHANGELOG validation` job): once no fragment is pending it takes the
-   version from `app/pubspec.yaml` and judges the notes against the newest
-   `v*` tag merged into the branch, so notes that would fail the tag fail
-   here instead. It does not see whether that tag's GitHub release was
+   `CHANGELOG validation` job): it takes the version from `app/pubspec.yaml`
+   and judges the notes against the newest `v*` tag merged into the branch
+   whenever no fragment is pending or that version differs from the tag's,
+   so notes that would fail the tag fail here instead, including a fragment
+   that reached the PR from `main` after it compiled the others. It does not see whether that tag's GitHub release was
    published, which the tag-time run does, so after an unpublished tag the two
    can compare against different releases.
    The empty `## [Unreleased]` sections remain compatibility anchors only.

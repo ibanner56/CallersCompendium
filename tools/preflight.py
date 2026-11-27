@@ -462,9 +462,10 @@ STEPS: tuple[Step, ...] = (
             py("tools/release/test_compile_changelog_fragments.py"),
             py("tools/release/compile_changelog_fragments.py", "--check"),
             py("tools/ci/check_changelog_structure.py"),
-            # Judges only a tree with no pending fragment (a release-preparation
-            # tree); needs the release tags then (`git fetch --tags origin`).
-            py("tools/ci/check_changelog_promoted.py", "--release-prep"),
+            # CI's release-preparation check. A shallow local clone has no tags
+            # to compare with, so here it says it skipped (`git fetch --tags
+            # origin` to run it); CI fetches the tags and never skips.
+            py("tools/ci/check_changelog_promoted.py", "--release-prep", "--allow-missing-tags"),
         ),
     ),
     Step(
