@@ -738,6 +738,11 @@ void main() {
       controller.meterController.text = '3/2 slow';
       expect(controller.onMeterChanged(), isNull);
       expect(controller.meterBarsChange, same(kept));
+      // On the way to another meter, a text that states none leaves the
+      // phrases' three beats a bar: the notice still holds.
+      controller.meterController.text = '3/';
+      expect(controller.onMeterChanged(), isNull);
+      expect(controller.canUndoMeterChange(kept), isTrue);
 
       // One count of a bar and a half of 4/4 cannot be whole beats in 3/2.
       final repos2 = openTestRepositories();
@@ -818,12 +823,16 @@ void main() {
       );
       addTearDown(controller.dispose);
       controller.meterController.text = '3/2';
-      expect(controller.onMeterChanged()?.outcome, FigureBarsRescale.notExact);
+      final left = controller.onMeterChanged()!;
+      expect(left.outcome, FigureBarsRescale.notExact);
       expect(counts(controller), [6, 3]);
       // Typed back: the counts mean what they meant, and nothing changes.
       controller.meterController.text = '2/2';
       expect(controller.onMeterChanged(), isNull);
       expect(counts(controller), [6, 3]);
+      // The figures read in their bars again: the notice that said they
+      // read in bars of 3 goes, though its step is still waiting.
+      expect(controller.canUndoMeterChange(left), isFalse);
     });
 
     test('a Meter edited in place through meters the counts cannot follow '
