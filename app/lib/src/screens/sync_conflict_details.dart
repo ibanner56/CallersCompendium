@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/slot_display_text.dart';
 import '../widgets/calendar_flag_label.dart' show calendarFlagLabel;
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
@@ -1090,7 +1091,12 @@ class SyncConflictComparison extends StatelessWidget {
     String title(Map<String, Object?> slot) => switch (slot['danceId']) {
       final String id =>
         lookups.dances[id] ?? l10n.programsDeletedDanceFallback,
-      _ => (slot['text'] as String?) ?? l10n.programsUntitledDanceFallback,
+      // A break reads as its label; identity() keeps matching on the token.
+      _ =>
+        (slot['isPurgedDance'] == true
+                ? slot['text'] as String?
+                : templateEntryDisplayText(l10n, slot['text'] as String?)) ??
+            l10n.programsUntitledDanceFallback,
     };
     // Each slot keyed by what it holds and which repeat of it it is, so the
     // second of two identical slots is compared with the other's second.
