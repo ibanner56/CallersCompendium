@@ -684,6 +684,10 @@
   "@settingsSyncStatusSettingsUnreadable": {
     "x-sourceSha256": "ca37e41b6ed2d11c6b10cc81f386b054608b46b292f35d4b47ef8a395e84576b"
   },
+  "syncRestoredCopyNotice": "Apparaatsynchronisatie staat uit, omdat deze bibliotheek is hersteld uit een back-up van het apparaat. Zet het weer aan onder Instellingen ▸ Experimenteel ▸ Apparaatsynchronisatie, dan synchroniseert dit apparaat als een nieuw apparaat en niet als het apparaat waar de back-up van komt.",
+  "@syncRestoredCopyNotice": {
+    "x-sourceSha256": "68688d2f85a4cbb6308d0663cefe4c30f1b62a53f59d3488138e9cc6aba02df6"
+  },
   "settingsSyncFailureUnreachable": "Kan de synchronisatieserver niet bereiken.",
   "@settingsSyncFailureUnreachable": {
     "x-sourceSha256": "1fec844573d970b89ddae666fddb4c01cf8065fb587bcb5fa4de0e8f4fcce1c7"

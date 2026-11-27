@@ -684,6 +684,10 @@
   "@settingsSyncStatusSettingsUnreadable": {
     "x-sourceSha256": "ca37e41b6ed2d11c6b10cc81f386b054608b46b292f35d4b47ef8a395e84576b"
   },
+  "syncRestoredCopyNotice": "Enhedssynkronisering er slået fra, fordi dette bibliotek er gendannet fra en sikkerhedskopi af enheden. Slå det til igen under Indstillinger ▸ Eksperimentelt ▸ Enhedssynkronisering, så synkroniserer denne enhed som en ny enhed og ikke som den enhed, sikkerhedskopien kom fra.",
+  "@syncRestoredCopyNotice": {
+    "x-sourceSha256": "68688d2f85a4cbb6308d0663cefe4c30f1b62a53f59d3488138e9cc6aba02df6"
+  },
   "settingsSyncFailureUnreachable": "Synkroniseringsserveren kunne ikke nås.",
   "@settingsSyncFailureUnreachable": {
     "x-sourceSha256": "1fec844573d970b89ddae666fddb4c01cf8065fb587bcb5fa4de0e8f4fcce1c7"

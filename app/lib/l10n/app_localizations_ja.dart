@@ -702,7 +702,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get syncRestoredCopyNotice =>
-      'Device Sync is off because this library was restored from a device backup. Turn it back on under Settings ▸ Experimental ▸ Device Sync and this device will sync as a new device, not the one the backup came from.';
+      'このライブラリはデバイスのバックアップから復元されたため、デバイス同期はオフになっています。設定 ▸ 実験的 ▸ デバイス同期 でもう一度オンにすると、このデバイスはバックアップ元のデバイスとしてではなく、新しいデバイスとして同期します。';
 
   @override
   String get settingsSyncFailureUnreachable => '同期サーバーに接続できませんでした。';

@@ -739,7 +739,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get syncRestoredCopyNotice =>
-      'Device Sync is off because this library was restored from a device backup. Turn it back on under Settings ▸ Experimental ▸ Device Sync and this device will sync as a new device, not the one the backup came from.';
+      'Apparaatsynchronisatie staat uit, omdat deze bibliotheek is hersteld uit een back-up van het apparaat. Zet het weer aan onder Instellingen ▸ Experimenteel ▸ Apparaatsynchronisatie, dan synchroniseert dit apparaat als een nieuw apparaat en niet als het apparaat waar de back-up van komt.';
 
   @override
   String get settingsSyncFailureUnreachable =>
