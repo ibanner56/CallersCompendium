@@ -6,9 +6,10 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:path/path.dart' as p;
 
 import '../diagnostics/error_log.dart';
+import 'file_dialog_labels.dart';
+import 'photo_capture.dart';
 
 /// Reading the text of a chosen picture on the device (#2327): Apple Vision
 /// on iOS and macOS, Windows OCR on Windows, nothing elsewhere. The picture
@@ -250,32 +251,58 @@ Future<void> checkRecognitionImage(
   }
 }
 
-/// The file types **From an image…** offers.
-XTypeGroup recognitionImageTypeGroup() => const XTypeGroup(
-  label: 'Images',
-  extensions: ['jpg', 'jpeg', 'png', 'heic', 'heif', 'tif', 'tiff', 'bmp'],
-  uniformTypeIdentifiers: ['public.image'],
-  mimeTypes: ['image/*'],
+/// The file types **From an image…** and **Dance code from a picture…**
+/// offer where they open the file picker (not on iOS: see
+/// [openRecognitionPicture]). The name shown for them follows the app's
+/// language ([FileDialogLabels]).
+XTypeGroup recognitionImageTypeGroup() => XTypeGroup(
+  label: FileDialogLabels.current.fileDialogTypeImages,
+  extensions: const [
+    'jpg',
+    'jpeg',
+    'png',
+    'heic',
+    'heif',
+    'tif',
+    'tiff',
+    'bmp',
+  ],
+  uniformTypeIdentifiers: const ['public.image'],
+  mimeTypes: const ['image/*'],
 );
+
+/// Opens the system picker for one picture, as [platform] offers it: on
+/// iPhone and iPad the system photo picker, which needs no photo-library
+/// permission and hands the app a copy of only the photo chosen; elsewhere
+/// the file picker, for the pictures in [recognitionImageTypeGroup]. Null
+/// when cancelled. Shared with **Dance code from a picture…**
+/// (`dance_code_scanner.dart`).
+///
+/// The iOS copy is an `image_picker_…` file in the app's tmp folder, which
+/// the caller deletes once read with [deleteCapturedPhoto].
+Future<XFile?> openRecognitionPicture(TargetPlatform platform) =>
+    platform == TargetPlatform.iOS
+    ? pickLibraryPhoto()
+    : openFile(acceptedTypeGroups: [recognitionImageTypeGroup()]);
 
 /// A picture the caller chose: its bytes, read once.
 typedef PickedRecognitionImage = ({String name, Uint8List bytes});
 
-/// Opens the system picker for one picture and reads it, refusing one over
-/// [kMaxRecognitionImageBytes] before reading it. Null when cancelled.
+/// Opens the system picker for one picture ([openRecognitionPicture]) and
+/// reads it, refusing one over [kMaxRecognitionImageBytes] before reading
+/// it. Null when cancelled.
 ///
-/// On iOS the document picker copies the chosen file into a
-/// `<bundle id>-Inbox` folder in this app's temporary folder; that copy is
-/// deleted once read. Elsewhere the picker hands back the caller's own file,
-/// which is left alone.
+/// On iOS the photo picker's copy of the chosen photo, in this app's tmp
+/// folder ([temporaryDirectory]; by default the system temporary folder), is
+/// deleted once read or refused. Elsewhere the picker hands back the
+/// caller's own file, which is left alone.
 Future<PickedRecognitionImage?> pickRecognitionImage({
   Future<XFile?> Function()? open,
   TargetPlatform? platform,
   Directory? temporaryDirectory,
 }) async {
-  final file =
-      await (open ??
-          () => openFile(acceptedTypeGroups: [recognitionImageTypeGroup()]))();
+  final on = platform ?? defaultTargetPlatform;
+  final file = await (open ?? () => openRecognitionPicture(on))();
   if (file == null) return null;
   try {
     if (await file.length() > kMaxRecognitionImageBytes) {
@@ -283,39 +310,11 @@ Future<PickedRecognitionImage?> pickRecognitionImage({
     }
     return (name: file.name, bytes: await file.readAsBytes());
   } finally {
-    if ((platform ?? defaultTargetPlatform) == TargetPlatform.iOS) {
-      await deletePickerCopy(
+    if (on == TargetPlatform.iOS) {
+      await deleteCapturedPhoto(
         file.path,
         temporaryDirectory: temporaryDirectory ?? Directory.systemTemp,
       );
     }
-  }
-}
-
-/// Deletes [path] when it lies in an `…-Inbox` folder at the top of
-/// [temporaryDirectory] (on iOS, the app's tmp folder, where the
-/// document picker's import mode puts its copies), links resolved on both
-/// sides. Shared with the dance-code picture picker (`dance_code_scanner.dart`).
-Future<void> deletePickerCopy(
-  String path, {
-  required Directory temporaryDirectory,
-}) async {
-  if (path.isEmpty) return;
-  final String temp;
-  final String canonical;
-  try {
-    temp = await temporaryDirectory.resolveSymbolicLinks();
-    canonical = await File(path).resolveSymbolicLinks();
-  } on FileSystemException {
-    // diagnostics: silent — the file or the temporary folder is gone, so there is no copy to delete
-    return;
-  }
-  if (!p.isWithin(temp, canonical)) return;
-  final parts = p.split(p.relative(canonical, from: temp));
-  if (parts.length < 2 || !parts.first.endsWith('-Inbox')) return;
-  try {
-    await File(canonical).delete();
-  } on FileSystemException {
-    // diagnostics: silent — the copy is already gone
   }
 }

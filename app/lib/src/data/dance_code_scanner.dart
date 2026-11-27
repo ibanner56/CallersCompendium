@@ -22,7 +22,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:zxing2/qrcode.dart';
 
 import 'photo_capture.dart';
-import 'text_recognition.dart' show deletePickerCopy, recognitionImageTypeGroup;
+import 'text_recognition.dart' show openRecognitionPicture;
 
 /// Longest side, in pixels, a picture is decoded at before looking for a
 /// code; larger ones are scaled down to it. A dance code filling a fifth of
@@ -216,7 +216,7 @@ Future<String?> scanDanceCode({
 
 /// Thrown by [pickDanceCodePicture] for a chosen file over
 /// [kDanceCodePhotoMaxBytes]; it is not searched. (On Android the file
-/// selector has already copied and read it by then.)
+/// selector, and on iOS the photo picker, has already copied it by then.)
 class DanceCodePictureTooLarge implements Exception {
   const DanceCodePictureTooLarge();
 
@@ -225,25 +225,26 @@ class DanceCodePictureTooLarge implements Exception {
 }
 
 /// Opens the system picker for one picture holding a dance code (a saved
-/// photo, or a screenshot of someone's Show code screen) and reads it. Null
-/// when cancelled; [DanceCodePictureTooLarge] for a file over
-/// [kDanceCodePhotoMaxBytes], which is not searched.
+/// photo, or a screenshot of someone's Show code screen) and reads it: on
+/// iPhone and iPad the system photo picker, elsewhere the file picker
+/// ([openRecognitionPicture]). Null when cancelled;
+/// [DanceCodePictureTooLarge] for a file over [kDanceCodePhotoMaxBytes],
+/// which is not searched.
 ///
-/// Where the picker hands over a copy of the chosen file, the copy is
-/// deleted once read: on iOS the document picker's `…-Inbox` copy
-/// ([deletePickerCopy]), and on Android the file selector's copy in the
-/// app's cache ([deleteAndroidPickerCopy]). Elsewhere the picker hands back
-/// the user's own file, which is left alone. [temporaryDirectory] is where
-/// those copies are looked for; by default the app's tmp folder on iOS and
-/// its cache folder on Android.
+/// Where the picker hands over a copy of the chosen picture, the copy is
+/// deleted once read or refused: on iOS the photo picker's `image_picker_…`
+/// copy ([deleteCapturedPhoto]), and on Android the file selector's copy in
+/// the app's cache ([deleteAndroidPickerCopy]). Elsewhere the picker hands
+/// back the user's own file, which is left alone. [temporaryDirectory] is
+/// where those copies are looked for; by default the app's tmp folder on iOS
+/// and its cache folder on Android.
 Future<Uint8List?> pickDanceCodePicture({
   Future<XFile?> Function()? open,
   TargetPlatform? platform,
   Future<Directory> Function()? temporaryDirectory,
 }) async {
-  final file =
-      await (open ??
-          () => openFile(acceptedTypeGroups: [recognitionImageTypeGroup()]))();
+  final on = platform ?? defaultTargetPlatform;
+  final file = await (open ?? () => openRecognitionPicture(on))();
   if (file == null) return null;
   try {
     if (await file.length() > kDanceCodePhotoMaxBytes) {
@@ -251,11 +252,11 @@ Future<Uint8List?> pickDanceCodePicture({
     }
     return await file.readAsBytes();
   } finally {
-    switch (platform ?? defaultTargetPlatform) {
+    switch (on) {
       case TargetPlatform.iOS:
-        await deletePickerCopy(
+        await deleteCapturedPhoto(
           file.path,
-          // NSTemporaryDirectory: the picker's Inbox copies are in tmp, not
+          // NSTemporaryDirectory: the photo picker's copies are in tmp, not
           // in the caches folder path_provider calls temporary on iOS.
           temporaryDirectory: temporaryDirectory == null
               ? Directory.systemTemp

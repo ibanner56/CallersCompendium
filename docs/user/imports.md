@@ -533,7 +533,14 @@ start the app. Scan the code again.
 
 On any device, including a computer, **Dance code from a picture…** opens a
 code from a picture you already have: a photo of it, or a screenshot someone
-sent you. On iPhone, iPad and Android the copy the picker makes for the app is
+sent you. On iPhone and iPad it opens your photos, the same picker other apps
+use to choose a photo: the app doesn't ask for access to your photo library
+and receives only the picture you choose. A picture kept in the Files app
+isn't offered there; open it in Files and save it to Photos first (**Share** ▸
+**Save Image**). A photo kept only in iCloud is downloaded by iOS when you
+choose it, so it needs a connection; without one, the app says the picture
+couldn't be read. Elsewhere it opens the file picker. On iPhone, iPad and
+Android the copy the picker makes for the app is
 deleted once read; your own picture is left as it is. On Android, if the app says
 the picture couldn't be read and the picture is kept only in the cloud (in a
 photo or file app that hasn't downloaded it yet), save it to your device

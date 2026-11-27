@@ -2,6 +2,7 @@ import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/backup_io.dart';
 import 'package:compendium_app/src/data/file_dialog_labels.dart';
 import 'package:compendium_app/src/data/import_io.dart';
+import 'package:compendium_app/src/data/text_recognition.dart';
 import 'package:compendium_app/src/diagnostics/crash_log_io.dart';
 import 'package:compendium_app/src/update/artifact_destination.dart';
 import 'package:flutter/widgets.dart';
@@ -18,6 +19,7 @@ void main() {
       expect(importUsrTypeGroup().label, "Caller's Companion .USR");
       expect(crashLogTypeGroup().label, 'Diagnostics log');
       expect(macosUpdateTypeGroup().label, "Caller's Compendium update");
+      expect(recognitionImageTypeGroup().label, 'Images');
     },
   );
 
@@ -30,7 +32,9 @@ void main() {
     expect(importUsrTypeGroup().label, ja.fileDialogTypeCompanionUsr);
     expect(crashLogTypeGroup().label, ja.fileDialogTypeDiagnosticsLog);
     expect(macosUpdateTypeGroup().label, ja.fileDialogTypeMacosUpdate);
+    expect(recognitionImageTypeGroup().label, ja.fileDialogTypeImages);
     expect(backupJsonTypeGroup().label, isNot('Backup (JSON)'));
     expect(crashLogTypeGroup().label, '診断ログ');
+    expect(recognitionImageTypeGroup().label, '画像');
   });
 }

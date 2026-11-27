@@ -160,7 +160,10 @@ Internal testing (≤100 teammates, instant) is already live. "Open beta" is
   and deleted, so the App Privacy answers do not change
   ([`listing-copy.md`](listing-copy.md#app-privacy-apple)).
   `NSPhotoLibraryUsageDescription` is there too, although the app never asks
-  for the photo library: `image_picker` links the Photos API, and App Store
+  for the photo library: **From an image…** and **Dance code from a
+  picture…** open the system photo picker (PHPicker, through `image_picker`),
+  which runs outside the app, shows no prompt, and hands the app only the
+  photo chosen. `image_picker` links the Photos API, and App Store
   review rejects a binary that links it without the string. Confirm no other
   prompt is triggered (no mic/location/contacts/photo library); if a plugin
   adds one, add the matching `Info.plist` purpose string or the build is

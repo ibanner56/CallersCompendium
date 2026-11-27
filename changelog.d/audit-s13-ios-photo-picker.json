@@ -1,0 +1,12 @@
+{
+  "id": "audit-s13-ios-photo-picker",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "On iPhone and iPad, Add figures from text ▸ From an image… and Import ▸ Dance code from a picture… now open your photos, so a photo or screenshot can be chosen straight from your library. The app doesn't ask for access to your photo library and receives only the picture you choose; its copy is deleted once read. A picture kept in the Files app needs saving to Photos first."
+    ],
+    "fixed": [
+      "The picture type in the file dialog of From an image… and Dance code from a picture… on Windows and Linux is now named in the app's language, not always in English."
+    ]
+  }
+}
