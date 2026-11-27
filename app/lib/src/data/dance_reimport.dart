@@ -42,6 +42,37 @@ class DanceReimportJsonException implements Exception {
   final bool programBearing;
 }
 
+/// What re-importing [incoming]'s choreography over [existing] changes that
+/// its preview, which shows [incoming], cannot show: the dance [form] it ends
+/// as, and whether the Barnes reference and the Starts improper mark the
+/// English dance holds are dropped (only an English dance carries either).
+/// Null when the form stays.
+///
+/// Read off [withReimportedChoreography] itself, so it says exactly what the
+/// commit will do. A re-import from a contra-only source onto an English dance
+/// makes it contra (#2284); the maintainer chose to say so in the preview and
+/// drop the two fields, not keep them (pre-release audit finding GAPC-02).
+typedef ReimportFormChange = ({
+  DanceForm form,
+  bool dropsBarnesReference,
+  bool dropsImproper,
+});
+
+ReimportFormChange? reimportFormChange(Dance existing, Dance incoming) {
+  final after = withReimportedChoreography(
+    existing,
+    incoming,
+    updatedAt: existing.updatedAt,
+  );
+  if (after.form == existing.form) return null;
+  return (
+    form: after.form,
+    dropsBarnesReference:
+        existing.barnesReference.isNotEmpty && after.barnesReference.isEmpty,
+    dropsImproper: existing.formation.improper && !after.formation.improper,
+  );
+}
+
 /// Whether [draft] decoded to an empty figure list.
 ///
 /// Linking such a draft onto an existing dance (an import's "same dance"

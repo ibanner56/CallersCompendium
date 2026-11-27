@@ -1328,7 +1328,7 @@ FigureMatch? _tcbCast(String scrubbed) {
 ///   part in, such as a bare `N2 Men roll away`, done with partners; or a
 ///   remainder whose re-read does not put the token in `who`) is read as
 ///   `Men allemande left 3/4 [with N3]`: `who: role1s`, with the number kept
-///   as the note (`with thirdNeighbors`).
+///   as the note in the source's words (`with N3`).
 ///
 /// Only a role pair (`role1s`, `role2s`) follows the number, and the number is
 /// one the notation resolves (`N0`–`N4`). `N2 same-role neighbor …` is not
@@ -1424,8 +1424,8 @@ FigureMatch? _readNumberedRolePair(
   }
   final inner = read('$pair $rest [with $number]');
   if (inner == null || inner.forceCustom) return inner;
-  // The number must survive as the note, canonical (`with nextNeighbors`) or
-  // as written (`with N2`, which some readers keep verbatim).
+  // The number must survive as the note, as written (`with N2`, which the
+  // bracket notes keep) or canonical (`with nextNeighbors`).
   final note = inner.note?.toLowerCase() ?? '';
   if (!note.contains('with $numbered'.toLowerCase()) &&
       !note.contains('with ${number.toLowerCase()}')) {
@@ -2425,12 +2425,17 @@ final RegExp _bareLongWaveCodeField = RegExp(r'^[A-Za-z]{1,2}-?\d{0,2}[RL]$');
 ///
 /// The figure is `promenade{singleFile: true, where: along, direction,
 /// destination}`, the shape the ContraDB dialect gives its own whole-set
-/// single-file promenade: `along` because the single-file display always
-/// shows `where`, and the `across` default would state a direction the source
-/// never did. `direction` is the spin word as written (a promenade's
-/// `direction` is a rotation, unlike a circle's left/right). No `who` is
-/// written: TCB's promenade path never writes an unstated subject, and the
-/// single-file display drops it anyway. `around the major set` and any other
+/// single-file promenade except for `who`: `along` because the single-file
+/// display always shows `where`, and the `across` default would state a
+/// direction the source never did. `direction` is the spin word as written (a
+/// promenade's `direction` is a rotation, unlike a circle's left/right). No
+/// `who` is written: TCB's promenade path never writes an unstated subject,
+/// and the single-file display drops it anyway. So the two differ there:
+/// ContraDB's writes `who: everyone`, while this one's subject is assumed and
+/// its effective `who` is the promenade's default, `partners`, which the
+/// editor shows and a walkthrough snippet or an Advanced search by dancers
+/// matches on (pre-release audit finding C-11; the maintainer ruled to correct
+/// this sentence and leave the figure as it is). `around the major set` and any other
 /// annotation stay in the note; the destination's words do not, because
 /// `where: along` renders the destination clause (the rule
 /// [_promenadeAnnotation] applies).
@@ -3345,14 +3350,35 @@ List<_TypedAnnotation> _typedAnnotations(String scrubbed) {
   return out;
 }
 
-/// Canonicalizes the dancer phrase in a clause-final `with`/`around` bracket
-/// when production's strict resolver can account for the whole phrase.
+/// The note for a clause-final `with`/`around` bracket: its relation word
+/// lower-cased and its dancer phrase in the source's own words (`with N2`).
+/// The note is shown as written, with only role words put in the reader's
+/// terms, so a dancer-set token (`nextNeighbors`) would reach the screen raw
+/// (the maintainer's ruling on pre-release audit finding C-07). A phrase the
+/// strict resolver cannot account for is kept as the whole bracket's text.
 String _canonicalSquareBracketNote(String body) {
   final m = _squareBracketRelationRe.firstMatch(body.trim());
   if (m == null) return body;
-  final who = resolveDancerSetPhrase(m.group(2)!);
-  return who == null ? body : '${m.group(1)!.toLowerCase()} $who';
+  final phrase = m.group(2)!;
+  final who = resolveDancerSetPhrase(phrase);
+  return who == null
+      ? body
+      : '${m.group(1)!.toLowerCase()} ${_bracketDancerWords(phrase)}';
 }
+
+/// A bracket's dancer phrase as the source writes it, for a note: trimmed,
+/// spaces collapsed, and a dancer code (`n2`, `m1`) in capitals as The
+/// Caller's Box prints it, since some readers see the line lower-cased. The
+/// adapter's balance-wave bracket note writes the same words.
+String _bracketDancerWords(String phrase) {
+  final words = phrase.trim().split(_bracketPhraseSpace).join(' ');
+  return _bracketDancerCode.hasMatch(words) ? words.toUpperCase() : words;
+}
+
+final RegExp _bracketPhraseSpace = RegExp(r'\s+');
+
+/// A dancer code alone: a letter and a digit (`N2`, `m1`).
+final RegExp _bracketDancerCode = RegExp(r'^[a-z][0-9]$', caseSensitive: false);
 
 final RegExp _squareBracketRelationRe = RegExp(
   r'^(with|around)\s+(.+)$',
@@ -4016,7 +4042,7 @@ String _otherShoulder(String s) => s == 'right' ? 'left' : 'right';
 /// another head, a second bracket, text after it) declines to custom, as the
 /// guards above do. The bracket is read as commentary, as
 /// [_bracketAnnotation] reads one (#744): the figure's `note` is then just its
-/// canonical text (`with nextNeighbors`), not the definition, which `who` and
+/// text in the source's words (`with N2`), not the definition, which `who` and
 /// `hand` already carry. A line with no bracket keeps the definition as its
 /// note.
 FigureMatch? _circulate(String scrubbed) {

@@ -11931,6 +11931,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'This dance changed before it could be updated. Review it and try again.';
 
   @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both':
+          'Importing changes this dance\'s form to $form, so its Barnes reference and its Starts improper mark will be removed.',
+      'barnes':
+          'Importing changes this dance\'s form to $form, so its Barnes reference will be removed.',
+      'improper':
+          'Importing changes this dance\'s form to $form, so its Starts improper mark will be removed.',
+      'other': 'Importing changes this dance\'s form to $form.',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String get publishedCollectionsTitle => 'Published collections';
 
   @override

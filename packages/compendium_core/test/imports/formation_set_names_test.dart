@@ -7,16 +7,32 @@ void main() {
     test('reads the set shape ahead of the start word', () {
       expect(classifyFormationSetName('proper triplet (231)'), (
         shape: FormationShape.triplet,
-        qualifier: 'Proper',
+        qualifier: 'Proper (231)',
       ));
       expect(classifyFormationSetName('improper quadruplet (2341)'), (
         shape: FormationShape.quadruplet,
-        qualifier: 'Improper',
+        qualifier: 'Improper (2341)',
       ));
       expect(classifyFormationSetName('indecent triplet'), (
         shape: FormationShape.triplet,
         qualifier: 'Indecent',
       ));
+    });
+
+    test('keeps the order the couples end in, with or without a start word', () {
+      expect(classifyFormationSetName('triplet ( 312 )'), (
+        shape: FormationShape.triplet,
+        qualifier: '(312)',
+      ));
+      expect(classifyFormationSetName('indecent triplet'), (
+        shape: FormationShape.triplet,
+        qualifier: 'Indecent',
+      ));
+      // Only digits in brackets are an order.
+      expect(
+        classifyFormationSetName('proper triplet (from the top)')?.qualifier,
+        'Proper',
+      );
     });
 
     test('triplet is not read as triple minor', () {

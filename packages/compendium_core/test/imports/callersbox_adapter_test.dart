@@ -1758,7 +1758,7 @@ void main() {
           expect(figures.single.move, 'pass_the_ocean');
           expect(figures.single.params['balance'], isTrue);
           expect(figures.single.params['beats'], 8); // 4 + 4
-          expect(figures.single.note, 'with nextNeighbors');
+          expect(figures.single.note, 'with N2');
         },
       );
 
@@ -1775,7 +1775,7 @@ void main() {
           expect(figures, hasLength(2));
           expect(figures[0].move, 'form_short_waves');
           expect(figures[0].params['balance'], isTrue);
-          expect(figures[0].note, 'with nextNeighbors');
+          expect(figures[0].note, 'with N2');
           expect(figures[1].move, 'swing');
           expect(figures[1].params['prefix'], isNull);
         },
@@ -2112,12 +2112,12 @@ void main() {
     }
 
     const cases = <(String, FormationShape, String?)>[
-      ('Proper Triplet (231)', FormationShape.triplet, 'Proper'),
+      ('Proper Triplet (231)', FormationShape.triplet, 'Proper (231)'),
       ('Improper Triplet', FormationShape.triplet, 'Improper'),
       ('Indecent Triplet', FormationShape.triplet, 'Indecent'),
       ('Improper (triple progression)', FormationShape.dupleImproper, null),
       ('Triplet', FormationShape.triplet, null),
-      ('Improper Quadruplet (2341)', FormationShape.quadruplet, 'Improper'),
+      ('Improper Quadruplet (2341)', FormationShape.quadruplet, 'Improper (2341)'),
       ('Quadruplet', FormationShape.quadruplet, null),
       ('Triple Minor', FormationShape.tripleMinor, null),
       ('Triple Minor - Improper', FormationShape.tripleMinor, 'Improper'),
@@ -2136,7 +2136,7 @@ void main() {
     test('keeps the start word ahead of a separate FormationDetail', () async {
       final f = await read('Proper Triplet (231)', detail: 'chestnut');
       expect(f.shape, FormationShape.triplet);
-      expect(f.detail, 'Proper; chestnut');
+      expect(f.detail, 'Proper (231); chestnut');
     });
   });
 }

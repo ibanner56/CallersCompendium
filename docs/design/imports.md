@@ -311,7 +311,13 @@ way, so a dance in 3/2 re-imported as English counts its phrases in 3-beat bars
 in the pre-release audit, finding C-01; the alternative, leaving the structure
 for the person to set on each dance, kept the broken labels).
 A re-import from a contra-only source (The Caller's Box, ContraDB) onto an
-English dance makes it contra by the same rule.
+English dance makes it contra by the same rule, which drops its Barnes
+reference and Starts-improper mark (only an English dance holds either). The
+dance page's re-import preview says so when the form will change, naming
+those two fields when the dance has them (`reimportFormChange` in the app's
+`dance_reimport.dart`, read off `withReimportedChoreography`); the maintainer
+chose the notice over keeping the reference (pre-release audit, finding
+GAPC-02).
 
 This applies to every source that reaches the pipeline: `.ccshare` and other
 Compendium archives, published collections, Caller's Companion `.USR`, ContraDB
@@ -658,8 +664,9 @@ declines the collapse.
   leaves it unstated. A formation
   type read this way adds no "Type:" line to the calling notes. The CC text
   export, which gives one formation string, keeps the single-string mapping (a set
-  shape such as "Proper Triplet" is read as that shape, with the start word as
-  detail, before the Proper / Improper words are tried), its
+  shape such as "Proper Triplet" is read as that shape, with the start word,
+  and an ending order in brackets ("Proper (231)"), as detail, before the
+  Proper / Improper words are tried), its
   "Type:" note for these types, and `mixer: false`. `SetItem.AlternateDance`
   marks an alternate "ALT" in a real file, which is read as true.
 - **A date padded onto the Name.** Some libraries pad a date, and sometimes
@@ -1016,7 +1023,8 @@ declines the collapse.
   is stored as shape only unless the page's optional
   `div.dance-show-preamble` supplies normalized `Formation.detail`, or the name
   is a set shape (triplet, quadruplet, triple minor), which keeps its Proper /
-  Improper / Indecent start word as detail, ahead of any preamble and joined
+  Improper / Indecent start word, and an ending order in brackets ("(231)"),
+  as detail, ahead of any preamble and joined
   with `; `; unclassified
   formation text is retained as detail, after any preamble and with a warning.
 - A second, **deprecated** adapter (`ContraDbAdapter`) maps ContraDB's internal
@@ -1025,8 +1033,8 @@ declines the collapse.
   **`@Deprecated` and wired into no live path** — that JSON input is unobtainable
   from the site — and is retained only as reference prior art plus its unit tests.
   Its recognized `start_type` is shape-only, except that a set shape (triplet,
-  quadruplet, triple minor) keeps its Proper / Improper / Indecent start word as
-  detail, ahead of any preamble; normalized `preamble` is stored in
+  quadruplet, triple minor) keeps its Proper / Improper / Indecent start word,
+  and an ending order in brackets ("(231)"), as detail, ahead of any preamble; normalized `preamble` is stored in
   `Formation.detail`, and only `notes` is stored in `callingNotes`. If an
   unclassified `start_type` and preamble coexist, both are retained in detail
   with the preamble first.
@@ -2528,8 +2536,10 @@ has to be judged in its own context.
   (`[with N2]`, `[with shadow]`, `[around N2]`). `[with phantom]`, any other
   head, a second bracket, text after the bracket and the non-inverse or
   malformed definitions that decline without a bracket all stay text. The
-  figure's note is then the bracket's canonical text (`with nextNeighbors`)
-  and not the definition, which `who` and `hand` already carry; a line with no
+  figure's note is then the bracket's text in the source's words (`with N2`;
+  `with nextNeighbors` until the pre-release audit, finding C-07, where the
+  maintainer ruled for the source's words because a note shows a dancer-set
+  token raw) and not the definition, which `who` and `hand` already carry; a line with no
   bracket keeps the definition as its note, as before. (#2160 suggested keeping
   the raw bracket in the note; this reading does not.)
 

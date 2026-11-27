@@ -1178,7 +1178,10 @@ would; a phrase structure you already set stays.
 
 Everything else on the dance is yours and stays as it is: its title, authors,
 calling notes, walkthrough, status, rating, tags, links, tunes, custom fields and
-source citations. Your own ratings, tags and notes are never overwritten by a
+source citations. One exception: only an English dance has a Barnes reference
+and a **Starts improper** mark, so an English dance that the incoming figures
+make a contra dance loses both, and setting it back to English does not bring
+them back. Your own ratings, tags and notes are never overwritten by a
 re-import, whatever the source: a share file or other Caller's Compendium file,
 a published collection, a Caller's Companion `.USR` file, ContraDB or The
 Caller's Box. Only the dance's record of where it came from is updated, to the
@@ -1264,8 +1267,12 @@ Review the preview, then import to replace only the dance's **figures,
 formation, and progression**, with the dance form they are written in, the
 meter and key if the dance has none, and the phrase structure if it has the
 standard one. The Caller's Box and ContraDB hold contra
-dances, so refreshing an English dance from them makes it a contra dance. This keeps your title, notes, rating, tags,
-links, custom fields, authors, citations, and other saved metadata. The import
+dances, so refreshing an English dance from them makes it a contra dance. When
+the refresh changes the dance's form, a notice at the top of the preview says
+so, and names the Barnes reference and **Starts improper** mark it will remove,
+since only an English dance has them. Everything else is kept: your title,
+notes, rating, tags, links, custom fields, authors, citations, and other saved
+metadata. The import
 review's **Re-import onto** does the same. Its **Same dance — replace** choices
 are different: they replace the dance's content (see
 [Avoiding duplicates](#avoiding-duplicates)).

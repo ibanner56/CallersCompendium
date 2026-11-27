@@ -178,7 +178,7 @@ void main() {
       expect(figure.params['center'], 'role2s');
       expect(figure.params['centerHand'], 'left');
       expect(figure.params['beats'], 4);
-      expect(figure.note, 'with nextNeighbors');
+      expect(figure.note, 'with N2');
     });
 
     for (final line in const [
@@ -383,8 +383,8 @@ void main() {
     // #2160: TCB 18065's exact line pair, with the circulate's trailing
     // bracket. Runs the real adapter, so the balance merge is exercised too.
     const bracketNotes = <String, String>{
-      '[with N2]': 'with nextNeighbors',
-      '[with shadow]': 'with shadows',
+      '[with N2]': 'with N2',
+      '[with shadow]': 'with shadow',
     };
     for (final MapEntry(key: bracket, value: note) in bracketNotes.entries) {
       test('a long-wave balance folds into "Circulate: … $bracket"', () async {

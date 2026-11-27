@@ -98,7 +98,7 @@ void main() {
         final f = _parse(line);
         expect(f.move, 'roll_away', reason: line);
         expect(f.params['who'], 'role1s', reason: line);
-        expect(f.note, contains('with nextNeighbors'), reason: line);
+        expect(f.note, contains('with N2'), reason: line);
       }
     });
 
@@ -120,7 +120,7 @@ void main() {
         final f = _parse(line);
         expect(f.params['who'], 'role1s', reason: line);
         expect(f.params['whom'], 'neighbors', reason: line);
-        expect(f.note, 'with nextNeighbors', reason: line);
+        expect(f.note, 'with N2', reason: line);
       }
     });
 
@@ -163,7 +163,7 @@ void main() {
       final f = _parse('N3 role1s allemande left 3/4');
       expect(f.move, 'allemande');
       expect(f.params['who'], 'role1s');
-      expect(f.note, 'with thirdNeighbors');
+      expect(f.note, 'with N3');
     });
 
     test('N1 keeps the role and notes the current neighbours', () {
@@ -172,13 +172,13 @@ void main() {
       final f = _parse('N1 role2s allemande right 1 & 1/2');
       expect(f.move, 'allemande');
       expect(f.params, {'who': 'role2s', 'hand': 'right', 'travel': 1.5});
-      expect(f.note, 'with neighbors');
+      expect(f.note, 'with N1');
     });
 
     test('robins too', () {
       final f = _parse('N1 role2s allemande right 1 & 1/2');
       expect(f.params['who'], 'role2s');
-      expect(f.note, 'with neighbors');
+      expect(f.note, 'with N1');
     });
 
     test('a remainder with its own annotation stays custom', () {
@@ -196,7 +196,7 @@ void main() {
       expect(f.note, '1 or 2');
       final third = _parse('N3 role2s allemande right (1 or 2)');
       expect(third.params['who'], 'role2s');
-      expect(third.note, 'with thirdNeighbors; 1 or 2');
+      expect(third.note, 'with N3; 1 or 2');
     });
 
     test('mixed case and other moves read the number too', () {
@@ -206,7 +206,7 @@ void main() {
       expect(f.note, isNull);
       final fourth = _parse('n4 Role2s trade by right');
       expect(fourth.params['who'], 'role2s');
-      expect(fourth.note, 'with fourthNeighbors');
+      expect(fourth.note, 'with N4');
     });
 
     test('a numbered same-role neighbour stays custom', () {
@@ -285,10 +285,10 @@ void main() {
     test('another bracket or another subject is left as it was', () {
       final shadow = _parse('role1s allemande left 3/4 [with shadow]');
       expect(shadow.params['who'], 'role1s');
-      expect(shadow.note, 'with shadows');
+      expect(shadow.note, 'with shadow');
       final star = _parse('Star right 3/4 [with N2]');
       expect(star.move, 'star');
-      expect(star.note, 'with nextNeighbors');
+      expect(star.note, 'with N2');
     });
   });
 
@@ -325,7 +325,7 @@ void main() {
       final f = _parse('Hey 1/2 with hands (WL;PR;ML) [With N1]');
       expect(f.move, 'hey');
       expect(f.note, contains('with hands'));
-      expect(f.note, contains('with neighbors'));
+      expect(f.note, contains('with N1'));
     });
 
     test('with hands said twice stays custom', () {
@@ -348,7 +348,7 @@ void main() {
       final bracket = _parse('Hey 1/2 (WL;PR;ML) [with N1]');
       expect(bracket.move, 'hey');
       expect(bracket.params, plain.params);
-      expect(bracket.note, 'with neighbors');
+      expect(bracket.note, 'with N1');
     });
 
     test('a bracket that does not name dancers keeps the hey custom', () {

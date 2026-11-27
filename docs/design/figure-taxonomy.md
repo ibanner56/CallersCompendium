@@ -2464,11 +2464,12 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       the note in the line's words, as the maintainer allowed; no param holds
       it. A count must agree with "place"/"places". A `(past …)` or other
       parenthetical is a note, as on other moves.
-    - 117 figures read as a shift in those dances. Still custom: "Others shift
-      …" (no dancer set holds "others"), a destination ("to next man's
-      position", "to N2"), "one step", and the bare shifts with a target
-      ("Shift left to N2", "Shift left with neighbor"), which were custom
-      before.
+    - Under this first ruling, 117 figures read as a shift in those dances,
+      and these stayed custom: "Others shift …" (no dancer set holds
+      "others"), a destination ("to next man's position", "to N2"), "one
+      step", and the bare shifts with a target ("Shift left to N2", "Shift
+      left with neighbor"). The ruling below reads all of them but "Others
+      shift …", so the 117 is that day's count, not today's.
     - Later the same day the maintainer ruled that a destination is kept as
       the note: a group shift's `to …`, `behind …`, `until …`, `one step` or
       `a step …` tail ("Men shift right to next man's position" → shift,

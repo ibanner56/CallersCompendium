@@ -410,7 +410,7 @@ void main() {
     test('[with N1] becomes a note, as on other moves', () {
       final figure = tcb('Ones cast off [with N1]');
       expect(figure.move, 'cast');
-      expect(figure.note, 'with neighbors');
+      expect(figure.note, 'with N1');
     });
 
     test('a bare hand cast is the hand_cast alias', () {

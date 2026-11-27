@@ -176,6 +176,9 @@ void main() {
     ]);
     expect(fetches.searches, isEmpty);
 
+    // A contra dance stays contra, so the preview has nothing to warn of.
+    expect(find.byKey(const ValueKey('preview-import-notice')), findsNothing);
+
     await tester.tap(find.byKey(const ValueKey('import-dance')));
     await tester.pumpAndSettle();
     expect(find.text(_l10n.danceReimported), findsOneWidget);
@@ -190,6 +193,102 @@ void main() {
     final figures = (after.figuresSource as DecodedFigures).figures;
     expect(figures, isNotEmpty);
     expect(figures.first.move, isNot(customMove));
+  });
+
+  testWidgets('re-importing an English dance from a contra source says it '
+      'becomes contra and loses its Barnes reference and Starts improper '
+      'mark', (tester) async {
+    // Pre-release audit finding GAPC-02, the maintainer's ruling: the form
+    // still changes (#2284), and the preview says what that removes.
+    final english = Dance(
+      id: 'english',
+      title: 'A1 Reel',
+      form: DanceForm.ecd,
+      formation: const Formation(FormationShape.dupleMinor, improper: true),
+      barnesReference: 'BIII p. 92',
+      figures: [
+        testFigure(move: customMove, params: {'text': 'old'}),
+      ],
+      createdAt: saved.createdAt,
+      updatedAt: saved.updatedAt,
+    );
+    await repos.dances.create(english);
+    await pumpHost(tester, target: english);
+    await openLinkDialog(tester);
+    await fetchLink(
+      tester,
+      'https://ibiblio.org/contradance/thecallersbox/dance.php?id=1605',
+    );
+
+    final notice = find.byKey(const ValueKey('preview-import-notice'));
+    expect(notice, findsOneWidget);
+    expect(
+      find.descendant(
+        of: notice,
+        matching: find.text(
+          _l10n.danceReimportFormChangeNotice(
+            'both',
+            _l10n.commonDanceFormContra,
+          ),
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    // The notice says what the import does.
+    await tester.tap(find.byKey(const ValueKey('import-dance')));
+    await tester.pumpAndSettle();
+    final after = (await repos.dances.getById('english'))!;
+    expect(after.form, DanceForm.contra);
+    expect(after.barnesReference, isEmpty);
+    expect(after.formation.improper, isFalse);
+  });
+
+  test('reimportFormChange names only what the dance holds', () {
+    final stamp = DateTime.utc(2026);
+    Dance dance(DanceForm form, {String barnes = '', bool improper = false}) =>
+        Dance(
+          id: 'd',
+          title: 'T',
+          form: form,
+          formation: Formation(FormationShape.dupleMinor, improper: improper),
+          barnesReference: barnes,
+          figures: [
+            testFigure(move: customMove, params: {'text': 'x'}),
+          ],
+          createdAt: stamp,
+          updatedAt: stamp,
+        );
+    final contra = Dance(
+      id: 'c',
+      title: 'T',
+      formation: const Formation(FormationShape.dupleImproper),
+      figures: [
+        testFigure(move: customMove, params: {'text': 'y'}),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    expect(
+      reimportFormChange(dance(DanceForm.ecd, barnes: 'NiB'), contra),
+      (form: DanceForm.contra, dropsBarnesReference: true, dropsImproper: false),
+    );
+    expect(
+      reimportFormChange(dance(DanceForm.ecd, improper: true), contra),
+      (form: DanceForm.contra, dropsBarnesReference: false, dropsImproper: true),
+    );
+    expect(
+      reimportFormChange(dance(DanceForm.ecd), contra),
+      (form: DanceForm.contra, dropsBarnesReference: false, dropsImproper: false),
+    );
+    // The same form, or incoming figures the re-import does not take (so the
+    // form stays), is no change.
+    expect(reimportFormChange(dance(DanceForm.contra), contra), isNull);
+    final figureless = contra.copyWith(figures: const []);
+    expect(
+      reimportFormChange(dance(DanceForm.ecd, barnes: 'NiB'), figureless),
+      isNull,
+    );
   });
 
   testWidgets('a bare id uses the selected source', (tester) async {

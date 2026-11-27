@@ -269,10 +269,10 @@ void main() {
     // line, whose note is the definition; it was chosen while implementing
     // #2160, not decided on the issue.
     const bracketAccepted = <String, String>{
-      'Circulate: women cross, men loop right [with N2]': 'with nextNeighbors',
-      'Circulate: women cross, men loop right [with shadow]': 'with shadows',
+      'Circulate: women cross, men loop right [with N2]': 'with N2',
+      'Circulate: women cross, men loop right [with shadow]': 'with shadow',
       'Circulate: women cross, men loop right [around N2]':
-          'around nextNeighbors',
+          'around N2',
     };
     bracketAccepted.forEach((line, note) {
       test('"$line" → box_circulate, note "$note"', () {
@@ -290,10 +290,10 @@ void main() {
       expect(f!.move, 'box_circulate');
       expect(f.params['who'], 'role1s');
       expect(f.params.containsKey('hand'), isFalse);
-      expect(f.note, 'with nextNeighbors');
+      expect(f.note, 'with N2');
     });
 
-    // The note `with nextNeighbors` must not read as a leftover or a balance
+    // The note `with N2` must not read as a leftover or a balance
     // after the circulate, or the fan-out would demote the figure and a
     // re-parse of a stored custom would leave it custom (#2160).
     group('a bracketed circulate through the fan-out', () {
@@ -302,7 +302,7 @@ void main() {
         expect(f.move, 'box_circulate');
         expect(f.params['who'], 'role2s');
         expect(f.params['hand'], 'right');
-        expect(f.note, 'with nextNeighbors');
+        expect(f.note, 'with N2');
       }
 
       test('free-text entry reads it', () {

@@ -237,12 +237,14 @@ void main() {
   group('wide layout (≥ 900 px)', () {
     // The split pane catches re-import failures itself, separately from the
     // routed coordinator (#1907), so each typed failure is checked here too.
-    Future<void> reimportByLinkInSplitPane(
+    Future<CompendiumRepositories> reimportByLinkInSplitPane(
       WidgetTester tester,
-      UrlFetcher jsonFetcher,
-    ) async {
+      UrlFetcher jsonFetcher, {
+      Dance Function(Dance)? saved,
+    }) async {
       final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'A1 Reel'));
+      final dance = _dance(id: 'd1', title: 'A1 Reel');
+      await repos.dances.create(saved == null ? dance : saved(dance));
       await _pumpShell(
         tester,
         repos,
@@ -261,7 +263,51 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('reimport-link-fetch')));
       await tester.pumpAndSettle();
+      return repos;
     }
+
+    testWidgets('re-import of an English dance from a contra source says what '
+        'it removes', (tester) async {
+      // Pre-release audit finding GAPC-02: the split pane builds its own
+      // preview, so it carries the same notice as the routed one.
+      final repos = await reimportByLinkInSplitPane(
+        tester,
+        (_) async => jsonEncode({
+          'ID': '1605',
+          'Name': 'A-1 Reel',
+          'Permission': 'full',
+          'FormationBase': 'Duple Minor - Improper',
+          'phrases': [
+            {
+              'name': 'A1',
+              'figures': ['(8) Long lines forward and back'],
+            },
+          ],
+        }),
+        saved: (dance) => dance.copyWith(
+          form: DanceForm.ecd,
+          barnesReference: 'BIII p. 92',
+        ),
+      );
+      final l10n = AppLocalizationsEn();
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('preview-import-notice')),
+          matching: find.text(
+            l10n.danceReimportFormChangeNotice(
+              'barnes',
+              l10n.commonDanceFormContra,
+            ),
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('import-dance')));
+      await tester.pumpAndSettle();
+      final after = (await repos.dances.getById('d1'))!;
+      expect(after.form, DanceForm.contra);
+      expect(after.barnesReference, isEmpty);
+    });
 
     testWidgets('re-import by id: a missing Caller\'s Box id reads as that', (
       tester,
