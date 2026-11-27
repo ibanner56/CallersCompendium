@@ -466,7 +466,7 @@ class EventRulesStrip extends StatelessWidget {
         l10n.programsRulesStripAttention(attention.length),
     ].join(' · ');
     String titles(Iterable<String> ids) =>
-        [for (final id in ids) ?slotTitle(id)].join(', ');
+        [for (final id in ids) ?slotTitle(id)].join(l10n.commonListSeparator);
     return Card(
       key: const ValueKey('program-rules-strip'),
       margin: EdgeInsets.zero,

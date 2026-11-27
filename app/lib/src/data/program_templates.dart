@@ -317,7 +317,8 @@ class ProgramTemplates {
 }
 
 /// Puts [byId] in the order [order] gives, followed by any template it does
-/// not list, by name (case-insensitive) and then id.
+/// not list, by name (case- and accent-insensitive, [foldForTitleMatch]) and
+/// then id.
 List<ProgramTemplate> orderProgramTemplates(
   Map<String, ProgramTemplate> byId,
   List<String> order,
@@ -333,7 +334,9 @@ List<ProgramTemplate> orderProgramTemplates(
         for (final entry in byId.entries)
           if (!placed.contains(entry.key)) entry.value,
       ]..sort((a, b) {
-        final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        final byName = foldForTitleMatch(
+          a.name,
+        ).compareTo(foldForTitleMatch(b.name));
         return byName != 0 ? byName : a.id.compareTo(b.id);
       });
   return [...result, ...rest];

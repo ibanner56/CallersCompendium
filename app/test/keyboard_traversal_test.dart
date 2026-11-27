@@ -247,9 +247,11 @@ bool _reaches(_Stop stopNode, _Tappable target) {
   final rect = target.rect;
   // A dropdown's arrow, to the right of its text field. On a desktop the field
   // is the one stop and the arrow is part of it, not a second Tab stop
-  // (`AppDropdownField`), and the keyboard opens the menu from the field.
+  // (`AppDropdownField`), and the keyboard opens the menu from the field. The
+  // arrow is known by its name, so another button beside a text field (a
+  // clear button) must still be a Tab stop of its own.
   if (stopNode.isTextInput &&
-      target.label == '(unlabelled)' &&
+      target.label == const DefaultMaterialLocalizations().showMenuTooltip &&
       target.kinds.length == 1 &&
       target.kinds.contains('button') &&
       rect.left >= stop.right - 2 &&

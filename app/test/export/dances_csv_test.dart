@@ -652,6 +652,18 @@ void main() {
     }
   });
 
+  test('rows sort by title with accents folded, as the Collection does', () {
+    final csv = build([
+      dance(id: 'd1', title: 'Zany'),
+      dance(id: 'd2', title: 'École'),
+      dance(id: 'd3', title: 'Fiddle'),
+    ]);
+    expect(
+      [for (final r in csvRecords(csv)) r[en.csvColumnTitle]],
+      ['École', 'Fiddle', 'Zany'],
+    );
+  });
+
   test('formula-like titles and notes are written as text', () {
     final csv = build([
       dance(id: 'd1', title: '=HYPERLINK("http://example.invalid","x")'),

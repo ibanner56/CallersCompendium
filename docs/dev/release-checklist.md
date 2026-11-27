@@ -248,7 +248,8 @@ relies on (§2). Update this section when that tag is cut.
  clipped, truncated without a way to reveal the rest, or overlapping other
  content; layouts reflow instead of overflowing off-screen.
  (`app/test/a11y_guidelines_test.dart` sweeps the Collection, Programs list,
- summary and builder, Perform and its Adjust sheet, the Dance editor's first
+ summary and builder (also with More details open, for its filterable
+ drop-downs), Perform and its Adjust sheet, the Dance editor's first
  screenful, Dance detail (a long title, notes, a tag and a rating, scrolled to
  the end), each Settings section page (scrolled to the end), and the Tags
  manager at 2.0× on 360 and 412 dp with the real fonts. Settings' Diagnostics

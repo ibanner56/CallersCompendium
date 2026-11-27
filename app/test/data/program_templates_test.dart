@@ -1145,4 +1145,21 @@ void main() {
       expect(await defaultProgramTemplate(repos.settings), isNull);
     });
   });
+
+  test('unlisted templates sort by name with accents folded', () {
+    const zany = ProgramTemplate(id: 'a', name: 'Zany');
+    const ecole = ProgramTemplate(id: 'b', name: 'École');
+    const fete = ProgramTemplate(id: 'c', name: 'Fête');
+    expect(
+      [
+        for (final t in orderProgramTemplates({
+          'a': zany,
+          'b': ecole,
+          'c': fete,
+        }, const []))
+          t.name,
+      ],
+      ['École', 'Fête', 'Zany'],
+    );
+  });
 }

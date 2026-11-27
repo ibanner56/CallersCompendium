@@ -928,4 +928,30 @@ void main() {
       );
     });
   });
+
+  group('a break in a printed or shared set list', () {
+    final withBreak = program(
+      slots: [
+        ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+        ProgramSlot(id: 's2', position: 1, text: 'break '),
+        ProgramSlot(id: 's3', position: 2, danceId: 'd2'),
+      ],
+    );
+
+    test('reads as the break label it is given, not the stored token', () {
+      final text = programToPlainText(
+        withBreak,
+        titleFor: titles,
+        labels: const ProgramExportLabels(breakLabel: 'Pause'),
+      );
+      expect(text, contains('Pause'));
+      expect(text.toLowerCase(), isNot(contains('break')));
+    });
+
+    test('reads "Break" with the default labels', () {
+      final text = programToPlainText(withBreak, titleFor: titles);
+      expect(text, contains('Break'));
+      expect(text, isNot(contains('break ')));
+    });
+  });
 }

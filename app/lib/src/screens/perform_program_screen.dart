@@ -803,6 +803,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       if (dance == null) return l10n.programsDanceUnavailable;
       return slotDanceTitle(l10n, dance, markDeleted: markDeleted);
     }
+    if (slot.isBreak) return l10n.programsBreakSlotLabel;
     final rawText = slot.text?.trim();
     final text =
         rawText == null ||

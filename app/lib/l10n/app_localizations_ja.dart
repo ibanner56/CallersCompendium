@@ -962,6 +962,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncNoticeListSeparator => '、';
 
   @override
+  String get commonListSeparator => '、';
+
+  @override
+  String get commonClauseSeparator => '、';
+
+  @override
+  String commonSentencePair(String first, String second) {
+    return '$first$second';
+  }
+
+  @override
   String settingsSyncNoticeRecordNamed(String kind, String name) {
     return '$kind「$name」';
   }
@@ -2658,7 +2669,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'インポートで新しく作成されたダンスごとに追加されます。共有されたファイルのダンスも含みます。プログラムのインポート中にその枠のために作成されたダンスにはタグは付きません。';
+      'インポートで新しく作成されたダンスごとに追加されます。共有されたファイルのダンスも含みます。プログラムのインポート中にそのスロットのために作成されたダンスにはタグは付きません。';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -5561,7 +5572,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsSlotsHelper =>
-      'スロットは、セットリストの1つの枠です。ダンス、メモ、休憩のいずれかを入れられます。';
+      'スロットは、セットリストの1つの場所です。ダンス、ノート、ブレイクのいずれかを入れられます。';
 
   @override
   String get programsAddDanceButton => 'ダンスを追加';
@@ -5571,6 +5582,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsInsertBreakButton => 'ブレイクを挿入';
+
+  @override
+  String get programsBreakSlotLabel => 'ブレイク';
 
   @override
   String get programsAddADanceSheetTitle => 'ダンスを追加';
@@ -12749,7 +12763,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programTemplatesEmptyBody =>
-      'テンプレートは、ある種類の夜のためのダンス・メモ・休憩の初期リストです。2 つ以上あると、新しいプログラムを作るときにどれから始めるかを尋ねます。';
+      'テンプレートは、ある種類の夜のためのダンス・ノート・ブレイクの初期リストです。2 つ以上あると、新しいプログラムを作るときにどれから始めるかを尋ねます。';
 
   @override
   String get programTemplateNameLabel => 'テンプレート名';
@@ -12773,7 +12787,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count 枠',
+      other: '$count スロット',
       zero: '空',
     );
     return '$_temp0';
@@ -12793,11 +12807,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programTemplateEditorTitle => 'テンプレートを編集';
 
   @override
-  String get programTemplateSlotsHeader => '枠';
+  String get programTemplateSlotsHeader => 'スロット';
 
   @override
   String get programTemplateSlotsSubtitle =>
-      'このテンプレートから作るプログラムに最初から入るダンス・メモ・休憩。';
+      'このテンプレートから作るプログラムに最初から入るダンス・ノート・ブレイク。';
 
   @override
   String get programTemplatesLoadError => 'プログラムのテンプレートを読み込めませんでした。';
@@ -12838,11 +12852,11 @@ class AppLocalizationsJa extends AppLocalizations {
       'プログラムでまだ使っていない動きのあるダンスを優先します。前のダンスと同じ拍の動きは避けます。';
 
   @override
-  String get suggestionFactorFormationBalanceTitle => '隊形のバランス';
+  String get suggestionFactorFormationBalanceTitle => 'フォーメーションのバランス';
 
   @override
   String get suggestionFactorFormationBalanceHelp =>
-      '前のダンスと同じ隊形や、プログラムにすでに多い隊形を避けます。';
+      '前のダンスと同じフォーメーションや、プログラムにすでに多いフォーメーションを避けます。';
 
   @override
   String get suggestionFactorDifficultyCurveTitle => '難易度の流れ';
@@ -14695,12 +14709,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String programTemplateDuplicateSearchGone(String label) {
-    return '複製できませんでした。枠のルール「$label」の保存済み検索が削除されています。そのルールを編集または削除してから、もう一度お試しください。';
+    return '複製できませんでした。スロットのルール「$label」の保存済み検索が削除されています。そのルールを編集または削除してから、もう一度お試しください。';
   }
 
   @override
   String get programTemplateSlotRuleNotSavedSearchGone =>
-      'その保存済み検索は削除されたため、枠のルールは保存されませんでした。';
+      'その保存済み検索は削除されたため、スロットのルールは保存されませんでした。';
 
   @override
   String get programTemplateRulesHelp => 'このテンプレートから作る新しいプログラムそれぞれに追加されます。';
@@ -14762,10 +14776,10 @@ class AppLocalizationsJa extends AppLocalizations {
       '追加したフィギュアに空欄の項目が残っています。入力すると保存できます。';
 
   @override
-  String get programTemplateAddSlotRule => '枠のルールを追加';
+  String get programTemplateAddSlotRule => 'スロットのルールを追加';
 
   @override
-  String get programTemplateSlotRuleBadge => '枠のルール';
+  String get programTemplateSlotRuleBadge => 'スロットのルール';
 
   @override
   String programTemplateSlotRuleSubtitle(String name) {
@@ -14776,7 +14790,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programTemplateSlotRuleSearchGone => '保存した検索は削除されました';
 
   @override
-  String get programTemplateSlotRuleDialogTitle => '枠のルールを追加';
+  String get programTemplateSlotRuleDialogTitle => 'スロットのルールを追加';
 
   @override
   String get programTemplateSlotRuleDialogBody =>
@@ -14793,7 +14807,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleNoSearches =>
-      '枠のルールは保存した検索を使います。まずコレクションで検索を保存してから、ここで選んでください。';
+      'スロットのルールは保存した検索を使います。まずコレクションで検索を保存してから、ここで選んでください。';
 
   @override
   String get programsPlaceholderSubtitle => 'プレースホルダー';
@@ -14823,18 +14837,18 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String savedSearchUsedBySlotRule(String rule, String template) {
-    return 'テンプレート $template の枠のルール「$rule」';
+    return 'テンプレート $template のスロットのルール「$rule」';
   }
 
   @override
   String get programTemplateSlotRuleSearchUnreadable => '保存した検索を開けません';
 
   @override
-  String get programTemplateSlotRuleEditTitle => '枠のルールを編集';
+  String get programTemplateSlotRuleEditTitle => 'スロットのルールを編集';
 
   @override
   String get programTemplateSlotRuleLabelBreak =>
-      '「Break」はプログラムの休憩を表すため、枠のルールのラベルには使えません。';
+      '「Break」はプログラムのブレイクを表すため、スロットのルールのラベルには使えません。';
 
   @override
   String programsFillSearchUnreadable(String label) {
