@@ -470,6 +470,8 @@ it once and choose it from then on.
   **Search in**, every filter (the calling-history venue and window included),
   the By phrase rows, the Advanced rows and the sort. It's offered once you've
   typed something or set a filter or row. Two searches may share a name.
+  Once you've typed or changed a name, the dialog stays open on a stray tap
+  outside, **Esc** or **Back**; use **Cancel** to close it on purpose.
 - **A calling-history window is kept as a distance.** "Since a date" is saved
   as the whole number of months back from today, and the save dialog says what
   is kept, for example "Not called in the last 12 months". Each time you use

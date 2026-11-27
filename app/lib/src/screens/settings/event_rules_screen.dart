@@ -12,6 +12,7 @@ import '../../utils/confirm_delete.dart';
 import '../../utils/undo_snack_bar.dart';
 import '../../widgets/app_bar_text_action.dart';
 import '../../widgets/app_dropdown_field.dart';
+import '../../widgets/confirm_discard_changes.dart';
 import '../../widgets/event_rule_text.dart';
 import '../../widgets/reorder_move_buttons.dart';
 
@@ -341,11 +342,38 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
   Map<String, String>? _searches;
   bool _saving = false;
 
+  /// The fields as the editor opened, for [_dirty]. The search is the one
+  /// the editor could offer: a rule whose search is gone opens with none.
+  late final String _initialCount;
+  late final String _initialNickname;
+  String? _initialSearchId;
+  late final EventRuleQuantifier _initialQuantifier;
+  late final EventRuleScope _initialScope;
+
+  /// Whether leaving now would lose a change made here. While it would,
+  /// Back and the app bar's back arrow ask first ([DiscardChangesGuard]).
+  bool get _dirty =>
+      _count.text != _initialCount ||
+      _nickname.text != _initialNickname ||
+      _searchId != _initialSearchId ||
+      _quantifier != _initialQuantifier ||
+      _scope != _initialScope;
+
   /// Whether the number, the quantifier or the scope has changed here. Until
   /// then a stored rule's number stands as it is, even one past what its
   /// scope now allows (stored before that limit, or by another build), so
   /// the rule can still be renamed and saved.
   bool _countTouched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialCount = _count.text;
+    _initialNickname = _nickname.text;
+    _initialSearchId = _searchId;
+    _initialQuantifier = _quantifier;
+    _initialScope = _scope;
+  }
 
   @override
   void didChangeDependencies() {
@@ -356,11 +384,15 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
   Future<void> _read() async {
     final names = await _savedSearchNames(RepositoriesScope.of(context));
     if (!mounted) return;
+    final first = _searches == null;
     setState(() {
       _searches = names;
       if (_searchId != null && !names.containsKey(_searchId)) {
         _searchId = null;
       }
+      // Nothing can be edited until the first read is in, so a search found
+      // gone then is not a change the user made.
+      if (first) _initialSearchId = _searchId;
     });
   }
 
@@ -467,136 +499,145 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
             _draft(widget.rule?.id ?? 'new', 0),
             searches?[_searchId],
           );
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.rule == null
-              ? l10n.eventRuleEditorNewTitle
-              : l10n.eventRuleEditorEditTitle,
-        ),
-        actions: [
-          AppBarTextAction(
-            key: const ValueKey('event-rule-save'),
-            label: l10n.commonSave,
-            icon: Icons.check,
-            onPressed: _canSave ? _save : null,
+    // The text fields are read through their controllers; the other fields
+    // change by setState, which rebuilds this too.
+    return ListenableBuilder(
+      listenable: Listenable.merge([_count, _nickname]),
+      builder: (context, child) =>
+          // While a save is in flight the editor cannot be left: leaving then
+          // would hide the save's failure.
+          DiscardChangesGuard(dirty: _dirty, busy: _saving, child: child!),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            widget.rule == null
+                ? l10n.eventRuleEditorNewTitle
+                : l10n.eventRuleEditorEditTitle,
           ),
-        ],
-      ),
-      body: searches == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              children: [
-                if (preview != null) ...[
-                  Text(
-                    preview,
-                    key: const ValueKey('event-rule-preview'),
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                ],
-                if (searches.isEmpty)
-                  Text(
-                    l10n.eventRuleNoSavedSearches,
-                    key: const ValueKey('event-rule-no-searches'),
-                  )
-                else
-                  AppDropdownField<String?>(
-                    key: const ValueKey('event-rule-search'),
-                    value: _searchId,
-                    filterable: searches.length >= appDropdownFilterFrom,
-                    decoration: InputDecoration(
-                      labelText: l10n.eventRuleSearchLabel,
+          actions: [
+            AppBarTextAction(
+              key: const ValueKey('event-rule-save'),
+              label: l10n.commonSave,
+              icon: Icons.check,
+              onPressed: _canSave ? _save : null,
+            ),
+          ],
+        ),
+        body: searches == null
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                children: [
+                  if (preview != null) ...[
+                    Text(
+                      preview,
+                      key: const ValueKey('event-rule-preview'),
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    entries: [
-                      for (final MapEntry(key: id, value: name)
-                          in searches.entries)
-                        AppDropdownEntry(
-                          value: id,
-                          label: name,
-                          key: ValueKey('event-rule-search-$id'),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  if (searches.isEmpty)
+                    Text(
+                      l10n.eventRuleNoSavedSearches,
+                      key: const ValueKey('event-rule-no-searches'),
+                    )
+                  else
+                    AppDropdownField<String?>(
+                      key: const ValueKey('event-rule-search'),
+                      value: _searchId,
+                      filterable: searches.length >= appDropdownFilterFrom,
+                      decoration: InputDecoration(
+                        labelText: l10n.eventRuleSearchLabel,
+                      ),
+                      entries: [
+                        for (final MapEntry(key: id, value: name)
+                            in searches.entries)
+                          AppDropdownEntry(
+                            value: id,
+                            label: name,
+                            key: ValueKey('event-rule-search-$id'),
+                          ),
+                      ],
+                      onChanged: (id) => setState(() => _searchId = id),
+                    ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    l10n.eventRuleQuantifierLabel,
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  SegmentedButton<EventRuleQuantifier>(
+                    key: const ValueKey('event-rule-quantifier'),
+                    segments: [
+                      for (final q in EventRuleQuantifier.values)
+                        ButtonSegment(
+                          value: q,
+                          label: Text(eventRuleQuantifierLabel(l10n, q)),
                         ),
                     ],
-                    onChanged: (id) => setState(() => _searchId = id),
+                    selected: {_quantifier},
+                    onSelectionChanged: (s) => setState(() {
+                      _quantifier = s.single;
+                      _clampCount();
+                    }),
                   ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  l10n.eventRuleQuantifierLabel,
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                SegmentedButton<EventRuleQuantifier>(
-                  key: const ValueKey('event-rule-quantifier'),
-                  segments: [
-                    for (final q in EventRuleQuantifier.values)
-                      ButtonSegment(
-                        value: q,
-                        label: Text(eventRuleQuantifierLabel(l10n, q)),
+                  if (_quantifier != EventRuleQuantifier.none) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    TextField(
+                      key: const ValueKey('event-rule-count'),
+                      controller: _count,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        labelText: l10n.eventRuleCountLabel,
+                        errorText: countError,
+                        helperText: _scope == EventRuleScope.neighbouring
+                            ? l10n.eventRuleCountNeighbouringHelp
+                            : null,
+                        helperMaxLines: 3,
                       ),
+                      onChanged: (_) => setState(() => _countTouched = true),
+                    ),
                   ],
-                  selected: {_quantifier},
-                  onSelectionChanged: (s) => setState(() {
-                    _quantifier = s.single;
-                    _clampCount();
-                  }),
-                ),
-                if (_quantifier != EventRuleQuantifier.none) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    l10n.eventRuleScopeLabel,
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  RadioGroup<EventRuleScope>(
+                    groupValue: _scope,
+                    onChanged: (s) {
+                      if (s == null) return;
+                      setState(() {
+                        _scope = s;
+                        _clampCount();
+                      });
+                    },
+                    child: Column(
+                      children: [
+                        for (final s in EventRuleScope.values)
+                          RadioListTile<EventRuleScope>(
+                            key: ValueKey('event-rule-scope-${s.name}'),
+                            value: s,
+                            title: Text(eventRuleScopeLabel(l10n, s)),
+                          ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.md),
                   TextField(
-                    key: const ValueKey('event-rule-count'),
-                    controller: _count,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    key: const ValueKey('event-rule-nickname'),
+                    controller: _nickname,
+                    maxLength: maxEventRuleNicknameLength,
                     decoration: InputDecoration(
-                      labelText: l10n.eventRuleCountLabel,
-                      errorText: countError,
-                      helperText: _scope == EventRuleScope.neighbouring
-                          ? l10n.eventRuleCountNeighbouringHelp
-                          : null,
+                      labelText: l10n.eventRuleNicknameLabel,
+                      helperText: l10n.eventRuleNicknameHelp,
                       helperMaxLines: 3,
                     ),
-                    onChanged: (_) => setState(() => _countTouched = true),
                   ),
                 ],
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  l10n.eventRuleScopeLabel,
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-                RadioGroup<EventRuleScope>(
-                  groupValue: _scope,
-                  onChanged: (s) {
-                    if (s == null) return;
-                    setState(() {
-                      _scope = s;
-                      _clampCount();
-                    });
-                  },
-                  child: Column(
-                    children: [
-                      for (final s in EventRuleScope.values)
-                        RadioListTile<EventRuleScope>(
-                          key: ValueKey('event-rule-scope-${s.name}'),
-                          value: s,
-                          title: Text(eventRuleScopeLabel(l10n, s)),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                TextField(
-                  key: const ValueKey('event-rule-nickname'),
-                  controller: _nickname,
-                  maxLength: maxEventRuleNicknameLength,
-                  decoration: InputDecoration(
-                    labelText: l10n.eventRuleNicknameLabel,
-                    helperText: l10n.eventRuleNicknameHelp,
-                    helperMaxLines: 3,
-                  ),
-                ),
-              ],
-            ),
+              ),
+      ),
     );
   }
 }
