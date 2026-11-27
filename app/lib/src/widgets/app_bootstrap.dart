@@ -37,13 +37,17 @@ import 'brand_mark.dart';
 /// of Check again on the last two): whatever the user does to fix them, the app
 /// has to be reopened afterwards, and each screen's copy says so. Each offers
 /// **Copy details** and a link to the Releases page ([_TerminalScreen]), except
-/// [DatabaseBelowFloorError], which offers Copy details and a button to the
-/// release that can update the data, in place of the generic link.
+/// [DatabaseBelowFloorError], which offers Copy details and, on Windows, macOS
+/// and Linux, a button to the release that can update the data, in place of
+/// the generic link (Android and iOS get wording instead; see
+/// [_BelowFloorRecoveryScreen]).
 /// - [DatabaseDowngradeError] (on-disk data written by a newer build): the only
 ///   fix is to update the app, so retrying would just fail again.
 /// - [DatabaseBelowFloorError] (on-disk data written by a build older than the
 ///   minimum supported schema version): retrying cannot recover the data; the
-///   user must run the bridge release to migrate it, or reset. [onBackUpAndReset]
+///   user must run the bridge release to migrate it (on desktop, or through
+///   TestFlight on iPhone and iPad; Android will not install an older release
+///   over this one), or reset. [onBackUpAndReset]
 ///   and [onResetOnly] supply the recovery actions.
 /// - [MigrationSnapshotAborted] (no backup could be written): free space, fix
 ///   the backups folder, or close another app that has the library open, then
@@ -297,9 +301,18 @@ class AppBootstrap extends StatelessWidget {
 ///   fresh state.
 /// - **Reset only**: wipe to a fresh state immediately, with no backup.
 ///
-/// The primary message explains that the data *is* recoverable by running the
-/// bridge release first, so the reset buttons are the fallback, not the only
-/// offer.
+/// What the primary message says depends on the platform ([BelowFloorRoute],
+/// pre-release audit finding F-01), so the reset buttons are the fallback, not
+/// the only offer:
+/// - **Windows, macOS and Linux**: the data is recoverable by running the
+///   bridge release first; a filled **Get** button opens its release page.
+/// - **Android**: there is no Get button. Android will not install the older
+///   bridge over this version, and uninstalling to make room deletes the
+///   library, so the message says not to uninstall or reset, and that the data
+///   is still on the device.
+/// - **iPhone and iPad**: there is no Get button either (the release page has
+///   no iOS download); the message points to TestFlight's earlier builds,
+///   without promising the bridge is still listed there.
 class _BelowFloorRecoveryScreen extends StatefulWidget {
   const _BelowFloorRecoveryScreen({
     required this.error,
@@ -334,6 +347,9 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    // The platform the app runs on, not the theme's look: the route depends on
+    // how the app is installed there.
+    final route = belowFloorRouteFor(defaultTargetPlatform);
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -350,24 +366,33 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                databaseBelowFloorBody(l10n, widget.error.bridgeTag),
+                databaseBelowFloorBody(
+                  l10n,
+                  widget.error.bridgeTag,
+                  route: route,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              // Recovering the data is the primary action; the two resets
-              // abandon it, so they are outlined and sit under their own label.
-              FilledButton.icon(
-                key: const ValueKey('bootstrap-get-bridge'),
-                onPressed: () => launchExternalUrl(
-                  context,
-                  '$kReleasesPageUrl/tag/${widget.error.bridgeTag}',
+              // On desktop, recovering the data is the primary action; the two
+              // resets abandon it, so they are outlined and sit under their own
+              // label. Android and iOS have no Get button: Android will not
+              // install the older release over this one, and the release page
+              // has no iOS download (pre-release audit finding F-01).
+              if (route == BelowFloorRoute.desktop) ...[
+                FilledButton.icon(
+                  key: const ValueKey('bootstrap-get-bridge'),
+                  onPressed: () => launchExternalUrl(
+                    context,
+                    '$kReleasesPageUrl/tag/${widget.error.bridgeTag}',
+                  ),
+                  icon: const Icon(Icons.open_in_new),
+                  label: Text(
+                    databaseBelowFloorGetBridge(l10n, widget.error.bridgeTag),
+                  ),
                 ),
-                icon: const Icon(Icons.open_in_new),
-                label: Text(
-                  databaseBelowFloorGetBridge(l10n, widget.error.bridgeTag),
-                ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
+              ],
               Text(
                 databaseBelowFloorStartFresh(l10n),
                 style: Theme.of(context).textTheme.titleSmall,

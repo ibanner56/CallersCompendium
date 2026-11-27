@@ -220,6 +220,16 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String migrationBelowFloorBodyAndroid(String bridgeTag) {
+    return 'データはまだこのデバイスにありますが、このバージョンでは更新できません。アプリをアンインストールしないでください。アンインストールするとデータが削除されます。また、Androidではこのバージョンの上に$bridgeTagをインストールすることもできません。データを残すには、アプリはインストールしたままにし、リセットもしないでください。サポートを求めるときは「詳細をコピー」を選んでください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。';
+  }
+
+  @override
+  String migrationBelowFloorBodyIos(String bridgeVersion) {
+    return 'データはまだこのデバイスにあります。アプリを削除しないでください。削除するとデータも削除されます。TestFlightでCaller’s Compendiumを開き、「以前のビルド」でバージョン$bridgeVersionを探してください。表示されている場合は、それをインストールし、データを更新するためにアプリを一度開いてから、最新のビルドを再度インストールしてください。表示されていない場合は、アプリをそのままにして、サポートを求めるときは「詳細をコピー」を選んでください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。';
+  }
+
+  @override
   String migrationBelowFloorGetBridge(String bridgeTag) {
     return '$bridgeTagを入手';
   }
