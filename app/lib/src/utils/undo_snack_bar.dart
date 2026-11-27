@@ -57,7 +57,9 @@ import '../theme/app_spacing.dart';
 /// more about its own failure reports it itself and does not throw.
 ///
 /// [key] is forwarded to the [SnackBar] and [actionKey] to its
-/// [SnackBarAction], so existing widget-test keys are kept.
+/// [SnackBarAction], so existing widget-test keys are kept. [onVisible] is
+/// forwarded to the [SnackBar]: it runs once the prompt has come in, and
+/// again for each copy the messenger builds (see [_UndoPromptHold]).
 ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
   ScaffoldMessengerState messenger, {
   required String message,
@@ -69,6 +71,7 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
   Key? actionKey,
   Duration? duration,
   List<Widget> extraActions = const [],
+  VoidCallback? onVisible,
 }) {
   final chosen = duration ?? UndoPromptDurationScope.read(messenger.context);
   final timeout = accessibleNavigation ? null : chosen;
@@ -87,6 +90,7 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
       // anything that inspects the widget.
       duration: timeout ?? const Duration(seconds: kUndoPromptDefaultSeconds),
       persist: true,
+      onVisible: onVisible,
       showCloseIcon: timeout == null,
       action: SnackBarAction(
         key: actionKey,

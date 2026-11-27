@@ -29,6 +29,10 @@ class EditorUndoStack {
   /// empty (should not happen after [push] is called with the initial state).
   EditorSnapshot? get current => _index >= 0 ? _history[_index] : null;
 
+  /// The snapshot one step before [current], which [undo] would return, or
+  /// `null` when there is none.
+  EditorSnapshot? get previous => canUndo ? _history[_index - 1] : null;
+
   /// Pushes [snapshot] onto the history at the current position, clearing
   /// any redo tail.  Evicts the oldest entry when the stack is full.
   void push(EditorSnapshot snapshot) {

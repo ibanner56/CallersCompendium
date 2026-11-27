@@ -5338,6 +5338,28 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar tellen',
+      one: '1 tel',
+    );
+    return 'De tellen van de figuren zijn aangepast, zodat elke figuur haar maten houdt, nu met $_temp0 per maat.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar tellen',
+      one: '1 tel',
+    );
+    return 'Tellen niet aangepast: niet elke figuur kon haar maten precies houden, dus ze lezen nu in maten van $_temp0. Controleer ze.';
+  }
+
+  @override
   String get danceEditorSequenceSpanLabel => 'Maten voor alles';
 
   @override

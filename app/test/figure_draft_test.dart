@@ -666,4 +666,118 @@ void main() {
       expect(draft.toFigure()!.containerTitle, isNull);
     });
   });
+
+  // Pre-release audit finding A2-02: an English dance's Meter typed after its
+  // figures keeps each figure's length in bars.
+  group('rescaleFigureBars', () {
+    FigureDraft row(int? beats, {bool touched = true}) => FigureDraft(
+      move: 'ecd_set',
+      params: {'beats': ?beats},
+      beatsTouched: touched,
+    );
+
+    test('a count keeps its bars only where they are whole beats, whole or '
+        'half bars, within 64 beats', () {
+      // 4 bars and 1½ bars of two beats, in bars of three and of four.
+      expect(beatsInOtherBars(8, from: 2, to: 3), 12);
+      expect(beatsInOtherBars(8, from: 2, to: 4), 16);
+      expect(beatsInOtherBars(3, from: 2, to: 4), 6);
+      expect(beatsInOtherBars(3, from: 2, to: 3), isNull);
+      // 1½ bars of four is 6 beats, and 3 in bars of two.
+      expect(beatsInOtherBars(6, from: 4, to: 2), 3);
+      // A quarter bar of four is no whole or half bar, though it would be 2
+      // whole beats in bars of eight.
+      expect(beatsInOtherBars(1, from: 4, to: 8), isNull);
+      expect(beatsInOtherBars(0, from: 2, to: 3), 0);
+      expect(beatsInOtherBars(32, from: 2, to: 4), 64);
+      expect(beatsInOtherBars(64, from: 2, to: 3), isNull);
+    });
+
+    test('changes every count or none', () {
+      final rows = [row(8), row(3)];
+      expect(
+        rescaleFigureBars(rows, from: 2, to: 3),
+        FigureBarsRescale.notExact,
+      );
+      expect([for (final r in rows) r.beats], [8, 3]);
+      expect(
+        rescaleFigureBars(rows, from: 2, to: 4),
+        FigureBarsRescale.rescaled,
+      );
+      expect([for (final r in rows) r.beats], [16, 6]);
+    });
+
+    test('leaves rows with no count, or a count of 0, as they are', () {
+      final rows = [row(null), row(0)];
+      expect(
+        rescaleFigureBars(rows, from: 2, to: 3),
+        FigureBarsRescale.unchanged,
+      );
+      expect(rows.first.params.containsKey('beats'), isFalse);
+      expect(
+        rescaleFigureBars([], from: 2, to: 3),
+        FigureBarsRescale.unchanged,
+      );
+    });
+
+    test('the same bar length changes nothing, whatever the counts', () {
+      final rows = [row(1)];
+      expect(
+        rescaleFigureBars(rows, from: 3, to: 3),
+        FigureBarsRescale.unchanged,
+      );
+      expect(rows.single.beats, 1);
+    });
+
+    test('keeps whether a count follows its move', () {
+      final rows = [row(8, touched: false), row(8)];
+      rescaleFigureBars(rows, from: 2, to: 3);
+      expect([for (final r in rows) r.beatsTouched], [false, true]);
+    });
+
+    test("a compound figure's count is its expansion's: it blocks the "
+        'change unless it is 0', () {
+      FigureDraft compound(int beats) => FigureDraft(
+        compound: CompoundPlaceholder(id: 'c1', name: 'Combo', beats: beats),
+      );
+      final rows = [row(8), compound(8)];
+      expect(
+        rescaleFigureBars(rows, from: 2, to: 3),
+        FigureBarsRescale.notExact,
+      );
+      expect(rows.first.beats, 8);
+      expect(rows.last.beats, 8);
+      final empty = [row(8), compound(0)];
+      expect(
+        rescaleFigureBars(empty, from: 2, to: 3),
+        FigureBarsRescale.rescaled,
+      );
+      expect(empty.first.beats, 12);
+    });
+
+    test("a sequence that counts its steps changes its steps', and an unread "
+        'count of its own is left alone', () {
+      final sequence = FigureDraft(sequenceFigures: [row(4), row(4)])
+        ..params['beats'] = 5;
+      expect(sequence.sequenceSpanStated, isFalse);
+      expect(
+        rescaleFigureBars([sequence], from: 2, to: 3),
+        FigureBarsRescale.rescaled,
+      );
+      expect(sequence.beats, 12);
+      expect(sequence.params['beats'], 5);
+    });
+
+    test("a step's count inside a group blocks it as a row's does", () {
+      final group = FigureDraft.group(meanwhileMove, row(8), row(3));
+      expect(
+        rescaleFigureBars([group], from: 2, to: 3),
+        FigureBarsRescale.notExact,
+      );
+      expect(
+        [group.beats, for (final side in group.meanwhileSides!) side.beats],
+        [8, 8, 3],
+      );
+    });
+  });
 }

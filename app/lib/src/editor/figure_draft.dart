@@ -1057,3 +1057,84 @@ int figureStartBeat(Iterable<FigureDraft> drafts) {
   }
   return beat;
 }
+
+/// What [rescaleFigureBars] did to an English dance's counts.
+enum FigureBarsRescale {
+  /// No count needed changing: the bar length is the same, or none of the
+  /// rows holds a count other than 0.
+  unchanged,
+
+  /// Every count now holds the same number of bars in the new bar length.
+  rescaled,
+
+  /// Some count could not keep its length in bars as a whole number of beats,
+  /// so none was changed: the figures now read in the new bars.
+  notExact,
+}
+
+/// [beats] in bars of [to] beats instead of [from], the same number of bars,
+/// or null when that is not exact: [beats] is not a whole or half number of
+/// bars of [from] ([barsText]), the bars are no whole number of beats of [to],
+/// or the count would pass the 64 beats a figure can hold.
+int? beatsInOtherBars(int beats, {required int from, required int to}) {
+  if (barsText(beats, from) == null) return null;
+  final scaled = beats * to;
+  if (scaled % from != 0) return null;
+  final result = scaled ~/ from;
+  return result > 64 ? null : result;
+}
+
+/// The counts [rescaleFigureBars] reads in [drafts], each with its row's id,
+/// in order: two lists are equal only while no row, and no row's count, has
+/// changed.
+List<Object?> figureCounts(Iterable<FigureDraft> drafts) => [
+  for (final draft in drafts) ...[
+    draft.id,
+    draft.compound?.beats,
+    draft.params['beats'],
+    draft.sequenceSpanStated,
+    ...figureCounts(draft.containerChildren ?? const <FigureDraft>[]),
+    '/',
+  ],
+];
+
+/// Gives every count [drafts] store the beats that keep its length in bars
+/// when the dance's bar goes from [from] to [to] beats (pre-release audit
+/// finding A2-02): an English dance's Meter typed or corrected after its
+/// figures were entered. The counts are stored in beats and shown in bars, so
+/// without this a caller's "4 bars" would read differently in the new bars.
+///
+/// A count is a row's `beats` (an ordinary row, a meanwhile's or modifier's
+/// shared count, a sequence's own span when it states one), and each of a
+/// group's children's; a sequence that counts its steps is their sum, and a
+/// step with no timing of its own stays so. All or nothing: when any count is
+/// not exact ([beatsInOtherBars]), or a row is one of the caller's compound
+/// figures with a count (#709: its count is its expansion's, not the row's to
+/// change), no count changes and the result is [FigureBarsRescale.notExact].
+/// The rows' [FigureDraft.beatsTouched] are kept, so a count still follows
+/// its move's default as it did before.
+FigureBarsRescale rescaleFigureBars(
+  Iterable<FigureDraft> drafts, {
+  required int from,
+  required int to,
+}) {
+  if (from == to) return FigureBarsRescale.unchanged;
+  final writes = <(FigureDraft, int)>[];
+  bool collect(FigureDraft draft) {
+    if (draft.compound case final compound?) return compound.beats == 0;
+    final counted = !draft.isSequenceGroup || draft.sequenceSpanStated;
+    if (draft.params['beats'] case final int beats when counted) {
+      final scaled = beatsInOtherBars(beats, from: from, to: to);
+      if (scaled == null) return false;
+      if (scaled != beats) writes.add((draft, scaled));
+    }
+    return (draft.containerChildren ?? const <FigureDraft>[]).every(collect);
+  }
+
+  if (!drafts.every(collect)) return FigureBarsRescale.notExact;
+  if (writes.isEmpty) return FigureBarsRescale.unchanged;
+  for (final (draft, beats) in writes) {
+    draft.params['beats'] = beats;
+  }
+  return FigureBarsRescale.rescaled;
+}

@@ -5344,6 +5344,14 @@
   "@danceEditorHalfBarRefused": {
     "x-sourceSha256": "93140ef37e7658ae19604224df5f4f69822740dcf1121a0648c365663385774b"
   },
+  "danceEditorMeterFigureBarsKept": "各フィギュアの小節数が変わらないよう拍数を変更しました（1小節{beatsPerBar, plural, other{{beatsPerBar}拍}}）。",
+  "@danceEditorMeterFigureBarsKept": {
+    "x-sourceSha256": "6dd8845f7d30905e881b3012a37ed97ac11868106a6f9124446e6278d1a54689"
+  },
+  "danceEditorMeterFigureBarsNotKept": "拍数は変更していません。小節数をそのまま保てないフィギュアがあるため、1小節{beatsPerBar, plural, other{{beatsPerBar}拍}}で読み直されます。確認してください。",
+  "@danceEditorMeterFigureBarsNotKept": {
+    "x-sourceSha256": "efc7fb0ae0879a42dc8ca78dac63969b6dad4a686b93bc5fffa490eb031faee1"
+  },
   "danceEditorSequenceSpanLabel": "全体の小節",
   "@danceEditorSequenceSpanLabel": {
     "x-sourceSha256": "8fe969410459de862aea4879d9ebbdd6588698d681056570bff0f861cd4776ff"
