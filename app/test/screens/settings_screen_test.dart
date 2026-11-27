@@ -878,14 +878,16 @@ void main() {
       await tester.tap(button);
       await tester.pumpAndSettle();
       // Only the other types' own dialects are offered: the presets are the
-      // same for every type, and English has none of its own yet.
+      // same for every type, and "Duplicate from…" offers them already.
       expect(
-        find.byKey(
-          ValueKey(
-            'dialect-duplicate-other-source-ecd-${Dialect.leadsFollows.name}',
-          ),
+        find.byWidgetPredicate(
+          (w) =>
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith(
+                'dialect-duplicate-other-source-',
+              ),
         ),
-        findsNothing,
+        findsOneWidget,
       );
       await tester.tap(
         find.byKey(
@@ -1124,6 +1126,31 @@ void main() {
         'Gent',
       );
     });
+
+    testWidgets(
+      'Duplicate from another type says when there is nothing to copy',
+      (tester) async {
+        final ctx = await _pumpSettings(tester);
+        await openDialect(tester);
+
+        final button = find.byKey(
+          const ValueKey('duplicate-dialect-other-form'),
+        );
+        await tester.ensureVisible(button);
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(
+            AppLocalizationsEn().settingsDialectDuplicateFromOtherFormEmpty,
+          ),
+          findsOneWidget,
+        );
+        await tester.tapAt(Offset.zero);
+        await tester.pumpAndSettle();
+        expect(ctx.dialectLibrary.customDialects, isEmpty);
+      },
+    );
 
     Future<void> openEditorWithEdit(WidgetTester tester, String name) async {
       await tester.tap(find.byKey(ValueKey('dialect-menu-$name')));

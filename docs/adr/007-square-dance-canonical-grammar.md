@@ -600,7 +600,8 @@ rules carry over from the existing taxonomy:
 - **Role-neutral storage and display.** The books name the two roles with
   gendered words. The parser reads them as `role1s` and `role2s`, and the
   app shows the square dialect's role terms. Gendered role terms are never
-  stored or shown, for squares as for every form (§3). Stored values that
+  stored or offered, for squares as for every form (§3); a caller's own
+  dialect may use them (ADR-006 §9.1, point 7). Stored values that
   name a role use `role1` and `role2` (`role1Place`, not a gendered word).
   Following ADR-006 §3, where a quotation in this ADR would show a gendered
   role term, the default dialect's term takes its place in square brackets:

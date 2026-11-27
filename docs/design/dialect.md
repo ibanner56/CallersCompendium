@@ -111,13 +111,17 @@ wording, saved unchanged, reads as the default line. Imported
   stored and `DialectLibraryController.load` keeps every name, so a dialect
   read and written again is unchanged; and the sync conflict review and the
   program editor show a dialect's name and words as written, with no prompt
-  or warning. (This replaces an implementer's reading, under which a custom dialect refused gendered role terms and one saved earlier
-  was repaired on read and renamed on load.) No gendered-word check runs on a
+  or warning. (This replaces an implementer's reading, under which a custom
+  dialect refused gendered role terms and one saved earlier was repaired on
+  read and renamed on load.) No gendered-word check runs on a
   dialect any more, so the maintainer's answer on "man" and "men" (2026-11-27:
   exempt them only in text marked as Danish, German or Dutch) has nothing to
   apply to here. The separate **Auto-convert all discouraged terms** setting
   is unchanged; it shows a role word of the active dialect as written (see
-  [Canonicalization on input](#canonicalization-on-input-single-chokepoint)).
+  [Canonicalization on input](#canonicalization-on-input-single-chokepoint)),
+  and the entry editor does not flag one as discouraged, even when the
+  dialect's own discouraged list (a preset copy keeps the default one) holds
+  that word (`canonicalize`; the implementer's call, following the ruling).
   Everything a dialect can set is editable in Settings → Dialect:
   role terms, per-move substitutions, dancer-term substitutions, and the
   discouraged-terms list. Users may
@@ -220,8 +224,7 @@ wording, saved unchanged, reads as the default line. Imported
   programs only while no other form still has a dialect of the old name;
   otherwise programs keep the old name, which that other form still answers
   to (implementer's call; recording the form beside the name was rejected as
-  a persisted-format change). A name the app picks itself, such as the
-  rename of a gendered name on load, avoids every form's names. Delete never
+  a persisted-format change). Delete never
   writes to programs.
   Rename does (amended 2026-10-29, @ibanner56's ruling on PRES-11/LIFE-11):
   `DialectLibraryController.rename` saves the library, then
@@ -249,7 +252,10 @@ wording, saved unchanged, reads as the default line. Imported
   returns a copy with `lark`/`robin` role terms. It also
   drops the reader's single-dancer substitutions (`onesRole1` …, which usually
   spell a role) and stops flagging lark and robin as discouraged. Move
-  substitutions and wordings stay the reader's. A dance requires it when any
+  substitutions and wordings stay the reader's, even one that holds a
+  gendered word, which a caller's own dialect may now do (ADR-006 §9.1,
+  point 7; whether her dances should drop those too is open for the
+  maintainer, and keeping them as written is the implementer's call). A dance requires it when any
   author's name has Rachel or Rae as its first word and Fifer as its last.
   "Renewed Joy" and "If I Was Dead and It Wouldn't Go To Waste" also require it
   when no author is named (none, or only Unknown/Traditional), so a dance
