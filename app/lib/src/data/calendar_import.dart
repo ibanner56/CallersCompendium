@@ -16,9 +16,9 @@ import 'program_templates.dart';
 /// The address is a secret (a private calendar's holds an access token), so
 /// it is never stored on a program. Each draft instead gets a digest: a
 /// 128-bit salt drawn at random for that program, then the first 128 bits of
-/// HMAC-SHA256 keyed with the salt over the address as fetched
-/// ([calendarFeedFetchUrl]: `webcal://` read as `https://`), both as lower-case
-/// hex, 64 digits in all. [matches] recomputes it with the program's own salt
+/// HMAC-SHA256 keyed with the salt over the address in a normal form
+/// ([normalizedCalendarFeedAddress]), both as lower-case hex, 64 digits in
+/// all. [matches] recomputes it with the program's own salt
 /// over the address being read. Because every program's salt differs, two
 /// programs from one calendar, or two libraries with the same calendar, hold
 /// unrelated values; someone holding a digest who guesses the exact address
@@ -27,7 +27,7 @@ import 'program_templates.dart';
 class CalendarFeedSource {
   /// [random] is a test seam; it defaults to [math.Random.secure].
   CalendarFeedSource(String url, {math.Random? random})
-    : _address = utf8.encode(calendarFeedFetchUrl(url)),
+    : _address = utf8.encode(normalizedCalendarFeedAddress(url)),
       _random = random ?? math.Random.secure();
 
   final List<int> _address;
@@ -103,6 +103,22 @@ class CalendarImportEntry {
 
   /// Whether that box starts ticked.
   bool get tickedByDefault => state == CalendarEntryState.fresh;
+}
+
+/// [url] as [CalendarFeedSource] digests it: trimmed, `webcal://` read as
+/// `https://` ([calendarFeedFetchUrl]), then in [Uri]'s normal form, which
+/// lower-cases the scheme and host, normalises percent-encoding and drops a
+/// default port, as the fetch itself reads it. The path and query keep their
+/// case. So two spellings of one address are one calendar. An address [Uri]
+/// cannot read is used as it is: it cannot be fetched either.
+String normalizedCalendarFeedAddress(String url) {
+  final fetched = calendarFeedFetchUrl(url);
+  try {
+    return Uri.parse(fetched).toString();
+  } on FormatException {
+    // diagnostics: silent — not an error: such an address is never fetched.
+    return fetched;
+  }
 }
 
 /// What a calendar import found, ready to preview.
@@ -365,7 +381,7 @@ CalendarChangeOffer? _changeOffer(
   final stored = program.calendarEventFingerprint;
   if (stored == c.fingerprint) return null;
   final upstream = calendarFingerprintChanges(stored, c.fingerprint);
-  // With no usable fingerprint (a program imported before #2354), compare
+  // With no usable fingerprint (one this build cannot read, or none), compare
   // the program's own values: it is treated as worked on.
   final untouched = upstream != null && program.isUntouchedCalendarDraft;
   final newTitle = c.title.trim().isEmpty ? null : c.title;

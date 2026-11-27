@@ -1049,7 +1049,9 @@ file past v39 already ran that repair on the same open.)
   (pre-release audit finding E1-01). Adds one nullable `programs` column,
   `calendar_feed_digest` (`Program.calendarFeedDigest`): a 128-bit salt drawn
   for each program and the first 128 bits of HMAC-SHA256, keyed with it, of
-  the calendar address as fetched, 64 hex digits; never the address. A
+  the calendar address in a normal form (`normalizedCalendarFeedAddress`:
+  `webcal://` read as `https://`, scheme and host lower-cased), 64 hex digits;
+  never the address. A
   calendar import compares a program (change offers, `cancelled`, `missing`)
   only with a calendar whose address matches it, and NULL, which every
   existing program has, matches none. It syncs, is kept in backups (envelope

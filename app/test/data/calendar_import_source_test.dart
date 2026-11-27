@@ -189,24 +189,30 @@ void main() {
       ]);
     });
 
-    test(
-      'the webcal:// spelling of the address is the same calendar',
-      () async {
-        final repos = openTestRepositories();
-        await _importNew(
+    test('other spellings of the address are the same calendar', () async {
+      final repos = openTestRepositories();
+      await _importNew(
+        repos,
+        _feedA,
+        'webcal://calendar.example/private-s3cr3tt0ken/gigs.ics',
+      );
+      expect(_flags(await _preview(repos, _empty, _urlA)), [
+        ('My gig at Glen Echo', calendarFlagMissing),
+      ]);
+      expect(
+        (await _preview(repos, _feedAMoved, '  $_urlA ')).changes,
+        hasLength(1),
+      );
+      // Scheme and host case, as a pasted address may have them.
+      expect(
+        (await _preview(
           repos,
-          _feedA,
-          'webcal://calendar.example/private-s3cr3tt0ken/gigs.ics',
-        );
-        expect(_flags(await _preview(repos, _empty, _urlA)), [
-          ('My gig at Glen Echo', calendarFlagMissing),
-        ]);
-        expect(
-          (await _preview(repos, _feedAMoved, '  $_urlA ')).changes,
-          hasLength(1),
-        );
-      },
-    );
+          _feedAMoved,
+          'HTTPS://Calendar.Example/private-s3cr3tt0ken/gigs.ics',
+        )).changes,
+        hasLength(1),
+      );
+    });
   });
 
   group('a program with no recorded calendar is never judged', () {
@@ -339,6 +345,16 @@ void main() {
       for (final part in ['s3cr3tt0ken', 'calendar', 'example', 'gigs']) {
         expect(digest, isNot(contains(part)));
       }
+    });
+
+    test('keeps the path\'s case: another path is another calendar', () {
+      final digest = CalendarFeedSource(_urlA).newDigest();
+      expect(
+        CalendarFeedSource(
+          'https://calendar.example/private-S3CR3TT0KEN/gigs.ics',
+        ).matches(digest),
+        isFalse,
+      );
     });
 
     test('does not match another address, or anything malformed', () {

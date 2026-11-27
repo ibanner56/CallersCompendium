@@ -1,5 +1,6 @@
 import 'package:clock/clock.dart';
-import 'package:compendium_app/src/data/calendar_import.dart' show CalendarFeedSource;
+import 'package:compendium_app/src/data/calendar_import.dart'
+    show CalendarFeedSource;
 import 'package:compendium_app/src/data/calendar_import_settings.dart';
 import 'package:compendium_app/src/data/date_format_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
