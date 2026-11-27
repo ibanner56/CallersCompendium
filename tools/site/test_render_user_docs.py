@@ -382,16 +382,18 @@ def test_hand_written_site_pages_name_the_licence_as_the_app_does() -> None:
 
 
 def test_the_home_page_names_perform_mode_as_the_app_does() -> None:
-    """The home page uses the app's own name for Perform mode, not an older one."""
+    """The home page and the site's README use the app's name for Perform mode."""
     arb = (REPO_ROOT / "app" / "lib" / "l10n" / "app_en.arb").read_text(encoding="utf-8")
     match = re.search(r'"settingsGeneralPerformanceHeader": "([^"]+)"', arb)
     assert match, "app_en.arb no longer has settingsGeneralPerformanceHeader"
     name = match.group(1)
     home = (REPO_ROOT / "site" / "index.html").read_text(encoding="utf-8")
     assert name in home, f"site/index.html never says {name!r}"
-    assert "Performance mode" not in home, (
-        f"site/index.html says 'Performance mode'; the app calls it {name!r}"
-    )
+    for page in (REPO_ROOT / "site" / "index.html", REPO_ROOT / "site" / "README.md"):
+        old_name = re.search(r"performance\s+mode", page.read_text(encoding="utf-8"), re.IGNORECASE)
+        assert not old_name, (
+            f"{page.relative_to(REPO_ROOT)} says {old_name.group(0)!r}; the app calls it {name!r}"
+        )
 
 
 def test_repo_url_gate_flags_a_wrong_kind_or_missing_path() -> None:

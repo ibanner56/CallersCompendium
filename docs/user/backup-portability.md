@@ -290,19 +290,22 @@ apps. That copy is made by your device's system, not by Caller's Compendium,
 and it is not the same as a backup file you export here.
 
 - **Android.** The app does not opt out of Android's backup. If backup to your
-  Google account is turned on in your phone's settings, Android copies the
+  Google account is turned on in your phone's settings, Android can copy the
   app's data to your Google account, and puts it back when you reinstall the
   app or set up a new phone from that backup. Moving to a new phone with
-  Android's transfer from the old one copies it too.
+  Android's transfer from the old one can copy it too.
 - **iPhone and iPad.** An iCloud or computer backup of the device includes the
   app's data, and restoring the device from it puts the data back.
 
-That copy is everything the app keeps on the device, so it includes what an
+That copy is the app's stored data, so it includes what an
 exported backup leaves out: your [calendar address](./settings.md#calendar),
 everything about [Device Sync](./settings.md#device-sync), half-finished edits
 you hadn't saved, and the [diagnostics log](./settings.md#diagnostics). A phone
-set up from it already has your calendar address, and if Device Sync was on, it
-is on there too, with the same store and server.
+set up from it already has your calendar address. If Device Sync was on, it is
+on there too, connected to the same store as the same device as the old one:
+it keeps the old device's identity instead of making up its own. Device Sync
+expects each device to connect as itself, and isn't built for two devices
+sharing one identity.
 
 Whether your device makes these copies is set in your device's own backup
 settings; the app has no setting for it. Uninstalling the app doesn't delete a

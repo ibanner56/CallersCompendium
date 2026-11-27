@@ -602,7 +602,9 @@ While you build, the app keeps a draft of your changes on this device, so a
 program you were building when the app closed isn't lost. The next time you
 open that program, the app offers the draft back — **Restore** to pick up
 where you left off, or **Discard** to start from the last saved version. Drafts
-stay on your device; they are never uploaded, shared, or included in backups.
+stay on your device; they are never uploaded, shared, or included in backup
+files. Your [device's own backup](./backup-portability.md#your-devices-own-backup)
+can copy them with the rest of the app's data.
 
 If another of your devices changed the program's [times](#times) or its linked
 venue after the draft was saved, **Restore** keeps those changes for anything

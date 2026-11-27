@@ -108,15 +108,17 @@ are created and kept by you; we never receive them.
 **Your device's own backup.** Separately from the app's backup file, your phone,
 tablet or computer can back up the app's data along with your other apps. The
 app does not opt out of Android's backup: if backup to your Google account is
-turned on in your phone's settings, Android copies the app's data there, and
-moving to a new phone with Android's transfer copies it to the new phone. On
+turned on in your phone's settings, Android can copy the app's data there, and
+moving to a new phone with Android's transfer can copy it to the new phone. On
 iPhone and iPad, an iCloud or computer backup of the device includes it too.
-These copies hold everything the app keeps on the device, including what the
-app's own backup file leaves out: your calendar address, your Device Sync
-settings (whether sync is on, and which store and server it uses), edits you
-have not saved yet, and the app's diagnostics log. Restoring one, or setting up a new phone from one, puts all
-of it back. These copies are made and kept by your device's system and your
-Google or Apple account, under their settings, not by us; we never receive them.
+These copies hold the app's stored data, including what the app's own backup
+file leaves out: your calendar address, your Device Sync settings (whether sync
+is on, and which store and server it uses), edits you have not saved yet, and
+the app's diagnostics log. Restoring one, or setting up a new phone from one,
+puts all of it back; with Device Sync on, the restored copy keeps the identifier
+of the device it was copied from instead of making up its own. These copies are
+made and kept by your device's system and your Google or Apple account, under
+their settings, not by us; we never receive them.
 
 ### 3. Network connections the app makes
 

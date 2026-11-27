@@ -153,8 +153,9 @@ any track (including testing) can go live. Answers are drafted in
   [`listing-copy.md`](listing-copy.md#data-safety-google-play). Android's own
   device backup is separate: the manifest sets no `android:allowBackup`, so
   Android's backup to the user's Google account and its phone-to-phone transfer
-  copy the app's whole data directory, database included. That copy goes to the
-  user's own Google account, never to us; the privacy policy (section 2) and the
+  can copy the app's files, database included (cache and `no_backup` excepted).
+  The copy goes to the user's own Google account or new phone, never to us; the
+  privacy policy (section 2) and the
   user guide ([backup-portability.md](../../user/backup-portability.md#your-devices-own-backup))
   say so.
 - [x] **[Gate]** **Government apps / financial / health / etc.** declarations —

@@ -44,8 +44,8 @@ stay up to date.
   title, author, type, formation, level, your own custom fields, or the
   choreography itself — even "a chain, then a swing, in B2" — and save the
   searches you use again. Enter figures with
-  the structured editor or type them as free text, using your own shorthands,
-  and have them parsed into editable figures. Keep a step-by-step
+  the structured editor or, for contra and English dances, type them as free
+  text, using your own shorthands, and have them parsed into editable figures. Keep a step-by-step
   **Walkthrough** on each dance, pre-filled from a reusable snippet library, and
   group your collection by category to find the right dance mid-evening. Select
   many dances to tag, rate, set the status of, or delete them together, and
