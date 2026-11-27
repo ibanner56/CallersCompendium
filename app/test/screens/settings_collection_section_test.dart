@@ -2,12 +2,15 @@
 // this version cannot read last under Needs attention, each renamed or
 // deleted with Undo, against a real in-memory database.
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/settings/collection_section.dart';
 
+import '../support/fail_once_interceptor.dart';
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
@@ -91,6 +94,41 @@ void main() {
 
     expect(
       find.byKey(const ValueKey('settings-saved-searches-none')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a list that could not be read says so, with Try again, and '
+      'never that there are none', (tester) async {
+    final failing = FailOnceInterceptor('settings');
+    final db = openWidgetTestDatabase(
+      executor: NativeDatabase.memory().interceptWith(failing),
+      closeOnTearDown: false,
+    );
+    addTearDown(db.close);
+    final repos = CompendiumRepositories(db, contraTaxonomy);
+    final saved = await _seed(repos, 'Alpha', 'alpha');
+    failing.arm();
+
+    await _pump(tester, repos);
+
+    expect(failing.fired, isTrue);
+    expect(
+      find.byKey(const ValueKey('settings-saved-searches-none')),
+      findsNothing,
+      reason: 'there is one; reading the list is what failed',
+    );
+    expect(
+      find.byKey(const ValueKey('settings-saved-searches-error')),
+      findsOneWidget,
+    );
+    await _tap(tester, 'load-error-retry');
+    expect(
+      find.byKey(const ValueKey('settings-saved-searches-error')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(ValueKey('settings-saved-search-${saved.id}')),
       findsOneWidget,
     );
   });

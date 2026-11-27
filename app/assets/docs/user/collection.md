@@ -222,7 +222,8 @@ to search.
 The row of buttons (with the source selector, while it shows) and the count of
 matching dances above the list stay at the top of the list as you scroll, so
 you can always see how many dances match and change your search without
-scrolling back up. An open panel scrolls away between the two. On a short
+scrolling back up. An open panel scrolls away between the two; opening one
+from far down the list scrolls back to show it. On a short
 screen with very large text, either one that would leave less than half of the
 list showing scrolls with it instead.
 
@@ -501,7 +502,9 @@ it once and choose it from then on.
   *Bouncey*, which was deleted"). Nothing is left out quietly: remove that
   criterion yourself, then **Update** the search. A filter on a deleted custom
   field can't be run, so it is left out of the results until you remove it; the
-  notice says so.
+  notice says so. Each such filter has a chip of its own under **Deleted or
+  changed custom fields** in **Filters** (as does one on a field whose type has
+  changed), so you can remove it without clearing your other filters.
 - **Manage them in Settings.** [Settings ▸ Collection ▸ Saved
   searches](./settings.md#saved-searches) lists every saved search, to rename
   or delete. One that this version of the app can't read (saved by a newer
@@ -847,7 +850,9 @@ Select a dance to open it. Select any other row and the Collection shows the
 dances behind it, as a search you can change: **Never called** applies
 **Not called**; a move applies that type and a **Has figure** row in
 **Advanced**; an author, formation or venue applies that filter with
-**Called** and the period. Whatever you had searched for before is replaced.
+**Called** and the period. Whatever you had searched for before is replaced,
+and a saved search you had loaded is no longer in use, so **Update** can't save
+this search over it.
 
 ## Jump straight to a dance or program
 

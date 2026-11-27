@@ -4892,6 +4892,15 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionFacetMissingValue => 'Ikke i dit bibliotek';
 
   @override
+  String get collectionFacetStaleFields =>
+      'Slettede eller ændrede brugerdefinerede felter';
+
+  @override
+  String collectionFacetStaleFieldValue(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
   String get collectionFacetClear => 'Ryd filtre';
 
   @override
@@ -14865,6 +14874,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSavedSearchesHeader => 'Gemte søgninger';
+
+  @override
+  String get settingsSavedSearchesLoadError =>
+      'Kunne ikke indlæse dine gemte søgninger. Intet blev ændret. Prøv igen.';
 
   @override
   String get settingsSavedSearchesEmpty =>

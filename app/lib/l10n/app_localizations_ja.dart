@@ -4662,6 +4662,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionFacetMissingValue => 'ライブラリにありません';
 
   @override
+  String get collectionFacetStaleFields => '削除または変更されたカスタムフィールド';
+
+  @override
+  String collectionFacetStaleFieldValue(String field, String value) {
+    return '$field：$value';
+  }
+
+  @override
   String get collectionFacetClear => 'フィルターをクリア';
 
   @override
@@ -14283,6 +14291,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSavedSearchesHeader => '保存した検索';
+
+  @override
+  String get settingsSavedSearchesLoadError =>
+      '保存した検索を読み込めませんでした。何も変更されていません。もう一度お試しください。';
 
   @override
   String get settingsSavedSearchesEmpty =>

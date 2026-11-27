@@ -4892,6 +4892,14 @@
   "@collectionFacetMissingValue": {
     "x-sourceSha256": "52e6640837ec2055afd1c0768ff09c3b4cff9dac7b6ff011c74c5f8d57ede77a"
   },
+  "collectionFacetStaleFields": "Champs personnalisés supprimés ou modifiés",
+  "@collectionFacetStaleFields": {
+    "x-sourceSha256": "8018aaeca2c1f5647df621ff8ca322f3c0090e71977e4b6f3aa82c4621347e69"
+  },
+  "collectionFacetStaleFieldValue": "{field} : {value}",
+  "@collectionFacetStaleFieldValue": {
+    "x-sourceSha256": "d3ba5ccd5a5fb39ef6e9fff0582fbef871d2952d1fa9e1e2b454753407c5e043"
+  },
   "collectionFacetClear": "Effacer les filtres",
   "@collectionFacetClear": {
     "x-sourceSha256": "7179ea0035fca783ec62b7185659b68c75f2a7c12b909306a57183dc9b3fa44b"
@@ -14213,6 +14221,10 @@
   "settingsSavedSearchesHeader": "Recherches enregistrées",
   "@settingsSavedSearchesHeader": {
     "x-sourceSha256": "3e3e125453ca1f3b012dfb95c2ebb8a9acbd3b242263cd2332e6f45216a91112"
+  },
+  "settingsSavedSearchesLoadError": "Impossible de charger vos recherches enregistrées. Rien n’a été modifié. Réessayez.",
+  "@settingsSavedSearchesLoadError": {
+    "x-sourceSha256": "3b1b1bb413ceda2447591a5a12358757225c9663065e2f89610b561f366b60c3"
   },
   "settingsSavedSearchesEmpty": "Aucune recherche enregistrée pour l'instant. Enregistrez-en une depuis la collection : préparez une recherche, puis choisissez Enregistrer cette recherche… dans le menu Plus d’actions.",
   "@settingsSavedSearchesEmpty": {
