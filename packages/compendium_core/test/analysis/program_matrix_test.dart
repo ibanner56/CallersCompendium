@@ -264,6 +264,16 @@ void main() {
       expect(ids(matrix), containsAll(['chain:larks', 'chain:robins']));
     });
 
+    test('a role among numbered neighbours shares its role\'s column', () {
+      // v40: `N2 Women chain` is a robins chain, `N0 Men allemande` a larks one.
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [chain('nextRole2s')]),
+        dance('d2', 'B', [allemande('prevRole1s')]),
+      ]);
+      expect(ids(matrix), containsAll(['chain:robins', 'allemande:larks']));
+      expect(ids(matrix).where((k) => k.endsWith(':other')), isEmpty);
+    });
+
     test('an unusual allemande who lands in the other bucket', () {
       final matrix = buildProgramMatrix([
         dance('d1', 'A', [allemande('everyone')]),

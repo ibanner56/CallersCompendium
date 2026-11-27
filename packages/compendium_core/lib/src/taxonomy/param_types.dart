@@ -265,11 +265,14 @@ String? invertPairDancerSet(String who) => ParamVocab.pairInverse[who];
 /// shared-recognizer `_chain` parsers, the one-time backfill sweep, and the
 /// canonical/display silencing rule in `renderer.dart`. Kept here (not in
 /// `contra_taxonomy.dart`) because the app-layer editor needs it too.
+///
+/// Since taxonomy v40 a role among the previous or next neighbours takes its
+/// role's hand: `nextRole2s` (the next ladles) right, `prevRole1s` left.
 String? chainHandForWho(String who) {
   switch (who) {
-    case 'role2s':
+    case 'role2s' || 'prevRole2s' || 'nextRole2s':
       return 'right';
-    case 'role1s':
+    case 'role1s' || 'prevRole1s' || 'nextRole1s':
       return 'left';
     default:
       return null;
