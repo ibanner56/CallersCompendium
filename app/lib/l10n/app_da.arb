@@ -224,9 +224,9 @@
   "@migrationBelowFloorBody": {
     "x-sourceSha256": "6855c6b21e03dea3850d71a05c79c42f710923c44dfb9f02f392e81939616c9d"
   },
-  "migrationBelowFloorBodyAndroid": "Dine data er stadig på denne enhed, men denne version kan ikke opdatere dem. Afinstaller ikke appen: Det sletter dine data, og Android vil alligevel ikke installere {bridgeTag} oven på denne version. Behold appen installeret, nulstil den ikke, og vælg »Kopiér detaljer«, når du beder om hjælp.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.",
+  "migrationBelowFloorBodyAndroid": "Dine data er stadig på denne enhed, men denne version kan ikke opdatere dem. Afinstaller ikke appen: Det sletter dine data, og Android vil alligevel ikke installere {bridgeTag} oven på denne version. For at beholde dine data skal du lade appen være installeret og ikke nulstille den, og vælge »Kopiér detaljer«, når du beder om hjælp.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.",
   "@migrationBelowFloorBodyAndroid": {
-    "x-sourceSha256": "1149cbdc1787b73d2968465bf62298a40ff962c89017eb8e3a2c274ca36a33ce"
+    "x-sourceSha256": "d7d6e28193c75cf55eaae8bffed52d211d90c33dac693e4b9c5d5012ce926478"
   },
   "migrationBelowFloorBodyIos": "Dine data er stadig på denne enhed. Slet ikke appen: Det sletter dine data. Åbn Caller’s Compendium i TestFlight, og kig under »Tidligere builds« efter version {bridgeVersion}. Hvis den står der, så installer den, åbn appen én gang for at lade den opdatere dine data, og installer derefter det nyeste build igen. Hvis den ikke står der, så lad appen være, som den er, og vælg »Kopiér detaljer«, når du beder om hjælp.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.",
   "@migrationBelowFloorBodyIos": {

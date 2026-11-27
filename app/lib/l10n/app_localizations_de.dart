@@ -230,7 +230,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String migrationBelowFloorBodyAndroid(String bridgeTag) {
-    return 'Deine Daten sind noch auf diesem Gerät, aber diese Version kann sie nicht aktualisieren. Deinstalliere die App nicht: Dabei werden deine Daten gelöscht, und Android installiert $bridgeTag ohnehin nicht über diese Version. Lass die App installiert, setze sie nicht zurück und wähle „Details kopieren“, wenn du um Hilfe bittest.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.';
+    return 'Deine Daten sind noch auf diesem Gerät, aber diese Version kann sie nicht aktualisieren. Deinstalliere die App nicht: Dabei werden deine Daten gelöscht, und Android installiert $bridgeTag ohnehin nicht über diese Version. Damit deine Daten erhalten bleiben, lass die App installiert, setze sie nicht zurück und wähle „Details kopieren“, wenn du um Hilfe bittest.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.';
   }
 
   @override

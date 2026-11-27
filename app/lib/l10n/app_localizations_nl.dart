@@ -231,7 +231,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String migrationBelowFloorBodyAndroid(String bridgeTag) {
-    return 'Je gegevens staan nog op dit apparaat, maar deze versie kan ze niet bijwerken. Verwijder de app niet: daarmee worden je gegevens gewist, en Android installeert $bridgeTag sowieso niet over deze versie heen. Laat de app geïnstalleerd, zet haar niet terug en kies ‘Details kopiëren’ als je om hulp vraagt.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.';
+    return 'Je gegevens staan nog op dit apparaat, maar deze versie kan ze niet bijwerken. Verwijder de app niet: daarmee worden je gegevens gewist, en Android installeert $bridgeTag sowieso niet over deze versie heen. Wil je je gegevens houden, laat de app dan geïnstalleerd, reset haar niet en kies ‘Details kopiëren’ als je om hulp vraagt.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.';
   }
 
   @override

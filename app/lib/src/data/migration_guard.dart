@@ -38,7 +38,11 @@ const String _pinnedSuffix = '.pinned$_snapshotSuffix';
 /// forward path is a one-time migration bridge (open the database with the
 /// newest release that predates the floor, let it migrate to a supported
 /// version, then update again). The AppBootstrap error screen localizes the
-/// explanation and provides that guidance.
+/// explanation, and its guidance depends on the platform (`BelowFloorRoute` in
+/// `migration_error_labels.dart`): on desktop it gives that route, on iPhone
+/// and iPad it points to TestFlight's earlier builds, and on Android, which
+/// will not install an older release over a newer one, it says not to
+/// uninstall or reset instead.
 ///
 /// [bridgeTag] is the release tag of the newest release that can still open
 /// and migrate a database at [fileVersion] to a version at or above the floor —

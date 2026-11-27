@@ -224,9 +224,9 @@
   "@migrationBelowFloorBody": {
     "x-sourceSha256": "6855c6b21e03dea3850d71a05c79c42f710923c44dfb9f02f392e81939616c9d"
   },
-  "migrationBelowFloorBodyAndroid": "Je gegevens staan nog op dit apparaat, maar deze versie kan ze niet bijwerken. Verwijder de app niet: daarmee worden je gegevens gewist, en Android installeert {bridgeTag} sowieso niet over deze versie heen. Laat de app geïnstalleerd, zet haar niet terug en kies ‘Details kopiëren’ als je om hulp vraagt.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.",
+  "migrationBelowFloorBodyAndroid": "Je gegevens staan nog op dit apparaat, maar deze versie kan ze niet bijwerken. Verwijder de app niet: daarmee worden je gegevens gewist, en Android installeert {bridgeTag} sowieso niet over deze versie heen. Wil je je gegevens houden, laat de app dan geïnstalleerd, reset haar niet en kies ‘Details kopiëren’ als je om hulp vraagt.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.",
   "@migrationBelowFloorBodyAndroid": {
-    "x-sourceSha256": "1149cbdc1787b73d2968465bf62298a40ff962c89017eb8e3a2c274ca36a33ce"
+    "x-sourceSha256": "d7d6e28193c75cf55eaae8bffed52d211d90c33dac693e4b9c5d5012ce926478"
   },
   "migrationBelowFloorBodyIos": "Je gegevens staan nog op dit apparaat. Verwijder de app niet: daarmee worden je gegevens gewist. Open in TestFlight Caller’s Compendium en zoek onder ‘Vorige builds’ naar versie {bridgeVersion}. Staat die erbij, installeer haar dan, open de app één keer zodat je gegevens worden bijgewerkt en installeer daarna weer de nieuwste build. Staat die er niet bij, laat de app dan zoals ze is en kies ‘Details kopiëren’ als je om hulp vraagt.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.",
   "@migrationBelowFloorBodyIos": {

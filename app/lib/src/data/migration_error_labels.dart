@@ -57,7 +57,7 @@ BelowFloorRoute belowFloorRouteFor(TargetPlatform platform) =>
     };
 
 /// The version number TestFlight shows for the release tagged [bridgeTag]: its
-/// `X.Y.Z` core without the leading `v` or a `-beta` suffix (the iOS build's
+/// major.minor.patch core without the leading `v` or a `-beta` suffix (the iOS build's
 /// version is the pubspec's, which carries neither). A tag that does not start
 /// with a version core is returned unchanged.
 String bridgeVersionForTestFlight(String bridgeTag) =>

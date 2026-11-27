@@ -281,7 +281,7 @@
       }
     }
   },
-  "migrationBelowFloorBodyAndroid": "Your data is still on this device, but this version can't update it. Don't uninstall the app: that deletes your data, and Android won't install {bridgeTag} over this version anyway. Keep the app installed, don't reset it, and choose Copy details when you ask for help.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.",
+  "migrationBelowFloorBodyAndroid": "Your data is still on this device, but this version can't update it. Don't uninstall the app: that deletes your data, and Android won't install {bridgeTag} over this version anyway. To keep your data, leave the app installed and don't reset it, and choose Copy details when you ask for help.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.",
   "@migrationBelowFloorBodyAndroid": {
     "description": "Body of the below-floor recovery screen on Android, in place of migrationBelowFloorBody. Android refuses to install an older release over a newer one, and uninstalling deletes the app's data, so the desktop route (install the older release, then this one again) would lose the library there. 'Copy details' is the label of the button below (appBootstrapCopyDetails). {bridgeTag} is the release tag of the migration-bridge release.",
     "placeholders": {
