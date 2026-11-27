@@ -4045,11 +4045,13 @@ FROM seq
           id: 'structured',
           title: 'Structured',
           figures: [
+            // Left hands: the word "right" is in the query's contra
+            // phrase, not in the figures.
             Figure(
               move: 'allemande',
-              params: const {'who': 'neighbors', 'hand': 'right'},
+              params: const {'who': 'neighbors', 'hand': 'left'},
             ),
-            Figure(move: 'star', params: const {'hand': 'right'}),
+            Figure(move: 'star', params: const {'hand': 'left'}),
           ],
         ),
       );
