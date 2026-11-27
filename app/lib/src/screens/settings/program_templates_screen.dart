@@ -1305,6 +1305,10 @@ class _ProgramTemplateSlotsEditorState
             Builder(
               builder: (context) {
                 final entry = widget.entries[index];
+                final ruleSubtitle = entry.isRule
+                    ? _ruleSubtitle(l10n, entry.savedSearchId!)
+                    : null;
+                final badge = l10n.programTemplateSlotRuleBadge;
                 return ListTile(
                   key: ValueKey(
                     'program-template-slot-${identityHashCode(_entryKeys[index])}',
@@ -1314,7 +1318,11 @@ class _ProgramTemplateSlotsEditorState
                   leading: entry.isRule
                       ? Icon(
                           Icons.manage_search,
-                          semanticLabel: l10n.programTemplateSlotRuleBadge,
+                          // The icon says what the row is, unless its
+                          // subtitle already says it (the saved searches not
+                          // read yet, or not readable): then a screen reader
+                          // would hear "Slot rule" twice.
+                          semanticLabel: ruleSubtitle == badge ? null : badge,
                         )
                       : null,
                   title: Text(
@@ -1323,9 +1331,9 @@ class _ProgramTemplateSlotsEditorState
                         : widget.danceTitles[entry.danceId] ??
                               l10n.settingsDefaultsStartingProgramUnavailableDance,
                   ),
-                  subtitle: entry.isRule
+                  subtitle: ruleSubtitle != null
                       ? Text(
-                          _ruleSubtitle(l10n, entry.savedSearchId!),
+                          ruleSubtitle,
                           key: ValueKey(
                             'program-template-rule-subtitle-$index',
                           ),

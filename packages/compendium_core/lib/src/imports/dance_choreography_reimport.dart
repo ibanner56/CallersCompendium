@@ -5,7 +5,7 @@ import '../storage/repositories/repositories.dart';
 
 /// [existing] with only its choreography — figures, formation, progression
 /// and the form they are written in — taken from [incoming], and an empty
-/// meter or key filled from it (below).
+/// meter or key, or the standard phrase structure, filled from it (below).
 ///
 /// This is the whole of what a re-import changes, from every source: the
 /// detail screen's **Re-import choreography** and the import review's
@@ -42,6 +42,13 @@ import '../storage/repositories/repositories.dart';
 /// Music only as a note, and re-imported as English it would otherwise count
 /// its bars at two beats where the source counted three. A meter or key the
 /// existing dance already has is the person's and stays.
+///
+/// The phrases those figures are counted against travel with them the same
+/// way: when the incoming figures are taken and the existing dance has the
+/// standard phrase structure (stored as `''`), the incoming structure
+/// replaces it, so a dance in 3/2 counts its phrases in 3-beat bars (`4*8*3`)
+/// as a fresh import of it would. A structure the existing dance already has
+/// (one the person set, or an earlier import's) stays.
 Dance withReimportedChoreography(
   Dance existing,
   Dance incoming, {
@@ -68,6 +75,10 @@ Dance withReimportedChoreography(
         : null,
     musicalKey: incomingFigures != null && existing.musicalKey.isEmpty
         ? incoming.musicalKey
+        : null,
+    phraseStructure:
+        incomingFigures != null && existing.phraseStructure.raw.isEmpty
+        ? incoming.phraseStructure.raw
         : null,
     formation: keepsForm ? null : incoming.formation,
     progression: incoming.progression,
