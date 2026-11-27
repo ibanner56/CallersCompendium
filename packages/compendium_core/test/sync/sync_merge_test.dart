@@ -1237,7 +1237,7 @@ void main() {
   group('a newest copy that holds no field added after v0.10.0-beta '
       '(pre-release audit finding MIG-05)', () {
     // Every field this build writes only when set, which no build up to
-    // v0.10.0-beta writes at all (sync-spec §6.10). `alternateTitles` and
+    // v0.10.0-beta writes at all (sync-spec §6.7). `alternateTitles` and
     // `interpreterIds` are evidence only: they are unioned, never taken
     // from one copy.
     const scalars = <String, Object?>{

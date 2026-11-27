@@ -356,7 +356,7 @@ Map<String, Object?> _mergeDanceBodies(
   // clear. No build up to v0.10.0-beta writes any of them, and this build's
   // copy that holds none is the same bytes as one of those, so a latest copy
   // that holds none of them cannot say it cleared any: each is then taken
-  // from the most recent copy that holds it (sync-spec §6.10, pre-release
+  // from the most recent copy that holds it (sync-spec §6.7, pre-release
   // audit finding MIG-05).
   final speaksForNewFields = _holdsPostV010DanceField(latest.blob.body);
   SyncMergeCandidate source(bool Function(Map<String, Object?> body) holds) {
@@ -396,11 +396,11 @@ Map<String, Object?> _mergeDanceBodies(
     (b) =>
         b['formation'] is Map && (b['formation']! as Map)['improper'] == true,
   ).blob.body;
-  final latestFormation = improperSource['formation'];
+  final improperFormation = improperSource['formation'];
   final survivorFormation = body['formation'];
-  if (latestFormation is Map && survivorFormation is Map) {
+  if (improperFormation is Map && survivorFormation is Map) {
     final formation = Map<String, Object?>.from(survivorFormation);
-    if (latestFormation['improper'] == true) {
+    if (improperFormation['improper'] == true) {
       formation['improper'] = true;
     } else {
       formation.remove('improper');
