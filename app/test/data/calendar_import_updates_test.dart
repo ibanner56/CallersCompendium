@@ -344,6 +344,7 @@ void main() {
               title: 'Far',
               eventDate: DateTime.utc(2030, 9, 1),
               calendarEventKey: calendarEventKey('far', ''),
+              calendarFeedDigest: CalendarFeedSource(_feedUrl).newDigest(),
               createdAt: _t0,
               updatedAt: _t0,
             ),
@@ -1011,11 +1012,14 @@ void main() {
         eventDate: DateTime.utc(2030, 6, 20),
         venue: 'Glen Echo Park',
         calendarEventKey: calendarEventKey('a', ''),
+        calendarFeedDigest: CalendarFeedSource(_feedUrl).newDigest(),
         createdAt: _t0,
         updatedAt: _t0,
       ),
     );
     final preview = await _preview(repos, _original);
+    // Compared with its calendar: there is an offer, with nothing to show.
+    expect(preview.changes.single.program.id, 'old');
     expect(preview.hasPendingWrites, isFalse);
     await applyCalendarUpdates(repos, preview: preview, accepted: {}, now: _t1);
     expect((await _only(repos)).updatedAt, _t0);
@@ -1031,6 +1035,7 @@ void main() {
         eventDate: DateTime.utc(2030, 6, 20),
         venue: 'Glen Echo Park',
         calendarEventKey: calendarEventKey('a', ''),
+        calendarFeedDigest: CalendarFeedSource(_feedUrl).newDigest(),
         createdAt: _t0,
         updatedAt: _t0,
       ),
@@ -1050,7 +1055,7 @@ void main() {
     expect(preview.changes.single.untouched, isFalse);
   });
 
-  test('all three fields are stripped from share files', () {
+  test('every calendar field is stripped from share files', () {
     final p = Program(
       id: 'p',
       title: 'T',
@@ -1058,6 +1063,7 @@ void main() {
       calendarEventFingerprint: 'v1:0:0:0',
       calendarWrittenAt: _t0,
       calendarFlag: calendarFlagMissing,
+      calendarFeedDigest: CalendarFeedSource(_feedUrl).newDigest(),
       createdAt: _t0,
       updatedAt: _t0,
     );
@@ -1065,6 +1071,7 @@ void main() {
     expect(shared.calendarEventFingerprint, isNull);
     expect(shared.calendarWrittenAt, isNull);
     expect(shared.calendarFlag, isNull);
+    expect(shared.calendarFeedDigest, isNull);
   });
 
   test('an unknown calendar_flag value decodes without failing the record', () {

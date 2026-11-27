@@ -157,7 +157,11 @@ class CalendarImportPreview {
 /// Parses [body] (a fetched feed) and compares it with the collection.
 ///
 /// [feedUrl] is the address [body] was fetched from: each draft records which
-/// calendar it came from ([CalendarFeedSource]).
+/// calendar it came from ([CalendarFeedSource]), and only programs whose
+/// recorded calendar is this one get change offers, flags and
+/// [CalendarImportPreview.stillFlagged]. A program from another calendar, or
+/// with none recorded, is left as it is; its event is still recognised as
+/// [CalendarEntryState.alreadyImported].
 /// [today] is the local date ([clock] in the caller); [toLocal] converts a
 /// UTC instant to local time. Both are parameters so tests can inject them.
 /// Throws [NotACalendarException] for a body that is not a calendar.
@@ -230,6 +234,9 @@ Future<CalendarImportPreview> buildCalendarImportPreview(
   }
   // #2354: what changed upstream for programs already imported, and which
   // ones the calendar cancelled or no longer has. Nothing is written here.
+  // Only programs imported from this calendar are compared with it
+  // (pre-release audit finding E1-01): one from another calendar, or with no
+  // calendar recorded, would otherwise read as gone from this one.
   final candidatesByKey = <String, CalendarImportCandidate>{};
   for (final c in plan.candidates) {
     // The first of a duplicated event, as the entries above keep it.
@@ -242,7 +249,7 @@ Future<CalendarImportPreview> buildCalendarImportPreview(
   final horizonEnd = day0.add(const Duration(days: iCalRepeatHorizonDays));
   for (final program in await repos.programs.listAll()) {
     final key = program.calendarEventKey;
-    if (key == null) continue;
+    if (key == null || !source.matches(program.calendarFeedDigest)) continue;
     final String? targetFlag;
     if (plan.cancelledAnywhereKeys.contains(key)) {
       targetFlag = calendarFlagCancelled;

@@ -504,11 +504,13 @@ void main() {
         final source = openTestRepositories();
         await source.settings.set(kCalendarFeedUrlKey, secret);
         await source.settings.set(kCalendarImportWindowMonthsKey, 12);
+        final digest = CalendarFeedSource(secret).newDigest();
         await source.programs.create(
           Program(
             id: 'p1',
             title: 'A',
             calendarEventKey: calendarEventKey('a', ''),
+            calendarFeedDigest: digest,
             createdAt: _now,
             updatedAt: _now,
           ),
@@ -529,10 +531,12 @@ void main() {
         final restored = await CalendarImportSettings.read(target.settings);
         expect(restored.hasFeed, isFalse, reason: 'asked for again');
         expect(restored.windowMonths, 12, reason: 'preferences do travel');
-        expect(
-          (await target.programs.getById('p1'))!.calendarEventKey,
-          calendarEventKey('a', ''),
-        );
+        final program = (await target.programs.getById('p1'))!;
+        expect(program.calendarEventKey, calendarEventKey('a', ''));
+        // Which calendar it came from survives, so once the address is given
+        // again the import compares the program with it.
+        expect(program.calendarFeedDigest, digest);
+        expect(CalendarFeedSource(secret).matches(digest), isTrue);
       },
     );
 

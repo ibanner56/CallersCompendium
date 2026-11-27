@@ -1,4 +1,5 @@
 import 'package:clock/clock.dart';
+import 'package:compendium_app/src/data/calendar_import.dart' show CalendarFeedSource;
 import 'package:compendium_app/src/data/calendar_import_settings.dart';
 import 'package:compendium_app/src/data/date_format_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
@@ -197,6 +198,7 @@ void main() {
           startMinute: 19 * 60,
           endMinute: 22 * 60,
           calendarEventKey: calendarEventKey('t', ''),
+          calendarFeedDigest: CalendarFeedSource(_secret).newDigest(),
           calendarEventFingerprint: calendarEventFingerprint(
             title: 'Timed contra',
             date: DateTime.utc(2030, 6, 20),
@@ -327,6 +329,7 @@ void main() {
         calendarEventFingerprint: 'v1:0000000000000000:1:2',
         calendarWrittenAt: DateTime.utc(2030),
         calendarFlag: calendarFlagMissing,
+        calendarFeedDigest: 'c' * 64,
         createdAt: DateTime.utc(2030),
         updatedAt: DateTime.utc(2030),
       ),
@@ -349,6 +352,9 @@ void main() {
     expect(saved.calendarEventFingerprint, 'v1:0000000000000000:1:2');
     expect(saved.calendarWrittenAt, DateTime.utc(2030));
     expect(saved.calendarFlag, calendarFlagMissing);
+    // Which calendar it came from (E1-01): dropping it would stop the import
+    // ever comparing the program with its calendar again.
+    expect(saved.calendarFeedDigest, 'c' * 64);
     expect(saved.isUntouchedCalendarDraft, isFalse, reason: 'an edit');
   });
 
