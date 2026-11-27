@@ -1,0 +1,14 @@
+{
+  "id": "sync-merge-keeps-improper-mark",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "When you choose Merge for two dances Device Sync asks about, one English and one contra, the merged English dance now keeps its improper mark, instead of losing it because the contra copy was changed more recently."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "mergeDanceCandidates takes formation.improper only from a copy of the merged dance's form, as it already took barnesReference (formHasImproperFlag): a newer copy of another form leaves the survivor's mark alone (sync-spec §6.7)."
+    ]
+  }
+}
