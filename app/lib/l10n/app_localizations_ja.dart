@@ -4655,6 +4655,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionFacetMissingValue => 'ライブラリにありません';
 
   @override
+  String get collectionFacetStaleFields => 'Deleted or changed custom fields';
+
+  @override
+  String collectionFacetStaleFieldValue(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
   String get collectionFacetClear => 'フィルターをクリア';
 
   @override

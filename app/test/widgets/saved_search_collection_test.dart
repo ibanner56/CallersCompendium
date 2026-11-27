@@ -496,6 +496,48 @@ void main() {
       expect(find.text('Advanced (on)'), findsOneWidget);
       expect(find.text('Filters · 1'), findsOneWidget);
     });
+
+    testWidgets('a filter on a deleted custom field has a chip, named as the '
+        'field was, that removes it so Update can save without it', (
+      tester,
+    ) async {
+      final repos = await _library();
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'cf1',
+          key: 'mood',
+          label: 'Mood',
+          type: CustomFieldType.choice,
+          choices: const ['calm'],
+        ),
+      );
+      final state = CollectionPanelState();
+      state.facets.setTag('t1', selected: true);
+      state.facets.choiceValues['cf1'] = {'calm'};
+      final search = await _seed(repos, 'Calm bouncey', state);
+      await repos.customFieldDefs.delete('cf1');
+      await _pump(tester, repos);
+      await _load(tester, search);
+      expect(find.byKey(const ValueKey('saved-search-notice')), findsOneWidget);
+
+      await tester.tap(find.text('Filters · 2'));
+      await tester.pumpAndSettle();
+      final chip = find.byKey(const ValueKey('cf-stale-cf1-choice-calm'));
+      expect(
+        find.descendant(of: chip, matching: find.text('Mood: calm')),
+        findsOneWidget,
+      );
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      expect(find.text('Filters · 1'), findsOneWidget);
+
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-update');
+      final stored = (await repos.savedSearches.get(search.id))!;
+      final facets = stored.spec.toJson()['facets']! as Map;
+      expect(facets.containsKey('choiceValues'), isFalse);
+      expect(facets['tagIds'], ['t1']);
+    });
   });
 
   group('the dropdown keeps the field working', () {

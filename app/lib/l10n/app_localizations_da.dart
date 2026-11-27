@@ -4884,6 +4884,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionFacetMissingValue => 'Ikke i dit bibliotek';
 
   @override
+  String get collectionFacetStaleFields => 'Deleted or changed custom fields';
+
+  @override
+  String collectionFacetStaleFieldValue(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
   String get collectionFacetClear => 'Ryd filtre';
 
   @override

@@ -762,6 +762,93 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
+    // A selection on a custom field that was deleted, or whose type changed,
+    // since a saved search naming it was saved: no section above shows it
+    // (each is built from a live field of its own type), the search leaves it
+    // out, and the saved search's notice asks the user to remove it. So each
+    // gets a chip here, as a deleted tag or level does, and tapping it removes
+    // just that selection.
+    final liveFieldsById = {for (final d in allCustomFields) d.id: d};
+    bool stale(String id, CustomFieldType type) =>
+        liveFieldsById[id]?.type != type;
+    String fieldName(String id) =>
+        liveFieldsById[id]?.label ?? deletedCustomFieldNames[id] ?? missing;
+    final staleChips = <Widget>[
+      for (final MapEntry(key: id, value: values)
+          in facets.choiceValues.entries.toList()
+            ..sort((a, b) => a.key.compareTo(b.key)))
+        if (stale(id, CustomFieldType.choice))
+          for (final choice in values.toList()..sort())
+            _chip(
+              key: 'cf-stale-$id-choice-$choice',
+              label: l10n.collectionFacetStaleFieldValue(fieldName(id), choice),
+              icon: Icons.tune,
+              selected: true,
+              onSelected: (_) {
+                final set = facets.choiceValues[id];
+                set?.remove(choice);
+                if (set != null && set.isEmpty) facets.choiceValues.remove(id);
+                onChanged();
+              },
+            ),
+      for (final MapEntry(key: id, value: value)
+          in facets.booleanValues.entries.toList()
+            ..sort((a, b) => a.key.compareTo(b.key)))
+        if (stale(id, CustomFieldType.boolean))
+          _chip(
+            key: 'cf-stale-$id-bool',
+            label: l10n.collectionFacetStaleFieldValue(
+              fieldName(id),
+              value ? l10n.commonYes : l10n.commonNo,
+            ),
+            icon: Icons.tune,
+            selected: true,
+            onSelected: (_) {
+              facets.booleanValues.remove(id);
+              onChanged();
+            },
+          ),
+      for (final MapEntry(key: id, value: state)
+          in facets.textValues.entries.toList()
+            ..sort((a, b) => a.key.compareTo(b.key)))
+        if (state.isEffective && stale(id, CustomFieldType.text))
+          _chip(
+            key: 'cf-stale-$id-text',
+            label: fieldName(id),
+            icon: Icons.tune,
+            selected: true,
+            onSelected: (_) {
+              facets.textValues.remove(id);
+              onChanged();
+            },
+          ),
+      for (final MapEntry(key: id, value: state)
+          in facets.numberValues.entries.toList()
+            ..sort((a, b) => a.key.compareTo(b.key)))
+        if (state.isEffective && stale(id, CustomFieldType.number))
+          _chip(
+            key: 'cf-stale-$id-number',
+            label: fieldName(id),
+            icon: Icons.tune,
+            selected: true,
+            onSelected: (_) {
+              facets.numberValues.remove(id);
+              onChanged();
+            },
+          ),
+    ];
+    if (staleChips.isNotEmpty) {
+      sections.add(
+        _FacetSection(
+          key: const ValueKey('facet-row-cf-stale'),
+          label: l10n.collectionFacetStaleFields,
+          sectionId: 'cf-stale',
+          activeCount: staleChips.length,
+          chips: staleChips,
+        ),
+      );
+    }
+
     if (sections.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(AppSpacing.md),

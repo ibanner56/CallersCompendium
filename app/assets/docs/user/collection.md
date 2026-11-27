@@ -497,7 +497,9 @@ it once and choose it from then on.
   *Bouncey*, which was deleted"). Nothing is left out quietly: remove that
   criterion yourself, then **Update** the search. A filter on a deleted custom
   field can't be run, so it is left out of the results until you remove it; the
-  notice says so.
+  notice says so. Each such filter has a chip of its own under **Deleted or
+  changed custom fields** in **Filters** (as does one on a field whose type has
+  changed), so you can remove it without clearing your other filters.
 - **Manage them in Settings.** [Settings ▸ Collection ▸ Saved
   searches](./settings.md#saved-searches) lists every saved search, to rename
   or delete. One that this version of the app can't read (saved by a newer

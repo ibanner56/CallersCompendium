@@ -7448,6 +7448,18 @@ abstract class AppLocalizations {
   /// **'Not in your library'**
   String get collectionFacetMissingValue;
 
+  /// Heading of a Filters panel section that lists filters on custom fields that were deleted, or whose type changed, since a saved search using them was saved. The search leaves these filters out; each chip removes one.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted or changed custom fields'**
+  String get collectionFacetStaleFields;
+
+  /// Label of a chip in the 'Deleted or changed custom fields' section: the custom field's name and the value the filter chose (a choice option, or Yes / No).
+  ///
+  /// In en, this message translates to:
+  /// **'{field}: {value}'**
+  String collectionFacetStaleFieldValue(String field, String value);
+
   /// Button that clears all active facet filters.
   ///
   /// In en, this message translates to:

@@ -4913,6 +4913,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionFacetMissingValue => 'Niet in je bibliotheek';
 
   @override
+  String get collectionFacetStaleFields => 'Deleted or changed custom fields';
+
+  @override
+  String collectionFacetStaleFieldValue(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
   String get collectionFacetClear => 'Filters wissen';
 
   @override

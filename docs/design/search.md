@@ -1228,7 +1228,10 @@ built). Then `resolveSavedSearch`:
   this device never knew it), and the user removes each criterion themselves.
   A Filters criterion on a deleted custom field is left out by
   `buildCollectionFilter`, so the notice also says that one is not in the
-  results. There is no "open anyway" step: the notice is what keeps the load
+  results. The Filters panel gives each criterion on a deleted custom field,
+  or on one whose type changed, a removable chip of its own (named from the
+  load's missing references, or the live field), as it does a deleted tag or
+  level. There is no "open anyway" step: the notice is what keeps the load
   from being silent.
 
 Both hosts take "today" from a `SearchClock` (`DanceListScreen.clock`,

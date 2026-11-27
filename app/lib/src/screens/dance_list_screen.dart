@@ -3752,6 +3752,8 @@ class _DanceListScreenState extends State<DanceListScreen>
       allTagNames: data.allTagNames,
       sourceTitles: data.sourceTitles,
       allCustomFields: data.customFieldDefs,
+      deletedCustomFieldNames:
+          _loadedSearch?.deletedCustomFieldNames ?? const {},
       historyFromSavedSearch: _panelFromSavedSearch,
       onChanged: _onFacetsChanged,
     );

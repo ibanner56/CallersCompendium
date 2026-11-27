@@ -43,6 +43,16 @@ class SavedSearchLoad {
   /// search that resolved whole.
   final List<SavedSearchMissing> missing;
 
+  /// The name of each deleted custom field the search filters on, by id, for
+  /// the Filters panel's chip that removes that filter
+  /// (`FacetPanel.deletedCustomFieldNames`). A field no name is known for is
+  /// left out.
+  Map<String, String> get deletedCustomFieldNames => {
+    for (final m in missing)
+      if (m.reference.kind == MissingReferenceKind.customField)
+        if (m.name case final name?) m.reference.id: name,
+  };
+
   SavedSearchLoad copyWith({
     SavedSearch? search,
     Map<String, Object?>? baseline,

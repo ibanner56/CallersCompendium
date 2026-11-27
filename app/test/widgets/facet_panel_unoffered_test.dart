@@ -426,10 +426,8 @@ void main() {
         deletedCustomFieldNames: const {'cf1': 'Mood'},
         onChanged: () => changes++,
       );
-      expect(
-        find.byKey(const ValueKey('facet-row-cf-stale')),
-        findsOneWidget,
-      );
+      // (The panel puts its section's key on the padding around it too.)
+      expect(find.byKey(const ValueKey('facet-row-cf-stale')), findsWidgets);
       await _expectRemovableChip(
         tester,
         key: 'cf-stale-cf1-choice-calm',
