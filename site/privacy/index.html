@@ -62,6 +62,7 @@
         <p class="lead">
           Caller's Compendium ("the app") is a free, open-source, local-first
           application for dance callers, developed by Isaac Banner ("we," "us").
+          This policy explains what data the app does and does not handle.
           The short version: <strong>the app has no accounts or tracking and keeps
           your collection on your device.</strong> Optional Device Sync can also
           store selected shareable content on a configured sync service for app
@@ -109,7 +110,7 @@
         <p>
           Everything you create in the app — your dance collection, programs,
           custom fields, dialects, themes, and settings — is stored
-          <strong>locally on your device</strong> and is under your control. If you
+          <strong>locally on your device</strong>. It is under your control. If you
           enable Device Sync, selected shareable content is also stored by the sync
           service you configure so it can be synchronized.
         </p>
@@ -158,9 +159,11 @@
           with the note.
         </p>
         <p>
-          You can export a complete backup to a single, human-readable JSON file
-          with a built-in integrity checksum and restore it on another device.
-          Those backup files are created and kept by you; we never receive them.
+          You can export a complete backup to a single file (a plain,
+          human-readable JSON file carrying a built-in SHA-256 integrity checksum
+          that catches accidental corruption — not encryption, and, because the
+          checksum travels inside the file, not a safeguard against deliberate
+          tampering) and restore it on another device. Those backup files are created and kept by you; we never receive them.
         </p>
         <p>
           <strong>Your device's own backup.</strong> Separately from the app's
@@ -168,8 +171,10 @@
           along with your other apps. The app does not opt out of Android's
           backup: if backup to your Google account is turned on in your phone's
           settings, Android can copy the app's data there, and moving to a new
-          phone with Android's transfer can copy it to the new phone. On iPhone and
-          iPad, an iCloud or computer backup of the device includes it too. These
+          phone with Android's transfer can copy it to the new phone. Nor does it
+          exclude its data from Apple's backup: on iPhone and iPad, an iCloud or
+          computer backup of the device, and moving to a new iPhone or iPad from
+          the old one, can copy it too. These
           copies hold the app's stored data, including what the
           app's own backup file leaves out: your calendar address, your Device
           Sync settings (whether sync is on, and which store and server it uses),

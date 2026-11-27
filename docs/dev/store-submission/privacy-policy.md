@@ -109,8 +109,10 @@ are created and kept by you; we never receive them.
 tablet or computer can back up the app's data along with your other apps. The
 app does not opt out of Android's backup: if backup to your Google account is
 turned on in your phone's settings, Android can copy the app's data there, and
-moving to a new phone with Android's transfer can copy it to the new phone. On
-iPhone and iPad, an iCloud or computer backup of the device includes it too.
+moving to a new phone with Android's transfer can copy it to the new phone. Nor
+does it exclude its data from Apple's backup: on iPhone and iPad, an iCloud or
+computer backup of the device, and moving to a new iPhone or iPad from the old
+one, can copy it too.
 These copies hold the app's stored data, including what the app's own backup
 file leaves out: your calendar address, your Device Sync settings (whether sync
 is on, and which store and server it uses), edits you have not saved yet, and

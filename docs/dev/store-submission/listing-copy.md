@@ -116,8 +116,9 @@ Reuse per release; keep it tester-focused. Source of truth is
 ```
 Thanks for testing Caller's Compendium! This build adds new Perform and analysis
 tools, richer ContraDB and browser-share importing, and quality-of-life polish
-across browsing, editing, and sharing. Everything stays on your device unless
-you turn on optional Device Sync — no account, no telemetry. Please send feedback from within TestFlight / Play, or on
+across browsing, editing, and sharing. Your collection stays on your device,
+apart from optional Device Sync and your device's own backup — no account, no
+telemetry. Please send feedback from within TestFlight / Play, or on
 GitHub. Tell us your device, the version, and what you were doing.
 ```
 

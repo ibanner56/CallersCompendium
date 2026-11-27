@@ -294,8 +294,10 @@ and it is not the same as a backup file you export here.
   app's data to your Google account, and puts it back when you reinstall the
   app or set up a new phone from that backup. Moving to a new phone with
   Android's transfer from the old one can copy it too.
-- **iPhone and iPad.** An iCloud or computer backup of the device includes the
-  app's data, and restoring the device from it puts the data back.
+- **iPhone and iPad.** The app doesn't exclude its data from Apple's backup, so
+  an iCloud or computer backup of the device can copy it, and so can moving to
+  a new iPhone or iPad from the old one. Restoring the device from that backup
+  puts the data back.
 
 That copy is the app's stored data, so it includes what an
 exported backup leaves out: your [calendar address](./settings.md#calendar),
