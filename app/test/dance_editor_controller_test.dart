@@ -804,6 +804,99 @@ void main() {
       expect(counts(controller), List.filled(8, 12));
     });
 
+    test('a Meter corrected back after counts that could not follow it '
+        'leaves them as they were', () async {
+      final repos = openTestRepositories();
+      // 3 bars and a bar and a half of 2/2.
+      final controller = await openDance(
+        repos,
+        meter: '2/2',
+        figures: [
+          testFigure(move: 'ecd_set', params: {'beats': 6}),
+          testFigure(move: 'ecd_set', params: {'beats': 3}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      controller.meterController.text = '3/2';
+      expect(controller.onMeterChanged()?.outcome, FigureBarsRescale.notExact);
+      expect(counts(controller), [6, 3]);
+      // Typed back: the counts mean what they meant, and nothing changes.
+      controller.meterController.text = '2/2';
+      expect(controller.onMeterChanged(), isNull);
+      expect(counts(controller), [6, 3]);
+    });
+
+    test('a Meter edited in place through meters the counts cannot follow '
+        'ends with them in the bars they had', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        meter: '2/2',
+        figures: [
+          testFigure(move: 'ecd_set', params: {'beats': 8}),
+          testFigure(move: 'ecd_set', params: {'beats': 32}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      // 2/2 to 12/8 by typing a 1 before the 2, then fixing the 2 below.
+      for (final text in ['12/2', '12/', '12/8']) {
+        typeMeter(controller, text);
+      }
+      // 4 bars and 16 bars of four beats.
+      expect(counts(controller), [16, 64]);
+    });
+
+    test('once a count is edited in the bars a Meter left them in, the next '
+        'Meter counts from those bars', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        meter: '2/2',
+        figures: [
+          testFigure(move: 'ecd_set', params: {'beats': 6}),
+          testFigure(move: 'ecd_set', params: {'beats': 3}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      typeMeter(controller, '3/2');
+      // Set to 1 bar of 3/2.
+      controller.figureDrafts[1].params['beats'] = 3;
+      controller.figureDrafts[0].params['beats'] = 9;
+      controller.onFiguresChanged();
+      typeMeter(controller, '2/2');
+      expect(counts(controller), [6, 2]);
+    });
+
+    test('an edit that makes its own undo step while the Meter step waits '
+        'takes the Meter change with it, so the notice cannot undo it '
+        'alone', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(repos);
+      addTearDown(controller.dispose);
+      controller.meterController.text = '3/2';
+      final change = controller.onMeterChanged()!;
+      controller.setWalkthroughText('Walk it.');
+      expect(controller.canUndoMeterChange(change), isFalse);
+      expect(controller.undoMeterChange(change), isFalse);
+      expect(controller.walkthroughController.text, 'Walk it.');
+    });
+
+    test('typing after the Meter step tells the editor at once that the '
+        "notice's Undo no longer applies", () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(repos);
+      addTearDown(controller.dispose);
+      controller.meterController.text = '3/2';
+      final change = controller.onMeterChanged()!;
+      await settleDebounce();
+      var notified = 0;
+      controller.addListener(() => notified++);
+      controller.titleController.text = 'Renamed';
+      controller.onTextEdited();
+      expect(controller.canUndoMeterChange(change), isFalse);
+      expect(notified, greaterThan(0));
+    });
+
     for (final form in [DanceForm.contra, DanceForm.square]) {
       test('a ${form.name} dance, timed in beats, keeps its counts', () async {
         final repos = openTestRepositories();
