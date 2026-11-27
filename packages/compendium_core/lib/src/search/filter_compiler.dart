@@ -842,6 +842,9 @@ class FilterCompiler {
       return each.length == 1 ? each.single : '(${each.join(' AND ')})';
     }
 
+    // A term always has a whole word: every word of the apart split shares
+    // its characters with one. Should one not, the term is its apart words.
+    if (term.whole.isEmpty) return all(term.apart);
     final whole = all(term.whole);
     if (term.apart.isEmpty) return whole;
     return '($whole OR ${all(term.apart)})';

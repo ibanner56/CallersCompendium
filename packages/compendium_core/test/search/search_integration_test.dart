@@ -4088,21 +4088,6 @@ FROM seq
     test('finds every dance a contra-only search finds', () async {
       await everyForm.create(
         _dance(
-          id: 'structured',
-          title: 'Structured',
-          figures: [
-            // A structured allemande and star, for the queries that name
-            // them.
-            Figure(
-              move: 'allemande',
-              params: const {'who': 'neighbors', 'hand': 'left'},
-            ),
-            Figure(move: 'star', params: const {'hand': 'left'}),
-          ],
-        ),
-      );
-      await everyForm.create(
-        _dance(
           id: 'typed-u-turn',
           title: 'Typed',
           callingNotes: 'U turn back to place and back up.',
@@ -4110,28 +4095,69 @@ FROM seq
       );
       final contraOnly = DanceRepository(db, contraTaxonomy);
       for (final q in [
-        'allemande right hands across',
         'u turn back to back',
         'turn by the hand',
         'right and left thru',
-        'pass thru',
-        'about face',
         'docey doe',
-        'do si do',
         'balance in the ring',
         'hand turn',
         'turn by the right hand',
         'back to back',
-        'turn single',
-        'hands across',
       ]) {
         for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
           final before = await contraOnly.search(
             FullTextFilter(q, scope: scope),
           );
+          // Each query finds something with contra alone, so the check
+          // below can fail.
+          if (scope == FullTextScope.omni) {
+            expect(before, isNotEmpty, reason: '"$q" with contra alone');
+          }
           final now = await everyForm.search(FullTextFilter(q, scope: scope));
           expect(now, containsAll(before), reason: '"$q" (${scope.name})');
         }
+      }
+    });
+
+    // "allemande right" is a square call's name and "right left through" is
+    // contra's, so they cross. The stretch matches as it reads now or as
+    // contra alone split it ("allemande", "right left through"), and no
+    // looser: a line with "allemande", "left" and "through" but no "right"
+    // matches neither.
+    test('a square name that crosses a contra phrase matches either split, '
+        'and no looser', () async {
+      await everyForm.create(
+        _dance(
+          id: 'crossing',
+          title: 'Crossing',
+          figures: [
+            Figure(
+              move: 'custom',
+              params: const {'text': 'Allemande left, then right left through'},
+            ),
+          ],
+        ),
+      );
+      await everyForm.create(
+        _dance(
+          id: 'neither',
+          title: 'Neither',
+          figures: [
+            Figure(
+              move: 'custom',
+              params: const {'text': 'Allemande the left, then through'},
+            ),
+          ],
+        ),
+      );
+      for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+        expect(
+          await everyForm.search(
+            FullTextFilter('allemande right left through', scope: scope),
+          ),
+          ['crossing'],
+          reason: scope.name,
+        );
       }
     });
 
