@@ -5354,6 +5354,28 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar Schlägen',
+      one: '1 Schlag',
+    );
+    return 'Die Schlagzahlen der Figuren wurden angepasst, damit jede Figur ihre Takte behält, jetzt mit $_temp0 pro Takt.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar Schlägen',
+      one: '1 Schlag',
+    );
+    return 'Schlagzahlen nicht geändert: Nicht jede Figur konnte ihre Takte genau behalten, darum zählen sie jetzt in Takten zu $_temp0. Prüfe sie.';
+  }
+
+  @override
   String get danceEditorSequenceSpanLabel => 'Takte für alle';
 
   @override
