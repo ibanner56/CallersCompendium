@@ -164,10 +164,13 @@ class SavedSearchActions {
   /// or null when it could not be read (a message says so), or when
   /// [stillWanted], asked once everything is read and just before the panel
   /// is replaced, says the host no longer wants it (a load the host started
-  /// in the background, overtaken by what the user did meanwhile).
+  /// in the background, overtaken by what the user did meanwhile). [quiet]
+  /// logs a failure without telling the user, for a load that only follows
+  /// a write that succeeded.
   Future<SavedSearchLoad?> load(
     SavedSearch search, {
     bool Function()? stillWanted,
+    bool quiet = false,
   }) async {
     final text = _text();
     final repos = _repos;
@@ -196,7 +199,7 @@ class SavedSearchActions {
       );
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'saved_search_actions.load');
-      _showFailed();
+      if (!quiet) _showFailed();
       return null;
     }
   }
@@ -251,15 +254,27 @@ class SavedSearchActions {
   /// and the list are on the survivor too, and the next change compares with
   /// what is stored. It was stored either way: if it cannot be shown, the
   /// host still holds it, with the panel's own form ([panel]) as the
-  /// baseline.
+  /// baseline and the [missing] it had. Not shown if the user changed the
+  /// panel while it was being read: their change stands, and Update offers
+  /// to save it.
   Future<SavedSearchLoad> _showWritten(
     SavedSearch written,
-    SavedSearchSpec panel,
-  ) async {
+    SavedSearchSpec panel, {
+    List<SavedSearchMissing> missing = const [],
+  }) async {
+    final panelForm = panel.toJson();
     final shown = apply == null || readContext == null || !context.mounted
         ? null
-        : await load(written);
-    return shown ?? SavedSearchLoad(search: written, baseline: panel.toJson());
+        : await load(
+            written,
+            quiet: true,
+            stillWanted: () {
+              final now = _currentForm();
+              return now != null && _sameJson(now, panelForm);
+            },
+          );
+    return shown ??
+        SavedSearchLoad(search: written, baseline: panelForm, missing: missing);
   }
 
   /// [spec] with each tag, author or source id that a merge on this device
@@ -342,7 +357,7 @@ class SavedSearchActions {
       await repos.savedSearches.save(updated);
       _snack(l10n.savedSearchUpdatedSnack(updated.name));
       if (!sameSavedSearchSpec(written, spec)) {
-        return await _showWritten(updated, spec);
+        return await _showWritten(updated, spec, missing: loaded.missing);
       }
       return loaded.copyWith(search: updated, baseline: spec.toJson());
     } catch (error, stackTrace) {
@@ -886,8 +901,13 @@ class _SavedSearchNameDialogState extends State<_SavedSearchNameDialog> {
 
   String get _name => _controller.text.trim();
 
+  /// Whether [_name] is one the store keeps. The field's formatter holds it
+  /// to the limit, except while an input method is composing.
+  bool get _canSave =>
+      _name.isNotEmpty && _name.length <= savedSearchMaxNameLength;
+
   void _submit() {
-    if (_name.isEmpty) return;
+    if (!_canSave) return;
     Navigator.of(context).pop(_name);
   }
 
@@ -931,7 +951,7 @@ class _SavedSearchNameDialogState extends State<_SavedSearchNameDialog> {
         ),
         TextButton(
           key: const ValueKey('saved-search-name-save'),
-          onPressed: _name.isEmpty ? null : _submit,
+          onPressed: _canSave ? _submit : null,
           child: Text(l10n.commonSave),
         ),
       ],

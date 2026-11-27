@@ -1622,6 +1622,33 @@ void main() {
         findsOneWidget,
       );
 
+      // An input method's composition may run past the limit for a moment;
+      // Save waits until the name fits.
+      final composing = '😀' * 50 + 'a';
+      tester.testTextInput.updateEditingValue(
+        TextEditingValue(
+          text: composing,
+          selection: TextSelection.collapsed(offset: composing.length),
+          composing: TextRange(start: 100, end: composing.length),
+        ),
+      );
+      await tester.pump();
+      expect(
+        tester
+            .widget<TextButton>(
+              find.byKey(const ValueKey('saved-search-name-save')),
+            )
+            .onPressed,
+        isNull,
+      );
+      tester.testTextInput.updateEditingValue(
+        TextEditingValue(
+          text: '😀' * 50,
+          selection: const TextSelection.collapsed(offset: 100),
+        ),
+      );
+      await tester.pump();
+
       await _choose(tester, 'saved-search-name-save');
       expect(find.text("That name can't be used. Try another."), findsNothing);
       expect((await _readable(repos)).single.name, '😀' * 50);
