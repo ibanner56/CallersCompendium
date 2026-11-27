@@ -1,0 +1,9 @@
+{
+  "id": "q44-paste-translated-break",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Pasting a set list into **From title list** reads the app’s own word for a break in any of its languages (“Pause”, “Pauze”, “ブレイク” as well as “Break”) as a break, so a set list you shared or printed from the app in German, French, Danish, Dutch or Japanese pastes back with its break instead of a note."
+    ]
+  }
+}

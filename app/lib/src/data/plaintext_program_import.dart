@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import '../utils/slot_display_text.dart';
 import 'online_search.dart';
 
 /// How a single pasted line resolved against the local collection.
@@ -148,7 +149,10 @@ List<ParsedProgramLine> parsePlaintextProgram(
 /// Builds ordered [ProgramSlot]s from parsed [lines]. Matched lines produce a
 /// dance-linked slot; note lines (unmatched/ambiguous) produce a free-text slot
 /// carrying the original line text — the same note-style slot path that
-/// announcements and breaks use. Positions are numbered `0..n-1` in input
+/// announcements and breaks use. An unmatched line that is the break token or
+/// one of the app's own translated break labels ([isAppBreakLabel]), such as
+/// "Pause" from a German set list the app shared, becomes a break, stored as
+/// the token [Program.breakSlotText]. Positions are numbered `0..n-1` in input
 /// order. [newSlotId] mints a fresh id per slot.
 List<ProgramSlot> buildProgramSlots(
   List<ParsedProgramLine> lines, {
@@ -162,7 +166,12 @@ List<ProgramSlot> buildProgramSlots(
         id: newSlotId(),
         position: i,
         danceId: line.isNote ? null : line.danceId,
-        text: line.isNote ? line.text : null,
+        text: !line.isNote
+            ? null
+            : line.resolution == PlaintextLineResolution.unmatched &&
+                  isAppBreakLabel(line.text)
+            ? Program.breakSlotText
+            : line.text,
       ),
     );
   }
