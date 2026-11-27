@@ -1430,7 +1430,9 @@ class _RuleMarker extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final color = theme.colorScheme.error;
-    final spoken = marker.rules.map((r) => r.spoken).join('; ');
+    final spoken = marker.rules
+        .map((r) => r.spoken)
+        .join(l10n.commonClauseSeparator);
     return Semantics(
       key: ValueKey('slot-$slotId-rule-marker'),
       container: true,

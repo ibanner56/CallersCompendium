@@ -876,6 +876,18 @@
   "@settingsSyncNoticeListSeparator": {
     "x-sourceSha256": "0a07f659461970d8d8dcefe4fff96a1745599810dc7d47391e95c803b7b2072c"
   },
+  "commonListSeparator": ", ",
+  "@commonListSeparator": {
+    "x-sourceSha256": "0a07f659461970d8d8dcefe4fff96a1745599810dc7d47391e95c803b7b2072c"
+  },
+  "commonClauseSeparator": "; ",
+  "@commonClauseSeparator": {
+    "x-sourceSha256": "0a2d3f8f9b727cf73e6c7e44f2feefc41855195b3010a3c4f6b05c33aeb484a9"
+  },
+  "commonSentencePair": "{first} {second}",
+  "@commonSentencePair": {
+    "x-sourceSha256": "79f1c74c1c726e8c69fa0f90e82caa52b1d5527dbc1fa7e6a1c675f9a607746a"
+  },
   "settingsSyncNoticeRecordNamed": "{kind} »{name}«",
   "@settingsSyncNoticeRecordNamed": {
     "x-sourceSha256": "82b7f901c41bcc687f29edb68280e64fc0ebdd16cbb1a427cc748c59be664c8a"
