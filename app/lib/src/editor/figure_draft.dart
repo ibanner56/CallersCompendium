@@ -1060,7 +1060,8 @@ int figureStartBeat(Iterable<FigureDraft> drafts) {
 
 /// What [rescaleFigureBars] did to an English dance's counts.
 enum FigureBarsRescale {
-  /// No count needed changing: none of the rows holds a count other than 0.
+  /// No count needed changing: the bar length is the same, or none of the
+  /// rows holds a count other than 0.
   unchanged,
 
   /// Every count now holds the same number of bars in the new bar length.
@@ -1082,6 +1083,20 @@ int? beatsInOtherBars(int beats, {required int from, required int to}) {
   final result = scaled ~/ from;
   return result > 64 ? null : result;
 }
+
+/// The counts [rescaleFigureBars] reads in [drafts], each with its row's id,
+/// in order: two lists are equal only while no row, and no row's count, has
+/// changed.
+List<Object?> figureCounts(Iterable<FigureDraft> drafts) => [
+  for (final draft in drafts) ...[
+    draft.id,
+    draft.compound?.beats,
+    draft.params['beats'],
+    draft.sequenceSpanStated,
+    ...figureCounts(draft.containerChildren ?? const <FigureDraft>[]),
+    '/',
+  ],
+];
 
 /// Gives every count [drafts] store the beats that keep its length in bars
 /// when the dance's bar goes from [from] to [to] beats (pre-release audit

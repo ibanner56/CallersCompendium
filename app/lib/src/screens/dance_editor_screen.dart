@@ -260,13 +260,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   MeterBarsChange? _meterBarsNoticeFor;
 
   /// The notice of what the latest Meter edit did to an English dance's
-  /// figure counts, while it is showing (pre-release audit finding A2-02),
-  /// and the messenger showing it.
-  (
-    ScaffoldFeatureController<SnackBar, SnackBarClosedReason>,
-    ScaffoldMessengerState,
-  )?
-  _meterBarsNotice;
+  /// figure counts, while it is showing or waiting to (pre-release audit
+  /// finding A2-02).
+  _MeterBarsNotice? _meterBarsNotice;
 
   /// Shows the notice for a Meter edit that changed or kept the figures'
   /// counts ([DanceEditorController.meterBarsChange]), and puts it away once
@@ -286,7 +282,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   void _showMeterBarsNotice(MeterBarsChange change) {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final notice = showUndoSnackBar(
+    final shown = _MeterBarsNotice(messenger);
+    shown.controller = showUndoSnackBar(
       messenger,
       key: const ValueKey('meter-bars-notice'),
       actionKey: const ValueKey('meter-bars-notice-undo'),
@@ -299,17 +296,20 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       undoLabel: l10n.commonUndo,
       undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onVisible: shown.cameIn,
       onUndo: () {
         // The prompt has already closed itself; the Undo's own notification
         // must not close it again.
-        _meterBarsNotice = null;
+        shown.closed = true;
+        if (identical(_meterBarsNotice, shown)) _meterBarsNotice = null;
         _controller.undoMeterChange(change);
       },
     );
-    _meterBarsNotice = (notice, messenger);
+    _meterBarsNotice = shown;
     unawaited(
-      notice.closed.then((_) {
-        if (identical(_meterBarsNotice?.$1, notice)) _meterBarsNotice = null;
+      shown.controller.closed.then((_) {
+        shown.closed = true;
+        if (identical(_meterBarsNotice, shown)) _meterBarsNotice = null;
       }),
     );
   }
@@ -317,9 +317,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   void _closeMeterBarsNotice() {
     final shown = _meterBarsNotice;
     _meterBarsNotice = null;
-    if (shown case (final notice, final messenger) when messenger.mounted) {
-      notice.close();
-    }
+    shown?.close();
   }
 
   void _rebuildTagOptions() {
@@ -1333,4 +1331,41 @@ class _UndoIntent extends Intent {
 /// Redo intent for the Ctrl/Cmd+Shift+Z (and Ctrl+Y) keyboard shortcuts.
 class _RedoIntent extends Intent {
   const _RedoIntent();
+}
+
+/// One Meter notice ([_DanceEditorScreenState._showMeterBarsNotice]). A
+/// snackbar can only be closed while it is the one the messenger shows, and
+/// a new one waits behind the one going out, so a close asked for before the
+/// notice has come in is made when it does.
+class _MeterBarsNotice {
+  _MeterBarsNotice(this.messenger);
+
+  final ScaffoldMessengerState messenger;
+  late final ScaffoldFeatureController<SnackBar, SnackBarClosedReason>
+  controller;
+
+  /// Whether it has come in, so it is the snackbar the messenger shows.
+  bool visible = false;
+
+  /// Whether it is closed, or closing: closing it again would close another.
+  bool closed = false;
+
+  /// Whether a close was asked for before it came in.
+  bool closeWhenVisible = false;
+
+  /// Its snackbar has come in (once for each copy the messenger builds).
+  void cameIn() {
+    visible = true;
+    if (closeWhenVisible) close();
+  }
+
+  void close() {
+    if (closed) return;
+    if (!visible) {
+      closeWhenVisible = true;
+      return;
+    }
+    closed = true;
+    if (messenger.mounted) controller.close();
+  }
 }

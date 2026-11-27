@@ -5312,12 +5312,24 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String danceEditorMeterFigureBarsKept(int beatsPerBar) {
-    return 'Figurernes slagantal er ændret, så hver figur beholder sine takter, nu med $beatsPerBar slag pr. takt.';
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar slag',
+      one: '1 slag',
+    );
+    return 'Figurernes slagantal er ændret, så hver figur beholder sine takter, nu med $_temp0 pr. takt.';
   }
 
   @override
   String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
-    return 'Slagantallet er ikke ændret: ikke alle figurer kunne beholde deres takter præcist, så de læses nu i takter med $beatsPerBar slag. Tjek dem.';
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar slag',
+      one: '1 slag',
+    );
+    return 'Slagantallet er ikke ændret: ikke alle figurer kunne beholde deres takter præcist, så de læses nu i takter med $_temp0. Tjek dem.';
   }
 
   @override

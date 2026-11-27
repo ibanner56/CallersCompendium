@@ -732,11 +732,13 @@ structure again in 2/2. The figures keep their bars too, so you can enter them
 before the Meter or correct a mistyped one: when a Meter edit changes the beats
 in a bar the figures are counted in, every figure's count changes with it, and
 4 bars of two beats (8) become 4 bars of three (12) in 3/2. A message says so,
-and its **Undo** takes back the Meter, the phrases and the counts together, as
-one **Undo** in the toolbar does. When a count can't keep its bars exactly (a
+and until you make another change its **Undo** takes back the Meter, the
+phrases and the counts together. When a count can't keep its bars exactly (a
 bar and a half of two beats would be 4½ beats in 3/2, or a count would pass the
 64 beats a figure can hold), or a figure is one of your combinations, no count
 changes: the message says the figures now read in the new bars, so check them.
+Counts left like that still mean the bars you entered them in, so typing the
+Meter back leaves them as they were, until you change one of them.
 A Meter given while the dance was another type is
 applied to the phrases the same way when you make it English, unless it states
 the same beats to the bar as it did when you changed the dance from English

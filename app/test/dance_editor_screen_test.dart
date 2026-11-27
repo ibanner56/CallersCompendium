@@ -62,8 +62,6 @@ Dance _dance({
   updatedAt: _now,
 );
 
-/// Pumps a trivial home that pushes the editor, so the editor's Save/pop flow
-/// returns to a real route (mirroring how it is reached in the app).
 /// Taps Save and reads back the dance [id] as it was stored.
 Future<Dance> _saveAndRead(
   WidgetTester tester,
@@ -76,6 +74,8 @@ Future<Dance> _saveAndRead(
   return (await repos.dances.getById(id))!;
 }
 
+/// Pumps a trivial home that pushes the editor, so the editor's Save/pop flow
+/// returns to a real route (mirroring how it is reached in the app).
 Future<void> _pumpEditor(
   WidgetTester tester,
   CompendiumRepositories repos, {
@@ -2753,6 +2753,41 @@ void main() {
       await tester.pumpAndSettle();
       final saved = await _saveAndRead(tester, repos, 'd2');
       expect((saved.figuresSource as DecodedFigures).figures.single.beats, 6);
+    });
+
+    testWidgets('a notice put away before it has come in, behind a snackbar '
+        'going out, goes when it comes in', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd2',
+          title: 'Bars Dance',
+          form: DanceForm.ecd,
+          formation: const Formation(FormationShape.dupleMinor),
+          figures: [
+            testFigure(move: 'ecd_circle', params: {'beats': 8}),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd2');
+      ScaffoldMessenger.of(
+        tester.element(find.byKey(const ValueKey('meter-field'))),
+      ).showSnackBar(const SnackBar(content: Text('Earlier')));
+      await tester.ensureVisible(find.byKey(const ValueKey('mixer-field')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('meter-field')), '3/2');
+      await tester.pump();
+      // At once, while "Earlier" is still going out: an edit with an undo
+      // step of its own takes the waiting Meter step into it, so the
+      // notice's Undo no longer applies.
+      await tester.tap(find.byKey(const ValueKey('mixer-field')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('meter-bars-notice')), findsNothing);
+      expect(find.text('Earlier'), findsNothing);
     });
 
     testWidgets('the notice goes once a later edit means its Undo would take '

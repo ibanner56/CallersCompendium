@@ -5344,13 +5344,13 @@
   "@danceEditorHalfBarRefused": {
     "x-sourceSha256": "93140ef37e7658ae19604224df5f4f69822740dcf1121a0648c365663385774b"
   },
-  "danceEditorMeterFigureBarsKept": "Les temps des figures ont été modifiés pour que chacune garde ses mesures, désormais de {beatsPerBar} temps.",
+  "danceEditorMeterFigureBarsKept": "Les temps des figures ont été modifiés pour que chacune garde ses mesures, désormais de {beatsPerBar, plural, =1{1 temps} other{{beatsPerBar} temps}}.",
   "@danceEditorMeterFigureBarsKept": {
-    "x-sourceSha256": "3936d17fc213d49e05b54178e4126a449d1269411bbe7a9e39a8bba778d360a0"
+    "x-sourceSha256": "6dd8845f7d30905e881b3012a37ed97ac11868106a6f9124446e6278d1a54689"
   },
-  "danceEditorMeterFigureBarsNotKept": "Temps des figures inchangés : toutes les figures ne pouvaient pas garder exactement leurs mesures, elles se lisent donc en mesures de {beatsPerBar} temps. Vérifiez-les.",
+  "danceEditorMeterFigureBarsNotKept": "Temps des figures inchangés : toutes les figures ne pouvaient pas garder exactement leurs mesures, elles se lisent donc en mesures de {beatsPerBar, plural, =1{1 temps} other{{beatsPerBar} temps}}. Vérifiez-les.",
   "@danceEditorMeterFigureBarsNotKept": {
-    "x-sourceSha256": "10a6add31bf4d437ab932098c6686fc7c360d986a5db167dea50a7765235a6db"
+    "x-sourceSha256": "efc7fb0ae0879a42dc8ca78dac63969b6dad4a686b93bc5fffa490eb031faee1"
   },
   "danceEditorSequenceSpanLabel": "Mesures pour l’ensemble",
   "@danceEditorSequenceSpanLabel": {

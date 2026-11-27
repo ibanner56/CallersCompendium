@@ -5379,12 +5379,24 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String danceEditorMeterFigureBarsKept(int beatsPerBar) {
-    return 'Les temps des figures ont été modifiés pour que chacune garde ses mesures, désormais de $beatsPerBar temps.';
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar temps',
+      one: '1 temps',
+    );
+    return 'Les temps des figures ont été modifiés pour que chacune garde ses mesures, désormais de $_temp0.';
   }
 
   @override
   String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
-    return 'Temps des figures inchangés : toutes les figures ne pouvaient pas garder exactement leurs mesures, elles se lisent donc en mesures de $beatsPerBar temps. Vérifiez-les.';
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar temps',
+      one: '1 temps',
+    );
+    return 'Temps des figures inchangés : toutes les figures ne pouvaient pas garder exactement leurs mesures, elles se lisent donc en mesures de $_temp0. Vérifiez-les.';
   }
 
   @override

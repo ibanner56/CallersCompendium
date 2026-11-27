@@ -5273,12 +5273,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String danceEditorMeterFigureBarsKept(int beatsPerBar) {
-    return 'Figure counts changed so each figure keeps its bars, now with $beatsPerBar beats to the bar.';
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar beats',
+      one: '1 beat',
+    );
+    return 'Figure counts changed so each figure keeps its bars, now with $_temp0 to the bar.';
   }
 
   @override
   String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
-    return 'Figure counts not changed: not every figure could keep its bars exactly, so they now read in bars of $beatsPerBar beats. Check them.';
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar beats',
+      one: '1 beat',
+    );
+    return 'Figure counts not changed: not every figure could keep its bars exactly, so they now read in bars of $_temp0. Check them.';
   }
 
   @override
