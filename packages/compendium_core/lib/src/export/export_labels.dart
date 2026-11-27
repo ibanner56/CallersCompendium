@@ -219,6 +219,7 @@ class ProgramExportLabels {
     this.timeRange = _englishTimeRange,
     this.endsAt = _englishEndsAt,
     this.nextDay = _englishNextDay,
+    this.breakLabel = 'Break',
   });
 
   final String band;
@@ -276,6 +277,11 @@ class ProgramExportLabels {
   /// [timeRange]'s result marked as ending the next day, e.g.
   /// `"7:30 PM–1:00 AM (next day)"`.
   final String Function(String times) nextDay;
+
+  /// What a break slot ([ProgramSlot.isBreak]) reads as in a printed or
+  /// shared set list. The stored token stays [Program.breakSlotText]; only
+  /// this label is translated.
+  final String breakLabel;
 }
 
 /// Labels and fixed captions for the Programming Matrix PDF

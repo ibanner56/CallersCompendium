@@ -105,6 +105,7 @@ Future<void> _pumpProgram(
   Map<String, String> authorNameOverrides = const {},
   int? initialWalkthroughEndedAtSlotSeconds,
   String? initialWalkthroughEndedSlotId,
+  Locale? locale,
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -124,6 +125,7 @@ Future<void> _pumpProgram(
         );
   await tester.pumpWidget(
     MaterialApp(
+      locale: locale,
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
@@ -957,6 +959,32 @@ void main() {
       );
     },
   );
+
+  testWidgets('a break reads as the translated label, not the stored token', (
+    tester,
+  ) async {
+    final data = await _dataWith(const []);
+    await _pumpProgram(
+      tester,
+      data: data,
+      locale: const Locale('de'),
+      program: _program([
+        _slot(id: 's1', position: 0, text: 'First'),
+        _slot(id: 's2', position: 1, text: 'Break'),
+      ]),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('perform-jump')));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('perform-jump-slot-1')),
+        matching: find.text('Pause'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Break'), findsNothing);
+  });
 
   testWidgets(
     'the jump sheet numbers dances only: a break takes no number (GIG-10)',

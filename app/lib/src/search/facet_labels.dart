@@ -65,7 +65,7 @@ String? authorsWithYearLabel(
   List<String> authorNames,
   PartialDate? composedOn,
 ) {
-  final names = authorNames.join(', ');
+  final names = authorNames.join(l10n.commonListSeparator);
   final year = composedOn?.year.toString();
   return switch ((names.isEmpty, year)) {
     (true, null) => null,
@@ -83,7 +83,7 @@ String? interpretersWithYearLabel(
   List<String> interpreterNames,
   PartialDate? interpretedOn,
 ) {
-  final names = interpreterNames.join(', ');
+  final names = interpreterNames.join(l10n.commonListSeparator);
   final year = interpretedOn?.year.toString();
   return switch ((names.isEmpty, year)) {
     (true, null) => null,

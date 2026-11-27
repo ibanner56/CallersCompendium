@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/calendar_startup.dart';
+import '../utils/l10n_joins.dart';
 import '../utils/undo_snack_bar.dart';
 
 /// Runs the startup calendar import at most once per launch (#2353), however
@@ -77,7 +78,7 @@ void showCalendarStartupMessage({
       l10n.calendarStartupNewEvents(outcome.newEvents),
     if (outcome.changes > 0) l10n.calendarStartupChanges(outcome.changes),
   ];
-  final message = parts.join(' ');
+  final message = joinSentences(l10n, parts);
   if (added.isEmpty) {
     messenger.showSnackBar(
       SnackBar(

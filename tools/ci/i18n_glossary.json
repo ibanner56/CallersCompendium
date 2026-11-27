@@ -1,5 +1,5 @@
 {
-  "$schema-note": "Consumed by tools/ci/arb_translate.py `extract`. `doNotTranslate` lists proper nouns/brands/acronyms that must be copied verbatim into every locale. `terms` maps dance-domain jargon to a short note pinning the *intended* meaning, so an assisted translation (or a human) renders the dance sense rather than an everyday homograph (e.g. `caller` is the person who prompts the dance, not a telephone caller). This is guidance, not a hard gate; keep it small and high-signal.",
+  "$schema-note": "Consumed by tools/ci/arb_translate.py `extract`. `doNotTranslate` lists proper nouns/brands/acronyms that must be copied verbatim into every locale. `terms` maps dance-domain jargon to a short note pinning the *intended* meaning, so an assisted translation (or a human) renders the dance sense rather than an everyday homograph (e.g. `caller` is the person who prompts the dance, not a telephone caller). This is guidance, not a hard gate; keep it small and high-signal. `register` gives, per locale, how the UI addresses the user; `extract` includes the batch locale's line so a translation keeps one voice.",
   "doNotTranslate": [
     "Caller's Compendium",
     "Caller's Companion",
@@ -13,12 +13,18 @@
     "Sicilian",
     "ECD"
   ],
+  "register": {
+    "de": "Informal: du / dich / dir / dein, and du-imperatives ('Wähle', 'Gib … ein', 'Versuche es erneut'). Never Sie / Ihnen / Ihr. The maintainer's answer to question 22 of the pre-release audit's decision sheet, 2026-11-27.",
+    "nl": "Informal: je / jouw, never u / uw (an agent's call in the pre-release audit, 2026-11: the majority voice when it found three 'u' strings).",
+    "fr": "Formal: vous / votre throughout.",
+    "da": "Informal: du / dig / din throughout."
+  },
   "terms": {
     "caller": {
       "note": "The person who teaches and prompts a social dance in real time. NOT a telephone caller. Many languages keep the English 'caller' as a loanword in the folk-dance community — prefer the established local term only if one genuinely exists."
     },
     "call": {
-      "note": "The spoken prompt a caller gives dancers (verb: to call a dance). Dance-instruction sense, not a phone call."
+      "note": "The spoken prompt a caller gives dancers (verb: to call a dance). Dance-instruction sense, not a phone call or opening something. de: callen (du callst, gecallt), not aufrufen or ansagen; nl: callen (je callt, gecalld), not bellen."
     },
     "set": {
       "note": "The formation of dancers on the floor (e.g. a longways set), or the act of 'setting' as a step. NOT a collection, a settings screen, or 'to set a value'."
@@ -51,10 +57,10 @@
       "note": "A dance figure: step and balance toward/away from a partner. The step sense, not financial/equilibrium 'balance'."
     },
     "beat": {
-      "note": "One count of the music, the unit a figure's length is counted in (an 8-beat swing). NEVER a bar or measure: the app has no bar concept. de: Schlag/Schläge (not Takt/Takte, which means bar or time signature)."
+      "note": "One count of the music, the unit a figure's length is counted in (an 8-beat swing). Not a bar: a bar is a group of beats (see 'bar'). de: Schlag/Schläge (not Takt/Takte, which means bar); nl: tel/tellen (not 'beats')."
     },
     "beats": {
-      "note": "One count of the music, the unit a figure's length is counted in (an 8-beat swing). NEVER a bar or measure: the app has no bar concept. de: Schlag/Schläge (not Takt/Takte, which means bar or time signature)."
+      "note": "One count of the music, the unit a figure's length is counted in (an 8-beat swing). Not a bar: a bar is a group of beats (see 'bar'). de: Schlag/Schläge (not Takt/Takte, which means bar); nl: tel/tellen (not 'beats')."
     },
     "swing": {
       "note": "A buoyant rotating figure danced with a partner. The dance figure, not a playground swing or musical swing."
@@ -112,6 +118,30 @@
     },
     "performance": {
       "note": "In the Settings header 'Performance' means Perform-mode display preferences (see 'perform'), NOT speed or efficiency (de 'Leistung')."
+    },
+    "bar": {
+      "note": "A bar (measure) of music: English country dances are timed in bars, contras in beats. de: Takt/Takte; nl: maat/maten; fr: mesure; da: takt/takter; ja: 小節."
+    },
+    "slot": {
+      "note": "One place in a program's set list: a dance, a note or a break. da: slot; de: Slot; fr: créneau; nl: slot; ja: スロット (not plads, Eintrag/Platz, emplacement, plek or 枠). A slot rule is a slot rule in the same word. In a move-wording template, 'slot' instead means a placeholder (see 'placeholder')."
+    },
+    "placeholder": {
+      "note": "A named gap in a move-wording template, filled from the figure ({hand}). de: Platzhalter; nl: plaatshouder; da: pladsholder."
+    },
+    "template": {
+      "note": "A program template: the starting list of dances, notes and breaks a new program can begin from. de: Vorlage; nl: sjabloon; fr: modèle; da: skabelon; ja: テンプレート."
+    },
+    "phrase": {
+      "note": "A section of the tune (A1, A2, B1, B2), the unit a dance's figures are grouped by. Dance-music sense."
+    },
+    "break": {
+      "note": "A break in a program: a pause between dances. de: Pause; nl: pauze; fr: pause; da: pause; ja: ブレイク. The stored word is always the English token \"Break\": where a string quotes that token, keep it in English."
+    },
+    "event rule": {
+      "note": "A rule a caller sets on a program (no two Becket dances in a row; at most one waltz before the first break). Program-planning sense."
+    },
+    "tag": {
+      "note": "A short label the user attaches to a dance. fr: tag (étiquette means a label, a different thing)."
     }
   }
 }

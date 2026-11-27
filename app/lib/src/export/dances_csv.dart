@@ -121,7 +121,10 @@ List<List<String>> buildDancesCsvRows(
   final labels = danceExportLabels(l10n);
   final sorted = [...dances]
     ..sort((a, b) {
-      final byTitle = a.title.toLowerCase().compareTo(b.title.toLowerCase());
+      // Accents folded, as the Collection sorts, so École files with E.
+      final byTitle = foldForTitleMatch(
+        a.title,
+      ).compareTo(foldForTitleMatch(b.title));
       return byTitle != 0 ? byTitle : a.id.compareTo(b.id);
     });
 

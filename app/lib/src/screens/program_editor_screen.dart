@@ -85,6 +85,7 @@ import '../widgets/program_matrix_table.dart';
 import '../widgets/program_slot_list_editor.dart';
 import '../widgets/program_status_chip.dart';
 import '../utils/slot_dance_title.dart';
+import '../utils/slot_display_text.dart';
 import '../theme/app_breakpoints.dart';
 
 /// Full-screen Program Builder (`docs/design/ux.md` §4).
@@ -2510,7 +2511,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (slot.danceId case final id?) {
         return _slotTitleForDance(id) ?? slot.text;
       }
-      return slot.text;
+      return slotDisplayText(AppLocalizations.of(context), slot);
     }
     return null;
   }
