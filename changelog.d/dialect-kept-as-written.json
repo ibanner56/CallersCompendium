@@ -6,17 +6,15 @@
       "Settings ▸ Dialect has Duplicate from another type…, which copies one of your own dialects from another type of dance, such as your contra dialect into English, keeping its name and every word you set in it."
     ],
     "changed": [
-      "After this update, English and square dances start in Larks/Robins until you choose a dialect for them in Settings ▸ Dialect or copy one of yours across with Duplicate from another type…. Your contra dialect is unchanged.",
-      "Your own dialects keep the words you give them, whatever they are: the app no longer refuses gendered role words such as \"gents\" or \"ladies\" in a dialect you make, and it never replaces, drops or renames anything in a dialect you saved. The built-in dialects stay role-neutral."
+      "After this update, English and square dances start in Larks/Robins until you choose a dialect for them in Settings ▸ Dialect or copy one of yours across with Duplicate from another type…. Your contra dialect is unchanged."
+    ],
+    "fixed": [
+      "The dance editor no longer marks your own dialect's role words as discouraged, even when they are on that dialect's list of discouraged terms (a copy of a built-in dialect starts with that list)."
     ]
   },
   "core": {
     "changed": [
-      "`Dialect.fromJson` reads every entry as stored, and `Dialect.validate` no longer reports `gendered_role_term`.",
-      "`syncCollectionEntries` labels a dialect with its own name."
-    ],
-    "removed": [
-      "`genderedRoleWords`, `genderedRoleWordIn` and `shownDialectName`."
+      "`canonicalize` does not report a dialect's own role words, or their possessives, as discouraged."
     ]
   }
 }
