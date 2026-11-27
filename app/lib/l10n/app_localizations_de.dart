@@ -4926,7 +4926,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionFacetMissingValue => 'Nicht in deiner Bibliothek';
 
   @override
-  String get collectionFacetStaleFields => 'Deleted or changed custom fields';
+  String get collectionFacetStaleFields =>
+      'Gelöschte oder geänderte benutzerdefinierte Felder';
 
   @override
   String collectionFacetStaleFieldValue(String field, String value) {
@@ -14998,7 +14999,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSavedSearchesLoadError =>
-      'Couldn\'t load your saved searches. Nothing was changed. Try again.';
+      'Deine gespeicherten Suchen konnten nicht geladen werden. Es wurde nichts geändert. Versuche es erneut.';
 
   @override
   String get settingsSavedSearchesEmpty =>

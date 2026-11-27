@@ -7448,7 +7448,7 @@ abstract class AppLocalizations {
   /// **'Not in your library'**
   String get collectionFacetMissingValue;
 
-  /// Heading of a Filters panel section that lists filters on custom fields that were deleted, or whose type changed, since a saved search using them was saved. The search leaves these filters out; each chip removes one.
+  /// Heading of a Filters panel section that lists filters on custom fields that were deleted, or whose type changed, since a saved search using them was saved. Each chip removes one.
   ///
   /// In en, this message translates to:
   /// **'Deleted or changed custom fields'**
