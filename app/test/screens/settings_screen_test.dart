@@ -161,6 +161,11 @@ _pumpSettings(
 
   /// Wraps the in-memory database's executor, so a test can fail one query.
   drift.QueryInterceptor? interceptor,
+
+  /// The app language, and the text scale, when a test needs other than
+  /// English at 1x.
+  Locale? locale,
+  double textScale = 1,
 }) async {
   final repos = interceptor == null
       ? openTestRepositories()
@@ -254,14 +259,23 @@ _pumpSettings(
   await tester.pumpWidget(
     TrackingScopes(
       child: MaterialApp(
+        locale: locale,
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
         builder: (context, innerChild) {
-          final child = resetToCleanInstall == null
+          final scoped = resetToCleanInstall == null
               ? innerChild
               : SyncWriterLifecycleScope(
                   resetToCleanInstall: resetToCleanInstall,
                   child: innerChild!,
+                );
+          final child = textScale == 1
+              ? scoped
+              : MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: TextScaler.linear(textScale)),
+                  child: scoped!,
                 );
           return RepositoriesScope(
             repositories: repos,
@@ -729,6 +743,34 @@ void main() {
         );
       }
     });
+
+    testWidgets(
+      'a preset row fits a 320 dp screen at 2x text in German, Dutch and Danish',
+      (tester) async {
+        for (final locale in const [Locale('de'), Locale('nl'), Locale('da')]) {
+          await _pumpSettings(
+            tester,
+            locale: locale,
+            textScale: 2,
+            surfaceSize: const Size(320, 4000),
+          );
+          await tester.tap(find.byKey(const ValueKey('settings-nav-dialect')));
+          await tester.pumpAndSettle();
+          final preset = Dialect.presets.first;
+          await tester.scrollUntilVisible(
+            find.byKey(ValueKey('dialect-preset-badge-${preset.name}')),
+            200,
+            scrollable: find.byType(Scrollable).last,
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(ValueKey('dialect-preset-badge-${preset.name}')),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull, reason: '$locale');
+        }
+      },
+    );
 
     testWidgets('only role-neutral presets are offered (no gendered presets)', (
       tester,
