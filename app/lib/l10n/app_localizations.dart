@@ -22133,7 +22133,7 @@ abstract class AppLocalizations {
   /// **'Add slot rule'**
   String get programTemplateAddSlotRule;
 
-  /// Screen-reader label of the icon on a slot rule in the program template editor, and its subtitle while the saved searches load, or when the latest read of them failed and its saved search was not among those last read (#2338).
+  /// Screen-reader label of the icon on a slot rule in the program template editor, and its subtitle while the saved searches load, or when the latest read of them failed and its saved search was not among those last read; while it is the subtitle, the icon has no label of its own, so a screen reader reads it once (#2338).
   ///
   /// In en, this message translates to:
   /// **'Slot rule'**

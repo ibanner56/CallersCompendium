@@ -1,0 +1,9 @@
+{
+  "id": "template-slot-rule-said-once",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Program templates: while your saved searches are loading or can't be read, a screen reader reads a slot rule's row as \"Slot rule\" once, not twice."
+    ]
+  }
+}
