@@ -961,7 +961,7 @@ file past v39 already ran that repair on the same open.)
   Also in v42, before it shipped: the calendar import's change tracking
   (#2354). Adds three nullable `programs` columns: `calendar_event_fingerprint`
   (`Program.calendarEventFingerprint`, per-field truncated hashes of the
-  event's title, date, first location segment, and start and end times as
+  event's title, date, venue label (the stored venue), and start and end times as
   last imported, `v2:`; for a UTC event the date and times as written, the
   date marked as UTC, so a reader in another time zone sees no change),
   `calendar_written_at` (`Program.calendarWrittenAt`, the `updated_at` the

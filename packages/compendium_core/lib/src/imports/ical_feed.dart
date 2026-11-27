@@ -620,8 +620,11 @@ class CalendarImportCandidate {
   /// program's start and end can say.
   final int? endMinute;
 
-  /// The first comma-separated segment of `LOCATION`, sanitized and
-  /// single-line; the rest (usually a street address) is dropped.
+  /// The place name `LOCATION` starts with: its first non-blank line up to
+  /// the first comma, sanitized, with any whitespace read as a space. The rest
+  /// (usually a street address) is dropped, and so is that part when it
+  /// holds a number, as a street line does, or the part after its first
+  /// comma is a word or two holding one: then `null`.
   final String? venueLabel;
 
   /// For an event whose `UID` is `<id>@callers-compendium` (this app's
@@ -700,7 +703,7 @@ class CalendarImportPlan {
 }
 
 /// What a calendar import last wrote from an event (#2354): its title, date,
-/// first location segment, start time and end time (#2423), each as a
+/// venue label (the venue the program stores), start time and end time (#2423), each as a
 /// 16-hex-digit SHA-256 prefix, joined as
 /// `v2:<title>:<date>:<location>:<start>:<end>`. For a UTC event ([utc]) the
 /// date and minutes are UTC, and the date is hashed marked as UTC. Kept per field so a later import
@@ -869,7 +872,7 @@ CalendarImportPlan planCalendarImport(
         date: date,
         startMinute: startMinute,
         endMinute: endMinute,
-        venueLabel: _clean(e.location?.split(',').first),
+        venueLabel: _venueLabelOf(e.location),
         exportedProgramId: e.uid.endsWith(programCalendarUidSuffix)
             ? e.uid.substring(0, e.uid.length - programCalendarUidSuffix.length)
             : null,
@@ -1123,6 +1126,62 @@ DateTime _addMonths(DateTime d, int months) {
   final last = DateTime.utc(year, month + 1, 0).day;
   return DateTime.utc(year, month, d.day > last ? last : d.day);
 }
+
+/// The venue label a calendar event's unescaped `LOCATION` gives (#2352): its
+/// first non-blank line, up to the first comma, sanitized and trimmed.
+/// Calendars write a place picked from a map as the name, then the address on
+/// the following lines or after a comma, so this keeps the name.
+///
+/// `null` when that part holds a number, as a street line does ("12 Elm
+/// St", "Hauptstraße 5", "#12", "神宮前１丁目", "建国路八十八号"), or when the
+/// part after its first comma is a word or two holding a number ("Via Roma,
+/// 10, Milano"). An English ordinal ("1st Church") is not a number here. So a
+/// location that starts with a numbered street address gives no venue: `programs.venue` is a
+/// shareable label that sync, share files and every export carry. A name
+/// that holds a number ("Studio 54") is dropped with it: the caller can type
+/// it back, whereas a kept address would travel.
+String? _venueLabelOf(String? location) {
+  if (location == null) return null;
+  final line = location
+      .split(_lineBreak)
+      .firstWhere((l) => _clean(l) != null, orElse: () => '');
+  // Whitespace the sanitizer would strip (a tab) still separates words.
+  final parts = line.replaceAll(_whitespace, ' ').split(_comma);
+  final label = _clean(parts.first);
+  if (label == null || _holdsNumber(label)) return null;
+  if (parts.length > 1) {
+    final next = _clean(parts[1]);
+    if (next != null && _words(next).length <= 2 && _holdsNumber(next)) {
+      return null;
+    }
+  }
+  return label;
+}
+
+final _lineBreak = RegExp('\r\n|[\n\r\u0085\u2028\u2029]');
+final _whitespace = RegExp(r'\s', unicode: true);
+
+/// A comma, fullwidth comma or ideographic comma.
+final _comma = RegExp('[,\uFF0C\u3001]');
+
+/// Any numeral, or a number in CJK numerals before a block, lot or house
+/// counter (丁目, 番地, 番, 号).
+final _digit = RegExp(r'\p{N}|[〇零一二三四五六七八九十百千万]+(?:丁目|番地|番|号)', unicode: true);
+
+/// An English ordinal, which is part of a name ("1st Church", "4th Street
+/// Hall"), not a house number.
+final _ordinal = RegExp(
+  r'^\p{Nd}+(?:st|nd|rd|th)$',
+  caseSensitive: false,
+  unicode: true,
+);
+
+List<String> _words(String s) =>
+    s.split(' ').where((w) => w.isNotEmpty).toList();
+
+/// Whether a word of [s] holds a digit and is not an ordinal.
+bool _holdsNumber(String s) =>
+    _words(s).any((w) => _digit.hasMatch(w) && !_ordinal.hasMatch(w));
 
 String? _clean(String? value) {
   if (value == null) return null;
