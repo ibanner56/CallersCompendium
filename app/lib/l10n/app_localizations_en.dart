@@ -227,6 +227,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String migrationBelowFloorBodyAndroid(String bridgeTag) {
+    return 'Your data is still on this device, but this version can\'t update it. Don\'t uninstall the app: that deletes your data, and Android won\'t install $bridgeTag over this version anyway. Keep the app installed, don\'t reset it, and choose Copy details when you ask for help.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.';
+  }
+
+  @override
+  String migrationBelowFloorBodyIos(String bridgeVersion) {
+    return 'Your data is still on this device. Don\'t delete the app: that deletes your data. In TestFlight, open Caller\'s Compendium and look under Previous Builds for version $bridgeVersion. If it\'s listed, install it, open the app once to let it update your data, then install the newest build again. If it isn\'t listed, keep the app as it is and choose Copy details when you ask for help.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.';
+  }
+
+  @override
   String migrationBelowFloorGetBridge(String bridgeTag) {
     return 'Get $bridgeTag';
   }

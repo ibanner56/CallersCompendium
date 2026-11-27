@@ -230,6 +230,16 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String migrationBelowFloorBodyAndroid(String bridgeTag) {
+    return 'Je gegevens staan nog op dit apparaat, maar deze versie kan ze niet bijwerken. Verwijder de app niet: daarmee worden je gegevens gewist, en Android installeert $bridgeTag sowieso niet over deze versie heen. Laat de app geïnstalleerd, zet haar niet terug en kies ‘Details kopiëren’ als je om hulp vraagt.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.';
+  }
+
+  @override
+  String migrationBelowFloorBodyIos(String bridgeVersion) {
+    return 'Je gegevens staan nog op dit apparaat. Verwijder de app niet: daarmee worden je gegevens gewist. Open in TestFlight Caller’s Compendium en zoek onder ‘Vorige builds’ naar versie $bridgeVersion. Staat die erbij, installeer haar dan, open de app één keer zodat je gegevens worden bijgewerkt en installeer daarna weer de nieuwste build. Staat die er niet bij, laat de app dan zoals ze is en kies ‘Details kopiëren’ als je om hulp vraagt.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.';
+  }
+
+  @override
   String migrationBelowFloorGetBridge(String bridgeTag) {
     return '$bridgeTag ophalen';
   }
