@@ -1190,6 +1190,12 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     });
   }
 
+  /// An ad-hoc note typed in the Adjust sheet and not yet added, shown again
+  /// the next time the sheet opens. Kept in memory for the life of this
+  /// screen only, never persisted; `''` once the note is added or the field is
+  /// emptied (or holds only spaces).
+  String _adjustNoteDraft = '';
+
   /// Opens the non-destructive "adjust" sheet (`docs/design/ux.md` §5) over the
   /// reading view. The sheet edits a working copy (reorder remaining slots,
   /// insert a dance from quick-search, add an ad-hoc note, mark the current slot
@@ -1221,6 +1227,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       showDragHandle: true,
       builder: (_) => PerformAdjustSheet(
         onEdited: (program) => latest = program,
+        noteDraft: _adjustNoteDraft,
+        onNoteDraftChanged: (text) => _adjustNoteDraft = text,
         program: opened,
         currentGroupIndex: _groupIndex,
         currentSlotId: _currentSlot.id,

@@ -78,10 +78,13 @@ const _exempt = <String, String>{
   'lib/src/screens/program_editor_screen.dart#_showDancePickerSheet':
       'the program editor dance picker for a slot: its text field searches '
       'the collection',
-  // Known gaps, not yet fixed: each loses typed text today.
+  // Keeps its draft: closing it loses nothing, so there is nothing to guard,
+  // and no prompt is wanted. Each has behaviour tests saying so.
   'lib/src/screens/perform_program_screen.dart#_openAdjustSheet':
-      'KNOWN GAP: the Perform adjust sheet keeps its edits when dismissed, '
-      'but an ad-hoc note typed and not yet added is lost',
+      'keeps its draft: the Perform adjust sheet keeps its edits when '
+      'dismissed, and an ad-hoc note typed and not yet added is shown again '
+      'the next time it opens (perform_adjust_test.dart, "a note typed but '
+      'not added"); nothing prompts during a performance',
 };
 
 void main() {
