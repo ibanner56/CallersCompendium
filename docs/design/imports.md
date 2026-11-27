@@ -2825,7 +2825,11 @@ ECD dance.
   make Sellenger's Round a mixer. A contra `scatterMixer`, which ECD has no
   shape for either, is ECD `other` with the detail "Scatter mixer" (and any
   description after it), a mixer by its Type (implementer's call; rejected:
-  a shape the source does not name). These formation rules belong to the English
+  a shape the source does not name). A contra `longways` stays `longways`,
+  which English offers too, and a Becket (`becketCw`, `becketCcw`) is
+  `longways` with the detail "Becket" or "Becket CCW" before any detail it
+  had (the maintainer, 27 November 2026; `ecdFormationFromContra`, so
+  **Convert English dances** reads it the same way). These formation rules belong to the English
   reading, so they hold for a dance typed English whatever the answer. Closing the question
   plans nothing. The answer is held per file bytes in an `Expando`, so
   trying a file again after a failed plan does not ask again, and the

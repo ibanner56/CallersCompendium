@@ -487,9 +487,23 @@ void main() {
       );
     });
 
+    test('a Becket is a longways set with Becket as its detail', () {
+      expect(
+        ecdFormationFromContra(
+          const Formation(FormationShape.becketCw, detail: 'x'),
+        ),
+        const Formation(FormationShape.longways, detail: 'Becket; x'),
+      );
+      expect(
+        ecdFormationFromContra(const Formation(FormationShape.becketCcw)),
+        const Formation(FormationShape.longways, detail: 'Becket CCW'),
+      );
+      expect(ecdFormationShapes, contains(FormationShape.longways));
+    });
+
     test('keeps a shape with no clear ECD counterpart', () {
-      const becket = Formation(FormationShape.becketCw, detail: 'x');
-      expect(ecdFormationFromContra(becket), becket);
+      const grid = Formation(FormationShape.grid, detail: 'x');
+      expect(ecdFormationFromContra(grid), grid);
     });
   });
 

@@ -1489,6 +1489,11 @@ an all-English evening.
   record was built (§9.2) added a Sicilian circle and a two-couple set to
   the ECD list, stored the shapes as new values of the existing formation
   shape, and stored the checkbox as a yes/no "improper", proper by default.
+  *Amended 27 November 2026 (the maintainer):* the ECD list also offers
+  contra's existing `longways` shape, a longways set of no set number of
+  couples, and an English dance given a contra Becket shape becomes
+  `longways` with "Becket" as its formation detail; ECD still has no Becket
+  shape.
 - **F3. Meter and key.** A dance gains optional meter and key text fields,
   shown on the dance and the program sheet, and searchable. Phrase
   structure still records beats per bar (§5.5).

@@ -64,7 +64,10 @@ enum FormationShape {
 /// the two-couple set and the Sicilian circle added later (§9.2, points 5 and
 /// 6), then [FormationShape.other] for a source whose formation none of them
 /// names. No Becket circle (§9.1, point 2). A "three-couple set" or
-/// "four-couple set" is the matching longways shape (§9.2, point 6).
+/// "four-couple set" is the matching longways shape (§9.2, point 6). A
+/// longways set of no stated number of couples, contra's [FormationShape.longways],
+/// was added later (the maintainer, 27 November 2026): an English Becket is a
+/// longways set with "Becket" as its detail ([ecdFormationFromContra]).
 const List<FormationShape> ecdFormationShapes = [
   FormationShape.dupleMinor,
   FormationShape.tripleMinor,
@@ -73,6 +76,7 @@ const List<FormationShape> ecdFormationShapes = [
   FormationShape.fourCoupleLongways,
   FormationShape.fiveCoupleLongways,
   FormationShape.sixCoupleLongways,
+  FormationShape.longways,
   FormationShape.circle,
   FormationShape.sicilianCircle,
   FormationShape.square,

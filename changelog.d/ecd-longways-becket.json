@@ -1,0 +1,17 @@
+{
+  "id": "ecd-longways-becket",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "English dances offer a Longways formation, a longways set of no set number of couples."
+    ],
+    "changed": [
+      "A Caller's Companion dance read as English that is typed Longways, or danced in a Becket formation, now comes across as a longways set; a Becket's is described as \"Becket\" (\"Becket CCW\" for counterclockwise). Convert English dances reads a Becket dance the same way."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`ecdFormationShapes` includes `FormationShape.longways`, and `ecdFormationFromContra` maps `becketCw`/`becketCcw` to `longways` with the detail \"Becket\" / \"Becket CCW\"."
+    ]
+  }
+}
