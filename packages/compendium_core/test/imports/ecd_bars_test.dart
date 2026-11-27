@@ -893,6 +893,58 @@ void main() {
       });
     });
 
+    test('an English Longways or Becket dance is a longways set', () {
+      Formation mapped(CcDanceRecord r) =>
+          mapCallersCompanionDance(r, englishDances: true).dance.formation;
+      expect(
+        mapped(
+          CcDanceRecord(name: 'L', type: 'Longways', fromUsrColumns: true),
+        ),
+        const Formation(FormationShape.longways),
+      );
+      for (final (direction, detail) in const [
+        (null, 'Becket'),
+        ('CCW', 'Becket CCW'),
+      ]) {
+        final formation = mapped(
+          CcDanceRecord(
+            name: 'B',
+            type: 'Contra',
+            formationFamily: 'Duple Minor',
+            contraForm: 'Becket',
+            direction: direction,
+            fromUsrColumns: true,
+          ),
+        );
+        expect(
+          formation,
+          Formation(FormationShape.longways, detail: detail),
+          reason: '$direction',
+        );
+        expect(ecdFormationShapes, contains(formation.shape));
+      }
+      // A Becket's ring is still four dancers: "half way" is two places.
+      final circle =
+          (mapCallersCompanionDance(
+                    CcDanceRecord(
+                      name: 'B',
+                      type: 'Contra',
+                      formationFamily: 'Duple Minor',
+                      contraForm: 'Becket',
+                      fromUsrColumns: true,
+                      body: [
+                        CcBodySection(lines: ['(8) circle left halfway']),
+                      ],
+                    ),
+                    englishDances: true,
+                  ).dance.figuresSource
+                  as DecodedFigures)
+              .figures
+              .single;
+      expect(circle.move, 'ecd_circle');
+      expect(circle.params['places'], 2);
+    });
+
     test('an English scatter mixer is another formation that mixes', () {
       final dance = mapCallersCompanionDance(
         CcDanceRecord(

@@ -59,8 +59,16 @@ import 'structured_draft.dart';
 /// shape does not settle it. ADR-006 §7.3 derives a circle's or star's
 /// "half" from the ring: two places in a duple minor (four dancers), three in
 /// a triple minor (six). Contra shapes an ECD dance may still carry from before
-/// the ECD shapes existed are read the same way.
-int? ecdRingDancers(FormationShape? shape) => switch (shape) {
+/// the ECD shapes existed are read the same way. A longways set whose
+/// [detail] names it a Becket (`ecdFormationFromContra`) is a Becket's ring
+/// of four; any other longways set does not settle it.
+int? ecdRingDancers(FormationShape? shape, {String? detail}) =>
+    shape == FormationShape.longways &&
+        (detail ?? '').trimLeft().toLowerCase().startsWith('becket')
+    ? 4
+    : _ringDancersOf(shape);
+
+int? _ringDancersOf(FormationShape? shape) => switch (shape) {
   FormationShape.dupleMinor ||
   FormationShape.twoCoupleSet ||
   FormationShape.sicilianCircle ||
