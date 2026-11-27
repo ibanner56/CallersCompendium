@@ -938,6 +938,30 @@ void main() {
       ]);
     });
 
+    test('a square name that crosses a contra phrase is also read as '
+        'contra alone splits it (pre-release audit B-04)', () {
+      // "allemande right" is a square call's name; "right left through" is
+      // contra's. Contra alone (v0.10.0-beta) read "allemande" and "right
+      // left through"; the stretch also matches as that.
+      final c = FilterCompiler(null, null, shippedTaxonomies.anyForm).compile(
+        const FullTextFilter(
+          'allemande right left through',
+          scope: FullTextScope.figure,
+        ),
+      );
+      expect(
+        c.binds,
+        containsAllInOrder(['"allemande"', '"right left through"']),
+      );
+      final contraOnly = FilterCompiler(null, null, contraTaxonomy).compile(
+        const FullTextFilter(
+          'allemande right left through',
+          scope: FullTextScope.figure,
+        ),
+      );
+      expect(contraOnly.binds, ['"allemande"', '"right left through"']);
+    });
+
     test('a role of several words stays one word', () {
       final dialect = Dialect(
         name: 'Birds',

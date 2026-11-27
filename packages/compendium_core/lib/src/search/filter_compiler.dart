@@ -4,8 +4,8 @@ import '../dialect/role_canonicalizer.dart';
 import '../dialect/substitution.dart';
 import '../model/enums.dart';
 import '../model/figure.dart' show customMoveId;
-import '../taxonomy/square_taxonomy.dart' show squareMovePrefix;
 import '../taxonomy/taxonomy.dart';
+import '../taxonomy/taxonomy_registry.dart' show danceFormMovePrefixes;
 import '../taxonomy/user_figure_use.dart';
 import 'filter.dart';
 import 'fts_query.dart';
@@ -47,23 +47,27 @@ const _rawTextColumns = 'title authors sources custom_values hook notes';
 /// query, not only the first.
 String _rawColumnsMatch(String query) => '{$_rawTextColumns} : ($query)';
 
-/// Whether a phrase that a name or keyword of the move [id] covers was kept
-/// whole by a search over every form before the square calls were
-/// registered: a contra or English move's (the audit lead's call on
-/// pre-release audit B-04). A phrase only a square call names is also read
-/// word by word ([FilterCompiler._searchWords]).
-bool _keptWholeBeforeSquares(String id) =>
-    id != customMoveId && !id.startsWith(squareMovePrefix);
+/// Whether a phrase that a name or keyword of the move [id] covers is kept
+/// whole even where the search reads a phrase word by word: a contra move's
+/// (an ID with no form prefix). v0.10.0-beta searched with contra's taxonomy
+/// alone, so it read every other phrase word by word; a phrase only an
+/// English or square move names is read that way too, as well as whole
+/// ([FilterCompiler._searchWords]). Contra's own names and keywords, those
+/// added since included, stay one phrase (the audit lead's call on
+/// pre-release audit B-04).
+bool _contraKeepsWhole(String id) =>
+    id != customMoveId &&
+    !danceFormMovePrefixes.values.any((prefix) => id.startsWith(prefix));
 
 /// Matches the names and keywords of [taxonomy]'s moves and aliases that
-/// [_keptWholeBeforeSquares] admits, as [moveKeywordSpans] matches all of
-/// them, or `null` when it admits none. Built once per taxonomy.
-Substitutor? _keptWholeBeforeSquaresMatcher(Taxonomy taxonomy) {
+/// [_contraKeepsWhole] admits, as [moveKeywordSpans] matches all of them, or
+/// `null` when it admits none. Built once per taxonomy.
+Substitutor? _contraKeepsWholeMatcher(Taxonomy taxonomy) {
   final cached = _keptWholeMatchers[taxonomy];
   if (cached != null) return cached.matcher;
   final keywords = <String, String>{};
   void add(String id, String name, List<String> searchKeywords) {
-    if (!_keptWholeBeforeSquares(id)) return;
+    if (!_contraKeepsWhole(id)) return;
     for (final word in [name, ...searchKeywords]) {
       if (word.isNotEmpty) keywords[word.toLowerCase()] = id;
     }
@@ -83,7 +87,7 @@ Substitutor? _keptWholeBeforeSquaresMatcher(Taxonomy taxonomy) {
 }
 
 final _keptWholeMatchers = Expando<({Substitutor? matcher})>(
-  'keptWholeBeforeSquares',
+  'contraKeepsWhole',
 );
 
 /// One word of a free-text query, as typed and in canonical form
@@ -96,10 +100,11 @@ typedef _WordForms = ({String raw, String canonical, List<String> alternates});
 
 /// One term of a free-text query, which [FilterCompiler._compileFullText]
 /// ANDs with the others: its `whole` words, which must all match, **or** its
-/// `apart` words, which must all match. `apart` is how a search over every
-/// form split the same stretch of the query before the square calls were
-/// registered, set only where a square call's name or keyword made the split
-/// differ; it is empty otherwise, and `whole` is then one word.
+/// `apart` words, which must all match. `apart` is the same stretch of the
+/// query split with only contra's names and keywords kept whole
+/// ([_contraKeepsWhole]), as v0.10.0-beta split it, set only where an
+/// English or square move's name or keyword made the split differ; it is
+/// empty otherwise, and `whole` is then one word.
 typedef _SearchTerm = ({List<_WordForms> whole, List<_WordForms> apart});
 
 /// A run of whitespace, where a free-text query splits into words.
@@ -587,8 +592,9 @@ class FilterCompiler {
   /// word must match, each in any field, so "Kaynor petronella" finds a
   /// Kaynor dance with a petronella in it. A term of several words — a role
   /// ("Lady Birds"), a move ("do si do") or a dialect's move name — is one
-  /// word, so its spaces still have to match; one kept whole only by a square
-  /// call's name or keyword also matches word by word ([_compileSearchTerm]).
+  /// word, so its spaces still have to match; one kept whole only by an
+  /// English or square move's name or keyword also matches word by word
+  /// ([_compileSearchTerm]).
   /// Each word picks its own index
   /// (one or two characters: the token-prefix `dance_fts`; more: the trigram
   /// `dance_substring_fts`) and its own canonical-or-raw match
@@ -624,10 +630,11 @@ class FilterCompiler {
   ///   word inside it;
   /// - a taxonomy move name or keyword ([moveKeywordSpans]).
   ///
-  /// Any of those that spans whitespace is kept as one word. A stretch where a
-  /// square call's name or keyword decides the split differently from the
-  /// names kept whole before the square calls ([_keptWholeBeforeSquares]) is
-  /// also split as it was then, and the two splits are one term. The canonical
+  /// Any of those that spans whitespace is kept as one word. A stretch where an
+  /// English or square move's name or keyword decides the split differently
+  /// from contra's names and keywords alone ([_contraKeepsWhole]) is also
+  /// split as contra's alone split it, and the two splits are one term. The
+  /// canonical
   /// form then applies the role tokens and dialect move names that fall in the
   /// word, followed by [canonicalizeMoveSearchText], as the whole query used
   /// to. The word also keeps two alternate forms ([_compileWordForms]): one
@@ -657,16 +664,16 @@ class FilterCompiler {
     for (final m in dialectMoves) {
       keep(m.start, m.end);
     }
-    // The ranges kept whole by everything but a name or keyword only the
-    // square calls have ([_nonSquareKeywordSpans]): how the query split
-    // before the square calls were registered.
+    // The ranges kept whole by everything but a name or keyword of a form
+    // other than contra ([_contraKeepsWhole]): how v0.10.0-beta, which
+    // searched with contra's taxonomy alone, split the query.
     final keptApart = List.of(kept);
     if (t != null) {
       for (final m in moveKeywordSpans(text, t)) {
         keep(m.start, m.start + m.text.length);
       }
       for (final m
-          in _keptWholeBeforeSquaresMatcher(t)?.matches(text) ??
+          in _contraKeepsWholeMatcher(t)?.matches(text) ??
               const <({String text, int start})>[]) {
         keptApart.fillRange(m.start, m.start + m.text.length, true);
       }
@@ -819,12 +826,12 @@ class FilterCompiler {
   ], binds);
 
   /// A [term] matches when its `whole` words all match **or** its `apart`
-  /// words all match ([_SearchTerm]). A phrase kept whole only by a square
-  /// call's name or keyword ("turn by the hand") is read word by word too,
-  /// as a search over every form read it before the square calls were
-  /// registered, so "turn by the hand" still finds a line typed "Turn by the
-  /// right hand"; a contra or English move's name or keyword ("do si do")
-  /// stays one word (the audit lead's call on pre-release audit B-04).
+  /// words all match ([_SearchTerm]). A phrase kept whole only by an English
+  /// or square move's name or keyword ("turn by the hand", "hand turn") is
+  /// read word by word too, as v0.10.0-beta read it, so "turn by the hand"
+  /// still finds a line typed "Turn by the right hand"; a contra move's name
+  /// or keyword ("do si do", "cast off") stays one word (the audit lead's
+  /// call on pre-release audit B-04).
   String _compileSearchTerm(
     FullTextScope scope,
     _SearchTerm term,
