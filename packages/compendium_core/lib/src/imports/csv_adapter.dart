@@ -15,6 +15,7 @@ import '../model/formation.dart';
 import '../storage/shareable_text.dart' show normalizeShareableText;
 import 'author_tokenizer.dart';
 import 'figure_front_end_fan_out.dart';
+import 'free_text_entry.dart' show maxFreeTextEntryLength;
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
@@ -375,8 +376,8 @@ StructuredDraft csvRowToDraft(
   var hook = '';
   final notes = <String>[];
   var walkthrough = '';
-  final figureLines = <String>[];
-  final phraseCells = <String, String>{};
+  final figureLines = <_FigureLine>[];
+  final phraseLines = <String, List<_FigureLine>>{};
   final customValues = <CustomFieldValue>[];
 
   String columnName(int i) => i < header.length && header[i].trim().isNotEmpty
@@ -470,16 +471,11 @@ StructuredDraft csvRowToDraft(
           form = f;
         }
       case CsvColumnTarget.formation:
-        final improper = vocab.improperFormations[csvFold(value)];
-        final shape =
-            vocab.formations[csvFold(value)] ??
-            _byName(FormationShape.values, value);
-        if (improper != null) {
-          formation = Formation(improper, improper: true);
-        } else if (shape == null) {
+        final f = _formationOf(value, vocab);
+        if (f == null) {
           keep(i, value);
         } else {
-          formation = Formation(shape);
+          formation = f;
         }
       case CsvColumnTarget.progression:
         final p =
@@ -527,14 +523,16 @@ StructuredDraft csvRowToDraft(
         notes.add(column.labelled ? '${columnName(i)}: $value' : value);
       case CsvColumnTarget.walkthrough:
         walkthrough = value;
+      // A figures cell keeps its first line's indent, against which a note's
+      // is measured ([_figureLinesOf]).
       case CsvColumnTarget.figures:
-        figureLines.addAll(_figureLinesOf(value));
+        figureLines.addAll(
+          _figureLinesOf(unguardCsvFormula(cells[i].trimRight())),
+        );
       case CsvColumnTarget.figurePhrase:
         // Two columns for one phrase add up rather than overwrite.
-        phraseCells.update(
-          column.phrase!,
-          (earlier) => '$earlier\n$value',
-          ifAbsent: () => value,
+        (phraseLines[column.phrase!] ??= []).addAll(
+          _figureLinesOf(unguardCsvFormula(cells[i].trimRight())),
         );
       case CsvColumnTarget.customField:
         final def = mapping.existingFields[column.customFieldId];
@@ -572,11 +570,12 @@ StructuredDraft csvRowToDraft(
     throw const FormatException('a row needs a title');
   }
 
-  for (final phrase in phraseCells.keys.toList()..sort()) {
-    figureLines.addAll(_figureLinesOf(phraseCells[phrase]!));
+  for (final phrase in phraseLines.keys.toList()..sort()) {
+    figureLines.addAll(phraseLines[phrase]!);
   }
   final figures = <Figure>[
-    for (final line in figureLines) ..._figuresOf(line, vocab),
+    for (final line in figureLines)
+      ..._withNote(_figuresOf(line.text, vocab), line.note),
   ];
 
   final callingNotes = [...notes, ...keptNotes].join('\n\n');
@@ -584,7 +583,12 @@ StructuredDraft csvRowToDraft(
     id: 'csv-draft',
     title: title.trim(),
     form: form ?? DanceForm.contra,
-    formation: formation ?? const Formation(FormationShape.dupleImproper),
+    // A row with no readable formation starts on the shape a new dance of its
+    // form starts on, as the editor offers it: a contra's duple improper, an
+    // English dance's duple minor, a square's square.
+    formation:
+        formation ??
+        Formation(offeredFormationShapes(form ?? DanceForm.contra).first),
     progression: progression ?? Progression.single,
     figures: figures,
     hook: hook,
@@ -611,22 +615,94 @@ StructuredDraft csvRowToDraft(
   );
 }
 
+/// Between a formation's shape and its free-text detail, as this app writes
+/// a formation in every language (`commonFormationWithDetail`):
+/// `Duple minor, improper — first corners cross`.
+const String _formationDetailSeparator = ' — ';
+
+/// The formation a cell names: a shape (or an English dance's shape marked
+/// improper), optionally followed by [_formationDetailSeparator] and a
+/// detail. `null` when the shape is not one the vocabulary knows.
+Formation? _formationOf(String value, CsvValueVocabulary vocab) {
+  final whole = _shapeOf(value, vocab);
+  if (whole != null) return whole;
+  final at = value.indexOf(_formationDetailSeparator);
+  if (at <= 0) return null;
+  final shape = _shapeOf(value.substring(0, at), vocab);
+  if (shape == null) return null;
+  final detail = value.substring(at + _formationDetailSeparator.length).trim();
+  return detail.isEmpty
+      ? shape
+      : Formation(shape.shape, improper: shape.improper, detail: detail);
+}
+
+Formation? _shapeOf(String value, CsvValueVocabulary vocab) {
+  final folded = csvFold(value);
+  final improper = vocab.improperFormations[folded];
+  if (improper != null) return Formation(improper, improper: true);
+  final shape =
+      vocab.formations[folded] ?? _byName(FormationShape.values, value);
+  return shape == null ? null : Formation(shape);
+}
+
+/// One figure line of a cell, with the note written under it.
+typedef _FigureLine = ({String text, String? note});
+
 /// The figure lines in one figures cell: one per line, or the `;`-separated
 /// parts of a cell with no line breaks.
-List<String> _figureLinesOf(String cell) {
-  final lines = cell.contains('\n') || cell.contains('\r')
-      ? cell.split(_lineBreak)
-      : cell.split(';');
+///
+/// A line indented further than the figure line above it is that figure's
+/// note, as this app's own export writes a note (`    end facing down`), not
+/// a figure of its own. Lines all indented alike are each a figure.
+List<_FigureLine> _figureLinesOf(String cell) {
+  if (!cell.contains('\n') && !cell.contains('\r')) {
+    return [
+      for (final part in cell.split(';'))
+        if (part.trim().isNotEmpty) (text: part.trim(), note: null),
+    ];
+  }
+  final lines = <_FigureLine>[];
+  var figureIndent = 0;
+  for (final line in cell.split(_lineBreak)) {
+    final text = line.trim();
+    if (text.isEmpty) continue;
+    final indent = line.length - line.trimLeft().length;
+    if (lines.isNotEmpty && indent > figureIndent) {
+      final figure = lines.last;
+      lines.last = (text: figure.text, note: _joinNotes(figure.note, text));
+      continue;
+    }
+    figureIndent = indent;
+    lines.add((text: text, note: null));
+  }
+  return lines;
+}
+
+/// [figures] with [note] added to the last of them: a line the fan-out reads
+/// as several figures has its note after the last.
+List<Figure> _withNote(List<Figure> figures, String? note) {
+  if (note == null || figures.isEmpty) return figures;
+  final last = figures.last;
   return [
-    for (final l in lines)
-      if (l.trim().isNotEmpty) l.trim(),
+    ...figures.take(figures.length - 1),
+    last.copyWith(note: _joinNotes(last.note, note)),
   ];
 }
+
+String _joinNotes(String? earlier, String note) =>
+    earlier == null || earlier.trim().isEmpty ? note : '$earlier; $note';
 
 /// One figure line through the shared fan-out, with a leading phrase label,
 /// a leading `(8)` count, or this app's own trailing `(16 beats) ¶` read off
 /// first.
+///
+/// A line longer than typed entry takes ([maxFreeTextEntryLength]) is kept as
+/// its text without being read: the figure parser's work grows faster than the
+/// line, and no real figure line is that long (pre-release audit SEC-04).
 List<Figure> _figuresOf(String line, CsvValueVocabulary vocab) {
+  if (line.length > maxFreeTextEntryLength) {
+    return [customFigure(line, origin: CustomOrigin.importGap)];
+  }
   var text = line.replaceFirst(_phraseLabel, '');
   var beats = 0;
   var progression = false;
