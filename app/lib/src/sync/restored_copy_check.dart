@@ -11,9 +11,9 @@ import '../diagnostics/error_log.dart' show logCaughtError;
 /// library restored from a device backup arrives without it (spec §3.3,
 /// *A library restored from a device backup*).
 ///
-/// Android keeps it in `noBackupFilesDir`, which Auto Backup and
-/// device-to-device transfer skip; iOS keeps it in Application Support with
-/// `isExcludedFromBackup` set. Neither place is one the system clears on its
+/// Android keeps it in the app's no-backup files directory, which Auto Backup
+/// and device-to-device transfer skip; iOS keeps it in Application Support,
+/// marked excluded from backup. Neither place is one the system clears on its
 /// own, which matters more than anything else here: a marker that vanished on
 /// a phone that was never restored would read as a restore.
 abstract interface class NoBackupMarker {
@@ -25,8 +25,9 @@ abstract interface class NoBackupMarker {
   Future<void> write();
 }
 
-/// The platform-channel [NoBackupMarker]. Native side: `MainActivity.kt` on
-/// Android and `AppDelegate.swift` on iOS.
+/// The platform-channel [NoBackupMarker]. Native side:
+/// `app/android/app/src/main/kotlin/org/callerscompendium/compendiumApp/NoBackupMarker.kt`
+/// and `app/ios/Runner/AppDelegate.swift`.
 class ChannelNoBackupMarker implements NoBackupMarker {
   ChannelNoBackupMarker({MethodChannel? channel})
     : _channel = channel ?? const MethodChannel(channelName);
