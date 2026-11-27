@@ -559,7 +559,7 @@ wire change.
   - A dance that cites both keeps the survivor's citation. **Recommendation:**
     an empty `page` or `number` on that citation takes the loser's. Rejected
     alternative: drop the loser's citation whole, which is what
-    `_rewriteLocalReferences` does today (`sync_storage.dart:5334-5361`).
+    `rewriteLocalReferences` (`reference_rewrite.dart`) does on its own.
     *As built by T3 (2026-10-30):* the citation kept takes the page and number
     of the merged-into source's citation, filled from the others' when empty;
     see "What T3 built" under [The manager screens](#the-manager-screens).
