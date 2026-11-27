@@ -969,6 +969,131 @@ void main() {
       expect(find.text('Save this search…'), findsOneWidget);
     });
 
+    // A merge of the loaded search's tag (Settings ▸ Tags, or synced) rewrites
+    // the stored search to the survivor; the panel on screen still names the
+    // merged-away tag, which no dance carries any more.
+    Future<(CompendiumRepositories, SavedSearch)> mergedTagSearch() async {
+      final repos = await _library();
+      // 't0' sorts before 't1', so it survives the merge.
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 't0', name: 'Bouncy'));
+      final state = CollectionPanelState();
+      state.facets.setTag('t1', selected: true);
+      return (repos, await _seed(repos, 'Bouncey dances', state));
+    }
+
+    Future<void> merge(CompendiumRepositories repos) => repos.references
+        .merge(ReferenceKind.tag, intoId: 't0', otherIds: const ['t1']);
+
+    List<Object?>? storedTagIds(SavedSearch s) =>
+        (s.spec.toJson()['facets']! as Map)['tagIds'] as List<Object?>?;
+
+    testWidgets('when the Collection is shown again after a merge of its '
+        'tag, the loaded search shows as stored, on the surviving tag', (
+      tester,
+    ) async {
+      final (repos, search) = await mergedTagSearch();
+      final isActive = ValueNotifier(true);
+      addTearDown(isActive.dispose);
+      await _pump(tester, repos, isActive: isActive);
+      await _load(tester, search);
+      expect(_shows('Petronella'), isTrue);
+
+      isActive.value = false;
+      await tester.pumpAndSettle();
+      await merge(repos);
+      expect(storedTagIds((await repos.savedSearches.get(search.id))!), [
+        't0',
+      ]);
+      isActive.value = true;
+      await tester.pumpAndSettle();
+
+      expect(_shows('Petronella'), isTrue);
+      expect(_shows('Chorus Jig'), isFalse);
+      await _openMore(tester);
+      // Still the loaded search, and unchanged from it.
+      expect(find.text('Update "Bouncey dances"'), findsOneWidget);
+      expect(_enabled(tester, 'saved-search-update'), isFalse);
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+
+      await _type(tester, 'petronella');
+      await _tapOff(tester);
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-update');
+      expect(storedTagIds((await repos.savedSearches.get(search.id))!), [
+        't0',
+      ]);
+    });
+
+    testWidgets('a search changed here before its tag was merged keeps the '
+        'change, and Update saves it on the surviving tag', (tester) async {
+      final (repos, search) = await mergedTagSearch();
+      final isActive = ValueNotifier(true);
+      addTearDown(isActive.dispose);
+      await _pump(tester, repos, isActive: isActive);
+      await _load(tester, search);
+      await _type(tester, 'petronella');
+      await _tapOff(tester);
+
+      isActive.value = false;
+      await tester.pumpAndSettle();
+      await merge(repos);
+      isActive.value = true;
+      await tester.pumpAndSettle();
+
+      // The change made here is still on screen.
+      expect(_searchText(tester), 'petronella');
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-update');
+      final stored = (await repos.savedSearches.get(search.id))!;
+      expect(storedTagIds(stored), ['t0']);
+      expect(stored.spec.toJson()['text'], 'petronella');
+    });
+
+    testWidgets('when the Collection is shown again, an Update made '
+        'elsewhere is loaded, unless the search was changed here', (
+      tester,
+    ) async {
+      final repos = await _library();
+      final search = await _seed(
+        repos,
+        'Pet',
+        CollectionPanelState(text: 'Petronella'),
+      );
+      final isActive = ValueNotifier(true);
+      addTearDown(isActive.dispose);
+      await _pump(tester, repos, isActive: isActive);
+      await _load(tester, search);
+
+      Future<void> updateElsewhere(String text) async {
+        isActive.value = false;
+        await tester.pumpAndSettle();
+        await repos.savedSearches.save(
+          SavedSearch(
+            id: search.id,
+            name: 'Pet',
+            spec: SavedSearchSpec.fromPanelState(
+              CollectionPanelState(text: text),
+              today: _day,
+            ).value!,
+          ),
+        );
+        isActive.value = true;
+        await tester.pumpAndSettle();
+      }
+
+      await updateElsewhere('Chorus');
+      expect(_searchText(tester), 'Chorus');
+      expect(_shows('Chorus Jig'), isTrue);
+      expect(_shows('Petronella'), isFalse);
+
+      await _type(tester, 'Jig');
+      await _tapOff(tester);
+      await updateElsewhere('Petronella');
+      expect(_searchText(tester), 'Jig');
+    });
+
     testWidgets('Undo of a delete does not take over from a search loaded '
         'since', (tester) async {
       final repos = await _library();
