@@ -100,8 +100,11 @@ void main() {
       'tags',
       'custom_field_defs',
       'custom_field_values',
-      'dance_figures',
-      'dance_fts',
+      'dance_links',
+      'dance_tags',
+      'dance_authors',
+      'dance_sources',
+      'provenance',
     ];
     final seeded = sql.sqlite3.open(source.path);
     late final Map<String, int> before;
@@ -119,12 +122,19 @@ void main() {
       putSetting(seeded, 'calendar_feed_url', jsonEncode(_marker));
       // A key the registry does not know: the rule fails closed.
       putSetting(seeded, 'not.a.registered.key', jsonEncode(_marker));
-      // A table the registry does not know: emptied, failing closed.
-      seeded.execute('CREATE TABLE not_a_registered_table (note TEXT)');
-      emptied = {...tablesToEmpty(seeded), 'not_a_registered_table'};
+      emptied = tablesToEmpty(seeded);
       for (final table in emptied) {
         seedRow(seeded, table);
       }
+      expect(count(seeded, 'dance_figures'), greaterThan(0));
+      expect(count(seeded, 'dance_fts'), greaterThan(0));
+
+      // A table the registry does not know: a retired schema's library
+      // content, which the copy keeps.
+      seeded.execute('CREATE TABLE retired_library_table (note TEXT)');
+      seeded.execute(
+        "INSERT INTO retired_library_table (note) VALUES ('kept')",
+      );
 
       // Rows the copy must keep.
       putSetting(seeded, 'reduce_motion', 'true'); // deviceLocal, backed up
@@ -174,6 +184,29 @@ void main() {
       for (final table in emptied) {
         expect(count(db, table), 0, reason: table);
       }
+
+      // The derived indexes do not travel: the figure index is empty and
+      // the full-text tables, internal tables included, are gone, for the
+      // bridge release to rebuild.
+      expect(count(db, 'dance_figures'), 0);
+      final tableNames = {
+        for (final row in db.select(
+          "SELECT name FROM sqlite_master WHERE type = 'table'",
+        ))
+          row['name'] as String,
+      };
+      expect(
+        tableNames.where(
+          (t) => t.startsWith('dance_fts') || t.startsWith('dance_substring'),
+        ),
+        isEmpty,
+      );
+
+      // A column the registry does not know keeps its table.
+      expect(
+        db.select('SELECT note FROM retired_library_table').single['note'],
+        'kept',
+      );
 
       final keys = settingKeys(db);
       for (final dropped in [

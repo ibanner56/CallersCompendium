@@ -28,16 +28,23 @@ import 'backup_service.dart' show isBackupEligibleSettingKey;
 ///   [EgressClass.shareable], or [EgressClass.deviceLocal] and a backup carries
 ///   it ([isBackupEligibleSettingKey]). A key the registry does not know is
 ///   dropped, so the rule fails closed;
-/// - every table with a column the registry classes as anything other than
-///   shareable, deviceLocal or derived (the Device Sync tables and the
-///   normalisation repair log) is emptied, as is any table with a column the
-///   registry does not know, except the internal tables of a full-text index;
+/// - every table with a column the registry classes as one that may not leave
+///   the device ([_withheldColumnClasses]: the Device Sync tables and the
+///   normalisation repair log) is emptied. They are emptied, not dropped: the
+///   bridge release (v0.10.0-beta) adds columns to `baseline_state` when it
+///   opens a v39 file, which fails if the table is gone;
+/// - the derived indexes ([EgressClass.derived], "never transmitted",
+///   rebuilt from source) are left out: `dance_figures` is emptied, and the
+///   full-text tables are dropped, which every bridge release recreates on
+///   open and answers with a full rebuild of all three;
+/// - a column the registry does not know does not empty its table. The
+///   registry ratchet classifies every column of the current schema, so an
+///   unknown one is a retired column of an older schema, and in every release
+///   fixture from v11 to v38 those are library content (`dances.level`,
+///   `program_slots.planned_minutes`, `provenance.raw_payload`, `snapshots`);
+///   emptying their tables would empty the library being rescued;
 /// - the file is then rebuilt with `VACUUM`, so deleted rows leave nothing
 ///   behind in free pages, and checked with `PRAGMA integrity_check`.
-///
-/// Tables are emptied rather than dropped: the bridge release (v0.10.0-beta)
-/// adds columns to `baseline_state` when it opens a v39 file, which fails if
-/// the table is gone.
 ///
 /// [source] is never written: the copy is taken with `VACUUM INTO`, which reads
 /// the committed state, write-ahead log included.
@@ -129,12 +136,15 @@ bool keepSettingInRecoveryCopy(String key) {
 /// one key at a time.
 const String _settingsTable = 'settings';
 
-/// The egress classes a recovery copy may carry in a table column.
-const Set<EgressClass> _keptColumnClasses = {
-  EgressClass.shareable,
-  EgressClass.deviceLocal,
-  EgressClass.derived,
+/// The egress classes of a column whose table a recovery copy empties.
+const Set<EgressClass> _withheldColumnClasses = {
+  EgressClass.deviceScoped,
+  EgressClass.protocolIdentifier,
+  EgressClass.storeAddress,
 };
+
+/// What a recovery copy does with one table.
+enum _TableAction { keep, empty, drop }
 
 /// Suffixes SQLite's FTS5 gives the internal tables behind a full-text index.
 const List<String> _fts5ShadowSuffixes = [
@@ -172,8 +182,15 @@ void _scrub(sql.Database db) {
         _scrubSettings(db);
         continue;
       }
-      if (!_tableMayTravel(db, table)) {
-        db.execute('DELETE FROM "${table.replaceAll('"', '""')}"');
+      final quoted = '"${table.replaceAll('"', '""')}"';
+      switch (_actionFor(db, table, isVirtual: virtualTables.contains(table))) {
+        case _TableAction.keep:
+          break;
+        case _TableAction.empty:
+          db.execute('DELETE FROM $quoted');
+        case _TableAction.drop:
+          // Drops the full-text index's internal tables with it.
+          db.execute('DROP TABLE $quoted');
       }
     }
     db.execute('COMMIT');
@@ -200,17 +217,24 @@ bool _isFts5Shadow(String table, Set<String> virtualTables) {
   return false;
 }
 
-/// Whether every column of [table] is one a recovery copy may carry. A column
-/// the registry does not classify fails closed.
-bool _tableMayTravel(sql.Database db, String table) {
-  final columns = db.select('SELECT name FROM pragma_table_info(?)', [table]);
-  if (columns.isEmpty) return false;
-  for (final column in columns) {
+/// What a recovery copy does with [table]; see [writeRecoveryCopy].
+_TableAction _actionFor(
+  sql.Database db,
+  String table, {
+  required bool isVirtual,
+}) {
+  final classes = <EgressClass>{};
+  for (final column in db.select('SELECT name FROM pragma_table_info(?)', [
+    table,
+  ])) {
     final classification = fieldClassifications['$table.${column['name']}'];
-    if (classification == null) return false;
-    if (!_keptColumnClasses.contains(classification.egress)) return false;
+    if (classification != null) classes.add(classification.egress);
   }
-  return true;
+  if (classes.any(_withheldColumnClasses.contains)) return _TableAction.empty;
+  if (classes.length == 1 && classes.single == EgressClass.derived) {
+    return isVirtual ? _TableAction.drop : _TableAction.empty;
+  }
+  return _TableAction.keep;
 }
 
 void _scrubSettings(sql.Database db) {
