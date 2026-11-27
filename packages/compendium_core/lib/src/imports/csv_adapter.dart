@@ -12,9 +12,11 @@ import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
+import '../model/partial_date.dart';
 import '../storage/shareable_text.dart' show normalizeShareableText;
 import 'author_tokenizer.dart';
 import 'figure_front_end_fan_out.dart';
+import 'free_text_entry.dart' show maxFreeTextEntryLength;
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
@@ -25,16 +27,35 @@ enum CsvColumnTarget {
   ignore,
   title,
   authors,
+
+  /// When the dance was composed, as the export writes a date: `1951`,
+  /// `1951-03` or `1951-03-14`.
+  composed,
+
+  /// The people who interpreted the dance, read as [authors] are.
+  interpreters,
+
+  /// When the dance was interpreted, written as [composed] is.
+  interpreted,
   form,
   formation,
   progression,
   level,
+
+  /// Whether the dance is a mixed-level dance: a yes or no cell.
+  mixedLevel,
   status,
   mixer,
+
+  /// The star rating, a whole number from 1 to 5.
+  rating,
   tags,
   tunes,
   meter,
   key,
+
+  /// An English dance's Barnes reference (`formHasBarnesReference`).
+  barnesReference,
   hook,
   callingNotes,
   walkthrough,
@@ -359,6 +380,14 @@ StructuredDraft csvRowToDraft(
   final keptNotes = <String>[];
   String? title;
   final authors = <String>[];
+  final interpreters = <String>[];
+  PartialDate? composedOn;
+  PartialDate? interpretedOn;
+  bool? mixedLevel;
+  int? rating;
+  // The Barnes reference and its column: a form without one keeps it in the
+  // notes, and the form may come from a later column.
+  (int, String)? barnes;
   DanceForm? form;
   Formation? formation;
   Progression? progression;
@@ -375,8 +404,8 @@ StructuredDraft csvRowToDraft(
   var hook = '';
   final notes = <String>[];
   var walkthrough = '';
-  final figureLines = <String>[];
-  final phraseCells = <String, String>{};
+  final figureLines = <_FigureLine>[];
+  final phraseLines = <String, List<_FigureLine>>{};
   final customValues = <CustomFieldValue>[];
 
   String columnName(int i) => i < header.length && header[i].trim().isNotEmpty
@@ -435,6 +464,11 @@ StructuredDraft csvRowToDraft(
       CsvColumnTarget.key ||
       CsvColumnTarget.hook ||
       CsvColumnTarget.walkthrough ||
+      CsvColumnTarget.composed ||
+      CsvColumnTarget.interpreted ||
+      CsvColumnTarget.mixedLevel ||
+      CsvColumnTarget.rating ||
+      CsvColumnTarget.barnesReference ||
       CsvColumnTarget.title => column.target,
       CsvColumnTarget.customField => column.customFieldId,
       // A new field is the one commit will give it: an existing field of that
@@ -461,6 +495,45 @@ StructuredDraft csvRowToDraft(
         authors.addAll(
           splitAuthorNames([value], issues: issues, backslashEscapes: true),
         );
+      case CsvColumnTarget.interpreters:
+        interpreters.addAll(
+          splitAuthorNames([value], issues: issues, backslashEscapes: true),
+        );
+      case CsvColumnTarget.composed:
+        final date = _partialDateOf(value);
+        if (date == null) {
+          keep(i, value);
+        } else {
+          composedOn = date;
+        }
+      case CsvColumnTarget.interpreted:
+        final date = _partialDateOf(value);
+        if (date == null) {
+          keep(i, value);
+        } else {
+          interpretedOn = date;
+        }
+      case CsvColumnTarget.mixedLevel:
+        final b = yesNo(value);
+        if (b == null) {
+          keep(i, value);
+        } else {
+          mixedLevel = b;
+        }
+      case CsvColumnTarget.rating:
+        final n = number(value);
+        if (n == null || n != n.roundToDouble() || n < 1 || n > 5) {
+          keep(i, value);
+        } else {
+          rating = n.toInt();
+        }
+      case CsvColumnTarget.barnesReference:
+        // One the dance would cut short is kept whole in the notes.
+        if (value.length > kMaxBarnesReferenceLength) {
+          keep(i, value);
+        } else {
+          barnes = (i, value);
+        }
       case CsvColumnTarget.form:
         final f =
             vocab.forms[csvFold(value)] ?? _byName(DanceForm.values, value);
@@ -470,16 +543,11 @@ StructuredDraft csvRowToDraft(
           form = f;
         }
       case CsvColumnTarget.formation:
-        final improper = vocab.improperFormations[csvFold(value)];
-        final shape =
-            vocab.formations[csvFold(value)] ??
-            _byName(FormationShape.values, value);
-        if (improper != null) {
-          formation = Formation(improper, improper: true);
-        } else if (shape == null) {
+        final f = _formationOf(value, vocab);
+        if (f == null) {
           keep(i, value);
         } else {
-          formation = Formation(shape);
+          formation = f;
         }
       case CsvColumnTarget.progression:
         final p =
@@ -527,14 +595,16 @@ StructuredDraft csvRowToDraft(
         notes.add(column.labelled ? '${columnName(i)}: $value' : value);
       case CsvColumnTarget.walkthrough:
         walkthrough = value;
+      // A figures cell keeps its first line's indent, against which a note's
+      // is measured ([_figureLinesOf]).
       case CsvColumnTarget.figures:
-        figureLines.addAll(_figureLinesOf(value));
+        figureLines.addAll(
+          _figureLinesOf(unguardCsvFormula(cells[i].trimRight()), vocab),
+        );
       case CsvColumnTarget.figurePhrase:
         // Two columns for one phrase add up rather than overwrite.
-        phraseCells.update(
-          column.phrase!,
-          (earlier) => '$earlier\n$value',
-          ifAbsent: () => value,
+        (phraseLines[column.phrase!] ??= []).addAll(
+          _figureLinesOf(unguardCsvFormula(cells[i].trimRight()), vocab),
         );
       case CsvColumnTarget.customField:
         final def = mapping.existingFields[column.customFieldId];
@@ -571,20 +641,34 @@ StructuredDraft csvRowToDraft(
   if (title == null || title.trim().isEmpty) {
     throw const FormatException('a row needs a title');
   }
+  final danceForm = form ?? DanceForm.contra;
+  // Only an English dance keeps a Barnes reference; another form's is kept in
+  // the notes rather than dropped by the dance.
+  if (barnes case (
+    final i,
+    final value,
+  ) when !formHasBarnesReference(danceForm)) {
+    keep(i, value);
+    barnes = null;
+  }
 
-  for (final phrase in phraseCells.keys.toList()..sort()) {
-    figureLines.addAll(_figureLinesOf(phraseCells[phrase]!));
+  for (final phrase in phraseLines.keys.toList()..sort()) {
+    figureLines.addAll(phraseLines[phrase]!);
   }
   final figures = <Figure>[
-    for (final line in figureLines) ..._figuresOf(line, vocab),
+    for (final line in figureLines)
+      ..._withNote(_figuresOf(line.text, vocab), line.note),
   ];
 
   final callingNotes = [...notes, ...keptNotes].join('\n\n');
   final dance = Dance(
     id: 'csv-draft',
     title: title.trim(),
-    form: form ?? DanceForm.contra,
-    formation: formation ?? const Formation(FormationShape.dupleImproper),
+    form: danceForm,
+    // A row with no readable formation starts on the shape a new dance of its
+    // form starts on, as the editor offers it: a contra's duple improper, an
+    // English dance's duple minor, a square's square.
+    formation: formation ?? Formation(offeredFormationShapes(danceForm).first),
     progression: progression ?? Progression.single,
     figures: figures,
     hook: hook,
@@ -595,6 +679,11 @@ StructuredDraft csvRowToDraft(
     status: status ?? DanceStatus.active,
     difficultyLevelId: levelId,
     mixer: mixer ?? false,
+    mixedLevel: mixedLevel ?? false,
+    rating: rating,
+    composedOn: composedOn,
+    interpretedOn: interpretedOn,
+    barnesReference: barnes?.$2 ?? '',
     tunes: tunes,
     tagIds: [
       for (final name in {...tagNames}) '$kCsvTagPlaceholderPrefix$name',
@@ -608,25 +697,135 @@ StructuredDraft csvRowToDraft(
     raw: raw,
     issues: issues,
     authorNames: authors,
+    interpreterNames: interpreters,
   );
 }
 
+/// A date cell as the export writes one (`1951`, `1951-03`, `1951-03-14`),
+/// or `null`.
+PartialDate? _partialDateOf(String value) {
+  try {
+    return PartialDate.parse(value.trim());
+  } on FormatException {
+    return null;
+  } on ArgumentError {
+    return null;
+  }
+}
+
+/// Between a formation's shape and its free-text detail, as this app writes
+/// a formation in every language (`commonFormationWithDetail`):
+/// `Duple minor, improper — first corners cross`.
+const String _formationDetailSeparator = ' — ';
+
+/// The formation a cell names: a shape (or an English dance's shape marked
+/// improper), optionally followed by [_formationDetailSeparator] and a
+/// detail. `null` when the shape is not one the vocabulary knows.
+Formation? _formationOf(String value, CsvValueVocabulary vocab) {
+  final whole = _shapeOf(value, vocab);
+  if (whole != null) return whole;
+  final at = value.indexOf(_formationDetailSeparator);
+  if (at <= 0) return null;
+  final shape = _shapeOf(value.substring(0, at), vocab);
+  if (shape == null) return null;
+  final detail = value.substring(at + _formationDetailSeparator.length).trim();
+  return detail.isEmpty
+      ? shape
+      : Formation(shape.shape, improper: shape.improper, detail: detail);
+}
+
+Formation? _shapeOf(String value, CsvValueVocabulary vocab) {
+  final folded = csvFold(value);
+  final improper = vocab.improperFormations[folded];
+  if (improper != null) return Formation(improper, improper: true);
+  final shape =
+      vocab.formations[folded] ?? _byName(FormationShape.values, value);
+  return shape == null ? null : Formation(shape);
+}
+
+/// One figure line of a cell, with the note written under it.
+typedef _FigureLine = ({String text, String? note});
+
 /// The figure lines in one figures cell: one per line, or the `;`-separated
 /// parts of a cell with no line breaks.
-List<String> _figureLinesOf(String cell) {
-  final lines = cell.contains('\n') || cell.contains('\r')
-      ? cell.split(_lineBreak)
-      : cell.split(';');
+///
+/// A line indented further than the figure line above it is that figure's
+/// note, as this app's own export writes a note (`    end facing down`), not
+/// a figure of its own, when the figure line ends with the count the export
+/// gives every figure (`(16 beats)`) and the indented line has none. Any
+/// other indented line is a figure: a card that indents a phrase's next
+/// figure under the first (`A1  Circle left` then `    Pass through`) keeps
+/// both.
+List<_FigureLine> _figureLinesOf(String cell, CsvValueVocabulary vocab) {
+  if (!cell.contains('\n') && !cell.contains('\r')) {
+    return [
+      for (final part in cell.split(';'))
+        if (part.trim().isNotEmpty) (text: part.trim(), note: null),
+    ];
+  }
+  final lines = <_FigureLine>[];
+  var figureIndent = 0;
+  var figureCounted = false;
+  for (final line in cell.split(_lineBreak)) {
+    final text = line.trim();
+    if (text.isEmpty) continue;
+    final indent = line.length - line.trimLeft().length;
+    final counted = _endsWithExportCount(text, vocab);
+    if (lines.isNotEmpty &&
+        figureCounted &&
+        !counted &&
+        indent > figureIndent) {
+      final figure = lines.last;
+      lines.last = (text: figure.text, note: _joinNotes(figure.note, text));
+      continue;
+    }
+    figureIndent = indent;
+    figureCounted = counted;
+    lines.add((text: text, note: null));
+  }
+  return lines;
+}
+
+/// Whether [line] ends with a count as this app's export writes one, in beats
+/// or bars (`(16 beats)`, `(1½ bars) ¶`). A line past
+/// [maxFreeTextEntryLength] is not looked at ([_figuresOf]).
+bool _endsWithExportCount(String line, CsvValueVocabulary vocab) {
+  if (line.length > maxFreeTextEntryLength) return false;
+  final trail = _trailingCount.firstMatch(line);
+  if (trail == null) return false;
+  final unit = csvFold(trail.group(2)!);
+  final beats =
+      int.tryParse(trail.group(1)!) != null &&
+      (vocab.beatWords.contains(unit) || unit == 'beat' || unit == 'beats');
+  final bars = vocab.barWords.contains(unit) || unit == 'bar' || unit == 'bars';
+  return beats || bars;
+}
+
+/// [figures] with [note] added to the last of them: a line the fan-out reads
+/// as several figures has its note after the last.
+List<Figure> _withNote(List<Figure> figures, String? note) {
+  if (note == null || figures.isEmpty) return figures;
+  final last = figures.last;
   return [
-    for (final l in lines)
-      if (l.trim().isNotEmpty) l.trim(),
+    ...figures.take(figures.length - 1),
+    last.copyWith(note: _joinNotes(last.note, note)),
   ];
 }
+
+String _joinNotes(String? earlier, String note) =>
+    earlier == null || earlier.trim().isEmpty ? note : '$earlier; $note';
 
 /// One figure line through the shared fan-out, with a leading phrase label,
 /// a leading `(8)` count, or this app's own trailing `(16 beats) ¶` read off
 /// first.
+///
+/// A line longer than typed entry takes ([maxFreeTextEntryLength]) is kept as
+/// its text without being read: the figure parser's work grows faster than the
+/// line, and no real figure line is that long (pre-release audit SEC-04).
 List<Figure> _figuresOf(String line, CsvValueVocabulary vocab) {
+  if (line.length > maxFreeTextEntryLength) {
+    return [customFigure(line, origin: CustomOrigin.importGap)];
+  }
   var text = line.replaceFirst(_phraseLabel, '');
   var beats = 0;
   var progression = false;

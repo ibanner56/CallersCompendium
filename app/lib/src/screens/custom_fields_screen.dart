@@ -31,6 +31,36 @@ String customFieldTypeLabel(AppLocalizations l10n, CustomFieldType type) =>
       CustomFieldType.choice => l10n.customFieldsTypeChoice,
     };
 
+/// Shows the one-time notice that custom fields travel with the collection,
+/// unless it has been shown before: when the user creates their first custom
+/// field here, or when an import creates one (pre-release audit PRIV-04). The
+/// latch is set before the dialog is awaited, so a crash during the dialog
+/// never shows it again at the next launch.
+Future<void> showCustomFieldSharingNoticeOnce(
+  BuildContext context,
+  SettingsRepository settings,
+) async {
+  if (await settings.contains(kCustomFieldSharingDisclosureKey)) return;
+  await settings.set(kCustomFieldSharingDisclosureKey, true);
+  if (!context.mounted) return;
+  final l10n = AppLocalizations.of(context);
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(l10n.customFieldsSharingNoticeTitle),
+      content: Text(l10n.customFieldsSharingNoticeBody),
+      actions: [
+        FilledButton(
+          key: const ValueKey('sharing-disclosure-ok'),
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(l10n.customFieldsSharingNoticeOk),
+        ),
+      ],
+    ),
+    animationStyle: AppMotion.styleFor(context),
+  );
+}
+
 /// Manages the user-defined custom field schema (`docs/design/ux.md` §4).
 ///
 /// Lists all [CustomFieldDef]s and lets the user create, edit, and delete them.
@@ -210,39 +240,13 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
         return;
       }
       // Show the one-time sharing disclosure when the user creates their very
-      // first custom field. The latch is set before the dialog is awaited so a
-      // crash during the dialog never re-shows it on next launch.
+      // first custom field.
       if (isNew && mounted) {
-        final disclosed = await _repos.settings.contains(
-          kCustomFieldSharingDisclosureKey,
-        );
-        if (!disclosed) {
-          await _repos.settings.set(kCustomFieldSharingDisclosureKey, true);
-          if (mounted) await _showSharingDisclosure();
-        }
+        await showCustomFieldSharingNoticeOnce(context, _repos.settings);
       }
       // No reload: the upsert writes `custom_field_defs`, which this screen
       // watches.
     }
-  }
-
-  Future<void> _showSharingDisclosure() async {
-    final l10n = AppLocalizations.of(context);
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.customFieldsSharingNoticeTitle),
-        content: Text(l10n.customFieldsSharingNoticeBody),
-        actions: [
-          FilledButton(
-            key: const ValueKey('sharing-disclosure-ok'),
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.customFieldsSharingNoticeOk),
-          ),
-        ],
-      ),
-      animationStyle: AppMotion.styleFor(context),
-    );
   }
 
   /// Deletes [def] at once and offers Undo, asking first only when "Confirm

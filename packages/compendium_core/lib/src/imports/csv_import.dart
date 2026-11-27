@@ -40,7 +40,9 @@ class CsvImportSession {
 ///   caller's own or one an earlier column created; otherwise it is created
 ///   once, under a key derived from its label and kept distinct from the
 ///   caller's own keys. A choice field takes, or gains, its choices from the
-///   values the committed rows carry.
+///   values the committed rows carry; values that differ only by case,
+///   surrounding space or Unicode form are one option, spelled as first met
+///   (or as the field already spells it).
 ///
 /// If the commit fails, what it created is removed before the error is
 /// rethrown. [undo] reverts the dances, then removes the created tags and
@@ -65,11 +67,13 @@ class CsvImporter {
     final createdFieldIds = <String>[];
     try {
       final tagIdByName = await _resolveTags(batch, newId, createdTagIds);
+      final optionSpellings = <String, Map<String, String>>{};
       final fieldIdByColumn = await _createFields(
         batch,
         mapping,
         newId,
         createdFieldIds,
+        optionSpellings,
       );
       final rewritten = ImportBatchResult(
         records: [
@@ -80,12 +84,7 @@ class CsvImporter {
                   plan.draft.dance,
                   tagIdByName,
                   fieldIdByColumn,
-                  choicePlaceholders: {
-                    for (var i = 0; i < mapping.columns.length; i++)
-                      if (mapping.columns[i].newFieldType ==
-                          CustomFieldType.choice)
-                        '$kCsvNewFieldPlaceholderPrefix$i',
-                  },
+                  optionSpellings: optionSpellings,
                 ),
               ),
               verdict: plan.verdict,
@@ -166,11 +165,15 @@ class CsvImporter {
     return result;
   }
 
+  /// Resolves each new-field column to a field, by placeholder. For a choice
+  /// field, [optionSpellings] gets, by placeholder, each option's
+  /// [_optionKey] → the option as the field spells it, for [_rewrite].
   Future<Map<String, String>> _createFields(
     ImportBatchResult batch,
     CsvImportMapping mapping,
     String Function() newId,
     List<String> created,
+    Map<String, Map<String, String>> optionSpellings,
   ) async {
     final result = <String, String>{};
     final existing = [...await _customFields.listAll()];
@@ -187,11 +190,19 @@ class CsvImporter {
       if (values.isEmpty) continue;
       final type = column.newFieldType!;
       final label = column.newFieldLabel!.trim();
-      final choices = type == CustomFieldType.choice
-          ? {for (final v in values) ?_choiceOption(v.toString())}
-          : const <String>{};
+      // Options that differ only by case or spacing are one option, spelled
+      // as first met, as a cell is matched to an existing field's option.
+      final byKey = <String, String>{};
+      if (type == CustomFieldType.choice) {
+        for (final v in values) {
+          if (_choiceOption(v.toString()) case final option?) {
+            byKey.putIfAbsent(_optionKey(option), () => option);
+          }
+        }
+      }
       // Cells with nothing visible in them make no option, and so no field.
-      if (type == CustomFieldType.choice && choices.isEmpty) continue;
+      if (type == CustomFieldType.choice && byKey.isEmpty) continue;
+      final choices = byKey.values.toList();
       // A field of this name and type already there (made by an earlier
       // commit from this sheet, such as Import and edit on one row, an
       // earlier column of this one, or the caller's own) is reused rather
@@ -201,7 +212,16 @@ class CsvImporter {
           .where((f) => f.type == type && csvFold(f.label) == csvFold(label))
           .firstOrNull;
       if (same != null) {
-        final missing = choices.difference({...?same.choices});
+        final had = {
+          for (final c in same.choices ?? const <String>[]) _optionKey(c): c,
+        };
+        final missing = [
+          for (final MapEntry(:key, :value) in byKey.entries)
+            if (!had.containsKey(key)) value,
+        ];
+        if (type == CustomFieldType.choice) {
+          optionSpellings[placeholder] = {...byKey, ...had};
+        }
         if (missing.isNotEmpty) {
           // An update in place: the id stays the field's own.
           final grown = CustomFieldDef(
@@ -228,6 +248,7 @@ class CsvImporter {
         key = '${base}_$n';
       }
       usedKeys.add(key);
+      if (type == CustomFieldType.choice) optionSpellings[placeholder] = byKey;
       final fresh = newId();
       final id = await _customFields.upsert(
         CustomFieldDef(
@@ -235,7 +256,7 @@ class CsvImporter {
           key: key,
           label: label,
           type: type,
-          choices: type == CustomFieldType.choice ? choices.toList() : null,
+          choices: type == CustomFieldType.choice ? choices : null,
         ),
       );
       // As for tags: a definition the repository adopted is not this
@@ -250,7 +271,7 @@ class CsvImporter {
           key: key,
           label: label,
           type: type,
-          choices: type == CustomFieldType.choice ? choices.toList() : null,
+          choices: type == CustomFieldType.choice ? choices : null,
         ),
       );
     }
@@ -258,13 +279,14 @@ class CsvImporter {
   }
 
   /// [dance] with its placeholders replaced. Only a new *choice* field's
-  /// values are normalized as its options were ([_choiceOption]); a
-  /// text field keeps its value whole.
+  /// values are normalized as its options were ([_choiceOption]) and written
+  /// as the field spells that option ([optionSpellings]); a text field keeps
+  /// its value whole.
   Dance _rewrite(
     Dance dance,
     Map<String, String> tagIdByName,
     Map<String, String> fieldIdByPlaceholder, {
-    required Set<String> choicePlaceholders,
+    required Map<String, Map<String, String>> optionSpellings,
   }) => dance.copyWith(
     tagIds: [
       ...{
@@ -279,15 +301,22 @@ class CsvImporter {
         if (!v.fieldId.startsWith(kCsvNewFieldPlaceholderPrefix))
           v
         else if (fieldIdByPlaceholder[v.fieldId] case final id?)
-          if (!choicePlaceholders.contains(v.fieldId) || v.value is! String)
+          if (optionSpellings[v.fieldId] == null || v.value is! String)
             CustomFieldValue(fieldId: id, value: v.value)
           // A cell with nothing visible in it is no option; the row has no
           // value for the field rather than one the field lacks.
           else if (_choiceOption(v.value as String) case final option?)
-            CustomFieldValue(fieldId: id, value: option),
+            CustomFieldValue(
+              fieldId: id,
+              value: optionSpellings[v.fieldId]![_optionKey(option)] ?? option,
+            ),
     ],
   );
 }
+
+/// [option] as options are told apart: ignoring case, surrounding space and
+/// Unicode form, as a cell is matched to an existing field's option.
+String _optionKey(String option) => csvFold(normalizeShareableText(option));
 
 /// A cell's value as an option of a new choice field, spelled as the
 /// repository stores one ([normalizeShareableText]), so an option the field

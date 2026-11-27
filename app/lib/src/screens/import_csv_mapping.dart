@@ -327,7 +327,7 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
               value: _columns[i],
               choices: [
                 ...csvTargetChoices(widget.fields),
-                if (widget.textDocument) CsvColumnMapping.labelledNotes,
+                CsvColumnMapping.labelledNotes,
                 for (final type in CustomFieldType.values)
                   CsvColumnMapping.newCustomField(_columnName(l10n, i), type),
               ],
