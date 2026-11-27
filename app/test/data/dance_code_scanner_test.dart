@@ -218,12 +218,6 @@ void main() {
       }
     });
 
-    test('on iOS, the document picker\'s Inbox copy is deleted', () async {
-      final copy = await fileAt(['is.banner.app-Inbox', 'code.png']);
-      expect(await pick(copy, TargetPlatform.iOS), bytes);
-      expect(copy.existsSync(), isFalse);
-    });
-
     test('on desktop, the user\'s own file is left alone', () async {
       final copy = await fileAt([uuid, 'code.png']);
       for (final platform in [
@@ -234,27 +228,6 @@ void main() {
         expect(await pick(copy, platform), bytes);
         expect(copy.existsSync(), isTrue, reason: platform.name);
       }
-    });
-
-    test('on iOS, by default the Inbox copy is looked for in the system '
-        'temporary folder (NSTemporaryDirectory)', () async {
-      final inbox = await Directory(
-        p.join(
-          Directory.systemTemp.path,
-          'scan-test-${DateTime.now().microsecondsSinceEpoch}-Inbox',
-        ),
-      ).create();
-      addTearDown(() => inbox.delete(recursive: true));
-      final copy = File(p.join(inbox.path, 'code.png'));
-      await copy.writeAsBytes(bytes);
-      expect(
-        await pickDanceCodePicture(
-          open: () async => XFile(copy.path),
-          platform: TargetPlatform.iOS,
-        ),
-        bytes,
-      );
-      expect(copy.existsSync(), isFalse);
     });
 
     test('a cancel reads nothing', () async {

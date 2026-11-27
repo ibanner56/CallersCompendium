@@ -301,6 +301,12 @@ the text of a picture you choose, such as a photo of an index card or a page
 of a book, and puts it in the box in place of what is there. Check it and
 correct it there: the lines are then read exactly as typed text is.
 
+On iPhone and iPad, **From an image…** opens your photos, the same picker
+other apps use to choose a photo: the app doesn't ask for access to your
+photo library and receives only the picture you choose. A picture kept in the
+Files app isn't offered there; open it in Files and save it to Photos first
+(**Share** ▸ **Save Image**). On a Mac or Windows it opens the file picker.
+
 - The picture is read **on your device**, by the text recognition built into
   iOS, macOS and Windows. Nothing is sent anywhere, and nothing is downloaded
   to read it.

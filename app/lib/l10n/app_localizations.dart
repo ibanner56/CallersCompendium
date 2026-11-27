@@ -11662,6 +11662,12 @@ abstract class AppLocalizations {
   /// **'Caller\'s Compendium update'**
   String get fileDialogTypeMacosUpdate;
 
+  /// Name of the picture filter (JPEG, PNG, HEIC, TIFF, BMP) in the native open dialog of 'From an image...' and 'Dance code from a picture...'; the Windows and Linux dialogs show it in their file-type list.
+  ///
+  /// In en, this message translates to:
+  /// **'Images'**
+  String get fileDialogTypeImages;
+
   /// Name of The Caller's Box online import source (a proper noun), shown in the import-source dropdown and headings.
   ///
   /// In en, this message translates to:

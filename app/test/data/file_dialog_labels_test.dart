@@ -32,6 +32,7 @@ void main() {
     expect(importUsrTypeGroup().label, ja.fileDialogTypeCompanionUsr);
     expect(crashLogTypeGroup().label, ja.fileDialogTypeDiagnosticsLog);
     expect(macosUpdateTypeGroup().label, ja.fileDialogTypeMacosUpdate);
+    expect(recognitionImageTypeGroup().label, ja.fileDialogTypeImages);
     expect(backupJsonTypeGroup().label, isNot('Backup (JSON)'));
     expect(crashLogTypeGroup().label, '診断ログ');
     expect(recognitionImageTypeGroup().label, '画像');

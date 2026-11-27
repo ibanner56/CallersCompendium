@@ -7809,6 +7809,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get fileDialogTypeMacosUpdate => 'Caller’s Compendium-update';
 
   @override
+  String get fileDialogTypeImages => 'Afbeeldingen';
+
+  @override
   String get importSourceLabelCallersBox => 'The Caller\'s Box';
 
   @override

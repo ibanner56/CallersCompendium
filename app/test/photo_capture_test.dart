@@ -671,8 +671,10 @@ void main() {
 
     for (final key in [
       'NSCameraUsageDescription',
-      // Never asked for (the camera path needs no library access), but the
-      // camera plugin links the Photos API, so App Store review requires it.
+      // Never asked for: the camera path needs no library access, and the
+      // photo picker that iPhone and iPad pick pictures from (PHPicker) runs
+      // outside the app and needs none. The plugin links the Photos API, so
+      // App Store review requires the string all the same.
       'NSPhotoLibraryUsageDescription',
     ]) {
       test('iOS has a $key purpose string', () {

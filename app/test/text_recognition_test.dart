@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 
 import 'package:compendium_app/src/data/text_recognition.dart';
 import 'package:compendium_app/src/widgets/figure_text_sheet.dart';
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -367,126 +366,6 @@ void main() {
     });
   });
 
-  group('the picker copy', () {
-    /// A file at [relative] inside a fresh folder standing in for the app's
-    /// temporary folder.
-    Future<(Directory, File)> copyIn(
-      String relative, {
-      List<int>? bytes,
-    }) async {
-      final temp = await Directory.systemTemp.createTemp('ocr-temp');
-      addTearDown(() => temp.delete(recursive: true));
-      final file = File(p.join(temp.path, relative));
-      await file.create(recursive: true);
-      await file.writeAsBytes(bytes ?? _pngBytes);
-      return (temp, file);
-    }
-
-    test('on iOS the Inbox copy is read, then deleted', () async {
-      final (temp, copy) = await copyIn('app.bundle-Inbox/card.png');
-      final picked = await pickRecognitionImage(
-        open: () async => XFile(copy.path),
-        platform: TargetPlatform.iOS,
-        temporaryDirectory: temp,
-      );
-      expect(picked!.bytes, _pngBytes);
-      expect(copy.existsSync(), isFalse);
-    });
-
-    test('by default the Inbox is looked for in the system temporary folder '
-        '(NSTemporaryDirectory on iOS)', () async {
-      final inbox = await Directory.systemTemp.createTemp('ocr-test-');
-      final named = await inbox.rename('${inbox.path}-Inbox');
-      addTearDown(() => named.delete(recursive: true));
-      final copy = File(p.join(named.path, 'card.png'));
-      await copy.writeAsBytes(_pngBytes);
-      await pickRecognitionImage(
-        open: () async => XFile(copy.path),
-        platform: TargetPlatform.iOS,
-      );
-      expect(copy.existsSync(), isFalse);
-    });
-
-    test('a temporary folder reached through a link still matches', () async {
-      final (temp, copy) = await copyIn('app.bundle-Inbox/card.png');
-      final links = await Directory.systemTemp.createTemp('ocr-link');
-      addTearDown(() => links.delete(recursive: true));
-      final link = await Link(p.join(links.path, 'tmp')).create(temp.path);
-      await pickRecognitionImage(
-        open: () async => XFile(copy.path),
-        platform: TargetPlatform.iOS,
-        temporaryDirectory: Directory(link.path),
-      );
-      expect(copy.existsSync(), isFalse);
-    });
-
-    test('a copy reached through a link still matches', () async {
-      final (temp, copy) = await copyIn('app.bundle-Inbox/card.png');
-      final links = await Directory.systemTemp.createTemp('ocr-link');
-      addTearDown(() => links.delete(recursive: true));
-      final link = await Link(p.join(links.path, 'tmp')).create(temp.path);
-      final linked = p.join(link.path, 'app.bundle-Inbox', 'card.png');
-      await pickRecognitionImage(
-        open: () async => XFile(linked),
-        platform: TargetPlatform.iOS,
-        temporaryDirectory: temp,
-      );
-      expect(copy.existsSync(), isFalse);
-    });
-
-    test('the copy is deleted even when reading it is refused', () async {
-      final (temp, copy) = await copyIn(
-        'app.bundle-Inbox/big.png',
-        bytes: Uint8List(kMaxRecognitionImageBytes + 1),
-      );
-      await expectLater(
-        pickRecognitionImage(
-          open: () async => XFile(copy.path),
-          platform: TargetPlatform.iOS,
-          temporaryDirectory: temp,
-        ),
-        throwsA(isA<TextRecognitionException>()),
-      );
-      expect(copy.existsSync(), isFalse);
-    });
-
-    test('a temporary file outside an Inbox is left alone', () async {
-      final (temp, file) = await copyIn('other/card.png');
-      final (_, loose) = await copyIn('card-Inbox');
-      await pickRecognitionImage(
-        open: () async => XFile(file.path),
-        platform: TargetPlatform.iOS,
-        temporaryDirectory: temp,
-      );
-      expect(file.existsSync(), isTrue);
-      await deletePickerCopy(loose.path, temporaryDirectory: loose.parent);
-      expect(loose.existsSync(), isTrue);
-    });
-
-    test("the caller's own file elsewhere is left alone", () async {
-      final (temp, _) = await copyIn('app.bundle-Inbox/card.png');
-      final (_, own) = await copyIn('app.bundle-Inbox/own.png');
-      await pickRecognitionImage(
-        open: () async => XFile(own.path),
-        platform: TargetPlatform.iOS,
-        temporaryDirectory: temp,
-      );
-      expect(own.existsSync(), isTrue);
-    });
-
-    test('off iOS nothing is deleted, even in an Inbox', () async {
-      final (temp, file) = await copyIn('app.bundle-Inbox/card.png');
-      for (final platform in [TargetPlatform.macOS, TargetPlatform.windows]) {
-        await pickRecognitionImage(
-          open: () async => XFile(file.path),
-          platform: platform,
-          temporaryDirectory: temp,
-        );
-      }
-      expect(file.existsSync(), isTrue);
-    });
-  });
-
   group('the picker From an image… opens', () {
     late PickerChannels pickers;
     late Directory temp;
@@ -587,16 +466,19 @@ void main() {
       expect(copy.existsSync(), isFalse);
     });
 
-    test('on iOS a file that is not the picker\'s copy is left alone', () async {
-      for (final relative in ['card.png', 'nested/image_picker_0A1B.png']) {
-        final file = await picked(relative);
-        await pickRecognitionImage(
-          platform: TargetPlatform.iOS,
-          temporaryDirectory: temp,
-        );
-        expect(file.existsSync(), isTrue, reason: relative);
-      }
-    });
+    test(
+      'on iOS a file that is not the picker\'s copy is left alone',
+      () async {
+        for (final relative in ['card.png', 'nested/image_picker_0A1B.png']) {
+          final file = await picked(relative);
+          await pickRecognitionImage(
+            platform: TargetPlatform.iOS,
+            temporaryDirectory: temp,
+          );
+          expect(file.existsSync(), isTrue, reason: relative);
+        }
+      },
+    );
 
     test('off iOS the picked file is left alone, whatever its name', () async {
       final file = await picked('image_picker_0A1B.png');

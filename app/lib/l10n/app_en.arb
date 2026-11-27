@@ -10231,6 +10231,10 @@
   "@fileDialogTypeMacosUpdate": {
     "description": "Name of the update-installer filter (.dmg / .zip) in the macOS native save dialog."
   },
+  "fileDialogTypeImages": "Images",
+  "@fileDialogTypeImages": {
+    "description": "Name of the picture filter (JPEG, PNG, HEIC, TIFF, BMP) in the native open dialog of 'From an image...' and 'Dance code from a picture...'; the Windows and Linux dialogs show it in their file-type list."
+  },
   "importSourceLabelCallersBox": "The Caller's Box",
   "@importSourceLabelCallersBox": {
     "description": "Name of The Caller's Box online import source (a proper noun), shown in the import-source dropdown and headings."
