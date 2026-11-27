@@ -96,7 +96,7 @@ class PerformAdjustSheet extends StatefulWidget {
   final String noteDraft;
 
   /// Called with the note field's text whenever it changes, and with `''`
-  /// once the note is added. The opener keeps the latest value and passes it
+  /// once the note is added or the field holds nothing but spaces. The opener keeps the latest value and passes it
   /// back as [noteDraft] the next time it opens the sheet, so a note typed and
   /// not yet added survives the sheet closing however it closes, without a
   /// prompt (the maintainer's answer to question 43 of the pre-release audit's
@@ -133,7 +133,10 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   late String _reportedNoteDraft = widget.noteDraft;
 
   void _reportNoteDraft() {
-    final text = _noteController.text;
+    // Spaces alone are no note ([_addNote] refuses them), so they are not kept.
+    final text = _noteController.text.trim().isEmpty
+        ? ''
+        : _noteController.text;
     if (text == _reportedNoteDraft) return;
     _reportedNoteDraft = text;
     widget.onNoteDraftChanged?.call(text);
