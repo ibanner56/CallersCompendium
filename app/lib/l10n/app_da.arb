@@ -908,6 +908,18 @@
   "@settingsSyncNoticeListSeparator": {
     "x-sourceSha256": "0a07f659461970d8d8dcefe4fff96a1745599810dc7d47391e95c803b7b2072c"
   },
+  "commonListSeparator": ", ",
+  "@commonListSeparator": {
+    "x-sourceSha256": "0a07f659461970d8d8dcefe4fff96a1745599810dc7d47391e95c803b7b2072c"
+  },
+  "commonClauseSeparator": "; ",
+  "@commonClauseSeparator": {
+    "x-sourceSha256": "0a2d3f8f9b727cf73e6c7e44f2feefc41855195b3010a3c4f6b05c33aeb484a9"
+  },
+  "commonSentencePair": "{first} {second}",
+  "@commonSentencePair": {
+    "x-sourceSha256": "79f1c74c1c726e8c69fa0f90e82caa52b1d5527dbc1fa7e6a1c675f9a607746a"
+  },
   "settingsSyncNoticeRecordNamed": "{kind} »{name}«",
   "@settingsSyncNoticeRecordNamed": {
     "x-sourceSha256": "82b7f901c41bcc687f29edb68280e64fc0ebdd16cbb1a427cc748c59be664c8a"
@@ -2748,7 +2760,7 @@
   "@settingsDefaultsShareFieldsPhraseStructure": {
     "x-sourceSha256": "159410b8c9be321a89f79bc5a7ac24040ef0a5e9fe8badf415817729b41c5b71"
   },
-  "settingsDefaultsShareFieldsCallingNotes": "Kaldsnotes",
+  "settingsDefaultsShareFieldsCallingNotes": "Kaldsnoter",
   "@settingsDefaultsShareFieldsCallingNotes": {
     "x-sourceSha256": "d929944e5b1d40ac916a7b526de1016a08cf6c56c19d490bb365c62d58962298"
   },
@@ -2788,7 +2800,7 @@
   "@settingsDefaultsImportTagsTitle": {
     "x-sourceSha256": "b1dd2d836caef6fe35201a4a9633de08a139ef06a2d899cf238a707968aff9b3"
   },
-  "settingsDefaultsImportTagsSubtitle": "Føjes til hver ny dans, en import opretter, også danse fra en fil, nogen har delt med dig. Danse, der oprettes til et programs pladser under import af programmet, får ikke tags.",
+  "settingsDefaultsImportTagsSubtitle": "Føjes til hver ny dans, en import opretter, også danse fra en fil, nogen har delt med dig. Danse, der oprettes til et programs slots under import af programmet, får ikke tags.",
   "@settingsDefaultsImportTagsSubtitle": {
     "x-sourceSha256": "c803a49bf8e714711870e4bb5dab2f5c13a4b3a046e3ed0e7098968df11254bd"
   },
@@ -3408,7 +3420,7 @@
   "@settingsShowProgramSlotCallerNotesTitle": {
     "x-sourceSha256": "9772a5705de8fe02664aeb2faeb944f5f18bd277da2f287906b71f6200cefe69"
   },
-  "settingsShowProgramSlotCallerNotesSubtitle": "Vis callernoter, der ikke er tomme, for hver plads over dansens titel, når du fremfører et program.",
+  "settingsShowProgramSlotCallerNotesSubtitle": "Vis callernoter, der ikke er tomme, for hvert slot over dansens titel, når du fremfører et program.",
   "@settingsShowProgramSlotCallerNotesSubtitle": {
     "x-sourceSha256": "d3d7906907ed4a49509bad69a58ec24c1e2e2eacadece45075e7131c881e964a"
   },
@@ -5436,7 +5448,7 @@
   "@danceSectionFigures": {
     "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"
   },
-  "danceSectionCallingNotes": "Kaldsnotes",
+  "danceSectionCallingNotes": "Kaldsnoter",
   "@danceSectionCallingNotes": {
     "x-sourceSha256": "d929944e5b1d40ac916a7b526de1016a08cf6c56c19d490bb365c62d58962298"
   },
@@ -5876,7 +5888,7 @@
   "@programsSlotsLabel": {
     "x-sourceSha256": "4fd72c06bcff79710b0a5bd292b1f6408ec8cfa357e08566b663e4f14cbfc7f0"
   },
-  "programsSlotsHelper": "Hver plads er ét sted i din sætliste: en dans, en note eller en pause.",
+  "programsSlotsHelper": "Hvert slot er ét sted i din sætliste: en dans, en note eller en pause.",
   "@programsSlotsHelper": {
     "x-sourceSha256": "50b32d2e3c87ce90281b3b101b7b3798c9c79e267fbfef2f2837e296fa433f74"
   },
@@ -5891,6 +5903,10 @@
   "programsInsertBreakButton": "Indsæt pause",
   "@programsInsertBreakButton": {
     "x-sourceSha256": "95c8ab63aad97921a22aa01bbadf09549685e570d8f49b4261cab1c1aaadfa63"
+  },
+  "programsBreakSlotLabel": "Pause",
+  "@programsBreakSlotLabel": {
+    "x-sourceSha256": "f71081fb0af48ae614362bb396a02f189c24358d014a7daa12940aa6fc2ae29e"
   },
   "programsAddADanceSheetTitle": "Tilføj en dans",
   "@programsAddADanceSheetTitle": {
@@ -6398,7 +6414,7 @@
   "@programsCreateDanceFromNoteMenu": {
     "x-sourceSha256": "130c7632db6a305f4db35123196b1f1e31db894531359658d03bea133395d2de"
   },
-  "programsCreatedDanceFromNoteAnnounce": "Oprettede {title} og knyttede denne plads til den.",
+  "programsCreatedDanceFromNoteAnnounce": "Oprettede {title} og knyttede dette slot til den.",
   "@programsCreatedDanceFromNoteAnnounce": {
     "x-sourceSha256": "185833d5023bc165f402233bb842bdddfa040302b96dd8692065efbcf62617ea"
   },
@@ -6830,7 +6846,7 @@
   "@performSlotCallerNote": {
     "x-sourceSha256": "d2b28bddb944b16a222d1bdb75c290a08ba8dec28530924ad9ef12b09af101ea"
   },
-  "performCallingNotes": "Kaldsnotes",
+  "performCallingNotes": "Kaldsnoter",
   "@performCallingNotes": {
     "x-sourceSha256": "d929944e5b1d40ac916a7b526de1016a08cf6c56c19d490bb365c62d58962298"
   },
@@ -7118,7 +7134,7 @@
   "@exportLabelFigures": {
     "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"
   },
-  "exportLabelCallingNotes": "Kaldsnotes",
+  "exportLabelCallingNotes": "Kaldsnoter",
   "@exportLabelCallingNotes": {
     "x-sourceSha256": "d929944e5b1d40ac916a7b526de1016a08cf6c56c19d490bb365c62d58962298"
   },
@@ -8130,15 +8146,15 @@
   "@importIssueGeneric": {
     "x-sourceSha256": "6357b3791a45d47ac5e39ecb5c8237b18e1a0ac000c65da66ae629edcda7bdee"
   },
-  "importIssueProgramEmptySlot": "En tom plads i et program blev sprunget over.",
+  "importIssueProgramEmptySlot": "Et tomt slot i et program blev sprunget over.",
   "@importIssueProgramEmptySlot": {
     "x-sourceSha256": "5c9dbd0ffd0617887accdb063575f029cfe614d2ddc0da7b47718c7ddd421cdd"
   },
-  "importIssueProgramDeletedDance": "Et program henviste til en dans, der er slettet i Caller's Companion; pladsen blev udeladt.",
+  "importIssueProgramDeletedDance": "Et program henviste til en dans, der er slettet i Caller's Companion; slottet blev udeladt.",
   "@importIssueProgramDeletedDance": {
     "x-sourceSha256": "85e690af9308604e2c749befa97c49d9911b3da55b90cacd2855403e413f5efa"
   },
-  "importIssueProgramUnresolvedDance": "Et program henviste til en dans, der ikke blev importeret; pladsen blev bevaret som en tekstpladsholder.",
+  "importIssueProgramUnresolvedDance": "Et program henviste til en dans, der ikke blev importeret; slottet blev bevaret som en tekstpladsholder.",
   "@importIssueProgramUnresolvedDance": {
     "x-sourceSha256": "acb7fcbc7626e8a99be9de22ee51116dd292c336c24ec4833044d6f4907b5195"
   },
@@ -8854,7 +8870,7 @@
   "@danceEditorNotesSection": {
     "x-sourceSha256": "8a7525b1492fb84833f5c4a69b30f4bfbb134f9b666b61a2c1872d63d234c085"
   },
-  "danceEditorCallingNotesLabel": "Kaldsnotes",
+  "danceEditorCallingNotesLabel": "Kaldsnoter",
   "@danceEditorCallingNotesLabel": {
     "x-sourceSha256": "d929944e5b1d40ac916a7b526de1016a08cf6c56c19d490bb365c62d58962298"
   },
@@ -9370,11 +9386,11 @@
   "@validationPhraseNamedEnglishOnly": {
     "x-sourceSha256": "b5f2d8332302489d86c74c678cda475666341fa2fe1ddac3da1322d7b85759c0"
   },
-  "validationOrphanedAlt": "Alternativet på position {position} har ingen forudgående primær plads.",
+  "validationOrphanedAlt": "Alternativet på position {position} har ingen forudgående primært slot.",
   "@validationOrphanedAlt": {
     "x-sourceSha256": "53e7ff8e20a76795c6f432fe3e38ed673af074c1f7aaaa670ff9b195249652ad"
   },
-  "validationOrphanedAltNamed": "Alternativet på position {position} (“{text}”) har ingen forudgående primær plads.",
+  "validationOrphanedAltNamed": "Alternativet på position {position} (“{text}”) har ingen forudgående primært slot.",
   "@validationOrphanedAltNamed": {
     "x-sourceSha256": "556675e41e6c61bda76f6f5498325734eaeb5ee0abd6b485efd07e05e4f83835"
   },
@@ -12818,7 +12834,7 @@
   "@programTemplateUntitled": {
     "x-sourceSha256": "1be215111c621aa61c875e2465020509380ba44d3e2d8d49dd273ecd57a35478"
   },
-  "programTemplateSlotCount": "{count, plural, =0{Tom} =1{1 plads} other{{count} pladser}}",
+  "programTemplateSlotCount": "{count, plural, =0{Tom} =1{1 slot} other{{count} slots}}",
   "@programTemplateSlotCount": {
     "x-sourceSha256": "df0ff3b27ae67a905e56ad963b150ced99e977245f78dc66bce4e845adac2c3f"
   },
@@ -12834,7 +12850,7 @@
   "@programTemplateEditorTitle": {
     "x-sourceSha256": "708c9a5c56a40ed01a39b15ffc68023028d600264f6976715639182a0943f8b6"
   },
-  "programTemplateSlotsHeader": "Pladser",
+  "programTemplateSlotsHeader": "Slots",
   "@programTemplateSlotsHeader": {
     "x-sourceSha256": "4fd72c06bcff79710b0a5bd292b1f6408ec8cfa357e08566b663e4f14cbfc7f0"
   },
@@ -13402,7 +13418,7 @@
   "@csvColumnHook": {
     "x-sourceSha256": "536ff5051d2541c9be5975c589b2b2bfecd85c1eb316522080db20c2bf27ccee"
   },
-  "csvColumnCallingNotes": "Kaldsnotes",
+  "csvColumnCallingNotes": "Kaldsnoter",
   "@csvColumnCallingNotes": {
     "x-sourceSha256": "d929944e5b1d40ac916a7b526de1016a08cf6c56c19d490bb365c62d58962298"
   },
@@ -13626,7 +13642,7 @@
   "@repertoirePeriodSince": {
     "x-sourceSha256": "1550794b36af0a945ddc65d95c16fbde42d2df500d5f3a232f5b1138e9b299f1"
   },
-  "repertoireTypeLabel": "Danseform",
+  "repertoireTypeLabel": "Type",
   "@repertoireTypeLabel": {
     "x-sourceSha256": "2c004974318a3075ebadbd65e39bd0efc9bd6b1eee3f8a9c679d5c669b326ce0"
   },
@@ -13714,7 +13730,7 @@
   "@repertoireShowFewer": {
     "x-sourceSha256": "255beb6510e7827d37ec1cd22d080f910888ae00f29374dd9545c8b3d1fce43a"
   },
-  "repertoireAuthorsHeader": "Forfattere, du kalder",
+  "repertoireAuthorsHeader": "Forfattere, hvis danse du kalder",
   "@repertoireAuthorsHeader": {
     "x-sourceSha256": "03a08a6177689c82fcc0a1cfe404363104f2eb53ccb83e2165947969bb41d94b"
   },
@@ -13806,7 +13822,7 @@
   "@importTextDanceStartBlankLine": {
     "x-sourceSha256": "1e3d1952578a42f1adc62b109faae27dc63fea4d27ca663fcfb52e498917c26e"
   },
-  "importTextTargetLabelledNotes": "Kaldsnotes, med betegnelsen",
+  "importTextTargetLabelledNotes": "Kaldsnoter, med betegnelsen",
   "@importTextTargetLabelledNotes": {
     "x-sourceSha256": "81e01305126cd88776779264c7195ec7477be4a8b5e43192e472e9f68ae75f73"
   },
@@ -14586,11 +14602,11 @@
   "@programTemplateRulesNone": {
     "x-sourceSha256": "dc937b59892604f5a86ac96936cd7ff09e25f18ae6b758e8014a24c7fa039e91"
   },
-  "programTemplateDuplicateSearchGone": "Kunne ikke duplikere: den gemte søgning til pladsreglen „{label}“ er slettet. Rediger eller fjern reglen, og prøv igen.",
+  "programTemplateDuplicateSearchGone": "Kunne ikke duplikere: den gemte søgning til slotreglen „{label}“ er slettet. Rediger eller fjern reglen, og prøv igen.",
   "@programTemplateDuplicateSearchGone": {
     "x-sourceSha256": "2b6e7b2f1c72734b0fb1bf1fa87d54326315dd009a415ae00a229c1affcb0b25"
   },
-  "programTemplateSlotRuleNotSavedSearchGone": "Den gemte søgning blev netop slettet, så pladsreglen blev ikke gemt.",
+  "programTemplateSlotRuleNotSavedSearchGone": "Den gemte søgning blev netop slettet, så slotreglen blev ikke gemt.",
   "@programTemplateSlotRuleNotSavedSearchGone": {
     "x-sourceSha256": "6688d691e5716697612548cfe5d8de2887a3591418f7183f21ad7828ed53a456"
   },
@@ -14646,11 +14662,11 @@
   "@danceEditorSaveNeedsFigureValues": {
     "x-sourceSha256": "899a2bb2764967487b319de39f17f242eb5d834d40066036fca864e6461c7e90"
   },
-  "programTemplateAddSlotRule": "Tilføj pladsregel",
+  "programTemplateAddSlotRule": "Tilføj slotregel",
   "@programTemplateAddSlotRule": {
     "x-sourceSha256": "271cf5d437fa079717c43d95e491024ecb32f29091b5d0071b156726b9e92f91"
   },
-  "programTemplateSlotRuleBadge": "Pladsregel",
+  "programTemplateSlotRuleBadge": "Slotregel",
   "@programTemplateSlotRuleBadge": {
     "x-sourceSha256": "d3c802c982976b306a8676af4f5bc4811ecfbe9275f29e1ec1bab7a826d2f751"
   },
@@ -14662,7 +14678,7 @@
   "@programTemplateSlotRuleSearchGone": {
     "x-sourceSha256": "1f35b0852f51aa2a31e190d22496980fd15f7d64f7475bee61c2adec35264436"
   },
-  "programTemplateSlotRuleDialogTitle": "Tilføj pladsregel",
+  "programTemplateSlotRuleDialogTitle": "Tilføj slotregel",
   "@programTemplateSlotRuleDialogTitle": {
     "x-sourceSha256": "271cf5d437fa079717c43d95e491024ecb32f29091b5d0071b156726b9e92f91"
   },
@@ -14682,7 +14698,7 @@
   "@programTemplateSlotRuleSearch": {
     "x-sourceSha256": "b0e17e59d9f6e5bc3e78c1a3e9b9d40c3238a69046c0726a97282e9e03a14703"
   },
-  "programTemplateSlotRuleNoSearches": "En pladsregel bruger en gemt søgning. Gem først en søgning i Samling, og vælg den så her.",
+  "programTemplateSlotRuleNoSearches": "En slotregel bruger en gemt søgning. Gem først en søgning i Samling, og vælg den så her.",
   "@programTemplateSlotRuleNoSearches": {
     "x-sourceSha256": "593b11555624c9a3811478ab0af89b90ff566223d40fb4c0316632f47629bd61"
   },
@@ -14710,7 +14726,7 @@
   "@programsFillSearchUnresolvable": {
     "x-sourceSha256": "1e2220e52ab277618cea27a58361450b72bb87b18d1a44ec5186db48eea9a565"
   },
-  "savedSearchUsedBySlotRule": "Pladsreglen \"{rule}\" i skabelonen {template}",
+  "savedSearchUsedBySlotRule": "Slotreglen \"{rule}\" i skabelonen {template}",
   "@savedSearchUsedBySlotRule": {
     "x-sourceSha256": "f6abcf8a824f0c6964fb5e3090afcdddefa07ab6e162a7585f87f491c21b8d47"
   },
@@ -14718,11 +14734,11 @@
   "@programTemplateSlotRuleSearchUnreadable": {
     "x-sourceSha256": "87719e1e721958247eb5fe51c7cf2ad911163c3c04262db39ee0daee11e71814"
   },
-  "programTemplateSlotRuleEditTitle": "Rediger pladsregel",
+  "programTemplateSlotRuleEditTitle": "Rediger slotregel",
   "@programTemplateSlotRuleEditTitle": {
     "x-sourceSha256": "35c30e10ebe5cac90c10fca41bd916f0fcc6a4fa7cfdd58ddc485bb65f902421"
   },
-  "programTemplateSlotRuleLabelBreak": "\"Break\" markerer en pause i programmet, så en pladsregel kan ikke bruge det som etiket.",
+  "programTemplateSlotRuleLabelBreak": "\"Break\" markerer en pause i programmet, så en slotregel kan ikke bruge det som etiket.",
   "@programTemplateSlotRuleLabelBreak": {
     "x-sourceSha256": "16e76380d1c64fee5f8228fc7f778ef0d4a2f3c4b3e214a56f7c1a83ae1467bd"
   },

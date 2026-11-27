@@ -5,6 +5,7 @@ import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/widgets/app_shortcuts.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -271,6 +272,38 @@ void main() {
       isSemantics(label: 'Pick', value: 'Alpha'),
     );
     handle.dispose();
+  });
+
+  group('to assistive technology', () {
+    bool menuOpen() => find.byType(MenuItemButton).evaluate().isNotEmpty;
+
+    testWidgets('a filterable field names its arrow, which opens the menu', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      try {
+        await _pump(tester, value: 'a', filterable: true, onChanged: (_) {});
+        final arrow = find.descendant(
+          of: find.byKey(_fieldKey),
+          matching: find.byType(IconButton),
+        );
+        final node = tester.getSemantics(arrow);
+        expect(
+          node.getSemanticsData().label,
+          const DefaultMaterialLocalizations().showMenuTooltip,
+        );
+        node.owner!.performAction(node.id, SemanticsAction.tap);
+        await tester.pumpAndSettle();
+        expect(menuOpen(), isTrue);
+        // Still named while the menu is open and the arrow points up.
+        expect(
+          tester.getSemantics(arrow).getSemanticsData().label,
+          const DefaultMaterialLocalizations().showMenuTooltip,
+        );
+      } finally {
+        handle.dispose();
+      }
+    }, variant: TargetPlatformVariant.all());
   });
 
   group('on touch, a select-only field', () {

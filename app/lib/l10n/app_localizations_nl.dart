@@ -1049,6 +1049,17 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsSyncNoticeListSeparator => ', ';
 
   @override
+  String get commonListSeparator => ', ';
+
+  @override
+  String get commonClauseSeparator => '; ';
+
+  @override
+  String commonSentencePair(String first, String second) {
+    return '$first $second';
+  }
+
+  @override
   String settingsSyncNoticeRecordNamed(String kind, String name) {
     return '$kind ‘$name’';
   }
@@ -2838,7 +2849,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Wordt toegevoegd aan elke nieuwe dans die een import maakt, ook dansen uit een bestand dat iemand met je heeft gedeeld. Dansen die bij het importeren van een programma voor de plekken ervan worden gemaakt, krijgen geen tags.';
+      'Wordt toegevoegd aan elke nieuwe dans die een import maakt, ook dansen uit een bestand dat iemand met je heeft gedeeld. Dansen die bij het importeren van een programma voor de slots ervan worden gemaakt, krijgen geen tags.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -2917,7 +2928,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsStartingFiguresSubtitle =>
-      'De figuren waarmee een nieuwe dans begint. Standaard acht keer stilstaan (elk 8 beats), of geen zolang vrije tekstinvoer aan staat; maak leeg voor een lege nieuwe dans. Aanpasbaar per dans.';
+      'De figuren waarmee een nieuwe dans begint. Standaard acht keer stilstaan (elk 8 tellen), of geen zolang vrije tekstinvoer aan staat; maak leeg voor een lege nieuwe dans. Aanpasbaar per dans.';
 
   @override
   String get settingsDefaultsMoveDefaultsTitle => 'Standaardwaarden voor moves';
@@ -3052,7 +3063,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get authorManagerEmptyBody =>
-      'Auteurs die u bij een dans vermeldt, verschijnen hier.';
+      'Auteurs die je bij een dans vermeldt, verschijnen hier.';
 
   @override
   String get authorManagerLoadError =>
@@ -3077,7 +3088,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get sourceManagerEmptyBody =>
-      'Boeken en websites die u bij een dans citeert, verschijnen hier.';
+      'Boeken en websites die je bij een dans citeert, verschijnen hier.';
 
   @override
   String get sourceManagerLoadError =>
@@ -3254,11 +3265,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralMatrixExactCollisionTitle =>
-      'Alleen exacte overlap van beats markeren';
+      'Alleen exacte overlap van tellen markeren';
 
   @override
   String get settingsGeneralMatrixExactCollisionSubtitle =>
-      'In de programmeringsmatrix wordt een herhaalde figuur tussen twee opeenvolgende dansen alleen gemarkeerd als de beats daadwerkelijk overlappen — niet alleen wanneer deze in dezelfde benoemde frase (A1, A2, B1, B2…) valt. Zet uit om elke herhaling in dezelfde frase te markeren, ook als de beats zelf niet overlappen.';
+      'In de programmeringsmatrix wordt een herhaalde figuur tussen twee opeenvolgende dansen alleen gemarkeerd als de tellen daadwerkelijk overlappen — niet alleen wanneer deze in dezelfde benoemde frase (A1, A2, B1, B2…) valt. Zet uit om elke herhaling in dezelfde frase te markeren, ook als de tellen zelf niet overlappen.';
 
   @override
   String get settingsProgramAutoCommitTitle =>
@@ -3514,7 +3525,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
-      'Als dit uit staat en er een standaardcaller is ingesteld, bevatten de callerhistorie en de aantallen programma’s die door die caller zijn geleid, plus programma’s zonder geregistreerde caller (behandeld als uw eigen). Als dit aan staat — of als er geen standaardcaller is ingesteld — wordt elk programma dat de dans bevat bijgehouden.';
+      'Als dit uit staat en er een standaardcaller is ingesteld, bevatten de callerhistorie en de aantallen programma’s die door die caller zijn geleid, plus programma’s zonder geregistreerde caller (behandeld als jouw eigen). Als dit aan staat — of als er geen standaardcaller is ingesteld — wordt elk programma dat de dans bevat bijgehouden.';
 
   @override
   String get settingsProgramVenueCallCountTitle =>
@@ -3869,7 +3880,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get backupExportSubtitle =>
-      'Sla je hele bibliotheek op in één JSON-bestand dat je veilig kunt bewaren of naar een ander apparaat kunt verplaatsen. Het bevat je dansen, programma’s, eigen velden, dialecten, thema’s en instellingen.';
+      'Sla je hele bibliotheek op in één JSON-bestand dat je veilig kunt bewaren of naar een ander apparaat kunt verplaatsen. Het bevat je dansen, programma’s, aangepaste velden, dialecten, thema’s en instellingen.';
 
   @override
   String get backupExportAction => 'Exporteren';
@@ -4829,10 +4840,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionFacetCalled => 'Gebeld';
 
   @override
-  String get collectionFacetNotCalled => 'Niet gebeld';
+  String get collectionFacetNotCalled => 'Niet gecalld';
 
   @override
-  String get collectionFacetHistoryInert => 'Geldt bij Gebeld of Niet gebeld';
+  String get collectionFacetHistoryInert => 'Geldt bij Gecalld of Niet gecalld';
 
   @override
   String get collectionFacetVenue => 'Op locatie';
@@ -4870,7 +4881,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionFacetWithinAnyTime => 'Altijd';
 
   @override
-  String get collectionFacetWithinNever => 'Nooit gebeld';
+  String get collectionFacetWithinNever => 'Nooit gecalld';
 
   @override
   String collectionFacetWithinMonths(int count) {
@@ -5281,8 +5292,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats beats',
-      one: '1 beat',
+      other: '$beats tellen',
+      one: '1 tel',
     );
     return '$_temp0';
   }
@@ -5879,7 +5890,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsSlotsHelper =>
-      'Elk slot is één plek in je setlijst: een dans, een notitie of een pauze.';
+      'Elk slot is één plaats in je setlijst: een dans, een notitie of een pauze.';
 
   @override
   String get programsAddDanceButton => 'Dans toevoegen';
@@ -5889,6 +5900,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsInsertBreakButton => 'Pauze invoegen';
+
+  @override
+  String get programsBreakSlotLabel => 'Pauze';
 
   @override
   String get programsAddADanceSheetTitle => 'Een dans toevoegen';
@@ -6387,7 +6401,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String programsCreatedDanceFromNoteAnnounce(String title) {
-    return '$title aangemaakt en aan deze plek gekoppeld.';
+    return '$title aangemaakt en aan dit slot gekoppeld.';
   }
 
   @override
@@ -6573,7 +6587,7 @@ class AppLocalizationsNl extends AppLocalizations {
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
       'phrase': ', herhaalt in dezelfde frase als een aangrenzende dans',
-      'beats': ', deelt beats met een aangrenzende dans',
+      'beats': ', deelt tellen met een aangrenzende dans',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -6638,7 +6652,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsMatrixLegendCollisionBeats =>
-      'Deelt beats met aangrenzende dans';
+      'Deelt tellen met aangrenzende dans';
 
   @override
   String get programsMatrixEmptyTitle => 'Nog geen gestructureerde figuren';
@@ -7003,8 +7017,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp2 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats beats',
-      one: '1 beat',
+      other: '$beats tellen',
+      one: '1 tel',
     );
     String _temp3 = intl.Intl.selectLogic(hasNote, {
       'yes': ', notitie: $note',
@@ -7221,8 +7235,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count beats',
-      one: '1 beat',
+      other: '$count tellen',
+      one: '1 tel',
     );
     return '$_temp0';
   }
@@ -7324,7 +7338,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get exportMatrixLegendCollisionBeats =>
-      'Deelt beats met aangrenzende dans';
+      'Deelt tellen met aangrenzende dans';
 
   @override
   String exportMatrixOmittedCaption(int count) {
@@ -8329,15 +8343,15 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importIssueProgramEmptySlot =>
-      'Een lege plek in een programma is overgeslagen.';
+      'Een leeg slot in een programma is overgeslagen.';
 
   @override
   String get importIssueProgramDeletedDance =>
-      'Een programma verwees naar een dans die in Caller\'s Companion is verwijderd; de plek is weggelaten.';
+      'Een programma verwees naar een dans die in Caller\'s Companion is verwijderd; het slot is weggelaten.';
 
   @override
   String get importIssueProgramUnresolvedDance =>
-      'Een programma verwees naar een dans die niet is geïmporteerd; de plek is als tekstplaatshouder bewaard.';
+      'Een programma verwees naar een dans die niet is geïmporteerd; het slot is als tekstplaatshouder bewaard.';
 
   @override
   String get importIssueProgramUnresolvedVenue =>
@@ -8357,12 +8371,12 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
-    return 'Je aangepaste veld “$label” heeft in dit bestand een ander type of andere keuzes, dus de waarden uit het bestand komen in plaats daarvan in het veld met de sleutel “$key”, dat wordt toegevoegd als je het nog niet hebt. Je eigen veld blijft ongewijzigd.';
+    return 'Je aangepaste veld “$label” heeft in dit bestand een ander type of andere keuzes, dus de waarden uit het bestand komen in plaats daarvan in het veld met de sleutel “$key”, dat wordt toegevoegd als je het nog niet hebt. Je aangepaste veld blijft ongewijzigd.';
   }
 
   @override
   String get importIssueArchiveCustomFieldKeyConflictGeneric =>
-      'Een eigen veld in dit bestand kon zijn sleutel niet gebruiken, omdat die al in gebruik is, dus de waarden komen in een veld met een genummerde sleutel.';
+      'Een aangepast veld in dit bestand kon zijn sleutel niet gebruiken, omdat die al in gebruik is, dus de waarden komen in een veld met een genummerde sleutel.';
 
   @override
   String get importIssueUsrFileTruncated =>
@@ -8486,7 +8500,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importIssueBeatsUnreadable =>
-      'Een aantal beats kon niet worden gelezen; 0 gebruikt.';
+      'Een aantal tellen kon niet worden gelezen; 0 gebruikt.';
 
   @override
   String get importIssueNoFiguresTable =>
@@ -9073,7 +9087,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorPhraseRowsHelp =>
-      'Elke rij is een reeks gelijke frasen: hoeveel het er zijn, de maten in elke frase en de beats in een maat. De fraseopbouw hieronder verandert mee met de rijen.';
+      'Elke rij is een reeks gelijke frasen: hoeveel het er zijn, de maten in elke frase en de tellen in een maat. De fraseopbouw hieronder verandert mee met de rijen.';
 
   @override
   String get danceEditorPhraseRowsPhrasesLabel => 'Frasen';
@@ -9082,7 +9096,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorPhraseRowsBarsLabel => 'Maten per frase';
 
   @override
-  String get danceEditorPhraseRowsBeatsLabel => 'Beats per maat';
+  String get danceEditorPhraseRowsBeatsLabel => 'Tellen per maat';
 
   @override
   String danceEditorPhraseRowsRange(int max) {
@@ -9107,8 +9121,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats beats',
-      one: '1 beat',
+      other: '$beats tellen',
+      one: '1 tel',
     );
     return '$labels · $_temp0';
   }
@@ -9240,7 +9254,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsWalkthroughSnippetsEmptyBody =>
-      'Voeg beschrijvingen van doorloopstappen toe terwijl u de figuren van een dans bewerkt.';
+      'Voeg beschrijvingen van doorloopstappen toe terwijl je de figuren van een dans bewerkt.';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
@@ -9525,7 +9539,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String validationPhraseBeatMismatch(int actual, int expected) {
-    return 'De figuren tellen samen $actual beats; de fraseopbouw verwacht $expected.';
+    return 'De figuren komen samen op $actual tellen; de fraseopbouw verwacht $expected.';
   }
 
   @override
@@ -10186,8 +10200,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp1 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats beats',
-      one: '1 beat',
+      other: '$beats tellen',
+      one: '1 tel',
     );
     return 'Wordt bij het opslaan van de dans $_temp0 ($_temp1).';
   }
@@ -10224,8 +10238,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp2 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats beats',
-      one: '1 beat',
+      other: '$beats tellen',
+      one: '1 tel',
     );
     String _temp3 = intl.Intl.selectLogic(hasMove, {
       'yes': ', $_temp2',
@@ -10457,8 +10471,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp1 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats gedeelde beats',
-      one: '1 gedeelde beat',
+      other: '$beats gedeelde tellen',
+      one: '1 gedeelde tel',
     );
     return 'Gelijktijdige groep, $_temp0, $_temp1.';
   }
@@ -10524,25 +10538,25 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       total,
       locale: localeName,
-      other: 'Totaal: $total beats',
-      one: 'Totaal: 1 beat',
+      other: 'Totaal: $total tellen',
+      one: 'Totaal: 1 tel',
     );
     return '$_temp0';
   }
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
-    return 'Totaal: $total / $expected beats';
+    return 'Totaal: $total / $expected tellen';
   }
 
   @override
   String danceEditorOverByBeats(int beats) {
-    return '$beats beats te veel';
+    return '$beats tellen te veel';
   }
 
   @override
   String danceEditorUnderByBeats(int beats) {
-    return '$beats beats te weinig';
+    return '$beats tellen te weinig';
   }
 
   @override
@@ -11362,7 +11376,7 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count niet-herkende figuren nu gelezen',
-      one: '1 niet-herkend figuur nu gelezen',
+      one: '1 niet-herkende figuur nu gelezen',
     );
     return '$_temp0';
   }
@@ -12139,7 +12153,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String dialectEditorMoveWordingSaveError(String figures) {
-    return 'Los ongeldige sjablonen voor bewegingsformuleringen op voordat u opslaat: $figures';
+    return 'Los ongeldige sjablonen voor bewegingsformuleringen op voordat je opslaat: $figures';
   }
 
   @override
@@ -12256,7 +12270,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String glossaryCustomExpandsTo(int beats) {
-    return 'Wordt uitgevouwen tot ($beats beats)';
+    return 'Wordt uitgevouwen tot ($beats tellen)';
   }
 
   @override
@@ -12698,7 +12712,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get compoundParamKindNumber => 'getal';
 
   @override
-  String get compoundParamKindBeats => 'beats';
+  String get compoundParamKindBeats => 'tellen';
 
   @override
   String get compoundParamKindFlag => 'aan/uit';
@@ -13402,8 +13416,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count plekken',
-      one: '1 plek',
+      other: '$count slots',
+      one: '1 slot',
       zero: 'Leeg',
     );
     return '$_temp0';
@@ -13423,7 +13437,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programTemplateEditorTitle => 'Sjabloon bewerken';
 
   @override
-  String get programTemplateSlotsHeader => 'Plekken';
+  String get programTemplateSlotsHeader => 'Slots';
 
   @override
   String get programTemplateSlotsSubtitle =>
@@ -14219,37 +14233,37 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get repertoireTypeLabel => 'Danssoort';
+  String get repertoireTypeLabel => 'Type';
 
   @override
   String get repertoireTypeAll => 'Alle soorten';
 
   @override
   String repertoireSummary(int calls, int called, int total) {
-    return 'Keer gebeld in deze periode: $calls. Dansen gebeld: $called van $total.';
+    return 'Keer gecalld in deze periode: $calls. Dansen gecalld: $called van $total.';
   }
 
   @override
-  String get repertoireMostCalledHeader => 'Vaakst gebeld';
+  String get repertoireMostCalledHeader => 'Vaakst gecalld';
 
   @override
   String get repertoireLeastCalledHeader =>
-      'Minst gebeld (van wat je hebt gebeld)';
+      'Minst gecalld (van wat je hebt gecalld)';
 
   @override
   String get repertoireLeastCalledAllShown =>
-      'Elke dans die je in deze periode hebt gebeld, staat al onder Vaakst gebeld.';
+      'Elke dans die je in deze periode hebt gecalld, staat al onder Vaakst gecalld.';
 
   @override
-  String get repertoireNoCalls => 'Niets gebeld in deze periode.';
+  String get repertoireNoCalls => 'Niets gecalld in deze periode.';
 
   @override
   String repertoireDanceCalls(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count keer gebeld',
-      one: 'één keer gebeld',
+      other: '$count keer gecalld',
+      one: 'één keer gecalld',
     );
     return '$_temp0';
   }
@@ -14259,17 +14273,17 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count keer gebeld',
-      one: 'één keer gebeld',
+      other: '$count keer gecalld',
+      one: 'één keer gecalld',
     );
     return '$title: $_temp0';
   }
 
   @override
-  String get repertoireNeverCalledHeader => 'Nooit gebeld';
+  String get repertoireNeverCalledHeader => 'Nooit gecalld';
 
   @override
-  String get repertoireNeverCalledLabel => 'Nooit gebeld';
+  String get repertoireNeverCalledLabel => 'Nooit gecalld';
 
   @override
   String repertoireOfDances(int count, int total) {
@@ -14278,20 +14292,20 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String repertoireNeverCalledSemantics(int count, int total) {
-    return 'Nooit gebeld: $count van $total dansen';
+    return 'Nooit gecalld: $count van $total dansen';
   }
 
   @override
   String repertoireNeverCalledDanceSemantics(String title) {
-    return '$title: nooit gebeld';
+    return '$title: nooit gecalld';
   }
 
   @override
-  String get repertoireNotCalledInPeriodLabel => 'Niet gebeld in deze periode';
+  String get repertoireNotCalledInPeriodLabel => 'Niet gecalld in deze periode';
 
   @override
   String repertoireNotCalledInPeriodSemantics(int count, int total) {
-    return 'Niet gebeld in deze periode: $count van $total dansen';
+    return 'Niet gecalld in deze periode: $count van $total dansen';
   }
 
   @override
@@ -14306,8 +14320,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       calls,
       locale: localeName,
-      other: '$calls keer gebeld',
-      one: '1 keer gebeld',
+      other: '$calls keer gecalld',
+      one: '1 keer gecalld',
     );
     return 'in $dances van $total dansen ($percent%) · $_temp0';
   }
@@ -14323,8 +14337,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       calls,
       locale: localeName,
-      other: '$calls keer gebeld',
-      one: '1 keer gebeld',
+      other: '$calls keer gecalld',
+      one: '1 keer gecalld',
     );
     return '$move: in $dances van $total dansen, $percent procent; $_temp0 in deze periode';
   }
@@ -14338,16 +14352,16 @@ class AppLocalizationsNl extends AppLocalizations {
   String get repertoireShowFewer => 'Minder tonen';
 
   @override
-  String get repertoireAuthorsHeader => 'Auteurs die je belt';
+  String get repertoireAuthorsHeader => 'Auteurs van wie je dansen callt';
 
   @override
   String repertoireAuthorsSummary(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count auteurs gebeld in deze periode.',
-      one: '1 auteur gebeld in deze periode.',
-      zero: 'Geen auteur gebeld in deze periode.',
+      other: '$count auteurs gecalld in deze periode.',
+      one: '1 auteur gecalld in deze periode.',
+      zero: 'Geen auteur gecalld in deze periode.',
     );
     return '$_temp0';
   }
@@ -14357,8 +14371,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       calls,
       locale: localeName,
-      other: '$calls keer gebeld',
-      one: '1 keer gebeld',
+      other: '$calls keer gecalld',
+      one: '1 keer gecalld',
     );
     return '$_temp0 ($percent%)';
   }
@@ -14368,10 +14382,10 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       calls,
       locale: localeName,
-      other: '$calls keer gebeld',
-      one: '1 keer gebeld',
+      other: '$calls keer gecalld',
+      one: '1 keer gecalld',
     );
-    return '$label: $_temp0, $percent procent van wat in deze periode is gebeld';
+    return '$label: $_temp0, $percent procent van wat in deze periode is gecalld';
   }
 
   @override
@@ -14382,7 +14396,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get repertoireNoRepeats =>
-      'Geen dans is in deze periode meer dan één keer op dezelfde locatie gebeld.';
+      'Geen dans is in deze periode meer dan één keer op dezelfde locatie gecalld.';
 
   @override
   String get repertoireVenueUnnamed => 'Naamloze locatie';
@@ -14403,8 +14417,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count dansen meer dan één keer gebeld',
-      one: '1 dans meer dan één keer gebeld',
+      other: '$count dansen meer dan één keer gecalld',
+      one: '1 dans meer dan één keer gecalld',
     );
     return '$venue: $_temp0';
   }
@@ -14417,7 +14431,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowRepertoireSubtitle =>
-      'Voegt Repertoire toe aan het menu Meer acties van de Collectie: je vaakst en minst gebelde dansen, wat je nooit hebt gebeld, hoe vaak figuren voorkomen, auteurs, formaties en herhalingen per locatie.';
+      'Voegt Repertoire toe aan het menu Meer acties van de Collectie: je vaakst en minst gecallde dansen, wat je nooit hebt gecalld, hoe vaak figuren voorkomen, auteurs, formaties en herhalingen per locatie.';
 
   @override
   String get importSourceLabelCsv => 'Je eigen spreadsheet (CSV)';
@@ -14538,7 +14552,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String importCsvTargetNewField(String type) {
-    return 'Nieuw eigen veld ($type)';
+    return 'Nieuw aangepast veld ($type)';
   }
 
   @override
@@ -14811,8 +14825,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Niet gebeld in de afgelopen $count maanden',
-      one: 'Niet gebeld in de afgelopen maand',
+      other: 'Niet gecalld in de afgelopen $count maanden',
+      one: 'Niet gecalld in de afgelopen maand',
     );
     return '$_temp0';
   }
@@ -15382,7 +15396,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsSlotRuleMarkerAlternate =>
-      'Overtreedt een regel als hij wordt gecald';
+      'Overtreedt een regel als hij wordt gecalld';
 
   @override
   String programsSlotRuleMarkerSemantic(int count, String rules) {
@@ -15400,8 +15414,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Overtreedt $count regels als hij wordt gecald: $rules',
-      one: 'Overtreedt de regel als hij wordt gecald: $rules',
+      other: 'Overtreedt $count regels als hij wordt gecalld: $rules',
+      one: 'Overtreedt de regel als hij wordt gecalld: $rules',
     );
     return '$_temp0';
   }
@@ -15423,12 +15437,12 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String programTemplateDuplicateSearchGone(String label) {
-    return 'Dupliceren is niet gelukt: de opgeslagen zoekopdracht van de plekregel “$label” is verwijderd. Bewerk of verwijder die regel en probeer het opnieuw.';
+    return 'Dupliceren is niet gelukt: de opgeslagen zoekopdracht van de slotregel “$label” is verwijderd. Bewerk of verwijder die regel en probeer het opnieuw.';
   }
 
   @override
   String get programTemplateSlotRuleNotSavedSearchGone =>
-      'Die opgeslagen zoekopdracht is net verwijderd, dus de plekregel is niet opgeslagen.';
+      'Die opgeslagen zoekopdracht is net verwijderd, dus de slotregel is niet opgeslagen.';
 
   @override
   String get programTemplateRulesHelp =>
@@ -15497,10 +15511,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Sommige toegevoegde figuren hebben nog lege velden. Vul ze in om op te slaan.';
 
   @override
-  String get programTemplateAddSlotRule => 'Plekregel toevoegen';
+  String get programTemplateAddSlotRule => 'Slotregel toevoegen';
 
   @override
-  String get programTemplateSlotRuleBadge => 'Plekregel';
+  String get programTemplateSlotRuleBadge => 'Slotregel';
 
   @override
   String programTemplateSlotRuleSubtitle(String name) {
@@ -15512,7 +15526,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'De opgeslagen zoekopdracht is verwijderd';
 
   @override
-  String get programTemplateSlotRuleDialogTitle => 'Plekregel toevoegen';
+  String get programTemplateSlotRuleDialogTitle => 'Slotregel toevoegen';
 
   @override
   String get programTemplateSlotRuleDialogBody =>
@@ -15529,7 +15543,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleNoSearches =>
-      'Een plekregel gebruikt een opgeslagen zoekopdracht. Sla eerst een zoekopdracht op in Collectie en kies die dan hier.';
+      'Een slotregel gebruikt een opgeslagen zoekopdracht. Sla eerst een zoekopdracht op in Collectie en kies die dan hier.';
 
   @override
   String get programsPlaceholderSubtitle => 'Tijdelijke plek';
@@ -15559,7 +15573,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String savedSearchUsedBySlotRule(String rule, String template) {
-    return 'De plekregel \"$rule\" in het sjabloon $template';
+    return 'De slotregel \"$rule\" in het sjabloon $template';
   }
 
   @override
@@ -15567,11 +15581,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'De opgeslagen zoekopdracht kan niet worden geopend';
 
   @override
-  String get programTemplateSlotRuleEditTitle => 'Plekregel bewerken';
+  String get programTemplateSlotRuleEditTitle => 'Slotregel bewerken';
 
   @override
   String get programTemplateSlotRuleLabelBreak =>
-      '\"Break\" markeert een pauze in het programma, dus een plekregel kan het niet als label gebruiken.';
+      '\"Break\" markeert een pauze in het programma, dus een slotregel kan het niet als label gebruiken.';
 
   @override
   String programsFillSearchUnreadable(String label) {

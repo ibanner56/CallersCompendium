@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/slot_display_text.dart';
 import '../widgets/calendar_flag_label.dart' show calendarFlagLabel;
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
@@ -387,7 +388,10 @@ String? syncConflictSummary(
   );
   if (fields.isEmpty) return null;
   const shown = 3;
-  final names = fields.take(shown).map((f) => f.label).join(', ');
+  final names = fields
+      .take(shown)
+      .map((f) => f.label)
+      .join(l10n.commonListSeparator);
   return l10n.syncConflictDiffersInFields(
     fields.length > shown
         ? l10n.syncConflictValueNamesAndMore(names, fields.length - shown)
@@ -687,7 +691,7 @@ class SyncConflictComparison extends StatelessWidget {
             if (terms.containsKey(name))
               '${keyName(name)} → '
                   '${show?.call(name, terms[name], dialect) ?? term(terms[name])}',
-        ].join(', ');
+        ].join(l10n.commonListSeparator);
         return text.isEmpty ? l10n.syncConflictValueNotSet : text;
       }
 
@@ -711,7 +715,7 @@ class SyncConflictComparison extends StatelessWidget {
         final Map<Object?, Object?> branches => [
           for (final MapEntry(key: branch, value: stored) in branches.entries)
             if (stored is String) '$branch: ${wording(key, stored, dialect)}',
-        ].join('; '),
+        ].join(l10n.commonClauseSeparator),
         _ => null,
       },
     );
@@ -799,7 +803,8 @@ class SyncConflictComparison extends StatelessWidget {
             : l10n.syncConflictValueNotSet;
       case 'shorthand_mappings':
         final figures = value is Map ? value['figures'] : null;
-        return _figureText(figures, dialect) ?? l10n.syncConflictValueNotSet;
+        return _figureText(figures, dialect, l10n) ??
+            l10n.syncConflictValueNotSet;
       case compoundShorthandsSettingKey:
         // One of the user's own figures, by the name the shorthand stored,
         // with the values it gives.
@@ -947,7 +952,7 @@ class SyncConflictComparison extends StatelessWidget {
           if (figure.params.isNotEmpty)
             l10n.syncConflictFieldValue(
               l10n.compoundEditorParams,
-              figure.params.map((p) => p.key).join(', '),
+              figure.params.map((p) => p.key).join(l10n.commonListSeparator),
             ),
         ].join(' · ');
       }
@@ -963,11 +968,11 @@ class SyncConflictComparison extends StatelessWidget {
         l10n.glossaryEntryKindCombination,
         definition.figures
             .map((f) => _renderer.renderSummary(f, dialect))
-            .join('; '),
+            .join(l10n.commonClauseSeparator),
         if (definition.params.isNotEmpty)
           l10n.syncConflictFieldValue(
             l10n.compoundEditorParams,
-            definition.params.map((p) => p.key).join(', '),
+            definition.params.map((p) => p.key).join(l10n.commonListSeparator),
           ),
       ].join(' · ');
     }
@@ -1042,7 +1047,7 @@ class SyncConflictComparison extends StatelessWidget {
     ];
   }
 
-  String? _figureText(Object? raw, Dialect dialect) {
+  String? _figureText(Object? raw, Dialect dialect, AppLocalizations l10n) {
     if (raw is! List) return null;
     try {
       return [
@@ -1051,7 +1056,7 @@ class SyncConflictComparison extends StatelessWidget {
             figureFromJson(Map<String, Object?>.from(item as Map)),
             dialect,
           ),
-      ].join('; ');
+      ].join(l10n.commonClauseSeparator);
     } on Object {
       // diagnostics: silent — surfaced as "Not set" for that shorthand entry
       return null;
@@ -1086,7 +1091,12 @@ class SyncConflictComparison extends StatelessWidget {
     String title(Map<String, Object?> slot) => switch (slot['danceId']) {
       final String id =>
         lookups.dances[id] ?? l10n.programsDeletedDanceFallback,
-      _ => (slot['text'] as String?) ?? l10n.programsUntitledDanceFallback,
+      // A break reads as its label; identity() keeps matching on the token.
+      _ =>
+        (slot['isPurgedDance'] == true
+                ? slot['text'] as String?
+                : templateEntryDisplayText(l10n, slot['text'] as String?)) ??
+            l10n.programsUntitledDanceFallback,
     };
     // Each slot keyed by what it holds and which repeat of it it is, so the
     // second of two identical slots is compared with the other's second.
@@ -1167,7 +1177,7 @@ class SyncConflictComparison extends StatelessWidget {
     String names(Map<String, String> lookup) => [
       for (final id in value as List)
         lookup[id] ?? l10n.syncConflictUnknownItem,
-    ].join(', ');
+    ].join(l10n.commonListSeparator);
     try {
       switch (key) {
         case 'authorIds':
@@ -1236,7 +1246,7 @@ class SyncConflictComparison extends StatelessWidget {
                       l10n.syncConflictUnknownItem,
                   '${field['value']}',
                 ),
-          ].join('; ');
+          ].join(l10n.commonClauseSeparator);
         case 'sourceCitations':
           return [
             for (final c in value as List)
@@ -1249,13 +1259,13 @@ class SyncConflictComparison extends StatelessWidget {
                   if (c['number'] case final String number
                       when number.isNotEmpty)
                     l10n.danceSourceNumber(number),
-                ].join(', '),
-          ].join('; ');
+                ].join(l10n.commonListSeparator),
+          ].join(l10n.commonClauseSeparator);
         case 'links':
           return [
             for (final link in value as List)
               if (link is Map) _linkText(l10n, link),
-          ].join('; ');
+          ].join(l10n.commonClauseSeparator);
         case 'calendarFlag':
           return calendarFlagLabel(l10n, value as String?);
         // An event rule (#2340), in the rule editor's words; a quantifier or
@@ -1282,7 +1292,7 @@ class SyncConflictComparison extends StatelessWidget {
                 )
               else
                 l10n.syncConflictUnknownItem,
-          ].join('; ');
+          ].join(l10n.commonClauseSeparator);
         case 'eventDate':
           return formatEventDate(
             syncConflictCalendarDate(value as String),
@@ -1326,7 +1336,7 @@ class SyncConflictComparison extends StatelessWidget {
                 syncConflictEntryForm(body),
                 keyword as String,
               ),
-          ].join(', ');
+          ].join(l10n.commonListSeparator);
         case 'provenance':
           final map = value as Map;
           final license = map['license'];

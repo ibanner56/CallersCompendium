@@ -15,7 +15,9 @@ import '../screens/settings/event_rules_screen.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/l10n_joins.dart';
 import '../utils/undo_snack_bar.dart';
+import 'dirty_dialog_guard.dart';
 import 'event_rule_text.dart' show eventRuleSentence, eventRuleWarningIcon;
 
 /// A saved search a host is showing: which one, the saved form of the panel
@@ -787,10 +789,10 @@ class _SavedSearchNoticeState extends State<SavedSearchNotice> {
     if (!mounted || !MediaQuery.supportsAnnounceOf(context)) return;
     final l10n = AppLocalizations.of(context);
     final load = widget.load;
-    final message = [
+    final message = joinSentences(l10n, [
       l10n.savedSearchNoticeTitle(load.search.name),
       for (final m in load.missing) savedSearchMissingText(l10n, m),
-    ].join(' ');
+    ]);
     SemanticsService.sendAnnouncement(
       View.of(context),
       message,
@@ -915,46 +917,52 @@ class _SavedSearchNameDialogState extends State<_SavedSearchNameDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final window = widget.window;
-    return AlertDialog(
-      title: Text(widget.title),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            key: const ValueKey('saved-search-name-field'),
-            controller: _controller,
-            autofocus: true,
-            // Limited, and counted, in UTF-16 code units, as the store limits
-            // a name: `maxLength` counts characters, so a name of emoji it
-            // accepted could be refused on save.
-            inputFormatters: const [
-              _CodeUnitLimitFormatter(savedSearchMaxNameLength),
-            ],
-            decoration: InputDecoration(
-              labelText: l10n.savedSearchNameLabel,
-              counterText:
-                  '${_controller.text.length}/$savedSearchMaxNameLength',
+    // Once the name differs from what the dialog opened with, a tap outside,
+    // Escape and Back do nothing, so a stray tap does not lose it (#2219).
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text != widget.initial,
+      child: AlertDialog(
+        title: Text(widget.title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              key: const ValueKey('saved-search-name-field'),
+              controller: _controller,
+              autofocus: true,
+              // Limited, and counted, in UTF-16 code units, as the store limits
+              // a name: `maxLength` counts characters, so a name of emoji it
+              // accepted could be refused on save.
+              inputFormatters: const [
+                _CodeUnitLimitFormatter(savedSearchMaxNameLength),
+              ],
+              decoration: InputDecoration(
+                labelText: l10n.savedSearchNameLabel,
+                counterText:
+                    '${_controller.text.length}/$savedSearchMaxNameLength',
+              ),
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) => _submit(),
             ),
-            onChanged: (_) => setState(() {}),
-            onSubmitted: (_) => _submit(),
+            ?(window == null
+                ? null
+                : Text(window, key: const ValueKey('saved-search-window'))),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
           ),
-          ?(window == null
-              ? null
-              : Text(window, key: const ValueKey('saved-search-window'))),
+          TextButton(
+            key: const ValueKey('saved-search-name-save'),
+            onPressed: _canSave ? _submit : null,
+            child: Text(l10n.commonSave),
+          ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        TextButton(
-          key: const ValueKey('saved-search-name-save'),
-          onPressed: _canSave ? _submit : null,
-          child: Text(l10n.commonSave),
-        ),
-      ],
     );
   }
 }

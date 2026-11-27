@@ -1,0 +1,9 @@
+{
+  "id": "audit-f02-typed-text-guards",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Text you type in the newer dialogs and sheets is no longer lost to a stray tap, **Esc** or **Back**. While its box holds text, **Add figures from text** asks before discarding it, and it no longer closes when swiped down. The program template name, slot rule, saved search name and calendar settings dialogs stay open once you have changed their text. The event rule editor asks before you leave it with unsaved changes."
+    ]
+  }
+}

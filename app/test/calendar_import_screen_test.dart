@@ -12,6 +12,7 @@ import 'package:compendium_app/src/screens/settings/calendar_settings_tiles.dart
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show Variable, driftRuntimeOptions;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/l10n_harness.dart';
@@ -368,6 +369,48 @@ void main() {
     expect(
       await tester.runAsync(() => repos.settings.get(kCalendarFeedUrlKey)),
       _secret,
+    );
+  });
+
+  testWidgets('a pasted address survives a tap outside, Escape and Back, and '
+      'Cancel still closes the dialog (pre-release audit finding F-02)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await pump(tester, repos, const Scaffold(body: CalendarSettingsTiles()));
+    await tester.tap(find.byKey(const ValueKey('calendar-settings-address')));
+    await tester.pumpAndSettle();
+    final field = find.byKey(const ValueKey('calendar-settings-address-field'));
+    await tester.enterText(field, _secret);
+    await tester.pump();
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(field).controller!.text, _secret);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(field, findsNothing);
+    expect(
+      await tester.runAsync(() => repos.settings.get(kCalendarFeedUrlKey)),
+      isNull,
+    );
+  });
+
+  testWidgets('an untouched address dialog still closes on a tap outside', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await pump(tester, repos, const Scaffold(body: CalendarSettingsTiles()));
+    await tester.tap(find.byKey(const ValueKey('calendar-settings-address')));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('calendar-settings-address-field')),
+      findsNothing,
     );
   });
 

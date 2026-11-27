@@ -317,6 +317,23 @@ void main() {
     await _tapKey(tester, 'open-builder');
   }, landedOn: find.byType(ProgramEditorScreen));
 
+  // More details holds the builder's filterable drop-downs (pay currency,
+  // dialect), whose arrow is a button of its own beside the field.
+  _screen(
+    'Program builder, more details',
+    (tester) async {
+      await _openProgramSummary(tester);
+      await _tapKey(tester, 'open-builder');
+      await tester.tap(find.byKey(const ValueKey('program-more-details-tile')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('program-pay-currency')),
+      );
+      await tester.pumpAndSettle();
+    },
+    landedOn: find.byKey(const ValueKey('program-pay-currency')).hitTestable(),
+  );
+
   _screen('Perform', (tester) async {
     await _openProgramSummary(tester);
     await _tapKey(tester, 'summary-perform');

@@ -177,6 +177,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
           widget.data.dancesById[slot.danceId];
       if (dance != null) return slotDanceTitle(l10n, dance);
     }
+    if (slot.isBreak) return l10n.programsBreakSlotLabel;
     final rawText = slot.text?.trim();
     final text =
         rawText == null ||

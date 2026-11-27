@@ -1472,6 +1472,24 @@ abstract class AppLocalizations {
   /// **', '**
   String get settingsSyncNoticeListSeparator;
 
+  /// Separator between items of a list shown in running text, such as dance titles in a broken event rule or author names. Include any spacing your language uses; Japanese uses 、 with no space.
+  ///
+  /// In en, this message translates to:
+  /// **', '**
+  String get commonListSeparator;
+
+  /// Separator between items that may themselves contain commas, such as the event rules a suggested dance would break. Include any spacing your language uses.
+  ///
+  /// In en, this message translates to:
+  /// **'; '**
+  String get commonClauseSeparator;
+
+  /// Two complete sentences shown together in one message. Keep the space if your language separates sentences with one; Japanese, whose sentences end in 。, writes them with nothing between.
+  ///
+  /// In en, this message translates to:
+  /// **'{first} {second}'**
+  String commonSentencePair(String first, String second);
+
   /// One record in the settingsSyncNoticeAffected list: its kind (a syncReviewKind* label such as "Dance") and its title or name as stored on this device.
   ///
   /// In en, this message translates to:
@@ -8967,6 +8985,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Insert break'**
   String get programsInsertBreakButton;
+
+  /// What a break slot reads as wherever a person sees it: the program builder, Perform, the template editor and printed or shared set lists. The stored word stays the English token 'Break' in the database, backups, sync and data exports; only this label is translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Break'**
+  String get programsBreakSlotLabel;
 
   /// Title of the bottom sheet for picking a dance to add to the program.
   ///

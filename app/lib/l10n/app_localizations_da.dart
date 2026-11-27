@@ -1042,6 +1042,17 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsSyncNoticeListSeparator => ', ';
 
   @override
+  String get commonListSeparator => ', ';
+
+  @override
+  String get commonClauseSeparator => '; ';
+
+  @override
+  String commonSentencePair(String first, String second) {
+    return '$first $second';
+  }
+
+  @override
   String settingsSyncNoticeRecordNamed(String kind, String name) {
     return '$kind »$name«';
   }
@@ -2791,7 +2802,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDefaultsShareFieldsPhraseStructure => 'Frase';
 
   @override
-  String get settingsDefaultsShareFieldsCallingNotes => 'Kaldsnotes';
+  String get settingsDefaultsShareFieldsCallingNotes => 'Kaldsnoter';
 
   @override
   String get settingsDefaultsShareFieldsWalkthrough => 'Gennemgang';
@@ -2823,7 +2834,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsImportTagsSubtitle =>
-      'Føjes til hver ny dans, en import opretter, også danse fra en fil, nogen har delt med dig. Danse, der oprettes til et programs pladser under import af programmet, får ikke tags.';
+      'Føjes til hver ny dans, en import opretter, også danse fra en fil, nogen har delt med dig. Danse, der oprettes til et programs slots under import af programmet, får ikke tags.';
 
   @override
   String get settingsDefaultsImportTagsEmpty =>
@@ -3410,7 +3421,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsShowProgramSlotCallerNotesSubtitle =>
-      'Vis callernoter, der ikke er tomme, for hver plads over dansens titel, når du fremfører et program.';
+      'Vis callernoter, der ikke er tomme, for hvert slot over dansens titel, når du fremfører et program.';
 
   @override
   String get settingsGeneralCallingHistoryHeader => 'Kaldshistorik';
@@ -5395,7 +5406,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceSectionFigures => 'Figurer';
 
   @override
-  String get danceSectionCallingNotes => 'Kaldsnotes';
+  String get danceSectionCallingNotes => 'Kaldsnoter';
 
   @override
   String get danceSectionWalkthrough => 'Gennemgang';
@@ -5847,7 +5858,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsSlotsHelper =>
-      'Hver plads er ét sted i din sætliste: en dans, en note eller en pause.';
+      'Hvert slot er ét sted i din sætliste: en dans, en note eller en pause.';
 
   @override
   String get programsAddDanceButton => 'Tilføj dans';
@@ -5857,6 +5868,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsInsertBreakButton => 'Indsæt pause';
+
+  @override
+  String get programsBreakSlotLabel => 'Pause';
 
   @override
   String get programsAddADanceSheetTitle => 'Tilføj en dans';
@@ -6354,7 +6368,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String programsCreatedDanceFromNoteAnnounce(String title) {
-    return 'Oprettede $title og knyttede denne plads til den.';
+    return 'Oprettede $title og knyttede dette slot til den.';
   }
 
   @override
@@ -6894,7 +6908,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get performSlotCallerNote => 'Caller-note';
 
   @override
-  String get performCallingNotes => 'Kaldsnotes';
+  String get performCallingNotes => 'Kaldsnoter';
 
   @override
   String get performWalkthrough => 'Gennemgang';
@@ -7159,7 +7173,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exportLabelFigures => 'Figurer';
 
   @override
-  String get exportLabelCallingNotes => 'Kaldsnotes';
+  String get exportLabelCallingNotes => 'Kaldsnoter';
 
   @override
   String get exportLabelWalkthrough => 'Gennemgang';
@@ -8285,15 +8299,15 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importIssueProgramEmptySlot =>
-      'En tom plads i et program blev sprunget over.';
+      'Et tomt slot i et program blev sprunget over.';
 
   @override
   String get importIssueProgramDeletedDance =>
-      'Et program henviste til en dans, der er slettet i Caller\'s Companion; pladsen blev udeladt.';
+      'Et program henviste til en dans, der er slettet i Caller\'s Companion; slottet blev udeladt.';
 
   @override
   String get importIssueProgramUnresolvedDance =>
-      'Et program henviste til en dans, der ikke blev importeret; pladsen blev bevaret som en tekstpladsholder.';
+      'Et program henviste til en dans, der ikke blev importeret; slottet blev bevaret som en tekstpladsholder.';
 
   @override
   String get importIssueProgramUnresolvedVenue =>
@@ -9080,7 +9094,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorNotesSection => 'Noter';
 
   @override
-  String get danceEditorCallingNotesLabel => 'Kaldsnotes';
+  String get danceEditorCallingNotesLabel => 'Kaldsnoter';
 
   @override
   String get danceEditorHookLabel => 'Hook';
@@ -9556,12 +9570,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String validationOrphanedAlt(int position) {
-    return 'Alternativet på position $position har ingen forudgående primær plads.';
+    return 'Alternativet på position $position har ingen forudgående primært slot.';
   }
 
   @override
   String validationOrphanedAltNamed(int position, String text) {
-    return 'Alternativet på position $position (“$text”) har ingen forudgående primær plads.';
+    return 'Alternativet på position $position (“$text”) har ingen forudgående primært slot.';
   }
 
   @override
@@ -13326,8 +13340,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count pladser',
-      one: '1 plads',
+      other: '$count slots',
+      one: '1 slot',
       zero: 'Tom',
     );
     return '$_temp0';
@@ -13347,7 +13361,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programTemplateEditorTitle => 'Rediger skabelon';
 
   @override
-  String get programTemplateSlotsHeader => 'Pladser';
+  String get programTemplateSlotsHeader => 'Slots';
 
   @override
   String get programTemplateSlotsSubtitle =>
@@ -13932,7 +13946,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get csvColumnHook => 'Hook';
 
   @override
-  String get csvColumnCallingNotes => 'Kaldsnotes';
+  String get csvColumnCallingNotes => 'Kaldsnoter';
 
   @override
   String get csvColumnWalkthrough => 'Gennemgang';
@@ -14140,7 +14154,7 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get repertoireTypeLabel => 'Danseform';
+  String get repertoireTypeLabel => 'Type';
 
   @override
   String get repertoireTypeAll => 'Alle former';
@@ -14259,7 +14273,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get repertoireShowFewer => 'Vis færre';
 
   @override
-  String get repertoireAuthorsHeader => 'Forfattere, du kalder';
+  String get repertoireAuthorsHeader => 'Forfattere, hvis danse du kalder';
 
   @override
   String repertoireAuthorsSummary(int count) {
@@ -14376,7 +14390,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importTextDanceStartBlankLine => 'En titel efter en tom linje';
 
   @override
-  String get importTextTargetLabelledNotes => 'Kaldsnotes, med betegnelsen';
+  String get importTextTargetLabelledNotes => 'Kaldsnoter, med betegnelsen';
 
   @override
   String get importTextNotUtf8 =>
@@ -15333,12 +15347,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String programTemplateDuplicateSearchGone(String label) {
-    return 'Kunne ikke duplikere: den gemte søgning til pladsreglen „$label“ er slettet. Rediger eller fjern reglen, og prøv igen.';
+    return 'Kunne ikke duplikere: den gemte søgning til slotreglen „$label“ er slettet. Rediger eller fjern reglen, og prøv igen.';
   }
 
   @override
   String get programTemplateSlotRuleNotSavedSearchGone =>
-      'Den gemte søgning blev netop slettet, så pladsreglen blev ikke gemt.';
+      'Den gemte søgning blev netop slettet, så slotreglen blev ikke gemt.';
 
   @override
   String get programTemplateRulesHelp =>
@@ -15407,10 +15421,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Nogle figurer, du har tilføjet, har stadig tomme felter. Udfyld dem for at gemme.';
 
   @override
-  String get programTemplateAddSlotRule => 'Tilføj pladsregel';
+  String get programTemplateAddSlotRule => 'Tilføj slotregel';
 
   @override
-  String get programTemplateSlotRuleBadge => 'Pladsregel';
+  String get programTemplateSlotRuleBadge => 'Slotregel';
 
   @override
   String programTemplateSlotRuleSubtitle(String name) {
@@ -15422,7 +15436,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Dens gemte søgning er slettet';
 
   @override
-  String get programTemplateSlotRuleDialogTitle => 'Tilføj pladsregel';
+  String get programTemplateSlotRuleDialogTitle => 'Tilføj slotregel';
 
   @override
   String get programTemplateSlotRuleDialogBody =>
@@ -15439,7 +15453,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleNoSearches =>
-      'En pladsregel bruger en gemt søgning. Gem først en søgning i Samling, og vælg den så her.';
+      'En slotregel bruger en gemt søgning. Gem først en søgning i Samling, og vælg den så her.';
 
   @override
   String get programsPlaceholderSubtitle => 'Pladsholder';
@@ -15469,7 +15483,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String savedSearchUsedBySlotRule(String rule, String template) {
-    return 'Pladsreglen \"$rule\" i skabelonen $template';
+    return 'Slotreglen \"$rule\" i skabelonen $template';
   }
 
   @override
@@ -15477,11 +15491,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Dens gemte søgning kan ikke åbnes';
 
   @override
-  String get programTemplateSlotRuleEditTitle => 'Rediger pladsregel';
+  String get programTemplateSlotRuleEditTitle => 'Rediger slotregel';
 
   @override
   String get programTemplateSlotRuleLabelBreak =>
-      '\"Break\" markerer en pause i programmet, så en pladsregel kan ikke bruge det som etiket.';
+      '\"Break\" markerer en pause i programmet, så en slotregel kan ikke bruge det som etiket.';
 
   @override
   String programsFillSearchUnreadable(String label) {

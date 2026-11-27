@@ -610,6 +610,7 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
     // `requestFocusOnTap`, whether a tap focuses the field.
     _fieldFocus.canRequestFocus = filterable || _fieldTakesFocus(context);
     final theme = Theme.of(context);
+    final localizations = MaterialLocalizations.of(context);
     final compact = widget.compact;
     final textStyle = compact
         ? theme.textTheme.titleMedium
@@ -640,6 +641,17 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
       enableFilter: filterable,
       enableSearch: filterable,
       selectOnly: !filterable,
+      // A filterable field's arrow is a button of its own beside the field,
+      // so it needs a name; a select-only field's arrow is part of the field
+      // and [DropdownMenu] leaves it out of the semantics tree.
+      trailingIcon: Icon(
+        Icons.arrow_drop_down,
+        semanticLabel: localizations.showMenuTooltip,
+      ),
+      selectedTrailingIcon: Icon(
+        Icons.arrow_drop_up,
+        semanticLabel: localizations.showMenuTooltip,
+      ),
       // Unused while [focusNode] is set (see `_fieldFocus.canRequestFocus`,
       // which carries the same rule); kept so the rule reads here too. A
       // filterable field takes focus on tap so it can be typed in. A

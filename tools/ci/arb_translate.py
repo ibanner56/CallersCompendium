@@ -323,6 +323,11 @@ def load_glossary(path: Path):
         raise ArbError(f"glossary {path}: 'doNotTranslate' must be a list")
     if not isinstance(terms, dict):
         raise ArbError(f"glossary {path}: 'terms' must be a JSON object")
+    register = data.get("register", {})
+    if not isinstance(register, dict) or not all(
+        isinstance(v, str) for v in register.values()
+    ):
+        raise ArbError(f"glossary {path}: 'register' must map locales to text")
     return data
 
 
@@ -385,6 +390,7 @@ def cmd_extract(args) -> int:
         "sourceLocale": template.get("@@locale", "en"),
         "count": len(items),
         "doNotTranslate": glossary.get("doNotTranslate", []),
+        "register": glossary.get("register", {}).get(args.locale, ""),
         "items": items,
     }
     json.dump(payload, sys.stdout, ensure_ascii=False, indent=2)

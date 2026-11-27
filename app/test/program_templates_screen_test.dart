@@ -1,3 +1,4 @@
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
@@ -10,6 +11,7 @@ import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show SemanticsNode;
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/l10n_harness.dart';
@@ -61,8 +63,9 @@ Dance _dance(String id, String title) =>
 Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos,
-  Widget home,
-) async {
+  Widget home, {
+  Locale? locale,
+}) async {
   await tester.binding.setSurfaceSize(const Size(900, 1600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final confirm = ValueNotifier<bool>(false);
@@ -71,6 +74,7 @@ Future<void> _pump(
   addTearDown(dialect.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      locale: locale,
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
@@ -132,6 +136,49 @@ void main() {
       // With one template there is no chooser, so the first one becomes the
       // default: otherwise New program could never reach it.
       expect(stored.defaultId, stored.templates.single.id);
+    });
+
+    testWidgets('a typed name survives a tap outside, Escape and Back '
+        '(pre-release audit finding F-02)', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, const ProgramTemplatesScreen());
+      await tester.tap(
+        find.byKey(const ValueKey('program-templates-empty-add')),
+      );
+      await tester.pumpAndSettle();
+      const name = 'Third Saturday contra, two sets with a waltz break';
+      final field = find.byKey(const ValueKey('program-template-name-field'));
+      await tester.enterText(field, name);
+      await tester.pump();
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(field).controller!.text, name);
+      // Cancel still closes it, saving nothing.
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(field, findsNothing);
+      expect(await repos.settings.contains(kProgramTemplateOrderKey), isFalse);
+    });
+
+    testWidgets('an untouched name dialog still closes on a tap outside', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, const ProgramTemplatesScreen());
+      await tester.tap(
+        find.byKey(const ValueKey('program-templates-empty-add')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('program-template-name-field')),
+        findsNothing,
+      );
     });
 
     testWidgets('the Starting program shows by its localized name before and '
@@ -484,6 +531,41 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('Family dances'), findsOneWidget);
+    });
+
+    testWidgets('a typed rule label survives a tap outside, Escape and Back '
+        '(pre-release audit finding F-02)', (tester) async {
+      final repos = openTestRepositories();
+      await saveSearch(repos, 'Family dances');
+      const template = ProgramTemplate(id: 'a', name: 'Family');
+      await _seed(repos, const [template]);
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+      await tester.tap(find.byKey(const ValueKey('program-template-add-rule')));
+      await tester.pumpAndSettle();
+      final label = find.byKey(const ValueKey('program-template-rule-label'));
+      await tester.enterText(label, 'Easy family opener');
+      await tester.pump();
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(label).controller!.text,
+        'Easy family opener',
+      );
+      // With the label typed back to how it opened, it closes as usual.
+      await tester.enterText(label, '');
+      await tester.pump();
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(label, findsNothing);
+      expect((await _stored(repos)).byId('a')!.entries, isEmpty);
     });
 
     testWidgets('a saved search deleted while the slot rule dialog is open: '
@@ -935,6 +1017,70 @@ void main() {
             .onPressed,
         isNull,
       );
+    });
+
+    testWidgets('a break entry reads as the translated label', (tester) async {
+      final repos = openTestRepositories();
+      const template = ProgramTemplate(
+        id: 'a',
+        name: 'Abend',
+        entries: [
+          ProgramTemplateEntry(text: 'Walzer'),
+          ProgramTemplateEntry(text: Program.breakSlotText),
+        ],
+      );
+      await _seed(repos, [template]);
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+        locale: const Locale('de'),
+      );
+      final de = lookupAppLocalizations(const Locale('de'));
+      expect(find.text(de.programsBreakSlotLabel), findsOneWidget);
+      expect(find.text(Program.breakSlotText), findsNothing);
+      // Shown, not stored: the template keeps the token.
+      expect(
+        (await _stored(repos)).byId('a')!.entries.last.text,
+        Program.breakSlotText,
+      );
+    });
+
+    testWidgets('the rule dialog lists saved searches with accents folded', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final zany = await saveSearch(repos, 'Zany');
+      final ecole = await saveSearch(repos, 'École');
+      final fiddle = await saveSearch(repos, 'Fiddle');
+      final template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [
+          ProgramTemplateEntry.rule(savedSearchId: zany.id, label: 'Opener'),
+        ],
+      );
+      await _seed(repos, [template]);
+      await _pump(
+        tester,
+        repos,
+        ProgramTemplateEditorScreen(template: template),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-edit-0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-search')),
+      );
+      await tester.pumpAndSettle();
+      double y(SavedSearch s) => tester
+          .getTopLeft(
+            find.byKey(ValueKey('program-template-rule-search-${s.id}')).last,
+          )
+          .dy;
+      expect(y(ecole), lessThan(y(fiddle)));
+      expect(y(fiddle), lessThan(y(zany)));
     });
 
     testWidgets('Edit of a rule whose saved search is gone starts with no '
