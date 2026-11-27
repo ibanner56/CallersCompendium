@@ -8,7 +8,6 @@ import '../imports/user_figure_shorthands.dart'
     show maxUserFigureShorthands, userFigureShorthandsSettingKey;
 import '../snippet/snippet_library.dart'
     show WalkthroughSnippetLibrary, kMaxSnippetLibraryEntries;
-import '../dialect/gendered_terms.dart' show shownDialectName;
 import 'canonical_json.dart';
 import 'sync_reconciliation.dart' show rewriteSyncInboundReferences;
 import 'sync_record_kind.dart';
@@ -74,7 +73,7 @@ List<SyncCollectionEntry>? syncCollectionEntries(String key, Object? value) {
           if (entry is Map && entry['name'] is String)
             SyncCollectionEntry(
               key: entry['name'] as String,
-              label: shownDialectName(entry['name'] as String),
+              label: entry['name'] as String,
               value: entry,
             ),
       ];

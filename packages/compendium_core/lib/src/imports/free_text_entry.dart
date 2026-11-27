@@ -414,11 +414,12 @@ List<Figure> parseFreeTextFigureEntry(
   ShorthandMappings? shorthands,
   Dialect? dialect,
   FormationShape? formationShape,
+  String? formationDetail,
   String? meter,
   BarTiming? timing,
   int startBeat = 0,
 }) {
-  final ring = ecdRingDancers(formationShape);
+  final ring = ecdRingDancers(formationShape, detail: formationDetail);
   final trimmed = input.trim();
   if (trimmed.isEmpty || trimmed.length > maxFreeTextEntryLength) {
     return const [];

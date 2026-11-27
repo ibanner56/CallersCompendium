@@ -1944,6 +1944,14 @@
   "@settingsDialectDuplicateFrom": {
     "x-sourceSha256": "9e6e175e241189655567a0a2e509a068acf8544bfeff75b918b5cfc03a0f79f3"
   },
+  "settingsDialectDuplicateFromOtherForm": "別のタイプから複製…",
+  "@settingsDialectDuplicateFromOtherForm": {
+    "x-sourceSha256": "5b7be4386a8d46a625b53fe665744a4955f413fe94dc30ec054315822cc2608c"
+  },
+  "settingsDialectDuplicateFromOtherFormEmpty": "ほかのダンスタイプには、まだ自分で作ったダイアレクトがありません。",
+  "@settingsDialectDuplicateFromOtherFormEmpty": {
+    "x-sourceSha256": "cec15e264197644e9adcefaf1d894a8d353753d01bd45c9f4a3f7ea3eceb2bb0"
+  },
   "settingsDialectRenameTitle": "ダイアレクトの名前を変更",
   "@settingsDialectRenameTitle": {
     "x-sourceSha256": "bfb2f4ca7bbd75a9ee51f43afb9c3442aca87fcca4ce63fd344e1d635163a0b0"
@@ -9333,10 +9341,6 @@
   "validationDialectCollision": "「{source}」と「{existing}」はどちらも「{substitution}」に対応するため、反転するとあいまいになります。",
   "@validationDialectCollision": {
     "x-sourceSha256": "dee51ecec06a3f41cec908aa62b70496bc898557a127384eaed31fec2ae72dd1"
-  },
-  "validationGenderedRoleTerm": "「{word}」は性別を表す役割語で、アプリでは表示しません。性別に依らない語を使ってください。",
-  "@validationGenderedRoleTerm": {
-    "x-sourceSha256": "c7ffdeeeab5f91ad261dc69b0d4a0f97b03e085db30fbda8ddeeb12ed445e47a"
   },
   "validationGeneric": "この項目には検証上の問題があります。",
   "@validationGeneric": {

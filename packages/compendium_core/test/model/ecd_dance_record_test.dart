@@ -33,6 +33,8 @@ void main() {
         FormationShape.fourCoupleLongways,
         FormationShape.fiveCoupleLongways,
         FormationShape.sixCoupleLongways,
+        // A longways set of no stated size (the maintainer, 27 Nov 2026).
+        FormationShape.longways,
         FormationShape.circle,
         FormationShape.sicilianCircle,
         FormationShape.square,
@@ -59,6 +61,7 @@ void main() {
       for (final shape in ecdFormationShapes) {
         if (shape == FormationShape.tripleMinor ||
             shape == FormationShape.sicilianCircle ||
+            shape == FormationShape.longways ||
             shape == FormationShape.other) {
           continue;
         }

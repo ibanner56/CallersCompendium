@@ -76,7 +76,8 @@ class _DialectSectionState extends State<DialectSection> {
         ),
         _DialectLibrarySection(
           key: ValueKey('dialect-library-${_form.name}'),
-          controller: DialectLibraryScope.of(context).forForm(_form),
+          libraries: DialectLibraryScope.of(context),
+          form: _form,
         ),
         const SizedBox(height: AppSpacing.lg),
         const DanceDetailsAndShorthandsSection(),
@@ -89,7 +90,8 @@ class _DialectSectionState extends State<DialectSection> {
 /// (`docs/design/ux.md` §6). Lists the shipped presets (read-only) followed by
 /// the user's custom dialects, with a single active selection (radio
 /// semantics), per-custom actions (edit terms / rename / delete), and buttons
-/// to create a new dialect or duplicate one from any preset/custom.
+/// to create a new dialect, duplicate one from any preset/custom of this
+/// form, or duplicate a custom dialect of another form.
 ///
 /// Presets can't be edited in place (a custom dialect may not reuse a preset
 /// name); "Edit terms" on a preset offers to duplicate it for customizing.
@@ -97,9 +99,19 @@ class _DialectSectionState extends State<DialectSection> {
 /// (`theme_screen.dart`). Live preview, collision validation, and
 /// dance-card/perform quick-switch are a later PR.
 class _DialectLibrarySection extends StatelessWidget {
-  const _DialectLibrarySection({super.key, required this.controller});
+  const _DialectLibrarySection({
+    super.key,
+    required this.libraries,
+    required this.form,
+  });
 
-  final DialectLibraryController controller;
+  /// Every form's library, for duplicating from another form.
+  final DialectLibraries libraries;
+
+  /// The form whose dialects this section manages.
+  final DanceForm form;
+
+  DialectLibraryController get controller => libraries.forForm(form);
 
   Future<void> _editCustom(BuildContext context, Dialect dialect) async {
     final edited = await Navigator.of(context).push<Dialect>(
@@ -169,6 +181,68 @@ class _DialectLibrarySection extends StatelessWidget {
       name: l10n.commonDuplicateTitleSuffix(source.name),
       from: source,
     );
+  }
+
+  /// Copies a custom dialect of another dance form into this form's library
+  /// (the maintainer's ruling on pre-release audit finding A1-01: each form's
+  /// library starts empty on upgrade, and a caller copies a dialect across).
+  ///
+  /// Only the other forms' own dialects are offered: the presets are the same
+  /// for every form, and "Duplicate from…" already offers them. The copy keeps
+  /// its name where this form has no dialect of that name, so a program that
+  /// names it applies it to this form's dances too, and keeps every entry as
+  /// written, a move of the other form's included (the editor marks those).
+  Future<void> _duplicateFromOtherForm(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final others = [
+      for (final other in DanceForm.values)
+        if (other != form && libraries.forForm(other).customDialects.isNotEmpty)
+          other,
+    ];
+    final source = await showDialog<Dialect>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l10n.settingsDialectDuplicateFromOtherForm),
+        children: [
+          if (others.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.sm,
+              ),
+              child: Text(l10n.settingsDialectDuplicateFromOtherFormEmpty),
+            ),
+          for (final other in others) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.sm,
+                AppSpacing.lg,
+                AppSpacing.xxs,
+              ),
+              child: Semantics(
+                header: true,
+                child: Text(
+                  danceFormLabel(l10n, other),
+                  style: Theme.of(ctx).textTheme.titleSmall,
+                ),
+              ),
+            ),
+            for (final d in libraries.forForm(other).customDialects)
+              SimpleDialogOption(
+                key: ValueKey(
+                  'dialect-duplicate-other-source-${other.name}-${d.name}',
+                ),
+                onPressed: () => Navigator.of(ctx).pop(d),
+                child: Text(d.name),
+              ),
+          ],
+        ],
+      ),
+      animationStyle: AppMotion.styleFor(context),
+    );
+    if (source == null) return;
+    await controller.duplicate(name: source.name, from: source);
   }
 
   Future<void> _duplicateToCustomize(
@@ -276,6 +350,12 @@ class _DialectLibrarySection extends StatelessWidget {
                 onPressed: () async => _duplicateFrom(context),
                 icon: const Icon(Icons.copy_all_outlined),
                 label: Text(l10n.settingsDialectDuplicateFrom),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey('duplicate-dialect-other-form'),
+                onPressed: () async => _duplicateFromOtherForm(context),
+                icon: const Icon(Icons.move_down_outlined),
+                label: Text(l10n.settingsDialectDuplicateFromOtherForm),
               ),
             ],
           ),
@@ -443,15 +523,7 @@ class _DialectNameDialogState extends State<_DialectNameDialog> {
     super.dispose();
   }
 
-  /// The gendered role word the typed name holds, which the app never shows
-  /// (ADR-006 §9.1, point 7), or `null`.
-  String? get _genderedWord =>
-      genderedRoleWordIn(_controller.text, inProse: true);
-
-  void _submit() {
-    if (_genderedWord != null) return;
-    Navigator.of(context).pop(_controller.text.trim());
-  }
+  void _submit() => Navigator.of(context).pop(_controller.text.trim());
 
   @override
   Widget build(BuildContext context) {
@@ -461,35 +533,22 @@ class _DialectNameDialogState extends State<_DialectNameDialog> {
       isDirty: () => _controller.text != widget.initial,
       child: AlertDialog(
         title: Text(widget.title),
-        content: ListenableBuilder(
-          listenable: _controller,
-          builder: (context, _) => TextField(
-            key: const ValueKey('dialect-name-field'),
-            controller: _controller,
-            autofocus: true,
-            decoration: InputDecoration(
-              labelText: l10n.settingsDialectNameLabel,
-              errorText: switch (_genderedWord) {
-                final word? => l10n.validationGenderedRoleTerm(word),
-                null => null,
-              },
-              errorMaxLines: 3,
-            ),
-            onSubmitted: (_) => _submit(),
-          ),
+        content: TextField(
+          key: const ValueKey('dialect-name-field'),
+          controller: _controller,
+          autofocus: true,
+          decoration: InputDecoration(labelText: l10n.settingsDialectNameLabel),
+          onSubmitted: (_) => _submit(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(l10n.commonCancel),
           ),
-          ListenableBuilder(
-            listenable: _controller,
-            builder: (context, _) => FilledButton(
-              key: const ValueKey('dialect-name-confirm'),
-              onPressed: _genderedWord == null ? _submit : null,
-              child: Text(widget.confirmLabel),
-            ),
+          FilledButton(
+            key: const ValueKey('dialect-name-confirm'),
+            onPressed: _submit,
+            child: Text(widget.confirmLabel),
           ),
         ],
       ),

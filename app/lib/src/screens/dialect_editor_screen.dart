@@ -988,8 +988,8 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
 }
 
 /// Two-role editor: singular + plural for role1 and role2. Blank singular drops
-/// the role (canonical). A gendered role word is refused, as everywhere in a
-/// dialect ([Dialect.validate], ADR-006 §9.1, point 7).
+/// the role (canonical). The caller's words are saved as typed (ADR-006 §9.1,
+/// point 7).
 class _RoleTermsEditor extends StatelessWidget {
   const _RoleTermsEditor({
     required this.role1Singular,

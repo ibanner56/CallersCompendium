@@ -2134,6 +2134,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsDialectDuplicateFrom => 'Dupliquer depuis…';
 
   @override
+  String get settingsDialectDuplicateFromOtherForm =>
+      'Dupliquer depuis un autre type…';
+
+  @override
+  String get settingsDialectDuplicateFromOtherFormEmpty =>
+      'Aucun autre type de danse n’a encore de dialecte à vous.';
+
+  @override
   String get settingsDialectRenameTitle => 'Renommer le dialecte';
 
   @override
@@ -9639,11 +9647,6 @@ class AppLocalizationsFr extends AppLocalizations {
     String substitution,
   ) {
     return '« $source » et « $existing » correspondent tous deux à « $substitution » — l\'inversion serait ambiguë.';
-  }
-
-  @override
-  String validationGenderedRoleTerm(String word) {
-    return '« $word » est un terme de rôle genré, que l’application n’affiche jamais. Utilisez plutôt un terme neutre.';
   }
 
   @override

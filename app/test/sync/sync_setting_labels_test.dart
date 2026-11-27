@@ -119,7 +119,7 @@ void main() {
       expect(syncSettingValueText(l10n, <Object?>[]), 'None');
     });
 
-    test('masks a gendered active dialect name, and only that', () {
+    test('shows a dialect name as its caller wrote it', () {
       for (final key in [
         'active_dialect_ref',
         'active_dialect_ref_ecd',
@@ -127,7 +127,7 @@ void main() {
       ]) {
         expect(
           syncSettingValueText(l10n, 'Gents Night', key: key),
-          Dialect.customName,
+          'Gents Night',
           reason: key,
         );
         expect(syncSettingValueText(l10n, 'Mine', key: key), 'Mine');
@@ -136,7 +136,7 @@ void main() {
         syncSettingValueText(l10n, [
           {'name': 'Gents Night', 'roles': <String, Object?>{}},
         ]),
-        Dialect.customName,
+        'Gents Night',
       );
     });
 

@@ -3030,6 +3030,18 @@ abstract class AppLocalizations {
   /// **'Duplicate from…'**
   String get settingsDialectDuplicateFrom;
 
+  /// Label of the button in Settings › Dialect (and title of its chooser dialog) that copies one of the user's own dialects of another dance type (Contra, English or Square) into the type being shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate from another type…'**
+  String get settingsDialectDuplicateFromOtherForm;
+
+  /// Shown in the 'Duplicate from another type…' dialog when no other dance type has a dialect the user made (the built-in dialects are the same for every type, so they are not listed there).
+  ///
+  /// In en, this message translates to:
+  /// **'No other dance type has a dialect of your own yet.'**
+  String get settingsDialectDuplicateFromOtherFormEmpty;
+
   /// Title of the rename-dialect prompt.
   ///
   /// In en, this message translates to:
@@ -14178,12 +14190,6 @@ abstract class AppLocalizations {
     String existing,
     String substitution,
   );
-
-  /// Dialect-editor and dialect-name validation error: the entry uses a gendered role word (such as the words for men or women), which the app never shows. {word} is the offending word as the user typed it, rendered as plain text.
-  ///
-  /// In en, this message translates to:
-  /// **'\"{word}\" is a gendered role word, which the app never shows. Use a role-neutral word instead.'**
-  String validationGenderedRoleTerm(String word);
 
   /// Generic fallback shown when a validation finding has no specific localized message. Deliberately non-leaking; specific detail (if any) appears only in debug builds.
   ///

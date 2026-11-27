@@ -1994,8 +1994,8 @@ class DanceEditorController extends ChangeNotifier {
   /// contra and the square set for a square). A shape from the old form's
   /// list, such as contra's "Improper", would otherwise stay selected and keep
   /// showing in the new form's list ([offeredFormationShapes]). A shape the
-  /// new form offers is kept: triple minor, Sicilian circle and other are in
-  /// both the contra and ECD lists, circle, square and other in both the ECD
+  /// new form offers is kept: triple minor, Sicilian circle, longways and
+  /// other are in both the contra and ECD lists, circle, square and other in both the ECD
   /// and square lists, and an English dance still on a contra shape
   /// (converted or imported before ECD's shapes) keeps it when changed back
   /// to contra. Choosing the form the dance already has changes

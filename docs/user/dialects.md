@@ -94,6 +94,11 @@ At the top of **Settings ▸ Dialect**, choose **Contra**, **English (ECD)**, or
 **Square** to see and change that type's dialects. Everything else in this guide
 works the same way for each type.
 
+If you used a dialect before English and square dances had their own, your
+contra dialect is unchanged, and English and square dances start in
+Larks/Robins until you choose a dialect for them or copy one of yours across
+with **Duplicate from another type…** (see [Make your own dialect](#make-your-own-dialect)).
+
 ## Choose your dialect
 
 1. Open **Settings** and choose the **Dialect** section.
@@ -121,6 +126,12 @@ When none of the built-in dialects match your community, make your own. From
   own). The copy is named after the original with "(copy)" added; open its
   **Dialect actions** menu and choose **Edit terms** to change its wording, or
   **Rename** to give it a name of its own.
+- Choose **Duplicate from another type…** to copy one of your own dialects from
+  another type of dance, such as your contra dialect into English. The copy
+  keeps the original's name (unless this type already has a dialect of that
+  name) and every word you set in it; a program that uses that dialect then
+  uses it for dances of this type too. Changing one copy later doesn't change
+  the other. The copy is not made active: select it in the list to use it.
 - To tweak a built-in dialect in one step, choose **Duplicate to customize** from
   its **Dialect actions** menu. This makes an editable copy, opens it in the
   editor, and leaves the original preset untouched.
@@ -136,11 +147,9 @@ In the **Role terms** section, set the words for the two roles — for example
 singular and plural forms; leave the plural blank and the app works it out for
 you.
 
-Role names must not be gendered. The app doesn't accept words such as "gents" or
-"ladies" in role names, move wording, or a dialect's name, and it says which word
-it found so you can change it. If a dialect saved by an earlier version (or
-arriving from another device) used one, the app shows the built-in role name in
-its place, drops that wording, and renames a dialect whose name used one.
+The built-in dialects use role-neutral names. Your own dialect is yours: the app
+keeps the words you choose for it as you wrote them, and never changes them for
+you.
 
 ### Reworded moves
 

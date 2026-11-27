@@ -2368,9 +2368,9 @@ class _CompendiumAppState extends State<CompendiumApp>
   Future<void> _loadPreferences({bool includeDeviceState = true}) async {
     // Phase 1: read everything.
     // Load every dance form's dialect library (custom dialects + active-name
-    // ref), migrating any legacy single-dialect blob one time and renaming a
-    // dialect whose name is gendered. A failure leaves the
-    // Larks/Robins default; it is logged because the load can also write.
+    // ref), migrating any legacy single-dialect blob one time. A failure
+    // leaves the Larks/Robins default; it is logged because the load can also
+    // write.
     await _guardedControllerLoad(
       'startup.dialect_library_load',
       _dialectLibrary.load,
@@ -2433,8 +2433,7 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// everything before it changes state — so a failure leaves the controller
   /// exactly as it was (its defaults at startup, its pre-restore state on a
   /// restore), never a mix. Logged, not silent: some loads also write (the
-  /// dialect library's first-run migration and gendered-name renames), and a
-  /// swallowed write failure
+  /// dialect library's first-run migration), and a swallowed write failure
   /// should still be diagnosable.
   Future<void> _guardedControllerLoad(
     String source,

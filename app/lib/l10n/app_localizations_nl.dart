@@ -2116,6 +2116,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDialectDuplicateFrom => 'Dupliceren van…';
 
   @override
+  String get settingsDialectDuplicateFromOtherForm =>
+      'Dupliceren van een ander type…';
+
+  @override
+  String get settingsDialectDuplicateFromOtherFormEmpty =>
+      'Nog geen ander danstype heeft een eigen dialect van je.';
+
+  @override
   String get settingsDialectRenameTitle => 'Dialect hernoemen';
 
   @override
@@ -9584,11 +9592,6 @@ class AppLocalizationsNl extends AppLocalizations {
     String substitution,
   ) {
     return '“$source” en “$existing” verwijzen beide naar “$substitution” — omkeren zou dubbelzinnig zijn.';
-  }
-
-  @override
-  String validationGenderedRoleTerm(String word) {
-    return '‘$word’ is een gendergebonden rolwoord dat de app nooit toont. Gebruik in plaats daarvan een rolneutraal woord.';
   }
 
   @override

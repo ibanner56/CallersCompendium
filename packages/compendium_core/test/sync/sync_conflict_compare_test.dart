@@ -2,6 +2,16 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('a synced dialect is labelled by its name as written', () {
+    // The maintainer's ruling of 2026-11-27: a user's dialect is not
+    // overwritten (ADR-006 §9.1, point 7), so its name is not masked.
+    final entries = syncCollectionEntries('custom_dialects_ecd', [
+      {'name': 'Gents & Ladies'},
+      {'name': 'Mine'},
+    ])!;
+    expect(entries.map((e) => e.label), ['Gents & Ladies', 'Mine']);
+  });
+
   group('compareSyncCollection', () {
     test('dialects match by name and split into only-here, only-there, '
         'changed and same', () {
