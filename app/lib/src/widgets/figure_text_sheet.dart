@@ -10,6 +10,7 @@ import '../data/text_recognition.dart';
 import '../editor/figure_draft.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
+import 'confirm_discard_changes.dart';
 
 /// What one line of the **Add figures from text** sheet becomes.
 class FigureTextLineReading {
@@ -54,8 +55,14 @@ class FigureTextReading {
 /// text box where each non-empty line is read as one figure line, as typing it
 /// in the Move box with Free-text entry on would read it. A live preview says
 /// how many figures each line gives and marks the lines kept as unrecognized
-/// figures. **Add figures** closes the sheet with the rows to insert; Cancel,
-/// Back or a tap outside closes it with nothing.
+/// figures. **Add figures** closes the sheet with the rows to insert; Cancel
+/// closes it with nothing.
+///
+/// Typed text is never lost (#2219): while the box holds text, Back, Escape
+/// and a tap outside ask before discarding it ([DiscardChangesGuard]), and an
+/// empty sheet closes as usual. The sheet cannot be swiped down: a swipe pops
+/// the route directly, past that guard, so [show] turns dragging off and
+/// shows no drag handle.
 ///
 /// The sheet does no reading of its own: [read] turns the text into rows, so
 /// the host reads lines with the dance's taxonomy, dialect, shorthands,
@@ -86,7 +93,9 @@ class FigureTextSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      showDragHandle: true,
+      // A swipe or the drag handle would close the sheet without asking about
+      // the typed text; see the class comment.
+      enableDrag: false,
       builder: (_) =>
           FigureTextSheet(read: read, dropsPhraseLabels: dropsPhraseLabels),
       sheetAnimationStyle: AppMotion.styleFor(context),
@@ -152,113 +161,121 @@ class _FigureTextSheetState extends State<FigureTextSheet> {
     final refusal = _refusalMessage(l10n);
     final figureCount = _reading.drafts.length;
     final canAdd = refusal == null && figureCount > 0;
-    return Padding(
-      // The route does not lift a sheet above the keyboard.
-      padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: media.size.height * 0.9),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Flexible(
-              // At most [maxFigureTextLines] preview rows, so building them
-              // all is cheap, and none goes missing from the semantics tree.
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      l10n.figureTextSheetTitle,
-                      style: theme.textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      widget.dropsPhraseLabels
-                          ? l10n.figureTextSheetHelpDropsLabels
-                          : l10n.figureTextSheetHelp,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    if (TextRecognitionScope.of(context) case final service?)
-                      _FromImage(
-                        service: service,
-                        pickImage: TextRecognitionScope.pickerOf(context),
-                        camera: PhotoCaptureScope.of(context),
-                        onText: (text) => _textController.text = text,
-                      ),
-                    const SizedBox(height: AppSpacing.md),
-                    TextField(
-                      key: const ValueKey('figure-text-sheet-field'),
-                      controller: _textController,
-                      autofocus: true,
-                      minLines: 5,
-                      maxLines: 12,
-                      keyboardType: TextInputType.multiline,
-                      textInputAction: TextInputAction.newline,
-                      decoration: InputDecoration(
-                        labelText: l10n.figureTextSheetFieldLabel,
-                        alignLabelWithHint: true,
-                        border: const OutlineInputBorder(),
-                        errorText: refusal,
-                        errorMaxLines: 4,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    if (refusal == null) ...[
-                      // Not a live region: it changes on almost every keystroke.
+    // Rebuilt by [_reread]'s setState on every change to the text.
+    return DiscardChangesGuard(
+      dirty: _textController.text.isNotEmpty,
+      child: Padding(
+        // The route does not lift a sheet above the keyboard.
+        padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: media.size.height * 0.9),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Flexible(
+                // At most [maxFigureTextLines] preview rows, so building them
+                // all is cheap, and none goes missing from the semantics tree.
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                       Text(
-                        key: const ValueKey('figure-text-sheet-summary'),
-                        l10n.figureTextSheetSummary(figureCount),
-                        style: theme.textTheme.titleSmall,
+                        l10n.figureTextSheetTitle,
+                        style: theme.textTheme.titleLarge,
                       ),
-                      if (_reading.unrecognizedLines > 0)
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        widget.dropsPhraseLabels
+                            ? l10n.figureTextSheetHelpDropsLabels
+                            : l10n.figureTextSheetHelp,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      if (TextRecognitionScope.of(context) case final service?)
+                        _FromImage(
+                          service: service,
+                          pickImage: TextRecognitionScope.pickerOf(context),
+                          camera: PhotoCaptureScope.of(context),
+                          onText: (text) => _textController.text = text,
+                        ),
+                      const SizedBox(height: AppSpacing.md),
+                      TextField(
+                        key: const ValueKey('figure-text-sheet-field'),
+                        controller: _textController,
+                        autofocus: true,
+                        minLines: 5,
+                        maxLines: 12,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
+                        decoration: InputDecoration(
+                          labelText: l10n.figureTextSheetFieldLabel,
+                          alignLabelWithHint: true,
+                          border: const OutlineInputBorder(),
+                          errorText: refusal,
+                          errorMaxLines: 4,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      if (refusal == null) ...[
+                        // Not a live region: it changes on almost every keystroke.
                         Text(
-                          key: const ValueKey('figure-text-sheet-unrecognized'),
-                          l10n.figureTextSheetUnrecognizedSummary(
-                            _reading.unrecognizedLines,
-                          ),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.error,
-                          ),
+                          key: const ValueKey('figure-text-sheet-summary'),
+                          l10n.figureTextSheetSummary(figureCount),
+                          style: theme.textTheme.titleSmall,
                         ),
-                      for (final (index, line) in _reading.lines.indexed)
-                        _LinePreview(
-                          key: ValueKey('figure-text-sheet-line-$index'),
-                          reading: line,
-                        ),
+                        if (_reading.unrecognizedLines > 0)
+                          Text(
+                            key: const ValueKey(
+                              'figure-text-sheet-unrecognized',
+                            ),
+                            l10n.figureTextSheetUnrecognizedSummary(
+                              _reading.unrecognizedLines,
+                            ),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.error,
+                            ),
+                          ),
+                        for (final (index, line) in _reading.lines.indexed)
+                          _LinePreview(
+                            key: ValueKey('figure-text-sheet-line-$index'),
+                            reading: line,
+                          ),
+                      ],
+                      const SizedBox(height: AppSpacing.sm),
                     ],
-                    const SizedBox(height: AppSpacing.sm),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  0,
+                  AppSpacing.md,
+                  AppSpacing.md,
+                ),
+                child: OverflowBar(
+                  alignment: MainAxisAlignment.end,
+                  spacing: AppSpacing.sm,
+                  overflowAlignment: OverflowBarAlignment.end,
+                  children: [
+                    TextButton(
+                      key: const ValueKey('figure-text-sheet-cancel'),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(l10n.commonCancel),
+                    ),
+                    FilledButton(
+                      key: const ValueKey('figure-text-sheet-add'),
+                      onPressed: canAdd ? _add : null,
+                      child: Text(l10n.figureTextSheetAdd),
+                    ),
                   ],
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                0,
-                AppSpacing.md,
-                AppSpacing.md,
-              ),
-              child: OverflowBar(
-                alignment: MainAxisAlignment.end,
-                spacing: AppSpacing.sm,
-                overflowAlignment: OverflowBarAlignment.end,
-                children: [
-                  TextButton(
-                    key: const ValueKey('figure-text-sheet-cancel'),
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(l10n.commonCancel),
-                  ),
-                  FilledButton(
-                    key: const ValueKey('figure-text-sheet-add'),
-                    onPressed: canAdd ? _add : null,
-                    child: Text(l10n.figureTextSheetAdd),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

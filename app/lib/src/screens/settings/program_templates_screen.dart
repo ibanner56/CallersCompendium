@@ -25,6 +25,7 @@ import '../../widgets/adaptive_fab.dart';
 import '../../widgets/app_dropdown_field.dart';
 import '../../widgets/collection_picker.dart';
 import '../../widgets/container_title_length_limit.dart';
+import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/event_rule_text.dart';
 import '../../widgets/load_error_view.dart';
@@ -200,28 +201,34 @@ class _TemplateNameDialogState extends State<_TemplateNameDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        key: const ValueKey('program-template-name-field'),
-        controller: _controller,
-        autofocus: true,
-        inputFormatters: const [_nameLengthLimit],
-        textCapitalization: TextCapitalization.sentences,
-        decoration: InputDecoration(labelText: l10n.programTemplateNameLabel),
-        onSubmitted: (_) => _submit(),
+    // Once the name differs from what the dialog opened with, a tap outside,
+    // Escape and Back do nothing, so a stray tap does not lose it (#2219).
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text != widget.initial,
+      child: AlertDialog(
+        title: Text(widget.title),
+        content: TextField(
+          key: const ValueKey('program-template-name-field'),
+          controller: _controller,
+          autofocus: true,
+          inputFormatters: const [_nameLengthLimit],
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(labelText: l10n.programTemplateNameLabel),
+          onSubmitted: (_) => _submit(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('program-template-name-save'),
+            onPressed: _submit,
+            child: Text(l10n.commonSave),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('program-template-name-save'),
-          onPressed: _submit,
-          child: Text(l10n.commonSave),
-        ),
-      ],
     );
   }
 }
@@ -1471,6 +1478,15 @@ class _SlotRuleDialogState extends State<_SlotRuleDialog> {
   final _label = TextEditingController();
   String? _searchId;
 
+  /// The label and search as the dialog opened, for [_dirty].
+  String _initialLabel = '';
+  String? _initialSearchId;
+
+  /// Whether the label or the chosen search differs from how the dialog
+  /// opened. While it does, a tap outside, Escape and Back do nothing.
+  bool get _dirty =>
+      _label.text != _initialLabel || _searchId != _initialSearchId;
+
   @override
   void initState() {
     super.initState();
@@ -1483,6 +1499,8 @@ class _SlotRuleDialogState extends State<_SlotRuleDialog> {
         _searchId = initial.savedSearchId;
       }
     }
+    _initialLabel = _label.text;
+    _initialSearchId = _searchId;
     _label.addListener(() => setState(() {}));
   }
 
@@ -1532,82 +1550,87 @@ class _SlotRuleDialogState extends State<_SlotRuleDialog> {
         ],
       );
     }
-    return AlertDialog(
-      key: const ValueKey('program-template-rule-dialog'),
-      title: Text(
-        widget.initial == null
-            ? l10n.programTemplateSlotRuleDialogTitle
-            : l10n.programTemplateSlotRuleEditTitle,
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.programTemplateSlotRuleDialogBody),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              key: const ValueKey('program-template-rule-label'),
-              controller: _label,
-              autofocus: true,
-              maxLength: kMaxProgramTemplateTextLength,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                labelText: l10n.programTemplateSlotRuleLabel,
-                hintText: l10n.programTemplateSlotRuleLabelHint,
-                counterText: '',
-                errorText: _labelIsBreak
-                    ? l10n.programTemplateSlotRuleLabelBreak
-                    : null,
-                errorMaxLines: 3,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            if (searches.isEmpty)
-              Text(
-                l10n.programTemplateSlotRuleNoSearches,
-                key: const ValueKey('program-template-rule-no-searches-note'),
-              )
-            else
-              AppDropdownField<String?>(
-                key: const ValueKey('program-template-rule-search'),
-                value: _searchId,
-                filterable: searches.length >= appDropdownFilterFrom,
+    // Rebuilt by setState on every edit, so [_dirty] is read afresh.
+    return DirtyDialogGuard(
+      listenable: _label,
+      isDirty: () => _dirty,
+      child: AlertDialog(
+        key: const ValueKey('program-template-rule-dialog'),
+        title: Text(
+          widget.initial == null
+              ? l10n.programTemplateSlotRuleDialogTitle
+              : l10n.programTemplateSlotRuleEditTitle,
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l10n.programTemplateSlotRuleDialogBody),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                key: const ValueKey('program-template-rule-label'),
+                controller: _label,
+                autofocus: true,
+                maxLength: kMaxProgramTemplateTextLength,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
-                  labelText: l10n.programTemplateSlotRuleSearch,
+                  labelText: l10n.programTemplateSlotRuleLabel,
+                  hintText: l10n.programTemplateSlotRuleLabelHint,
+                  counterText: '',
+                  errorText: _labelIsBreak
+                      ? l10n.programTemplateSlotRuleLabelBreak
+                      : null,
+                  errorMaxLines: 3,
                 ),
-                entries: [
-                  for (final search in searches)
-                    AppDropdownEntry<String?>(
-                      value: search.key,
-                      label: search.value,
-                      key: ValueKey(
-                        'program-template-rule-search-${search.key}',
-                      ),
-                    ),
-                ],
-                onChanged: (id) => setState(() {
-                  _searchId = id;
-                  // A rule is often named after its search: start from that.
-                  if (_label.text.trim().isEmpty && id != null) {
-                    _label.text = widget.savedSearches[id] ?? '';
-                  }
-                }),
               ),
-          ],
+              const SizedBox(height: AppSpacing.sm),
+              if (searches.isEmpty)
+                Text(
+                  l10n.programTemplateSlotRuleNoSearches,
+                  key: const ValueKey('program-template-rule-no-searches-note'),
+                )
+              else
+                AppDropdownField<String?>(
+                  key: const ValueKey('program-template-rule-search'),
+                  value: _searchId,
+                  filterable: searches.length >= appDropdownFilterFrom,
+                  decoration: InputDecoration(
+                    labelText: l10n.programTemplateSlotRuleSearch,
+                  ),
+                  entries: [
+                    for (final search in searches)
+                      AppDropdownEntry<String?>(
+                        value: search.key,
+                        label: search.value,
+                        key: ValueKey(
+                          'program-template-rule-search-${search.key}',
+                        ),
+                      ),
+                  ],
+                  onChanged: (id) => setState(() {
+                    _searchId = id;
+                    // A rule is often named after its search: start from that.
+                    if (_label.text.trim().isEmpty && id != null) {
+                      _label.text = widget.savedSearches[id] ?? '';
+                    }
+                  }),
+                ),
+            ],
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('program-template-rule-save'),
+            onPressed: _canSave ? _save : null,
+            child: Text(l10n.commonSave),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('program-template-rule-save'),
-          onPressed: _canSave ? _save : null,
-          child: Text(l10n.commonSave),
-        ),
-      ],
     );
   }
 }
