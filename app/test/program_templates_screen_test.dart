@@ -10,6 +10,7 @@ import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show SemanticsNode;
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/l10n_harness.dart';
@@ -132,6 +133,49 @@ void main() {
       // With one template there is no chooser, so the first one becomes the
       // default: otherwise New program could never reach it.
       expect(stored.defaultId, stored.templates.single.id);
+    });
+
+    testWidgets('a typed name survives a tap outside, Escape and Back '
+        '(pre-release audit finding F-02)', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, const ProgramTemplatesScreen());
+      await tester.tap(
+        find.byKey(const ValueKey('program-templates-empty-add')),
+      );
+      await tester.pumpAndSettle();
+      const name = 'Third Saturday contra, two sets with a waltz break';
+      final field = find.byKey(const ValueKey('program-template-name-field'));
+      await tester.enterText(field, name);
+      await tester.pump();
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(field).controller!.text, name);
+      // Cancel still closes it, saving nothing.
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(field, findsNothing);
+      expect(await repos.settings.contains(kProgramTemplateOrderKey), isFalse);
+    });
+
+    testWidgets('an untouched name dialog still closes on a tap outside', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, const ProgramTemplatesScreen());
+      await tester.tap(
+        find.byKey(const ValueKey('program-templates-empty-add')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('program-template-name-field')),
+        findsNothing,
+      );
     });
 
     testWidgets('the Starting program shows by its localized name before and '
@@ -484,6 +528,41 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('Family dances'), findsOneWidget);
+    });
+
+    testWidgets('a typed rule label survives a tap outside, Escape and Back '
+        '(pre-release audit finding F-02)', (tester) async {
+      final repos = openTestRepositories();
+      await saveSearch(repos, 'Family dances');
+      const template = ProgramTemplate(id: 'a', name: 'Family');
+      await _seed(repos, const [template]);
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+      await tester.tap(find.byKey(const ValueKey('program-template-add-rule')));
+      await tester.pumpAndSettle();
+      final label = find.byKey(const ValueKey('program-template-rule-label'));
+      await tester.enterText(label, 'Easy family opener');
+      await tester.pump();
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(label).controller!.text,
+        'Easy family opener',
+      );
+      // With the label typed back to how it opened, it closes as usual.
+      await tester.enterText(label, '');
+      await tester.pump();
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(label, findsNothing);
+      expect((await _stored(repos)).byId('a')!.entries, isEmpty);
     });
 
     testWidgets('a saved search deleted while the slot rule dialog is open: '

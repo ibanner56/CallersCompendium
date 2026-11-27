@@ -9,6 +9,7 @@ import '../../data/repositories_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../theme/app_motion.dart';
 import '../../widgets/app_dropdown_field.dart';
+import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import '../calendar_import_screen.dart';
@@ -356,32 +357,39 @@ class _TextSettingDialogState extends State<_TextSettingDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        key: widget.fieldKey,
-        controller: _controller,
-        autofocus: true,
-        autocorrect: false,
-        keyboardType: widget.keyboardType,
-        decoration: InputDecoration(
-          labelText: widget.label,
-          helperText: widget.helper,
-          helperMaxLines: 3,
+    // Once the text differs from what the dialog opened with, a tap outside,
+    // Escape and Back do nothing, so a stray tap does not lose a pasted
+    // address (#2219).
+    return DirtyDialogGuard(
+      listenable: _controller,
+      isDirty: () => _controller.text != widget.initial,
+      child: AlertDialog(
+        title: Text(widget.title),
+        content: TextField(
+          key: widget.fieldKey,
+          controller: _controller,
+          autofocus: true,
+          autocorrect: false,
+          keyboardType: widget.keyboardType,
+          decoration: InputDecoration(
+            labelText: widget.label,
+            helperText: widget.helper,
+            helperMaxLines: 3,
+          ),
+          onSubmitted: (v) => Navigator.of(context).pop(v),
         ),
-        onSubmitted: (v) => Navigator.of(context).pop(v),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('calendar-settings-save'),
+            onPressed: () => Navigator.of(context).pop(_controller.text),
+            child: Text(l10n.commonSave),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('calendar-settings-save'),
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: Text(l10n.commonSave),
-        ),
-      ],
     );
   }
 }
