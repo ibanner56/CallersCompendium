@@ -105,7 +105,45 @@ reasoning below when a gate fails, or when you are checking by hand.
   neither endpoint answers the question alone.
 
 - **The PR closes only the issues you intend** (below).
+- **`main`'s changes since your base do not touch your change**, or you have
+  synced and re-verified (below). No script checks this one.
 - **State verified from the remote**, not from memory or a stale local checkout.
+
+## Sync with `main` when its changes touch yours
+
+GitHub does not require a PR's branch to contain the latest `main`: the
+maintainer turned that requirement off because it caused too much churn, and
+does not want it back. A branch is not synced just because `main` moved. It is
+synced when what `main` gained since the branch's base touches the branch's
+change, because then the gates passed on a combination that will not exist after
+the merge.
+
+Right before merging (or enabling auto-merge), list what `main` gained and what
+the branch changes:
+
+```sh
+git fetch origin main
+git diff --name-only $(git merge-base origin/main HEAD) origin/main   # main's side
+git diff --name-only $(git merge-base origin/main HEAD) HEAD          # your side
+```
+
+"Touches" means either of these:
+
+- **The same files** appear in both lists.
+- **Code your change depends on or affects** changed on `main`, in a different
+  file. Examples: a function, model, string or schema your change calls or
+  extends; a caller or test of something your change alters; a document or
+  generated file that describes what you changed. A shared file is easy to see
+  in the two lists. A dependency has to be judged by reading `main`'s side.
+
+If anything touches, sync with `main`, re-run the gates
+(`python3 tools/preflight.py`), and let CI and the Claude review run on the
+synced head before merging. If nothing does, merge without syncing.
+
+Either way, record what you checked: the two lists, or a summary of them, and
+why nothing on `main`'s side touches your change. Put it in the PR (a comment,
+or the body when you write it last) or in your report. A reviewer that sees a
+branch behind `main` can then check the record rather than ask for a sync.
 
 ## Merging as an agent
 
