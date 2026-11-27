@@ -3839,15 +3839,20 @@ class DanceRepository {
   /// bare `MATCH` must JOIN `dances` and filter `deleted_at IS NULL` to stay
   /// consistent with every other list/search path (mirrors the
   /// `FilterCompiler._compileRelevance` convention). Ranking/order is unchanged.
+  ///
+  /// A move keyword in [query] is read as the name of its move ("docey doe"
+  /// finds a structured do si do), and the words as typed, with only their
+  /// role words canonicalized, are matched too, since text a caller typed is
+  /// stored as written (pre-release audit B-04).
   Future<List<String>> searchText(String query) async {
+    final roleCanonical = canonicalizeText(query, Dialect.canonical);
     final canonicalQuery = toFtsMatchQuery(
-      canonicalizeMoveSearchText(
-        canonicalizeText(query, Dialect.canonical),
-        _taxonomy,
-      ),
+      canonicalizeMoveSearchText(roleCanonical, _taxonomy),
     );
+    final typedQuery = toFtsMatchQuery(roleCanonical);
     final rawTitleQuery = toFtsMatchQuery(query);
-    final ftsQuery = '($canonicalQuery OR title : $rawTitleQuery)';
+    final ftsQuery =
+        '(($canonicalQuery) OR ($typedQuery) OR title : $rawTitleQuery)';
     final rows = await _db
         .customSelect(
           'SELECT dance_fts.dance_id FROM dance_fts '

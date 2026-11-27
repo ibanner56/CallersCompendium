@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 
 import '../model/figure.dart';
 import '../taxonomy/cast_vocabulary.dart';
+import 'flag_words.dart';
 import '../taxonomy/dance_vocabulary.dart'
     show displayDirectionPhrases, displayFacingPhrases;
 import '../taxonomy/gate_facing.dart';
@@ -2433,7 +2434,10 @@ class FigureRenderer {
       return _formatPlaces(value);
     }
     if (value is num) return _formatNumber(value);
-    if (value is bool) return value ? name : '';
+    if (value is bool) {
+      if (!value) return '';
+      return (userFigure ? null : taxonomyFlagWords[name]) ?? name;
+    }
     return _squareRoleWords(value.toString(), dialect) ??
         _humanize(value.toString());
   }

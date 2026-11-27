@@ -1,0 +1,21 @@
+{
+  "id": "audit-s9-square-search",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Searching for a figure by another of its names, such as \"do si do\", now also finds lines you typed in those words, in a dance of any form, as well as every figure of that call."
+    ],
+    "added": [
+      "A square's right and left through with a full courtesy turn says \"with a full turn\" in its figure line, and you can search for it by those words. A copy of the call made in the Glossary says it too."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "FilterCompiler matches each free-text word also with no move name or keyword rewritten (its role words still canonical), and DanceRepository.searchText matches the query's role-canonical words too, so a move keyword no longer hides text typed in its words.",
+      "FilterCompiler also reads a phrase kept whole only by an English or square move's name or keyword word by word, as a contra-only search split it; contra's own names and keywords, those added since v0.10.0-beta included, still count as one phrase."
+    ],
+    "changed": [
+      "Square taxonomy v1 (unreleased, amended): sq_right_left_through's renderTemplate gains {fullTurn}, which FigureRenderer writes as \"with a full turn\" in display and canonical text, and userFigureSeedFromMove takes as the copied flag's label."
+    ]
+  }
+}

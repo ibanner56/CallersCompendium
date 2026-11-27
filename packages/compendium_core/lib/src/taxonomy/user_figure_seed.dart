@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../dialect/ecd_display.dart';
+import '../dialect/flag_words.dart';
 import '../dialect/renderer.dart';
 import '../validation/validation.dart';
 import 'param_types.dart';
@@ -22,7 +23,8 @@ import 'user_figure_definition.dart';
 ///   "none" that is its default, which the move words as nothing) get
 ///   choice ids of the user's own shape, labelled by [choiceLabel] (the
 ///   value itself without one), and its default is carried across. A flag is
-///   labelled by [paramLabel] (its key without one). A default the user's
+///   labelled by the words the move shows for it, where it has any
+///   (`taxonomyFlagWords`), else by [paramLabel] (its key without one). A default the user's
 ///   parameter could not hold is left out; a parameter its rules refuse
 ///   (a key a figure of the user's may not have) is dropped.
 /// - **Default beats**, from the move's beats default, within a figure's
@@ -204,7 +206,9 @@ UserFigureParam _seedParam(
       return UserFigureParam(
         key: key,
         kind: spec.kind,
-        label: paramLabel?.call(key) ?? key,
+        // A flag the move words ("with a full turn") keeps those words, so
+        // the copy reads as the move does.
+        label: taxonomyFlagWords[key] ?? paramLabel?.call(key) ?? key,
         defaultValue: spec.defaultValue is bool ? spec.defaultValue : null,
       );
     case ParamKind.dancerList:
