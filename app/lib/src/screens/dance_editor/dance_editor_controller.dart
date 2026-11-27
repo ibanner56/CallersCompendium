@@ -2940,23 +2940,96 @@ class DanceEditorController extends ChangeNotifier {
   /// among themselves: a structure a caller set part by part (#2303) is never
   /// flattened, whatever the Meter says, and typing the Meter a character at
   /// a time cannot reach it.
-  void onMeterChanged() {
+  ///
+  /// The figures keep their length in bars (pre-release audit finding A2-02;
+  /// the maintainer's choice): a Meter edit that changes the beats in the bar
+  /// the figures are counted in ([danceBeatsPerBar]) gives every stored count
+  /// the beats of the bars it showed, when each one can keep them exactly
+  /// ([rescaleFigureBars]). The Meter, the phrases and the counts are one undo
+  /// step, with the typing around them as before. The result says what
+  /// happened to the counts, for the editor's notice ([meterBarsChange]), or
+  /// is null when the bars stayed as long as they were or no figure has a
+  /// count to change.
+  MeterBarsChange? onMeterChanged() {
     // Another form's Meter counts no bars; [setForm] applies it if the dance
-    // is made English.
+    // is made English. Its figures are counted in beats, so none is changed.
     if (!offersNamedPhrases) {
       onTextEdited();
-      return;
+      return null;
     }
+    // The bar length the figures were read in, before this edit: the Meter's
+    // as it last counted the bars, else the phrases'.
+    final barBefore = _barBeatsFor(_phraseStructure, _statedBeatsPerBarSeen);
     final perBar = statedBeatsPerBar;
     final changed = perBar != _statedBeatsPerBarSeen;
     _statedBeatsPerBarSeen = perBar;
-    if (changed) {
-      if (_structureForMeter(perBar) case final raw?) {
-        setPhraseStructureText(raw);
-        return;
-      }
+    if (!changed) {
+      onTextEdited();
+      return null;
     }
-    onTextEdited();
+    // The step this edit's undo step follows: the next one pushed holds the
+    // Meter, the phrases and the counts.
+    final stepBefore = _undoStack.current;
+    if (_structureForMeter(perBar) case final raw?) {
+      phraseController.text = raw;
+    }
+    // Reads the phrases again ([phraseStructure]).
+    recomputeWarnings();
+    final barAfter = _barBeatsFor(_phraseStructure, perBar);
+    MeterBarsChange? change;
+    if (barBefore != null && barAfter != null && barBefore != barAfter) {
+      final outcome = rescaleFigureBars(
+        figureDrafts,
+        from: barBefore,
+        to: barAfter,
+      );
+      if (outcome != FigureBarsRescale.unchanged) {
+        change = MeterBarsChange._(outcome, barAfter, stepBefore);
+      }
+      if (outcome == FigureBarsRescale.rescaled) recomputeWarnings();
+    }
+    if (change != null) _meterBarsChange = change;
+    _notify();
+    scheduleUndoPush();
+    scheduleAutosave();
+    return change;
+  }
+
+  /// The beats in a bar an English dance set to [structure] counts its figures
+  /// by, when the Meter states [stated] beats (or none), or null when its
+  /// phrases differ in beats to the bar and count them phrase by phrase: the
+  /// rule [danceBeatsPerBar] reads from the Meter's text.
+  static int? _barBeatsFor(PhraseStructure structure, int? stated) {
+    final byPhrases = danceBeatsPerBar(DanceForm.ecd, structure);
+    return byPhrases == null ? null : stated ?? byPhrases;
+  }
+
+  /// What the latest Meter edit did to the figures' counts, for the notice
+  /// the editor shows ([onMeterChanged]), or null when none has changed them.
+  MeterBarsChange? get meterBarsChange => _meterBarsChange;
+  MeterBarsChange? _meterBarsChange;
+
+  /// Whether [change] is still the latest undo step, so that one [undo]
+  /// takes it back: its step is the newest (or still waiting out the
+  /// debounce, with any typing after it), and has not been undone.
+  bool canUndoMeterChange(MeterBarsChange change) {
+    if (_disposed || !identical(change, _meterBarsChange)) return false;
+    final before = change._stepBefore;
+    if (_undoTimer?.isActive ?? false) {
+      return identical(_undoStack.current, before);
+    }
+    return identical(_undoStack.previous, before);
+  }
+
+  /// Takes back [change] with the Meter, phrases and typing of its undo step,
+  /// as one [undo] does, while it is still the latest step
+  /// ([canUndoMeterChange]). Returns whether it did: once a later edit or an
+  /// Undo has moved the history on, the notice's Undo must not take back
+  /// that instead.
+  bool undoMeterChange(MeterBarsChange change) {
+    if (!canUndoMeterChange(change)) return false;
+    undo();
+    return true;
   }
 
   /// The phrase structure text an English dance takes from a Meter stating
@@ -3062,6 +3135,23 @@ class DanceEditorController extends ChangeNotifier {
     pendingMoveText.dispose();
     super.dispose();
   }
+}
+
+/// What an English dance's Meter edit did to its figures' counts
+/// ([DanceEditorController.onMeterChanged]), for the notice the editor shows.
+final class MeterBarsChange {
+  MeterBarsChange._(this.outcome, this.beatsPerBar, this._stepBefore);
+
+  /// [FigureBarsRescale.rescaled]: every count keeps its length in bars;
+  /// [FigureBarsRescale.notExact]: none was changed, so the figures now read
+  /// in the new bars.
+  final FigureBarsRescale outcome;
+
+  /// The beats in a bar the figures are now counted in.
+  final int beatsPerBar;
+
+  /// The undo step before the one holding this edit.
+  final EditorSnapshot? _stepBefore;
 }
 
 /// What [DanceEditorController.replaceAuthors] changed, for
