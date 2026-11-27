@@ -251,8 +251,8 @@ class SyncLocalRepository {
 
   /// Every alias as losing id → surviving id, by kind, from one query (never
   /// one lookup per reference). What `SavedSearchContext.aliases` takes: a
-  /// saved search that names a merged-away tag, author or source is read as
-  /// the survivor while the alias exists. Chains are followed by the reader.
+  /// saved search that names a merged-away tag, author, source, level or
+  /// custom field is read as the survivor while the alias exists. Chains are followed by the reader.
   Future<Map<SyncRecordKind, Map<String, String>>> aliasMaps() async {
     final maps = <SyncRecordKind, Map<String, String>>{};
     for (final row in await listAliases()) {

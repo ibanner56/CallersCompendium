@@ -1326,144 +1326,150 @@ void main() {
       expect(names(r), {'author:X'});
     });
   });
-  group('movingReferences (a merge of tags, authors or sources)', () {
-    List<Object?> tagRows(SavedSearchSpec spec) {
-      final rows = <Object?>[];
-      void walk(Object? n) {
-        if (n is Map) {
-          if (n['t'] == 'tag') rows.add(n['tagId']);
-          n.values.forEach(walk);
-        } else if (n is List) {
-          n.forEach(walk);
+  group(
+    'movingReferences (a merge of tags, authors, sources, levels or custom fields)',
+    () {
+      List<Object?> tagRows(SavedSearchSpec spec) {
+        final rows = <Object?>[];
+        void walk(Object? n) {
+          if (n is Map) {
+            if (n['t'] == 'tag') rows.add(n['tagId']);
+            n.values.forEach(walk);
+          } else if (n is List) {
+            n.forEach(walk);
+          }
         }
+
+        walk(spec.toJson()['advanced']);
+        return rows;
       }
 
-      walk(spec.toJson()['advanced']);
-      return rows;
-    }
-
-    test('moves a tag row in a nested group, and leaves figure and then rows '
-        'alone', () {
-      final s = CollectionPanelState();
-      s.advanced.children.addAll([
-        BuilderTag(tagId: 'L'),
-        BuilderGroup(
-          kind: GroupKind.none,
-          children: [
-            BuilderTag(tagId: 'L'),
-            BuilderTag(tagId: 'K'),
-          ],
-        ),
-        BuilderThen(),
-      ]);
-      final spec = specOf(s);
-      final moved = spec.movingReferences(SyncRecordKind.tag, {'L': 'S'})!;
-      expect(tagRows(moved), ['S', 'S', 'K']);
-      expect(
-        (moved.toJson()['advanced'] as Map)['children'].toString(),
-        contains('then'),
-      );
-    });
-
-    test('is null for a search naming none of the moved ids, a kind that has '
-        'no such reference, and an empty move', () {
-      final s = CollectionPanelState();
-      s.facets.tagIds.add('K');
-      s.advanced.children.add(BuilderTag(tagId: 'K'));
-      final spec = specOf(s);
-      expect(spec.movingReferences(SyncRecordKind.tag, {'L': 'S'}), isNull);
-      expect(spec.movingReferences(SyncRecordKind.tag, {}), isNull);
-      expect(
-        spec.movingReferences(SyncRecordKind.difficultyLevel, {'K': 'S'}),
-        isNull,
-        reason: 'a level id is not a tag id',
-      );
-      expect(
-        spec.movingReferences(SyncRecordKind.choreographer, {'K': 'S'}),
-        isNull,
-        reason: 'an author id is not a tag id',
-      );
-    });
-
-    test('moves the Level filter and every custom-field filter, which only '
-        "sync's reconciliation merges", () {
-      final s = CollectionPanelState();
-      s.facets.levels.addAll(['L', 'K']);
-      s.facets.choiceValues['F'] = {'jig'};
-      s.facets.booleanValues['F'] = true;
-      s.facets.textValues['F'] = const TextFacetState(
-        op: CustomFieldOp.contains,
-        value: 'reel',
-      );
-      s.facets.numberValues['F'] = const NumberFacetState(
-        op: CustomFieldOp.gt,
-        lo: 3,
-      );
-      final spec = specOf(s);
-      final levels = spec.movingReferences(SyncRecordKind.difficultyLevel, {
-        'L': 'A',
-      })!;
-      expect((levels.toJson()['facets'] as Map)['levels'], ['A', 'K']);
-      expect(
-        spec.movingReferences(SyncRecordKind.customFieldDef, {'L': 'A'}),
-        isNull,
-        reason: 'no field named L',
-      );
-      final fields = spec.movingReferences(SyncRecordKind.customFieldDef, {
-        'F': 'E',
-      })!;
-      final facets = fields.toJson()['facets'] as Map;
-      expect(facets['choiceValues'], {
-        'E': ['jig'],
+      test('moves a tag row in a nested group, and leaves figure and then rows '
+          'alone', () {
+        final s = CollectionPanelState();
+        s.advanced.children.addAll([
+          BuilderTag(tagId: 'L'),
+          BuilderGroup(
+            kind: GroupKind.none,
+            children: [
+              BuilderTag(tagId: 'L'),
+              BuilderTag(tagId: 'K'),
+            ],
+          ),
+          BuilderThen(),
+        ]);
+        final spec = specOf(s);
+        final moved = spec.movingReferences(SyncRecordKind.tag, {'L': 'S'})!;
+        expect(tagRows(moved), ['S', 'S', 'K']);
+        expect(
+          (moved.toJson()['advanced'] as Map)['children'].toString(),
+          contains('then'),
+        );
       });
-      expect(facets['booleanValues'], {'E': true});
-      expect(facets['textValues'], {
-        'E': {'op': 'contains', 'value': 'reel'},
-      });
-      expect(facets['numberValues'], {
-        'E': {'op': 'gt', 'lo': 3},
-      });
-      expect(SavedSearchSpec.decode(fields.toJson()).isOk, isTrue);
-    });
 
-    test('a custom field filter on both the loser and the survivor keeps what '
+      test('is null for a search naming none of the moved ids, a kind that has '
+          'no such reference, and an empty move', () {
+        final s = CollectionPanelState();
+        s.facets.tagIds.add('K');
+        s.advanced.children.add(BuilderTag(tagId: 'K'));
+        final spec = specOf(s);
+        expect(spec.movingReferences(SyncRecordKind.tag, {'L': 'S'}), isNull);
+        expect(spec.movingReferences(SyncRecordKind.tag, {}), isNull);
+        expect(
+          spec.movingReferences(SyncRecordKind.difficultyLevel, {'K': 'S'}),
+          isNull,
+          reason: 'a level id is not a tag id',
+        );
+        expect(
+          spec.movingReferences(SyncRecordKind.choreographer, {'K': 'S'}),
+          isNull,
+          reason: 'an author id is not a tag id',
+        );
+      });
+
+      test('moves the Level filter and every custom-field filter, which only '
+          "sync's reconciliation merges", () {
+        final s = CollectionPanelState();
+        s.facets.levels.addAll(['L', 'K']);
+        s.facets.choiceValues['F'] = {'jig'};
+        s.facets.booleanValues['F'] = true;
+        s.facets.textValues['F'] = const TextFacetState(
+          op: CustomFieldOp.contains,
+          value: 'reel',
+        );
+        s.facets.numberValues['F'] = const NumberFacetState(
+          op: CustomFieldOp.gt,
+          lo: 3,
+        );
+        final spec = specOf(s);
+        final levels = spec.movingReferences(SyncRecordKind.difficultyLevel, {
+          'L': 'A',
+        })!;
+        expect((levels.toJson()['facets'] as Map)['levels'], ['A', 'K']);
+        expect(
+          spec.movingReferences(SyncRecordKind.customFieldDef, {'L': 'A'}),
+          isNull,
+          reason: 'no field named L',
+        );
+        final fields = spec.movingReferences(SyncRecordKind.customFieldDef, {
+          'F': 'E',
+        })!;
+        final facets = fields.toJson()['facets'] as Map;
+        expect(facets['choiceValues'], {
+          'E': ['jig'],
+        });
+        expect(facets['booleanValues'], {'E': true});
+        expect(facets['textValues'], {
+          'E': {'op': 'contains', 'value': 'reel'},
+        });
+        expect(facets['numberValues'], {
+          'E': {'op': 'gt', 'lo': 3},
+        });
+        expect(SavedSearchSpec.decode(fields.toJson()).isOk, isTrue);
+      });
+
+      test(
+        'a custom field filter on both the loser and the survivor keeps what '
         'reading the loser through the alias gives: both choices, and the '
-        'later field in stored order for a single value', () {
-      final s = CollectionPanelState();
-      // Stored in key order: A (the survivor) before Z (the loser).
-      s.facets.choiceValues['A'] = {'jig'};
-      s.facets.choiceValues['Z'] = {'reel'};
-      s.facets.booleanValues['A'] = true;
-      s.facets.booleanValues['Z'] = false;
-      final spec = specOf(s);
-      final aliased = spec.toPanelState(
-        map: (kind, id) =>
-            kind == SyncRecordKind.customFieldDef && id == 'Z' ? 'A' : id,
+        'later field in stored order for a single value',
+        () {
+          final s = CollectionPanelState();
+          // Stored in key order: A (the survivor) before Z (the loser).
+          s.facets.choiceValues['A'] = {'jig'};
+          s.facets.choiceValues['Z'] = {'reel'};
+          s.facets.booleanValues['A'] = true;
+          s.facets.booleanValues['Z'] = false;
+          final spec = specOf(s);
+          final aliased = spec.toPanelState(
+            map: (kind, id) =>
+                kind == SyncRecordKind.customFieldDef && id == 'Z' ? 'A' : id,
+          );
+          final moved = spec.movingReferences(SyncRecordKind.customFieldDef, {
+            'Z': 'A',
+          })!;
+          final facets = moved.toJson()['facets'] as Map;
+          expect(facets['choiceValues'], {
+            'A': ['jig', 'reel'],
+          });
+          expect(facets['booleanValues'], {'A': false});
+          final rewritten = moved.toPanelState();
+          expect(rewritten.facets.choiceValues, aliased.facets.choiceValues);
+          expect(rewritten.facets.booleanValues, aliased.facets.booleanValues);
+        },
       );
-      final moved = spec.movingReferences(SyncRecordKind.customFieldDef, {
-        'Z': 'A',
-      })!;
-      final facets = moved.toJson()['facets'] as Map;
-      expect(facets['choiceValues'], {
-        'A': ['jig', 'reel'],
-      });
-      expect(facets['booleanValues'], {'A': false});
-      final rewritten = moved.toPanelState();
-      expect(rewritten.facets.choiceValues, aliased.facets.choiceValues);
-      expect(rewritten.facets.booleanValues, aliased.facets.booleanValues);
-    });
 
-    test('the result is readable and its bytes do not depend on the order '
-        'the ids were chosen in', () {
-      final s1 = CollectionPanelState();
-      s1.facets.tagIds.addAll(['C', 'L', 'A']);
-      final s2 = CollectionPanelState();
-      s2.facets.tagIds.addAll(['A', 'L', 'C']);
-      final m1 = specOf(s1).movingReferences(SyncRecordKind.tag, {'L': 'B'})!;
-      final m2 = specOf(s2).movingReferences(SyncRecordKind.tag, {'L': 'B'})!;
-      expect(jsonEncode(m1.toJson()), jsonEncode(m2.toJson()));
-      expect((m1.toJson()['facets'] as Map)['tagIds'], ['A', 'B', 'C']);
-      expect(SavedSearchSpec.decode(m1.toJson()).isOk, isTrue);
-    });
-  });
+      test('the result is readable and its bytes do not depend on the order '
+          'the ids were chosen in', () {
+        final s1 = CollectionPanelState();
+        s1.facets.tagIds.addAll(['C', 'L', 'A']);
+        final s2 = CollectionPanelState();
+        s2.facets.tagIds.addAll(['A', 'L', 'C']);
+        final m1 = specOf(s1).movingReferences(SyncRecordKind.tag, {'L': 'B'})!;
+        final m2 = specOf(s2).movingReferences(SyncRecordKind.tag, {'L': 'B'})!;
+        expect(jsonEncode(m1.toJson()), jsonEncode(m2.toJson()));
+        expect((m1.toJson()['facets'] as Map)['tagIds'], ['A', 'B', 'C']);
+        expect(SavedSearchSpec.decode(m1.toJson()).isOk, isTrue);
+      });
+    },
+  );
 }

@@ -179,8 +179,8 @@ void main() {
   });
 
   test('the rewrite is published: the local snapshot carries the survivor\'s '
-      'ids, and a peer that already rewrote it to the same content takes it '
-      'without a review row', () async {
+      'ids, and a peer that already rewrote it to the same content applies it '
+      'with no report', () async {
     await seedLocal();
     await repositories.savedSearches.save(
       SavedSearch(id: 's1', name: 'Workshop dances', spec: localSpec()),
@@ -209,8 +209,10 @@ void main() {
     );
 
     // A peer that ran the same reconciliation holds the same content under
-    // its own stamp. This device's copy reaches it as an ordinary newer
-    // edit, with nothing to choose between.
+    // its own stamp: nothing the user is shown differs. This device's copy
+    // reaches it as an ordinary newer edit. (Whether a tie is queued is
+    // decided by the merge engine, not here: the two-device test in the app
+    // covers that path.)
     final peerDb = openTestDatabase();
     addTearDown(peerDb.close);
     final peer = CompendiumRepositories(peerDb, contraTaxonomy);
@@ -238,7 +240,6 @@ void main() {
     );
     expect(applied.reports, isEmpty);
     expect(applied.applied, [address]);
-    expect(await peer.syncLocal.listReviewQueue(), isEmpty);
     expect(
       (await peerStorage.snapshot()).local[address]!.wireHash,
       after.wireHash,
