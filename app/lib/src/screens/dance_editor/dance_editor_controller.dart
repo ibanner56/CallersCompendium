@@ -3010,7 +3010,14 @@ class DanceEditorController extends ChangeNotifier {
       }
       if (outcome == FigureBarsRescale.rescaled) recomputeWarnings();
     }
-    if (change != null) _meterBarsChange = change;
+    if (change != null) {
+      _meterBarsChange = change;
+    } else if (_meterBarsChange case final shown?
+        when barAfter != shown.beatsPerBar) {
+      // The figures no longer read in the bars the notice names (a Meter
+      // typed back, say): its message is no longer true.
+      shown._stale = true;
+    }
     _notify();
     scheduleUndoPush();
     scheduleAutosave();
