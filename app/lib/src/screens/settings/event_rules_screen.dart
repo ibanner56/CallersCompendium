@@ -339,9 +339,10 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
 
   /// The edited rule's own saved search while it can't be offered (gone, or
   /// stored but unreadable, or the searches could not be read), and no other
-  /// is chosen: kept, so the rule can still be renamed, renumbered or moved
-  /// and saved. The repository allows an edit that keeps the search
-  /// ([EventRuleRepository.save]); a search newly chosen must be stored.
+  /// is chosen: kept, so the rule can still be renamed, or its number or
+  /// where it applies changed, and saved. The repository allows an edit that
+  /// keeps the search ([EventRuleRepository.save]); a search newly chosen
+  /// must be stored.
   String? _keptSearchId;
 
   /// Whether the saved searches could not be read, so none can be offered.

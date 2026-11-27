@@ -11,7 +11,7 @@ import '../support/test_repositories.dart';
 
 /// The caller's event rules in a backup (#2340): `app.eventRules`, its
 /// conditional v3 envelope, the rules a program applies carried with the
-/// program, and a restore that leaves the rules alone when the file does not
+/// program, and a restore that keeps the rules when the file does not
 /// describe them.
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
