@@ -70,7 +70,8 @@
 #
 # The prompt asks for two tiers of result and a Coverage section; their shape is
 # defined by SKILL.md, which this prompt defers to. The job cannot run tests,
-# builds or scripts, so the prompt forbids "I could not verify" caveats (the
+# builds or scripts (the strict tool list; see "What "not allowed" rests on"
+# above), so the prompt forbids "I could not verify" caveats (the
 # contributors reading the review cannot tell them from a defect) and routes a
 # failure path that hinges on one unreadable fact into SKILL.md's "Suspected"
 # tier, phrased as a condition on the code. The template's "Verification the
