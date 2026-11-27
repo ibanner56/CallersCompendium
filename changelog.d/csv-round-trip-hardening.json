@@ -3,7 +3,8 @@
   "user_visible": true,
   "app": {
     "added": [
-      "A dances spreadsheet you exported now comes back in with its composed and interpreted dates, interpreters, mixed level, star rating and Barnes reference in their own fields, and a square's kind, repeat order, new partner and singing call and the published sources in the calling notes, under their column names."
+      "A dances spreadsheet you exported now comes back in with its composed and interpreted dates, interpreters, mixed level, star rating and Barnes reference in their own fields, and a square's kind, repeat order, new partner and singing call and the published sources in the calling notes, under their column names.",
+      "When you map a spreadsheet's columns, Calling notes, with the label is now offered for any spreadsheet, not only a text file, and a column named like one of the app's own fields, such as Rating or Composed, starts on that field rather than on a custom field of the same name."
     ],
     "fixed": [
       "A dances spreadsheet you exported comes back in with each formation's detail, and with each figure's note on its figure instead of as an extra figure.",

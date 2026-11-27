@@ -599,12 +599,12 @@ StructuredDraft csvRowToDraft(
       // is measured ([_figureLinesOf]).
       case CsvColumnTarget.figures:
         figureLines.addAll(
-          _figureLinesOf(unguardCsvFormula(cells[i].trimRight())),
+          _figureLinesOf(unguardCsvFormula(cells[i].trimRight()), vocab),
         );
       case CsvColumnTarget.figurePhrase:
         // Two columns for one phrase add up rather than overwrite.
         (phraseLines[column.phrase!] ??= []).addAll(
-          _figureLinesOf(unguardCsvFormula(cells[i].trimRight())),
+          _figureLinesOf(unguardCsvFormula(cells[i].trimRight()), vocab),
         );
       case CsvColumnTarget.customField:
         final def = mapping.existingFields[column.customFieldId];
@@ -751,8 +751,12 @@ typedef _FigureLine = ({String text, String? note});
 ///
 /// A line indented further than the figure line above it is that figure's
 /// note, as this app's own export writes a note (`    end facing down`), not
-/// a figure of its own. Lines all indented alike are each a figure.
-List<_FigureLine> _figureLinesOf(String cell) {
+/// a figure of its own, when the figure line ends with the count the export
+/// gives every figure (`(16 beats)`) and the indented line has none. Any
+/// other indented line is a figure: a card that indents a phrase's next
+/// figure under the first (`A1  Circle left` then `    Pass through`) keeps
+/// both.
+List<_FigureLine> _figureLinesOf(String cell, CsvValueVocabulary vocab) {
   if (!cell.contains('\n') && !cell.contains('\r')) {
     return [
       for (final part in cell.split(';'))
@@ -761,19 +765,40 @@ List<_FigureLine> _figureLinesOf(String cell) {
   }
   final lines = <_FigureLine>[];
   var figureIndent = 0;
+  var figureCounted = false;
   for (final line in cell.split(_lineBreak)) {
     final text = line.trim();
     if (text.isEmpty) continue;
     final indent = line.length - line.trimLeft().length;
-    if (lines.isNotEmpty && indent > figureIndent) {
+    final counted = _endsWithExportCount(text, vocab);
+    if (lines.isNotEmpty &&
+        figureCounted &&
+        !counted &&
+        indent > figureIndent) {
       final figure = lines.last;
       lines.last = (text: figure.text, note: _joinNotes(figure.note, text));
       continue;
     }
     figureIndent = indent;
+    figureCounted = counted;
     lines.add((text: text, note: null));
   }
   return lines;
+}
+
+/// Whether [line] ends with a count as this app's export writes one, in beats
+/// or bars (`(16 beats)`, `(1½ bars) ¶`). A line past
+/// [maxFreeTextEntryLength] is not looked at ([_figuresOf]).
+bool _endsWithExportCount(String line, CsvValueVocabulary vocab) {
+  if (line.length > maxFreeTextEntryLength) return false;
+  final trail = _trailingCount.firstMatch(line);
+  if (trail == null) return false;
+  final unit = csvFold(trail.group(2)!);
+  final beats =
+      int.tryParse(trail.group(1)!) != null &&
+      (vocab.beatWords.contains(unit) || unit == 'beat' || unit == 'beats');
+  final bars = vocab.barWords.contains(unit) || unit == 'bar' || unit == 'bars';
+  return beats || bars;
 }
 
 /// [figures] with [note] added to the last of them: a line the fan-out reads

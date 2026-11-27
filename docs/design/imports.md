@@ -1602,7 +1602,9 @@ Figures go through `parseFigureLinesFanOut`, one line at a time: a cell's lines,
 or its `;`-parts when it has no line break, or each phrase column in phrase
 order; two columns for one phrase are read one after the other. A line indented
 further than the figure line above it is that figure's note, as the export
-writes one; lines indented alike are each a figure. A line longer than
+writes one, when the figure line ends with the export's count (`(16 beats)`) and
+the indented line has none; any other indented line is a figure, so a card that
+indents a phrase's next figure under its first keeps both. A line longer than
 `maxFreeTextEntryLength` is kept as an unrecognized figure without being parsed
 (pre-release audit SEC-04: the parser's cost grows faster than the line, and the
 cap bounds every line at once; the Caller's Box dialect's `(…)` and `[…]` strip

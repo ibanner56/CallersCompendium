@@ -156,17 +156,16 @@ List<String> csvReservedHeaders(List<AppLocalizations> languages) => [
 ];
 
 /// The target a header names, in any of [languages] (the UI language and
-/// English), or `null`. A phrase label (`A1`) names its phrase. A custom field
-/// is named by its export header ([customFieldCsvHeaders]), or by its bare
-/// label when it is not shared, or when its header was not renamed, or when
-/// its renamed header (`Rating (2)`) is in none of [sheetHeaders]: a sheet
-/// without the renamed header is not an export that needed it kept apart.
+/// English), or `null`. A built-in column's name comes first, then a phrase
+/// label (`A1`), then a column the export writes with no field of its own
+/// ([csvNotesOnlyHeaders]). A custom field is named by its export header
+/// ([customFieldCsvHeaders]: `Rating (2)` for a field labelled Rating), or,
+/// when the export does not write it, by its label.
 CsvColumnMapping? csvTargetForHeader(
   String header,
   List<AppLocalizations> languages,
-  List<CustomFieldDef> fields, {
-  Iterable<String> sheetHeaders = const [],
-}) {
+  List<CustomFieldDef> fields,
+) {
   final folded = csvFold(header);
   if (folded.isEmpty) return null;
   for (final l10n in languages) {
@@ -190,16 +189,11 @@ CsvColumnMapping? csvTargetForHeader(
       return CsvColumnMapping.customField(f.id);
     }
   }
-  // The plain label, for a field the export never writes and for a file from
-  // before headers were made unique. A field whose header was changed to tell
-  // it apart ("Rating (2)") keeps answering to its bare label only when the
-  // sheet has no such header: in an export that has one, the bare label is the
-  // built-in column it was kept apart from.
-  final present = {for (final h in sheetHeaders) csvFold(h)};
+  // The plain label, for a field the export never writes (Include in sharing
+  // off). A shared field's label is its header unless that label is taken,
+  // and a label taken by a built-in name was matched as that name above.
   for (final f in fields) {
-    final header = exported[f.id];
-    final free = header == null || !present.contains(csvFold(header));
-    if (free && csvFold(f.label) == folded) {
+    if (exported[f.id] == null && csvFold(f.label) == folded) {
       return CsvColumnMapping.customField(f.id);
     }
   }
@@ -211,10 +205,7 @@ bool csvRowLooksLikeHeader(
   List<String> firstRow,
   List<AppLocalizations> languages,
   List<CustomFieldDef> fields,
-) => firstRow.any(
-  (c) =>
-      csvTargetForHeader(c, languages, fields, sheetHeaders: firstRow) != null,
-);
+) => firstRow.any((c) => csvTargetForHeader(c, languages, fields) != null);
 
 /// The starting mapping for a sheet whose first row is [header] (or, without
 /// a header, [columnCount] columns of Ignore). Each target is taken by the
@@ -232,12 +223,7 @@ List<CsvColumnMapping> autoMapCsvColumns(
   return [
     for (var i = 0; i < columnCount; i++)
       if (header != null && i < header.length)
-        switch (csvTargetForHeader(
-          header[i],
-          languages,
-          fields,
-          sheetHeaders: header,
-        )) {
+        switch (csvTargetForHeader(header[i], languages, fields)) {
           final m? when m == CsvColumnMapping.labelledNotes || taken.add(m) =>
             m,
           _ => CsvColumnMapping.ignore,

@@ -2208,9 +2208,20 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// the custom fields screen shows it, when a spreadsheet import created a
   /// field from a column (pre-release audit PRIV-04). A field the import
   /// reused, the caller's own or one it adopted, is not one it created.
+  ///
+  /// The dances are already written when it runs, so a failure to read or set
+  /// the notice's latch is logged and never reported as a failed import.
   Future<void> _noticeCreatedFields(CsvImportSession result) async {
     if (result.createdFieldIds.isEmpty || !mounted) return;
-    await showCustomFieldSharingNoticeOnce(context, _repos.settings);
+    try {
+      await showCustomFieldSharingNoticeOnce(context, _repos.settings);
+    } on Object catch (e, stackTrace) {
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._noticeCreatedFields',
+      );
+    }
   }
 
   /// Records the commit's progress for the committing view. Ignored once the

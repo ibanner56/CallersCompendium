@@ -1126,7 +1126,8 @@ void main() {
         '"Export","A1  neighbors balance and swing (16 beats)\n'
         '    end facing down\n'
         'A2  partners swing (16 beats) ¶",\r\n'
-        '"Phrases",,"neighbors balance and swing\n  end facing down"\r\n',
+        '"Phrases",,"neighbors balance and swing (16 beats)\n'
+        '  end facing down"\r\n',
         m(const [
           CsvColumnMapping(CsvColumnTarget.title),
           CsvColumnMapping(CsvColumnTarget.figures),
@@ -1141,6 +1142,31 @@ void main() {
       final phrase = figuresOf(batch.records[1]);
       expect([for (final f in phrase) f.move], ['swing']);
       expect(phrase.single.note, 'end facing down');
+    });
+
+    test('a figure indented under the first of its phrase is a figure, not '
+        'a note', () async {
+      // A card's layout: the phrase label only on a phrase's first figure.
+      final batch = await plan(
+        'Title,Figures\r\n'
+        '"Card","A1  neighbors balance and swing\n'
+        'A2  ladies chain\n'
+        'B1  circle left 3/4\n'
+        '    pass through\n'
+        'B2  partners swing"\r\n'
+        '"Counted","B1  circle left 3/4 (8 beats)\n'
+        '    pass through (8 beats)"\r\n',
+        m(const [
+          CsvColumnMapping(CsvColumnTarget.title),
+          CsvColumnMapping(CsvColumnTarget.figures),
+        ]),
+      );
+      final card = figuresOf(batch.records[0]);
+      expect(card, hasLength(5));
+      expect([for (final f in card) f.note], everyElement(isNull));
+      final counted = figuresOf(batch.records[1]);
+      expect(counted, hasLength(2));
+      expect([for (final f in counted) f.note], everyElement(isNull));
     });
 
     test('lines all indented alike are each a figure', () async {

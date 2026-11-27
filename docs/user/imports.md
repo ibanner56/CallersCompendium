@@ -308,9 +308,10 @@ How the values come in:
 
 - **Figures** are read the way the app reads typed figures. A line it can't
   read comes in as an unrecognized figure with your words, never dropped, and
-  so does a line longer than 2,000 characters, which is not read at all. A line
-  indented further than the figure above it is that figure's note, as the
-  app's own export writes one.
+  so does a line longer than 2,000 characters, which is not read at all. A
+  figure's note comes back as the app's own export writes it: on the next line,
+  indented further, under a figure line that ends with its count, such as
+  `(16 beats)`. Any other indented line is a figure of its own.
 - **Formation** can carry a detail after a dash, as the app's own export
   writes one: `Duple minor, improper — first corners cross` comes in as that
   formation with the detail "first corners cross". A dance whose formation the
