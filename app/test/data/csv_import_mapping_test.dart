@@ -127,8 +127,8 @@ void main() {
     }
   });
 
-  test('a bare "Rating" column maps to a shared custom field of that name '
-      'unless the sheet has the export\'s "Rating (2)"', () {
+  test('a bare "Rating" column is the star rating, as any built-in name is, '
+      'and the export\'s "Rating (2)" is the custom field named Rating', () {
     final rating = CustomFieldDef(
       id: 'f-rating',
       key: 'rating',
@@ -137,16 +137,32 @@ void main() {
     );
     expect(autoMapCsvColumns(['Title', 'Rating'], 2, [en], [rating]), [
       const CsvColumnMapping(CsvColumnTarget.title),
-      CsvColumnMapping.customField('f-rating'),
+      const CsvColumnMapping(CsvColumnTarget.rating),
     ]);
     expect(
       autoMapCsvColumns(['Title', 'Rating', 'Rating (2)'], 3, [en], [rating]),
       [
         const CsvColumnMapping(CsvColumnTarget.title),
-        CsvColumnMapping.ignore,
+        const CsvColumnMapping(CsvColumnTarget.rating),
         CsvColumnMapping.customField('f-rating'),
       ],
       reason: 'the exported pair: the bare one is the built-in column',
     );
+  });
+
+  test("the export's columns with no field of their own start in the calling "
+      'notes with their names, every one of them', () {
+    final header = [
+      'Title',
+      en.danceEditorSquareKindLabel,
+      en.danceEditorRepeatOrderLabel,
+      en.danceEditorNewPartnerLabel,
+      en.danceEditorSingingLabel,
+      en.csvColumnSources,
+    ];
+    expect(autoMapCsvColumns(header, header.length, [en], const []), [
+      const CsvColumnMapping(CsvColumnTarget.title),
+      for (var i = 1; i < header.length; i++) CsvColumnMapping.labelledNotes,
+    ]);
   });
 }

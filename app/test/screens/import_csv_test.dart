@@ -259,8 +259,11 @@ void main() {
     Future<void> newTextField(WidgetTester tester, int i) async {
       await tester.tap(find.byKey(ValueKey('csv-column-$i')));
       await tester.pumpAndSettle();
+      // After the targets comes Calling notes with the label, then one new
+      // field per type.
       final option =
           csvTargetChoices(const []).length +
+          1 +
           CustomFieldType.values.indexOf(CustomFieldType.text);
       await tester.tap(find.byKey(ValueKey('csv-column-$i-option-$option')));
       await tester.pumpAndSettle();

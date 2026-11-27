@@ -27,16 +27,22 @@ List<CsvColumnMapping> csvTargetChoices(List<CustomFieldDef> fields) => [
 const List<CsvColumnTarget> _plainTargets = [
   CsvColumnTarget.title,
   CsvColumnTarget.authors,
+  CsvColumnTarget.composed,
+  CsvColumnTarget.interpreters,
+  CsvColumnTarget.interpreted,
   CsvColumnTarget.form,
   CsvColumnTarget.formation,
   CsvColumnTarget.progression,
   CsvColumnTarget.level,
+  CsvColumnTarget.mixedLevel,
   CsvColumnTarget.status,
   CsvColumnTarget.mixer,
+  CsvColumnTarget.rating,
   CsvColumnTarget.tags,
   CsvColumnTarget.tunes,
   CsvColumnTarget.meter,
   CsvColumnTarget.key,
+  CsvColumnTarget.barnesReference,
   CsvColumnTarget.hook,
   CsvColumnTarget.callingNotes,
   CsvColumnTarget.walkthrough,
@@ -57,6 +63,9 @@ Map<CsvColumnTarget, List<String>> csvTargetHeaderNames(
     l10n.csvColumnAuthors,
     l10n.danceEditorAuthorsLabel,
   ],
+  CsvColumnTarget.composed: [l10n.csvColumnComposed],
+  CsvColumnTarget.interpreters: [l10n.csvColumnInterpreters],
+  CsvColumnTarget.interpreted: [l10n.csvColumnInterpreted],
   CsvColumnTarget.form: [l10n.csvColumnForm, l10n.danceEditorFormLabel],
   CsvColumnTarget.formation: [
     l10n.csvColumnFormation,
@@ -64,12 +73,15 @@ Map<CsvColumnTarget, List<String>> csvTargetHeaderNames(
   ],
   CsvColumnTarget.progression: [l10n.csvColumnProgression],
   CsvColumnTarget.level: [l10n.csvColumnLevel],
+  CsvColumnTarget.mixedLevel: [l10n.csvColumnMixedLevel],
   CsvColumnTarget.status: [l10n.csvColumnStatus, l10n.danceEditorStatusLabel],
   CsvColumnTarget.mixer: [l10n.csvColumnMixer],
+  CsvColumnTarget.rating: [l10n.csvColumnRating],
   CsvColumnTarget.tags: [l10n.csvColumnTags, l10n.danceEditorTagsLabel],
   CsvColumnTarget.tunes: [l10n.csvColumnTunes, l10n.danceEditorTunesLabel],
   CsvColumnTarget.meter: [l10n.csvColumnMeter, l10n.danceEditorMeterLabel],
   CsvColumnTarget.key: [l10n.csvColumnKey, l10n.danceEditorMusicalKeyLabel],
+  CsvColumnTarget.barnesReference: [l10n.csvColumnBarnes],
   CsvColumnTarget.hook: [l10n.csvColumnHook, l10n.danceEditorHookLabel],
   CsvColumnTarget.callingNotes: [
     l10n.csvColumnCallingNotes,
@@ -118,26 +130,27 @@ Map<String, String> customFieldCsvHeaders(
   return headers;
 }
 
+/// The dances export's own columns that the import has no target for, in
+/// one language: a square's own (ADR-007 §8.1) and the published sources.
+/// They start on [CsvColumnMapping.labelledNotes], so an exported file's
+/// values come back in the calling notes (`Kind of square: Main`) rather
+/// than being left out.
+List<String> csvNotesOnlyHeaders(AppLocalizations l10n) => [
+  l10n.danceEditorSquareKindLabel,
+  l10n.danceEditorRepeatOrderLabel,
+  l10n.danceEditorNewPartnerLabel,
+  l10n.danceEditorSingingLabel,
+  l10n.csvColumnSources,
+];
+
 /// Every header a built-in column answers to or is written under in
 /// [languages] (the dances export's own columns, including those the import
-/// has no target for), plus the phrase labels: the names
+/// keeps only in the notes), plus the phrase labels: the names
 /// [customFieldCsvHeaders] must not reuse.
 List<String> csvReservedHeaders(List<AppLocalizations> languages) => [
   for (final l10n in languages) ...[
     for (final names in csvTargetHeaderNames(l10n).values) ...names,
-    l10n.csvColumnComposed,
-    l10n.csvColumnInterpreters,
-    l10n.csvColumnInterpreted,
-    l10n.csvColumnMixedLevel,
-    l10n.csvColumnRating,
-    l10n.csvColumnBarnes,
-    // A square's own columns (ADR-007 §8.1), which the import has no
-    // target for yet.
-    l10n.danceEditorSquareKindLabel,
-    l10n.danceEditorRepeatOrderLabel,
-    l10n.danceEditorNewPartnerLabel,
-    l10n.danceEditorSingingLabel,
-    l10n.csvColumnSources,
+    ...csvNotesOnlyHeaders(l10n),
   ],
   ...csvPhraseLabels,
 ];
@@ -165,6 +178,11 @@ CsvColumnMapping? csvTargetForHeader(
   }
   for (final p in csvPhraseLabels) {
     if (csvFold(p) == folded) return CsvColumnMapping.phrase(p);
+  }
+  for (final l10n in languages) {
+    if (csvNotesOnlyHeaders(l10n).any((name) => csvFold(name) == folded)) {
+      return CsvColumnMapping.labelledNotes;
+    }
   }
   final exported = customFieldCsvHeaders(fields, csvReservedHeaders(languages));
   for (final f in fields) {
@@ -201,7 +219,9 @@ bool csvRowLooksLikeHeader(
 /// The starting mapping for a sheet whose first row is [header] (or, without
 /// a header, [columnCount] columns of Ignore). Each target is taken by the
 /// first column that names it; a later column naming it again starts as
-/// Ignore, so a sheet never maps two columns to one field by itself.
+/// Ignore, so a sheet never maps two columns to one field by itself. Calling
+/// notes with the label ([csvNotesOnlyHeaders]) is not a field, so every
+/// column that names it starts on it.
 List<CsvColumnMapping> autoMapCsvColumns(
   List<String>? header,
   int columnCount,
@@ -218,7 +238,8 @@ List<CsvColumnMapping> autoMapCsvColumns(
           fields,
           sheetHeaders: header,
         )) {
-          final m? when taken.add(m) => m,
+          final m? when m == CsvColumnMapping.labelledNotes || taken.add(m) =>
+            m,
           _ => CsvColumnMapping.ignore,
         }
       else

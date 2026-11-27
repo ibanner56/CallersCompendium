@@ -6,6 +6,7 @@ import 'package:compendium_app/src/data/csv_import_mapping.dart';
 import 'package:compendium_app/src/export/dances_csv.dart';
 import 'package:compendium_app/src/export/export_labels_l10n.dart';
 import 'package:compendium_app/src/export/share_sanitization.dart';
+import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
@@ -295,6 +296,9 @@ void main() {
             note: 'end facing down',
           ),
         ],
+        mixedLevel: true,
+        rating: 4,
+        composedOn: PartialDate(1987, 3),
         createdAt: now,
         updatedAt: now,
       ),
@@ -307,6 +311,10 @@ void main() {
           improper: true,
           detail: 'first corners cross',
         ),
+        interpreterIds: [interpreter.id],
+        barnesReference: 'BIII p. 92',
+        composedOn: PartialDate(1698),
+        interpretedOn: PartialDate(1916, 3, 14),
         createdAt: now,
         updatedAt: now,
       ),
@@ -315,6 +323,10 @@ void main() {
         title: "'=quoted at start",
         form: DanceForm.square,
         formation: const Formation(FormationShape.square),
+        squareKind: SquareKind.main,
+        repeatOrder: SquareRepeatOrder.headsHeadsSidesSides,
+        newPartner: SquareNewPartner.corner,
+        singing: true,
         createdAt: now,
         updatedAt: now,
       ),
@@ -329,9 +341,26 @@ void main() {
           l10n: l10n,
           dialects: DialectsByForm.all(Dialect.larksRobins),
           renderer: plainRenderer,
+          lookups: DancesCsvLookups(
+            choreographersById: {interpreter.id: interpreter},
+          ),
         );
         final rows = readCsv(csv);
         final header = rows.first;
+        final columns = autoMapCsvColumns(
+          header,
+          header.length,
+          languages,
+          const [],
+        );
+        expect(
+          [
+            for (var i = 0; i < header.length; i++)
+              if (columns[i] == CsvColumnMapping.ignore) header[i],
+          ],
+          isEmpty,
+          reason: 'every column the export writes is read back',
+        );
         final adapter = CsvAdapter();
         final found = await adapter.discover(
           ImportRequest(
@@ -340,21 +369,19 @@ void main() {
               CsvAdapter.mappingOption: CsvImportMapping(
                 separator: ',',
                 hasHeader: true,
-                columns: autoMapCsvColumns(
-                  header,
-                  header.length,
-                  languages,
-                  const [],
-                ),
+                columns: columns,
                 vocabulary: csvValueVocabulary(languages),
               ),
             },
           ),
         );
-        final back = {
+        final drafts = {
           for (final record in found)
             for (final draft in [adapter.parse(await adapter.fetch(record))])
-              draft.dance.title: draft.dance,
+              draft.dance.title: draft,
+        };
+        final back = {
+          for (final MapEntry(:key, :value) in drafts.entries) key: value.dance,
         };
         expect(back.keys, unorderedEquals([for (final d in library) d.title]));
         for (final original in library) {
@@ -383,7 +410,38 @@ void main() {
             ],
             reason: original.title,
           );
+          expect(
+            (
+              dance.mixedLevel,
+              dance.rating,
+              dance.composedOn,
+              dance.interpretedOn,
+              dance.barnesReference,
+            ),
+            (
+              original.mixedLevel,
+              original.rating,
+              original.composedOn,
+              original.interpretedOn,
+              original.barnesReference,
+            ),
+            reason: original.title,
+          );
         }
+        expect(drafts['Hole in the Wall']!.interpreterNames, [
+          interpreter.name,
+        ]);
+        // A square's own columns and the sources have no field to go back
+        // into: they come back in the calling notes, under their names.
+        expect(back["'=quoted at start"]!.callingNotes.split('\n\n'), [
+          '${l10n.danceEditorSquareKindLabel}: '
+              '${squareKindLabel(l10n, SquareKind.main)}',
+          '${l10n.danceEditorRepeatOrderLabel}: '
+              '${squareRepeatOrderLabel(l10n, SquareRepeatOrder.headsHeadsSidesSides)}',
+          '${l10n.danceEditorNewPartnerLabel}: '
+              '${squareNewPartnerLabel(l10n, SquareNewPartner.corner, Dialect.larksRobins)}',
+          '${l10n.danceEditorSingingLabel}: ${l10n.commonYes}',
+        ]);
       });
     }
 
