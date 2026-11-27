@@ -479,8 +479,8 @@ class Program {
   final String? calendarEventKey;
 
   /// What the calendar import last wrote from the event (#2354): a
-  /// per-field hash of its title, date, first location segment, and start
-  /// and end times (`calendarEventFingerprint`). A later import compares the event's
+  /// per-field hash of its title, date, venue label (the stored venue), and
+  /// start and end times (`calendarEventFingerprint`). A later import compares the event's
   /// current fingerprint with it to see what changed upstream. Null for a
   /// program not imported from a calendar, or imported before #2354.
   final String? calendarEventFingerprint;

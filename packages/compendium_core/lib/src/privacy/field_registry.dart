@@ -761,7 +761,8 @@ final Map<String, DataClassification> fieldClassifications = {
     egress: EgressClass.shareable,
     note:
         'What the calendar import last wrote from an event (#2354, schema '
-        'v42): truncated hashes of its title, date, first location segment, '
+        'v42): truncated hashes of its title, date, venue label (the stored '
+        'venue), '
         'and start and end times, all of which are already stored on the '
         'program. Shareable '
         'so another device applies the same untouched test; stripped from '

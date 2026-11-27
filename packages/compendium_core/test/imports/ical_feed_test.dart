@@ -671,6 +671,72 @@ void main() {
       ]);
     });
 
+    test('the venue is the first line before its first comma; a street line '
+        'is never kept', () {
+      // LOCATION as written in the feed (escaped) => the venue label.
+      const cases = <String, String?>{
+        // A name, then the address on the following lines.
+        r'The Smiths\n12 Elm Street\nSpringfield\, MA 01101': 'The Smiths',
+        r'Town Hall\NElm St': 'Town Hall',
+        r'\nGlen Echo Park\, 7300 MacArthur Blvd': 'Glen Echo Park',
+        // A name holding an ordinal is a name.
+        r'1st Church\, 4 Elm St': '1st Church',
+        r'4th Street Hall': '4th Street Hall',
+        // Only an address, in the shapes calendars and maps write.
+        r'12 Elm Street\, Springfield\, MA 01101\, USA': null,
+        r'12B Elm Street\nSpringfield': null,
+        r'Hauptstraße 5\, 10115 Berlin': null,
+        r'#12 Elm Street\, Springfield': null,
+        r'No.12 Elm Street': null,
+        '12–14 Elm Street\\, Springfield': null,
+        r'1-2-3 Jingumae\, Shibuya-ku': null,
+        r'12bis Rue de Rivoli\, Paris': null,
+        '１２ Elm Street': null,
+        'The Smiths\t12 Elm Street': null,
+        // A tab still separates an ordinal from the rest of the name.
+        '1st\tChurch': '1st Church',
+        // Punctuation, brackets or invisible characters around the number.
+        '(12) Elm Street': null,
+        'Smith residence (12 Elm St)': null,
+        'Smiths:12 Elm St': null,
+        // A feed that escapes its line breaks twice.
+        r'The Smiths\\n12 Elm Street': null,
+        'The Smiths\u200B12 Elm Street': null,
+        // A comma that is not ASCII splits off the address; an address with
+        // no spaces is dropped whole.
+        'The Smiths\uFF0C12 Elm Street': 'The Smiths',
+        '\u65E5\u672C\u3001\u3012150-0001 \u6771\u4EAC\u90FD': null,
+        '\u4E2D\u56FD\u5317\u4EAC\u5E0288\u53F7': null,
+        // Numerals other than decimal digits.
+        '\u5317\u4EAC\u5E02\u5EFA\u56FD\u8DEF\u516B\u5341\u516B\u53F7': null,
+        '\u795E\u5BAE\u524D\u4E00\u4E01\u76EE\\, \u6E0B\u8C37\u533A': null,
+        '\u00B9\u00B2 Elm St\\, Springfield': null,
+        '\u2460\u2461 Elm Street': null,
+        '\u216B Elm Street': null,
+        // A street, then its house number in the next part.
+        'Calle Mayor\\, n\u00BA 5\\, Madrid': null,
+        r'Elm St.\, No. 12': null,
+        // A name with an ordinal floor after it is a name.
+        r'Grange Hall\, 2nd floor': 'Grange Hall',
+        r'Via Roma\, 10\, 20121 Milano': null,
+        // A name that holds a number goes with it; the caller can type it.
+        r'Studio 54': null,
+      };
+      final locations = cases.keys.toList();
+      final p = plan(
+        _cal([
+          for (var i = 0; i < locations.length; i++)
+            ['UID:loc-$i', 'DTSTART:20300620', 'LOCATION:${locations[i]}'],
+        ]),
+      );
+      expect({
+        for (var i = 0; i < locations.length; i++)
+          locations[i]: p.candidates
+              .singleWhere((c) => c.eventKey == calendarEventKey('loc-$i', ''))
+              .venueLabel,
+      }, cases);
+    });
+
     test('a title that sanitizes to nothing is empty, for the app to fill', () {
       final p = plan(
         _cal([
