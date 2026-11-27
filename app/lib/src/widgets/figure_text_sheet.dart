@@ -177,8 +177,13 @@ class _FigureTextSheetState extends State<FigureTextSheet> {
                 // At most [maxFigureTextLines] preview rows, so building them
                 // all is cheap, and none goes missing from the semantics tree.
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
+                  // Top space the drag handle used to give, as the venue
+                  // sheet has: neither sheet has a handle (see [show]).
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    AppSpacing.lg,
+                    AppSpacing.md,
+                    0,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
