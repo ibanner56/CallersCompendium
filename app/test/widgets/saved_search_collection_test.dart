@@ -1134,6 +1134,63 @@ void main() {
       expect((facets['textValues']! as Map).keys, ['f0']);
     });
 
+    testWidgets('Update, from a panel still on a level and a custom field '
+        'that sync merged away meanwhile, saves the survivors and shows them', (
+      tester,
+    ) async {
+      final repos = await _library();
+      for (final id in ['lv0', 'lv1']) {
+        await repos.difficultyLevels.upsert(
+          DifficultyLevel(id: id, label: 'Hard $id', position: 9),
+        );
+      }
+      for (final id in ['f0', 'f1']) {
+        final _ = await repos.customFieldDefs.upsert(
+          CustomFieldDef(
+            id: id,
+            key: 'tune_type_$id',
+            label: 'Tune type $id',
+            type: CustomFieldType.text,
+          ),
+        );
+      }
+      final state = CollectionPanelState();
+      state.facets.levels.add('lv1');
+      state.facets.textValues['f1'] = const TextFacetState(
+        op: CustomFieldOp.contains,
+        value: 'reel',
+      );
+      final search = await _seed(repos, 'Hard reels', state);
+      await _pump(tester, repos);
+      await _load(tester, search);
+      await repos.syncLocal.remapIdentity(
+        kind: SyncRecordKind.difficultyLevel,
+        losingId: 'lv1',
+        survivingId: 'lv0',
+      );
+      await repos.syncLocal.remapIdentity(
+        kind: SyncRecordKind.customFieldDef,
+        losingId: 'f1',
+        survivingId: 'f0',
+      );
+      await tester.pumpAndSettle();
+      await _type(tester, 'petronella');
+      await _tapOff(tester);
+
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-update');
+
+      final facets =
+          (await repos.savedSearches.get(search.id))!.spec.toJson()['facets']!
+              as Map;
+      expect(facets['levels'], ['lv0']);
+      expect((facets['textValues']! as Map).keys, ['f0']);
+      // The panel was loaded again from what was written, so it is on the
+      // survivors too, and Update is off: nothing differs from it.
+      await _openMore(tester);
+      expect(_enabled(tester, 'saved-search-update'), isFalse);
+    });
+
     testWidgets('a loaded search changed elsewhere is not loaded again over '
         'Online search', (tester) async {
       final repos = await _library();
