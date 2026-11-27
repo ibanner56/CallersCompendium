@@ -1575,14 +1575,28 @@ Formation _mapEcdFormation(
   final start = usr ? _sanitizeLine(record.contraForm) : null;
   final direction = usr ? _sanitizeLine(record.direction) : null;
   // A `.USR` with no family and no start is read from the caller's own
-  // description, as the text export's single string is (#1972).
+  // description, as the text export's single string is (#1972). There the
+  // word "square" names the set only when the description starts with it or
+  // names no shape of its own: "Sicilian circle; square through to start" is
+  // a Sicilian circle (pre-release audit finding B-06).
+  final ownMentionsSquare =
+      usr &&
+      family.isEmpty &&
+      start == null &&
+      _ccSquareWord.hasMatch(own ?? '');
   final squareFamily = usr
       ? family.toLowerCase() == 'square' ||
-            (family.isEmpty &&
-                start == null &&
-                _ccSquareWord.hasMatch(own ?? ''))
+            (ownMentionsSquare &&
+                (formation.shape == FormationShape.other ||
+                    _ccStartsWithSquare.hasMatch(own!)))
       : _ccSquareWord.hasMatch(text);
-  if (!squareType && !squareFamily) return formation;
+  if (!squareType && !squareFamily) {
+    // A description that mentions a square but names another shape keeps its
+    // words as the detail, as it did while the word made it a square set.
+    return ownMentionsSquare && formation.detail == null
+        ? formation.copyWith(detail: own)
+        : formation;
+  }
   // A square in a big circle keeps the circle, which squares use for it
   // (ADR-007 §8.1).
   if (formation.shape == FormationShape.circle) return formation;
@@ -1612,6 +1626,13 @@ Formation _mapEcdFormation(
 
 /// A formation text that names a square ("Square", "Square set").
 final RegExp _ccSquareWord = RegExp(r'\bsquares?\b', caseSensitive: false);
+
+/// A formation text that starts by naming a square ("Square of four couples,
+/// proper").
+final RegExp _ccStartsWithSquare = RegExp(
+  r'^\s*squares?\b',
+  caseSensitive: false,
+);
 
 /// A formation text that names a mixer ("Circle mixer").
 final RegExp _ccMixerWord = RegExp(r'\bmixer\b', caseSensitive: false);

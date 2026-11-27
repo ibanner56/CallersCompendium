@@ -276,9 +276,9 @@ Each line is read as the Move box reads a line you type with
 [Free-text entry](#free-text-entry) on, with your
 [shorthands](#figure-shorthands) and your dialect, whether Free-text entry is
 on or not. Blank lines are skipped, and so is a line that is only a phrase
-label, such as an `A1` heading. In a contra dance a phrase label such as `A1` or
-`B2` at the start of a line is left out, so `A1 (8) Ladies chain` reads as
-`(8) Ladies chain`. English and square dances keep it: an English line such as
+label, such as an `A1` heading. In a contra or square dance a phrase label such
+as `A1` or `B2` at the start of a line is left out, so `A1 (8) Ladies chain`
+reads as `(8) Ladies chain`. English dances keep it: an English line such as
 `A1 1-8 lead up` is read with its label, because the label comes before a bar
 range; other English lines that start with a label may not be recognized, so
 leave the label off them.

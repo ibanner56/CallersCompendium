@@ -1032,7 +1032,10 @@ filter below are new (phase 2).
   own-words definition, parameters, default beats and program label.
 - Dialect settings already switch by dance form, and squares have their own
   dialect library (§3). The dialect editor's sample figures are ECD's or
-  contra's today; squares need their own (phase 1).
+  contra's today; squares need their own (phase 1). *Implemented 27
+  November 2026: a square dialect's preview shows square calls (a hand turn of
+  `role1s` with partners, a swing of corners, a promenade to `role1`'s
+  place) and a line of free text, rather than contra's figures.*
 - ECD ships its taxonomy with no glossary definition text yet. Squares plan
   own-words definitions, but they can follow the taxonomy as a separate
   step (§9).

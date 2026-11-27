@@ -1970,11 +1970,12 @@ has to be judged in its own context.
   with `splitFigureTextLines` (`imports/figure_text_lines.dart`), which refuses
   text over `maxFigureTextLines` lines, `maxFigureTextLength` characters, or a
   line over `maxFreeTextEntryLength` (which the parser would read as nothing),
-  skips a line that is only a phrase label, and, in a contra dance, drops a
-  leading `A1`…`C2` label with `splitPhraseLabel`, the splitter the Caller's
-  Companion text adapter reads its sections with. English and square dances
-  keep the label: the ECD bar reader drops one only in front of a bar range
-  (`A1 1-8 lead up`), and other labelled lines stay custom.
+  skips a line that is only a phrase label, and, in a contra or square dance
+  (the forms whose phrases are unnamed), drops a leading `A1`…`C2` label with
+  `splitPhraseLabel`, the splitter the Caller's Companion text adapter reads
+  its sections with. English dances keep the label: the ECD bar reader drops
+  one only in front of a bar range (`A1 1-8 lead up`), and other labelled
+  lines stay custom.
 - **Only the dance's own form's calls.** Free-text entry and the re-read of
   import-gap lines (`reparseImportGapFigures`) keep a figure only when it
   and every figure inside it belong to the dance's form (`figureFitsForm`,

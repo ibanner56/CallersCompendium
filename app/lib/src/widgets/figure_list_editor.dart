@@ -1396,7 +1396,11 @@ class _FigureListEditorState extends State<FigureListEditor>
         if (_freeTextComposing && widget.allowAdding)
           _buildFreeTextComposer(context)
         else
-          Row(
+          // A Wrap, so the add button's label wraps, and the paste button
+          // moves below it, rather than overflowing a narrow screen with
+          // large text (pre-release audit finding B-12).
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               _buildAddAffordance(context, empty: false),
               if (_cutDraftId != null)
@@ -2326,6 +2330,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         hasNote && canonicalize(note, widget.dialect).discouraged.isNotEmpty;
     // In bars for an English dance (ADR-006 §5.5).
     final beatsLabel = timingLabel(context, draft.beats);
+    final beatsStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
     // Parser-gap custom (#398/#419): a *custom* figure the parser could not
     // map, whether from import or a locally-typed free-text line. Guarded on
     // the custom move (like figure_table.dart / perform_card.dart) so a
@@ -2382,178 +2390,193 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                   vertical: AppSpacing.xs,
                   horizontal: AppSpacing.xxs,
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDragHandle(context),
-                    const SizedBox(width: 4),
-                    // Section-label gutter — text only on section boundaries,
-                    // but keyed on every row so `figure-$index-label` resolves.
-                    SizedBox(
-                      width: 30,
-                      child: Text(
-                        labelText,
-                        key: _key('label'),
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                    // Progression marker (glyph + tooltip; never colour alone).
-                    SizedBox(
-                      width: 16,
-                      child: draft.progression
-                          ? Tooltip(
-                              message: l10n.commonProgression,
-                              child: Icon(
-                                progressionIcon,
-                                size: MediaQuery.textScalerOf(context)
-                                    .scale(
-                                      theme.textTheme.bodyLarge?.fontSize ?? 16,
-                                    )
-                                    .clamp(14.0, 16.0),
-                                color: theme.colorScheme.primary,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (compound != null)
-                            Row(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsetsDirectional.only(
-                                    end: AppSpacing.xxs,
-                                  ),
-                                  child: Icon(
-                                    Icons.person_outline,
-                                    size: 16,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                ),
-                                Flexible(
-                                  child: Text(
-                                    sentence,
-                                    style: theme.textTheme.bodyLarge,
-                                  ),
-                                ),
-                              ],
-                            )
-                          else
-                            Text(
-                              sentence,
-                              style: hasMove
-                                  ? theme.textTheme.bodyLarge
-                                  : theme.textTheme.bodyLarge?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      fontStyle: FontStyle.italic,
-                                    ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final beatsInline = _beatsFitInline(
+                      context,
+                      constraints,
+                      beatsLabel,
+                      beatsStyle,
+                    );
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildDragHandle(context),
+                        const SizedBox(width: 4),
+                        // Section-label gutter — text only on section boundaries,
+                        // but keyed on every row so `figure-$index-label` resolves.
+                        SizedBox(
+                          width: 30,
+                          child: Text(
+                            labelText,
+                            key: _key('label'),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
                             ),
-                          if (widget.isCut)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                top: AppSpacing.xxxs,
-                              ),
-                              child: Row(
-                                key: _key('cut-badge'),
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.content_cut, size: 14),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    l10n.danceEditorFigureCutState,
-                                    style: theme.textTheme.bodySmall,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          if (compoundUnavailable)
-                            Text(
-                              l10n.danceEditorCompoundUnavailable,
-                              key: _key('compound-unavailable'),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.error,
-                              ),
-                            ),
-                          if (incomplete)
-                            Text(
-                              l10n.danceEditorIncompleteFigure,
-                              key: _key('incomplete'),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.error,
-                              ),
-                            ),
-                          if (needsValues)
-                            Text(
-                              l10n.danceEditorFigureNeedsValues,
-                              key: _key('summary-needs-values'),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.error,
-                              ),
-                            ),
-                          if (hasNote)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                top: AppSpacing.xxxs,
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (noteDiscouraged) ...[
-                                    Icon(
-                                      Icons.warning_amber_outlined,
-                                      size: 13,
-                                      color: theme.colorScheme.error,
-                                    ),
-                                    const SizedBox(width: 4),
-                                  ],
-                                  Expanded(
-                                    child: Text(
-                                      displayNote,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            fontStyle: FontStyle.italic,
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (isImportGap) ...[
-                      const SizedBox(width: 8),
-                      const Padding(
-                        padding: EdgeInsets.only(top: AppSpacing.xxxs),
-                        child: ImportGapBadge(),
-                      ),
-                    ],
-                    if (hasMove) ...[
-                      const SizedBox(width: 8),
-                      Padding(
-                        padding: const EdgeInsets.only(top: AppSpacing.xxxs),
-                        child: Text(
-                          beatsLabel,
-                          textAlign: TextAlign.end,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
-                      ),
-                    ],
-                  ],
+                        // Progression marker (glyph + tooltip; never colour alone).
+                        SizedBox(
+                          width: 16,
+                          child: draft.progression
+                              ? Tooltip(
+                                  message: l10n.commonProgression,
+                                  child: Icon(
+                                    progressionIcon,
+                                    size: MediaQuery.textScalerOf(context)
+                                        .scale(
+                                          theme.textTheme.bodyLarge?.fontSize ??
+                                              16,
+                                        )
+                                        .clamp(14.0, 16.0),
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (compound != null)
+                                Row(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsetsDirectional.only(
+                                        end: AppSpacing.xxs,
+                                      ),
+                                      child: Icon(
+                                        Icons.person_outline,
+                                        size: 16,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
+                                    Flexible(
+                                      child: Text(
+                                        sentence,
+                                        style: theme.textTheme.bodyLarge,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              else
+                                Text(
+                                  sentence,
+                                  style: hasMove
+                                      ? theme.textTheme.bodyLarge
+                                      : theme.textTheme.bodyLarge?.copyWith(
+                                          color: theme
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                ),
+                              if (hasMove && !beatsInline)
+                                Text(beatsLabel, style: beatsStyle),
+                              if (widget.isCut)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: AppSpacing.xxxs,
+                                  ),
+                                  child: Row(
+                                    key: _key('cut-badge'),
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.content_cut, size: 14),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        l10n.danceEditorFigureCutState,
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              if (compoundUnavailable)
+                                Text(
+                                  l10n.danceEditorCompoundUnavailable,
+                                  key: _key('compound-unavailable'),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ),
+                              if (incomplete)
+                                Text(
+                                  l10n.danceEditorIncompleteFigure,
+                                  key: _key('incomplete'),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ),
+                              if (needsValues)
+                                Text(
+                                  l10n.danceEditorFigureNeedsValues,
+                                  key: _key('summary-needs-values'),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ),
+                              if (hasNote)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: AppSpacing.xxxs,
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (noteDiscouraged) ...[
+                                        Icon(
+                                          Icons.warning_amber_outlined,
+                                          size: 13,
+                                          color: theme.colorScheme.error,
+                                        ),
+                                        const SizedBox(width: 4),
+                                      ],
+                                      Expanded(
+                                        child: Text(
+                                          displayNote,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                fontStyle: FontStyle.italic,
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        if (isImportGap) ...[
+                          const SizedBox(width: 8),
+                          const Padding(
+                            padding: EdgeInsets.only(top: AppSpacing.xxxs),
+                            child: ImportGapBadge(),
+                          ),
+                        ],
+                        if (hasMove && beatsInline) ...[
+                          const SizedBox(width: _beatsGap),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              top: AppSpacing.xxxs,
+                            ),
+                            child: Text(
+                              beatsLabel,
+                              textAlign: TextAlign.end,
+                              style: beatsStyle,
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -2587,6 +2610,43 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         },
       ),
     );
+  }
+
+  /// The widths of the summary row's fixed pieces before the sentence: the
+  /// drag handle, its gap, the section-label gutter, the progression marker
+  /// and its gap.
+  static const double _leadingWidth = 20 + 4 + 30 + 16 + 4;
+
+  /// The gap before the beats label when it sits at the end of the row.
+  static const double _beatsGap = 8;
+
+  /// The narrowest the sentence may be, at the default text size, beside an
+  /// inline beats label.
+  static const double _minSentenceWidth = 96;
+
+  /// Whether [label] fits at the end of the summary row in [constraints] and
+  /// leaves the sentence [_minSentenceWidth] (scaled with the text). If not,
+  /// it goes on a line of its own below the sentence, so a narrow screen with
+  /// large text does not squeeze the sentence to nothing and overflow the row
+  /// (pre-release audit finding B-12).
+  bool _beatsFitInline(
+    BuildContext context,
+    BoxConstraints constraints,
+    String label,
+    TextStyle? style,
+  ) {
+    if (!constraints.hasBoundedWidth) return true;
+    final scaler = MediaQuery.textScalerOf(context);
+    final painter = TextPainter(
+      text: TextSpan(text: label, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    final labelWidth = painter.width;
+    painter.dispose();
+    return constraints.maxWidth - _leadingWidth - _beatsGap - labelWidth >=
+        scaler.scale(_minSentenceWidth);
   }
 
   /// A placeholder's one-line summary: the compound's name in the dialect and
@@ -5419,16 +5479,20 @@ class _BeatSummary extends StatelessWidget {
                     color: theme.colorScheme.tertiary,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    totalBeats > expectedBeats
-                        ? l10n.danceEditorOverByBeats(
-                            totalBeats - expectedBeats,
-                          )
-                        : l10n.danceEditorUnderByBeats(
-                            expectedBeats - totalBeats,
-                          ),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.tertiary,
+                  // Wraps rather than overflowing a narrow screen with large
+                  // text (pre-release audit finding B-12).
+                  Flexible(
+                    child: Text(
+                      totalBeats > expectedBeats
+                          ? l10n.danceEditorOverByBeats(
+                              totalBeats - expectedBeats,
+                            )
+                          : l10n.danceEditorUnderByBeats(
+                              expectedBeats - totalBeats,
+                            ),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.tertiary,
+                      ),
                     ),
                   ),
                 ],
