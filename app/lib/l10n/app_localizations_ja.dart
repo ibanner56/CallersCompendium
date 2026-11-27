@@ -3841,7 +3841,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'アプリのこの部分で予期しないエラーが発生しました。詳細はデバイスの外に出ないローカル診断ログ（設定 ▸ 診断）に保存されました。前の画面に戻って、もう一度お試しください。';
+      'アプリのこの部分で予期しないエラーが発生しました。詳細は、アプリがどこにも送信しないローカル診断ログ（設定 ▸ 診断）に保存されました。前の画面に戻って、もう一度お試しください。';
 
   @override
   String get crashFallbackCopied => 'コピーしました';

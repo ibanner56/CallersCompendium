@@ -4068,9 +4068,9 @@
   "@crashFallbackTitle": {
     "x-sourceSha256": "8f57c66fd319b8791131188ba4d99ec2acfbfa4c163fa2619b636df3550dd244"
   },
-  "crashFallbackBody": "In diesem Teil der App ist ein unerwarteter Fehler aufgetreten. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das dein Gerät nie verlässt. Geh zurück und versuche es erneut.",
+  "crashFallbackBody": "In diesem Teil der App ist ein unerwarteter Fehler aufgetreten. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das die App nirgendwohin sendet. Geh zurück und versuche es erneut.",
   "@crashFallbackBody": {
-    "x-sourceSha256": "cd6f68c73b3c2787820f5718ad32da5f46fb8cbc3a2118cabd52661160020182"
+    "x-sourceSha256": "3bed66f33c77d41cd2da4526321ed13f64a936c5f8e7bfc22ef01ecfc92b0d90"
   },
   "crashFallbackCopied": "Kopiert",
   "@crashFallbackCopied": {

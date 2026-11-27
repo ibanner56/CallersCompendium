@@ -4067,7 +4067,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Dit onderdeel van de app heeft een onverwachte fout gehad. De details zijn bewaard in een lokaal diagnoselog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat. Ga terug en probeer het opnieuw.';
+      'Dit onderdeel van de app heeft een onverwachte fout gehad. De details zijn bewaard in een lokaal diagnoselog (Instellingen ▸ Diagnostics) dat de app nergens naartoe stuurt. Ga terug en probeer het opnieuw.';
 
   @override
   String get crashFallbackCopied => 'Gekopieerd';

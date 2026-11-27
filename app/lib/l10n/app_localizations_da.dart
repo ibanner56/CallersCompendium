@@ -4037,7 +4037,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Denne del af appen stødte på en uventet fejl. Detaljerne blev gemt i en lokal diagnostiklog (Indstillinger ▸ Diagnostik), der aldrig forlader din enhed. Gå tilbage og prøv igen.';
+      'Denne del af appen stødte på en uventet fejl. Detaljerne blev gemt i en lokal diagnostiklog (Indstillinger ▸ Diagnostik), som appen aldrig sender nogen steder hen. Gå tilbage og prøv igen.';
 
   @override
   String get crashFallbackCopied => 'Kopieret';
