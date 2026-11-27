@@ -194,7 +194,8 @@ void main() {
       );
       expect(
         renderer.render(chain, shown),
-        renderer.render(chain, Dialect.larksRobins),
+        // The default chain wording, in the caller's own role words.
+        renderer.render(chain, mine.copyWith(moves: const {})),
       );
     });
 
@@ -236,11 +237,18 @@ void main() {
       for (final gendered in [
         'LADIES Chain',
         "the gents' chain",
-        'Men-chain',
+        'Gents2 chain',
       ]) {
         expect(shownWith(gendered).moves, isEmpty, reason: gendered);
       }
-      for (final kept in ['Mandy chain', 'salmon chain', 'robins chain']) {
+      // "man" and "men" are everyday words in German, Danish and Dutch, so a
+      // move name or wording holding only them is kept, in English too.
+      for (final kept in [
+        'Mandy chain',
+        'salmon chain',
+        'robins chain',
+        'men chain',
+      ]) {
         expect(shownWith(kept).moves, {'chain': kept}, reason: kept);
       }
     });
