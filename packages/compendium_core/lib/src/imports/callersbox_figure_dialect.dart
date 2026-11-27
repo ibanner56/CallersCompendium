@@ -5,6 +5,7 @@ import '../taxonomy/move_def.dart';
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
+import 'bracket_blank.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
 import 'roll_away_relationships.dart';
@@ -1178,7 +1179,7 @@ List<String> splitTopLevel(String t, String sep) => _splitTopLevel(t, sep);
 /// match does NOT retain the bracketed text while the custom fallback — which
 /// runs on the un-normalized scrubbed text — still keeps its annotation verbatim.
 String _stripAnnotations(String lowercased) =>
-    lowercased.replaceAll(_parenRe, ' ').replaceAll(_bracketRe, ' ');
+    blankBracketedAnnotations(lowercased);
 
 /// TCB's recognition-only normalization: the shared `()`/`[]` annotation strip
 /// ([_stripAnnotations]) plus one TCB-specific idiom.
@@ -2092,7 +2093,7 @@ FigureMatch? _chainAnnotation(String scrubbed) {
 FigureMatch? _promenadeAnnotation(String scrubbed) {
   if (!_promenadeAnchor.hasMatch(scrubbed)) return null;
   final annotations = _annotations(scrubbed);
-  var bare = scrubbed.replaceAll(_parenRe, ' ').replaceAll(_bracketRe, ' ');
+  var bare = blankBracketedAnnotations(scrubbed);
   final wholeSet = _aroundMajorSetRe.hasMatch(bare);
   bare = bare.replaceFirst(_aroundMajorSetRe, ' ').trim();
 
@@ -2456,10 +2457,7 @@ FigureMatch? _singleFileWholeSetPromenade(String scrubbed) {
   if (annotations.any(_counterRotationRe.hasMatch)) {
     return const FigureMatch.customFallback();
   }
-  final bare = rest
-      .replaceAll(_parenRe, ' ')
-      .replaceAll(_bracketRe, ' ')
-      .trim();
+  final bare = blankBracketedAnnotations(rest).trim();
 
   String? destination;
   if (bare.isNotEmpty) {
@@ -5014,8 +5012,6 @@ List<_GrandRightAndLeftPass>? _decodeGrandRightAndLeftPasses(String scrubbed) {
 const List<String> _grandRightAndLeftWords = ['grand', 'right', 'and', 'left'];
 
 final RegExp _wsRe = RegExp(r'\s+');
-final RegExp _parenRe = RegExp(r'\([^)]*\)');
-final RegExp _bracketRe = RegExp(r'\[[^\]]*\]');
 final RegExp _aroundMajorSetRe = RegExp(
   r'\s+around\s+(?:the\s+)?major\s+set\b',
   caseSensitive: false,

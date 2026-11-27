@@ -51,11 +51,24 @@ const Set<String> _formulaTriggers = {
 ///
 /// Titles and notes can come from imported files, so every cell is guarded,
 /// not only the ones a user typed.
-String guardCsvFormula(String value) {
-  if (value.isEmpty) return value;
-  if (!_formulaTriggers.contains(value[0])) return value;
-  if (_plainNumber.hasMatch(value)) return value;
-  return "'$value";
+///
+/// A value that already starts with apostrophes before a formula trigger
+/// (`'=x`) gets one more (`''=x`), so the import can take the guard off again
+/// without taking the value's own apostrophe with it (`unguardCsvFormula`).
+String guardCsvFormula(String value) =>
+    _needsFormulaGuard(value) ? "'$value" : value;
+
+/// Whether [guardCsvFormula] puts an apostrophe before [value]: after any
+/// leading apostrophes, it starts with a formula trigger and is not a plain
+/// number.
+bool _needsFormulaGuard(String value) {
+  var start = 0;
+  while (start < value.length && value[start] == "'") {
+    start++;
+  }
+  if (start == value.length) return false;
+  if (!_formulaTriggers.contains(value[start])) return false;
+  return !_plainNumber.hasMatch(value.substring(start));
 }
 
 /// One cell, guarded ([guardCsvFormula]) and quoted when RFC 4180 needs it: a

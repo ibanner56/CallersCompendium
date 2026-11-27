@@ -6,6 +6,7 @@ import 'package:compendium_app/src/data/csv_import_mapping.dart';
 import 'package:compendium_app/src/export/dances_csv.dart';
 import 'package:compendium_app/src/export/export_labels_l10n.dart';
 import 'package:compendium_app/src/export/share_sanitization.dart';
+import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
@@ -269,6 +270,190 @@ void main() {
         rows[1][rows.first.indexOf(en.csvColumnTunes)],
         "Reel, Rory O'More",
       );
+    });
+  });
+
+  // Pre-release audit finding E1-04: the app's own export, read back through
+  // the mapping the app chooses, in every language the app speaks.
+  group('an exported library comes back whole', () {
+    final library = [
+      Dance(
+        id: 'd-contra',
+        title: 'Becket Reel',
+        formation: const Formation(
+          FormationShape.becketCw,
+          detail: 'slide left to start',
+        ),
+        figures: [
+          Figure(
+            move: 'allemande',
+            params: const {'who': 'role1s', 'beats': 8},
+          ),
+          Figure(
+            move: 'swing',
+            params: const {'who': 'partners', 'beats': 16},
+            progression: true,
+            note: 'end facing down',
+          ),
+        ],
+        mixedLevel: true,
+        rating: 4,
+        composedOn: PartialDate(1987, 3),
+        createdAt: now,
+        updatedAt: now,
+      ),
+      Dance(
+        id: 'd-ecd',
+        title: 'Hole in the Wall',
+        form: DanceForm.ecd,
+        formation: const Formation(
+          FormationShape.dupleMinor,
+          improper: true,
+          detail: 'first corners cross',
+        ),
+        interpreterIds: [interpreter.id],
+        barnesReference: 'BIII p. 92',
+        composedOn: PartialDate(1698),
+        interpretedOn: PartialDate(1916, 3, 14),
+        createdAt: now,
+        updatedAt: now,
+      ),
+      Dance(
+        id: 'd-square',
+        title: "'=quoted at start",
+        form: DanceForm.square,
+        formation: const Formation(FormationShape.square),
+        squareKind: SquareKind.main,
+        repeatOrder: SquareRepeatOrder.headsHeadsSidesSides,
+        newPartner: SquareNewPartner.corner,
+        singing: true,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ];
+
+    for (final locale in AppLocalizations.supportedLocales) {
+      test('in ${locale.toLanguageTag()}', () async {
+        final l10n = lookupAppLocalizations(locale);
+        final languages = [l10n, en];
+        final csv = buildDancesCsv(
+          library,
+          l10n: l10n,
+          dialects: DialectsByForm.all(Dialect.larksRobins),
+          renderer: plainRenderer,
+          lookups: DancesCsvLookups(
+            choreographersById: {interpreter.id: interpreter},
+          ),
+        );
+        final rows = readCsv(csv);
+        final header = rows.first;
+        final columns = autoMapCsvColumns(
+          header,
+          header.length,
+          languages,
+          const [],
+        );
+        expect(
+          [
+            for (var i = 0; i < header.length; i++)
+              if (columns[i] == CsvColumnMapping.ignore) header[i],
+          ],
+          isEmpty,
+          reason: 'every column the export writes is read back',
+        );
+        final adapter = CsvAdapter();
+        final found = await adapter.discover(
+          ImportRequest(
+            payload: csv,
+            options: {
+              CsvAdapter.mappingOption: CsvImportMapping(
+                separator: ',',
+                hasHeader: true,
+                columns: columns,
+                vocabulary: csvValueVocabulary(languages),
+              ),
+            },
+          ),
+        );
+        final drafts = {
+          for (final record in found)
+            for (final draft in [adapter.parse(await adapter.fetch(record))])
+              draft.dance.title: draft,
+        };
+        final back = {
+          for (final MapEntry(:key, :value) in drafts.entries) key: value.dance,
+        };
+        expect(back.keys, unorderedEquals([for (final d in library) d.title]));
+        for (final original in library) {
+          final dance = back[original.title]!;
+          expect(dance.form, original.form, reason: original.title);
+          expect(
+            (
+              dance.formation.shape,
+              dance.formation.improper,
+              dance.formation.detail,
+            ),
+            (
+              original.formation.shape,
+              original.formation.improper,
+              original.formation.detail,
+            ),
+            reason: original.title,
+          );
+          final figures = (dance.figuresSource as DecodedFigures).figures;
+          expect(
+            [for (final f in figures) (f.move, f.progression, f.note)],
+            [
+              for (final f
+                  in (original.figuresSource as DecodedFigures).figures)
+                (f.move, f.progression, f.note),
+            ],
+            reason: original.title,
+          );
+          expect(
+            (
+              dance.mixedLevel,
+              dance.rating,
+              dance.composedOn,
+              dance.interpretedOn,
+              dance.barnesReference,
+            ),
+            (
+              original.mixedLevel,
+              original.rating,
+              original.composedOn,
+              original.interpretedOn,
+              original.barnesReference,
+            ),
+            reason: original.title,
+          );
+        }
+        expect(drafts['Hole in the Wall']!.interpreterNames, [
+          interpreter.name,
+        ]);
+        // A square's own columns and the sources have no field to go back
+        // into: they come back in the calling notes, under their names.
+        expect(back["'=quoted at start"]!.callingNotes.split('\n\n'), [
+          '${l10n.danceEditorSquareKindLabel}: '
+              '${squareKindLabel(l10n, SquareKind.main)}',
+          '${l10n.danceEditorRepeatOrderLabel}: '
+              '${squareRepeatOrderLabel(l10n, SquareRepeatOrder.headsHeadsSidesSides)}',
+          '${l10n.danceEditorNewPartnerLabel}: '
+              '${squareNewPartnerLabel(l10n, SquareNewPartner.corner, Dialect.larksRobins)}',
+          '${l10n.danceEditorSingingLabel}: ${l10n.commonYes}',
+        ]);
+      });
+    }
+
+    test("every language writes a formation's detail after ' — ', which "
+        'the import reads it by', () {
+      for (final locale in AppLocalizations.supportedLocales) {
+        expect(
+          lookupAppLocalizations(locale).commonFormationWithDetail('A', 'B'),
+          'A — B',
+          reason: locale.toLanguageTag(),
+        );
+      }
     });
   });
 

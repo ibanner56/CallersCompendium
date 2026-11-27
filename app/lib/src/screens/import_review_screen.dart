@@ -44,6 +44,7 @@ import '../utils/undo_snack_bar.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/figure_diff_view.dart';
 import '../widgets/notice_card.dart';
+import 'custom_fields_screen.dart' show showCustomFieldSharingNoticeOnce;
 import 'dance_editor_screen.dart';
 import 'import_shorthand_seed_screen.dart';
 import 'published_collection_catalog_screen.dart';
@@ -2087,6 +2088,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final csvMapping = _selected.adapterFactory() is CsvAdapter
         ? _csvMapping
         : null;
+    // A spreadsheet row's commit, for the custom-field notice after it.
+    CsvImportSession? csvResult;
     try {
       final rowBatch = ImportBatchResult(records: [plan]);
       final now = DateTime.now().toUtc();
@@ -2110,19 +2113,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               defaultTagIds: defaultTagIds,
             )
           : csvMapping != null
-          ? (await CsvImporter(
-                  pipeline,
-                  _repos.tags,
-                  _repos.customFieldDefs,
-                ).commit(
-                  rowBatch,
-                  mapping: csvMapping,
-                  now: now,
-                  newId: uuidV4,
-                  resolutions: resolutions,
-                  defaultTagIds: defaultTagIds,
-                ))
-                .session
+          ? (csvResult = await _commitCsvForEdit(
+              pipeline,
+              rowBatch,
+              csvMapping,
+              now: now,
+              resolutions: resolutions,
+              defaultTagIds: defaultTagIds,
+            )).session
           : await pipeline.commit(
               rowBatch,
               now: now,
@@ -2156,6 +2154,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           }
         }
       });
+      // After the committing view has gone, so no spinner runs behind it.
+      if (csvResult != null) {
+        await _noticeCreatedFields(csvResult);
+        if (!mounted) return;
+      }
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => DanceEditorScreen(danceId: danceId),
@@ -2177,6 +2180,47 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       );
     } finally {
       widget.onCommitStateChanged?.call(false);
+    }
+  }
+
+  /// Import and edit's commit of one spreadsheet row.
+  Future<CsvImportSession> _commitCsvForEdit(
+    ImportPipeline pipeline,
+    ImportBatchResult rowBatch,
+    CsvImportMapping mapping, {
+    required DateTime now,
+    required Map<int, DedupeResolution> resolutions,
+    required List<String> defaultTagIds,
+  }) async {
+    final result =
+        await CsvImporter(pipeline, _repos.tags, _repos.customFieldDefs).commit(
+          rowBatch,
+          mapping: mapping,
+          now: now,
+          newId: uuidV4,
+          resolutions: resolutions,
+          defaultTagIds: defaultTagIds,
+        );
+    return result;
+  }
+
+  /// The one-time notice that custom fields travel with the collection, as
+  /// the custom fields screen shows it, when a spreadsheet import created a
+  /// field from a column (pre-release audit PRIV-04). A field the import
+  /// reused, the caller's own or one it adopted, is not one it created.
+  ///
+  /// The dances are already written when it runs, so a failure to read or set
+  /// the notice's latch is logged and never reported as a failed import.
+  Future<void> _noticeCreatedFields(CsvImportSession result) async {
+    if (result.createdFieldIds.isEmpty || !mounted) return;
+    try {
+      await showCustomFieldSharingNoticeOnce(context, _repos.settings);
+    } on Object catch (e, stackTrace) {
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._noticeCreatedFields',
+      );
     }
   }
 
@@ -2325,6 +2369,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         );
         if (!mounted) return;
         setState(() => _phase = _Phase.review);
+        await _noticeCreatedFields(result);
+        if (!mounted) return;
         await _showResult(
           session: result.session,
           skipped: skipped,
