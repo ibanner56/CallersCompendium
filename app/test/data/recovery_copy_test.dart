@@ -160,6 +160,8 @@ void main() {
       expect(db.select('PRAGMA user_version').first.values.first, 39);
       expect(db.select('PRAGMA integrity_check').first.values.first, 'ok');
       expect(db.select('PRAGMA journal_mode').first.values.first, 'delete');
+      // Rebuilt by VACUUM: no free page that could hold a deleted row.
+      expect(db.select('PRAGMA freelist_count').first.values.first, 0);
 
       // The library is untouched.
       for (final table in libraryTables) {
