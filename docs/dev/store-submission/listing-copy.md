@@ -50,11 +50,11 @@ Markdown; Play renders minimal formatting — the plain bullets below are fine f
 both.)
 
 ```
-Caller's Compendium is a free, open-source, local-first organizer for contra
-dance callers. Catalog your dances, build programs for your gigs, and call from a
-large-print, stage-ready view — all on your own device, fully offline, with
-nothing to sign in to. Nothing leaves your phone or tablet unless you turn on
-optional Device Sync.
+Caller's Compendium is a free, open-source, local-first organizer for contra,
+English country and square dance callers. Catalog your dances, build programs for
+your gigs, and call from a large-print, stage-ready view — all on your own
+device, fully offline, with nothing to sign in to. Your collection stays on your
+phone or tablet, apart from optional Device Sync and your device's own backup.
 
 Built by a caller, for callers.
 

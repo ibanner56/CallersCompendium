@@ -493,7 +493,9 @@ both recognize, then flip back to your own.
   words are the clearest ones for you — so the spoken view and the visible view
   stay in step. See the [accessibility guide](./accessibility.md) for more.
 - **It stays on your device.** Your dialects are stored on your device, and
-  there is no account. If you turn on the experimental
+  there is no account. Like the rest of the app's data, they can be copied by
+  [your device's own backup](./backup-portability.md#your-devices-own-backup).
+  If you turn on the experimental
   [Device Sync](./settings.md#device-sync), your own dialects and your choice of
   active dialect sync to your other connected devices along with your library.
 
