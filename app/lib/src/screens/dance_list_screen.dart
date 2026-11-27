@@ -3208,7 +3208,9 @@ class _DanceListScreenState extends State<DanceListScreen>
   /// Replaces the search with [drillDown] (#2357): clears the text, every
   /// facet, By phrase and Advanced, as Clear all does, then applies the
   /// drill-down's selections, so the list shows the dances the tapped number
-  /// counted. Online mode is left: the numbers are the local library's.
+  /// counted. Online mode is left: the numbers are the local library's. A
+  /// saved search that was loaded is forgotten, as Clear all forgets it, so
+  /// the ⋮ menu cannot Update it with the drill-down.
   void _applyRepertoireDrillDown(RepertoireDrillDown drillDown) {
     _debounceTimer?.cancel();
     _searchSeq++;
@@ -3226,6 +3228,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
       _panelFromSavedSearch = false;
+      _loadedSearch = null;
       drillDown.applyTo(_facets, _advancedRoot);
     });
     _runSearch();
