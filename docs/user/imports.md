@@ -907,6 +907,11 @@ contra hey, a poussette, a mad robin or a petronella, stays as it is. Tags, rati
 and everything else on the dance are kept. A conversion can't be undone, so
 you may want to [export a backup](./backup-portability.md) first.
 
+If you use [Device Sync](./settings.md#device-sync), update the app on every
+device before you convert. A converted dance gets an English formation, which
+a device on an older version can't read, and editing its older copy of the
+dance there would replace the converted one on all your devices.
+
 ### Bring your call buttons across as shorthands
 
 If your Caller's Companion file has **call buttons**, the import offers to turn
