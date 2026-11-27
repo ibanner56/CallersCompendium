@@ -2719,7 +2719,9 @@ instead, which the gate cannot see.
     `sq_u_turn_back` and `sq_backtrack`. "Gypsy" reads as a shoulder round,
     as it does for contra, and no square keyword is another form's move name
     or a phrase another form's text says (such as "single file"), so a
-    search over every form reads those as before. The selectors are
+    search over every form reads those as before; a keyword's words as typed
+    are searched too, so a line typed in them is still found (pre-release
+    audit B-04). The selectors are
     ADR-007 §6.2's (`squareSelectors`); a selector or destination that names
     a role (`headRole1s`, `rightHandRole2`, `role1Place`) shows the dialect's
     role term. `ParamBeats.rules` lets a count follow more than one parameter
@@ -2732,12 +2734,17 @@ instead, which the gate cannot see.
     defaulting to `counterclockwise`, which the display leaves unsaid; a
     wrong-way promenade is `clockwise`, not a `variant`
     (both added to v1 before it shipped, on Hudson's answers of 24
-    November 2026). `squareCallPrograms`
+    November 2026). A right and left through's `fullTurn` (a full courtesy
+    turn, 12 beats) is in its template, `{who} {move} {whom} {fullTurn}`,
+    and reads "with a full turn" in display and canonical text alike, so it
+    reads and searches apart from a plain one (added to v1 before it
+    shipped, pre-release audit B-08). `squareCallPrograms`
     labels the calls
     CALLERLAB also lists. Migration: no stored figure changes. A dance that
     already held `sq_` IDs was indexed while they were unknown, so a one-time
     canonical/FTS rebuild runs, guarded by
-    `squareTaxonomyCanonicalRebuildDoneKey`. **Older devices.** A build without
+    `squareTaxonomyCanonicalRebuildDoneKey`. That marker has not shipped
+    either, so the rebuild a release runs writes the amended text. **Older devices.** A build without
     this taxonomy shows an `sq_` figure as an unknown move and keeps it as it
     is (ADR-007 §5.1).
 
