@@ -284,10 +284,8 @@ void main() {
             },
           ],
         }),
-        saved: (dance) => dance.copyWith(
-          form: DanceForm.ecd,
-          barnesReference: 'BIII p. 92',
-        ),
+        saved: (dance) =>
+            dance.copyWith(form: DanceForm.ecd, barnesReference: 'BIII p. 92'),
       );
       final l10n = AppLocalizationsEn();
       expect(

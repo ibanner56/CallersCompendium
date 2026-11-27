@@ -2117,7 +2117,11 @@ void main() {
       ('Indecent Triplet', FormationShape.triplet, 'Indecent'),
       ('Improper (triple progression)', FormationShape.dupleImproper, null),
       ('Triplet', FormationShape.triplet, null),
-      ('Improper Quadruplet (2341)', FormationShape.quadruplet, 'Improper (2341)'),
+      (
+        'Improper Quadruplet (2341)',
+        FormationShape.quadruplet,
+        'Improper (2341)',
+      ),
       ('Quadruplet', FormationShape.quadruplet, null),
       ('Triple Minor', FormationShape.tripleMinor, null),
       ('Triple Minor - Improper', FormationShape.tripleMinor, 'Improper'),

@@ -3222,8 +3222,8 @@ final RegExp _weaveSlideRe = RegExp(
 /// assert a subject the source did not state.
 ///
 /// Clause-final brackets are commentary. In particular `with <dancer>` and
-/// `around <dancer>` use [resolveDancerSetPhrase] to emit the canonical token in
-/// the note. The classifier also processes adjacent parentheticals with the same
+/// `around <dancer>` must name a dancer [resolveDancerSetPhrase] resolves, and
+/// the note keeps the source's words (`with N2`). The classifier also processes adjacent parentheticals with the same
 /// synthesis and prose gates as [_perRoleChoreoAnnotation]/[_proseAnnotation],
 /// retaining source order without broadening either handler's no-bracket path.
 FigureMatch? _bracketAnnotation(String scrubbed) {
@@ -4623,7 +4623,7 @@ FigureMatch? _hey(String scrubbed) {
   // One clause-final `[with …]` / `[around …]` bracket naming dancers the
   // notation resolves (`Hey 1/2 (WL;PR;ML) [with N1]`) is commentary on the
   // hey, read as [_bracketAnnotation] reads one on any other line: it becomes
-  // the figure's note (`with neighbors`) and the pass list still decodes. Any
+  // the figure's note (`with N1`) and the pass list still decodes. Any
   // other bracket, or one that does not resolve, leaves the line as it read
   // before (custom). *(User-ruled 2026-11-24.)*
   String? bracketNote;

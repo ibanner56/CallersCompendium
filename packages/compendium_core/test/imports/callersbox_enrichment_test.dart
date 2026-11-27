@@ -271,8 +271,7 @@ void main() {
     const bracketAccepted = <String, String>{
       'Circulate: women cross, men loop right [with N2]': 'with N2',
       'Circulate: women cross, men loop right [with shadow]': 'with shadow',
-      'Circulate: women cross, men loop right [around N2]':
-          'around N2',
+      'Circulate: women cross, men loop right [around N2]': 'around N2',
     };
     bracketAccepted.forEach((line, note) {
       test('"$line" → box_circulate, note "$note"', () {

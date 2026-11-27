@@ -2289,7 +2289,8 @@ class CallersBoxAdapter implements SourceAdapter {
   }
 
   /// Returns the note, in the source's words (`with N2`), for exactly one
-  /// supported, clause-final square annotation, or `null` for no annotation and every unsupported shape.
+  /// supported, clause-final square annotation, or `null` for no annotation
+  /// and every unsupported shape.
   static String? _canonicalBalanceWaveBracketNote(String text) {
     // Stop after the second match: one is supported, while more than one
     // remains custom without allocating for every untrusted annotation.
@@ -2315,7 +2316,11 @@ class CallersBoxAdapter implements SourceAdapter {
     if (who == null) return null;
     // The source's words, not the dancer-set token (`nextNeighbors`), which
     // the note would show raw; written as the dialect's bracket notes are.
-    final words = relation.group(2)!.trim().split(_bracketPhraseSpace).join(' ');
+    final words = relation
+        .group(2)!
+        .trim()
+        .split(_bracketPhraseSpace)
+        .join(' ');
     return '${relation.group(1)!.toLowerCase()} '
         '${_bracketDancerCode.hasMatch(words) ? words.toUpperCase() : words}';
   }

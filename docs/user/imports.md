@@ -1273,7 +1273,9 @@ so, and names the Barnes reference and **Starts improper** mark it will remove,
 since only an English dance has them. Everything else is kept: your title,
 notes, rating, tags, links, custom fields, authors, citations, and other saved
 metadata. The import
-review's **Re-import onto** does the same. Its **Same dance — replace** choices
+review's **Re-import onto** replaces the same parts, and removes the same two
+from an English dance it makes contra, but its note above **Import** says only
+that a dance's form can change, not what that removes. Its **Same dance — replace** choices
 are different: they replace the dance's content (see
 [Avoiding duplicates](#avoiding-duplicates)).
 

@@ -166,7 +166,7 @@ void main() {
       expect(figures[1].params.containsKey('center'), isFalse);
     });
 
-    test('a bracketed relation is retained as a canonical note', () async {
+    test('a bracketed relation is retained as a note in the source's words', () async {
       final figures = await _figuresFor([
         '(4) Balance wave of four (PR,WL) [with N2]',
       ]);

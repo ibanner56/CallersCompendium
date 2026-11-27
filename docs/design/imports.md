@@ -2364,8 +2364,9 @@ has to be judged in its own context.
   corner is the same in contra and squares, so a square's `Allemande left your
   corner` from The Caller's Box reads the same way. `resolveDancerSetPhrase`
   shares the reader, so a Caller's Box `[with corner]` bracket on a
-  balance-the-wave line now keeps the note `with firstCorners`, as `[with
-  partner]` keeps `with partners`, where it was dropped before. The bare
+  balance-the-wave line now keeps a note, `with corner`, as `[with partner]`
+  keeps `with partner` (the source's words since the pre-release audit,
+  finding C-07; the dancer-set token before), where it was dropped before. The bare
   `Corner` and the `1st`/`2nd` ordinal readings are the maintainer's decisions
   (#1975; the ordinals and the scope on 2026-10-29); `3rd`/`third` is the
   author's extension of them. A bare plural (`allemande left the corners`,

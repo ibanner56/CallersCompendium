@@ -269,18 +269,21 @@ void main() {
       createdAt: stamp,
       updatedAt: stamp,
     );
-    expect(
-      reimportFormChange(dance(DanceForm.ecd, barnes: 'NiB'), contra),
-      (form: DanceForm.contra, dropsBarnesReference: true, dropsImproper: false),
-    );
-    expect(
-      reimportFormChange(dance(DanceForm.ecd, improper: true), contra),
-      (form: DanceForm.contra, dropsBarnesReference: false, dropsImproper: true),
-    );
-    expect(
-      reimportFormChange(dance(DanceForm.ecd), contra),
-      (form: DanceForm.contra, dropsBarnesReference: false, dropsImproper: false),
-    );
+    expect(reimportFormChange(dance(DanceForm.ecd, barnes: 'NiB'), contra), (
+      form: DanceForm.contra,
+      dropsBarnesReference: true,
+      dropsImproper: false,
+    ));
+    expect(reimportFormChange(dance(DanceForm.ecd, improper: true), contra), (
+      form: DanceForm.contra,
+      dropsBarnesReference: false,
+      dropsImproper: true,
+    ));
+    expect(reimportFormChange(dance(DanceForm.ecd), contra), (
+      form: DanceForm.contra,
+      dropsBarnesReference: false,
+      dropsImproper: false,
+    ));
     // The same form, or incoming figures the re-import does not take (so the
     // form stays), is no change.
     expect(reimportFormChange(dance(DanceForm.contra), contra), isNull);

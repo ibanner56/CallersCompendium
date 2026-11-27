@@ -19,21 +19,24 @@ void main() {
       ));
     });
 
-    test('keeps the order the couples end in, with or without a start word', () {
-      expect(classifyFormationSetName('triplet ( 312 )'), (
-        shape: FormationShape.triplet,
-        qualifier: '(312)',
-      ));
-      expect(classifyFormationSetName('indecent triplet'), (
-        shape: FormationShape.triplet,
-        qualifier: 'Indecent',
-      ));
-      // Only digits in brackets are an order.
-      expect(
-        classifyFormationSetName('proper triplet (from the top)')?.qualifier,
-        'Proper',
-      );
-    });
+    test(
+      'keeps the order the couples end in, with or without a start word',
+      () {
+        expect(classifyFormationSetName('triplet ( 312 )'), (
+          shape: FormationShape.triplet,
+          qualifier: '(312)',
+        ));
+        expect(classifyFormationSetName('indecent triplet'), (
+          shape: FormationShape.triplet,
+          qualifier: 'Indecent',
+        ));
+        // Only digits in brackets are an order.
+        expect(
+          classifyFormationSetName('proper triplet (from the top)')?.qualifier,
+          'Proper',
+        );
+      },
+    );
 
     test('triplet is not read as triple minor', () {
       expect(

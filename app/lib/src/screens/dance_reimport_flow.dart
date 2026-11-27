@@ -330,10 +330,7 @@ class _ReimportLinkDialogState extends State<_ReimportLinkDialog> {
 /// change removes; null when the form stays.
 String? danceReimportNotice(AppLocalizations l10n, ReimportFormChange? change) {
   if (change == null) return null;
-  final dropped = switch ((
-    change.dropsBarnesReference,
-    change.dropsImproper,
-  )) {
+  final dropped = switch ((change.dropsBarnesReference, change.dropsImproper)) {
     (true, true) => 'both',
     (true, false) => 'barnes',
     (false, true) => 'improper',
