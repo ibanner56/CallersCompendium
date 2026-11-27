@@ -224,6 +224,14 @@
   "@migrationBelowFloorBody": {
     "x-sourceSha256": "6855c6b21e03dea3850d71a05c79c42f710923c44dfb9f02f392e81939616c9d"
   },
+  "migrationBelowFloorBodyAndroid": "データはまだこのデバイスにありますが、このバージョンでは更新できません。アプリをアンインストールしないでください。アンインストールするとデータが削除されます。また、Androidではこのバージョンの上に{bridgeTag}をインストールすることもできません。データを残すには、アプリはインストールしたままにし、リセットもしないでください。サポートを求めるときは「詳細をコピー」を選んでください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。",
+  "@migrationBelowFloorBodyAndroid": {
+    "x-sourceSha256": "d7d6e28193c75cf55eaae8bffed52d211d90c33dac693e4b9c5d5012ce926478"
+  },
+  "migrationBelowFloorBodyIos": "データはまだこのデバイスにあります。アプリを削除しないでください。削除するとデータも削除されます。TestFlightでCaller’s Compendiumを開き、「以前のビルド」でバージョン{bridgeVersion}を探してください。表示されている場合は、それをインストールし、データを更新するためにアプリを一度開いてから、最新のビルドを再度インストールしてください。表示されていない場合は、アプリをそのままにして、サポートを求めるときは「詳細をコピー」を選んでください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。",
+  "@migrationBelowFloorBodyIos": {
+    "x-sourceSha256": "2b82ea98abe02624920609317078caab270884491449eb4bfa75691348b8fe53"
+  },
   "migrationBelowFloorGetBridge": "{bridgeTag}を入手",
   "@migrationBelowFloorGetBridge": {
     "x-sourceSha256": "a22c9000eea678b7fc49084f79848b61cbd29e56b4908a01711a9b155f33cdee"

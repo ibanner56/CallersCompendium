@@ -230,6 +230,16 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String migrationBelowFloorBodyAndroid(String bridgeTag) {
+    return 'Dine data er stadig på denne enhed, men denne version kan ikke opdatere dem. Afinstaller ikke appen: Det sletter dine data, og Android vil alligevel ikke installere $bridgeTag oven på denne version. For at beholde dine data skal du lade appen være installeret og ikke nulstille den, og vælge »Kopiér detaljer«, når du beder om hjælp.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.';
+  }
+
+  @override
+  String migrationBelowFloorBodyIos(String bridgeVersion) {
+    return 'Dine data er stadig på denne enhed. Slet ikke appen: Det sletter dine data. Åbn Caller’s Compendium i TestFlight, og kig under »Tidligere builds« efter version $bridgeVersion. Hvis den står der, så installer den, åbn appen én gang for at lade den opdatere dine data, og installer derefter det nyeste build igen. Hvis den ikke står der, så lad appen være, som den er, og vælg »Kopiér detaljer«, når du beder om hjælp.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.';
+  }
+
+  @override
   String migrationBelowFloorGetBridge(String bridgeTag) {
     return 'Hent $bridgeTag';
   }

@@ -224,6 +224,14 @@
   "@migrationBelowFloorBody": {
     "x-sourceSha256": "6855c6b21e03dea3850d71a05c79c42f710923c44dfb9f02f392e81939616c9d"
   },
+  "migrationBelowFloorBodyAndroid": "Vos données sont toujours sur cet appareil, mais cette version ne peut pas les mettre à jour. Ne désinstallez pas l’application : cela supprimerait vos données, et Android n’installera de toute façon pas {bridgeTag} par-dessus cette version. Pour garder vos données, laissez l’application installée, ne la réinitialisez pas et choisissez « Copier les détails » lorsque vous demandez de l’aide.\n\nSi vous préférez repartir de zéro, utilisez les options ci-dessous — vos données actuelles seront perdues.",
+  "@migrationBelowFloorBodyAndroid": {
+    "x-sourceSha256": "d7d6e28193c75cf55eaae8bffed52d211d90c33dac693e4b9c5d5012ce926478"
+  },
+  "migrationBelowFloorBodyIos": "Vos données sont toujours sur cet appareil. Ne supprimez pas l’application : cela supprimerait vos données. Dans TestFlight, ouvrez Caller’s Compendium et cherchez la version {bridgeVersion} sous « Builds précédents ». Si elle y figure, installez-la, ouvrez l’application une fois pour qu’elle mette à jour vos données, puis réinstallez le build le plus récent. Si elle n’y figure pas, laissez l’application telle quelle et choisissez « Copier les détails » lorsque vous demandez de l’aide.\n\nSi vous préférez repartir de zéro, utilisez les options ci-dessous — vos données actuelles seront perdues.",
+  "@migrationBelowFloorBodyIos": {
+    "x-sourceSha256": "2b82ea98abe02624920609317078caab270884491449eb4bfa75691348b8fe53"
+  },
   "migrationBelowFloorGetBridge": "Obtenir {bridgeTag}",
   "@migrationBelowFloorGetBridge": {
     "x-sourceSha256": "a22c9000eea678b7fc49084f79848b61cbd29e56b4908a01711a9b155f33cdee"

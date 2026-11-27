@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/update/retirement_banner.dart'
     show kReleasesPageUrl;
@@ -253,7 +254,147 @@ void main() {
       expect(backUpAndResetCalled, isTrue);
       expect(resetOnlyCalled, isFalse);
     },
+    // The install-the-bridge route is the desktop one; Android and iOS have
+    // their own wording (pre-release audit finding F-01), tested below.
+    variant: TargetPlatformVariant.desktop(),
   );
+
+  group('below floor: each platform is given a route that keeps the data', () {
+    // A database at schema v39 (v0.7.x), the case the floor raise to 40 sends
+    // here. The bridge's tag and the version TestFlight shows for it differ.
+    const error = DatabaseBelowFloorError(
+      fileVersion: 39,
+      minSupportedVersion: 40,
+      bridgeTag: 'v0.10.0-beta',
+    );
+
+    Future<FakeUrlLauncher> pumpBelowFloor(WidgetTester tester) async {
+      final launcher = installFakeUrlLauncher();
+      final completer = Completer<void>();
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: AppBootstrap(
+            future: completer.future,
+            onRetry: () {},
+            onBackUpAndReset: _noopReset,
+            onResetOnly: _noopReset,
+            builder: (_) => const Text('Collection ready'),
+          ),
+        ),
+      );
+      completer.completeError(error);
+      await tester.pumpAndSettle();
+      return launcher;
+    }
+
+    // Read the strings through the screen's own localizations, so the tests
+    // hold in whatever locale the test host resolves.
+    AppLocalizations l10nOf(WidgetTester tester) =>
+        AppLocalizations.of(tester.element(find.byType(Scaffold)));
+
+    void expectResetsAndCopyDetailsKept() {
+      expect(
+        find.byKey(const ValueKey('bootstrap-back-up-and-reset')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('bootstrap-reset-only')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('bootstrap-copy-details')),
+        findsOneWidget,
+      );
+    }
+
+    testWidgets(
+      'desktop: install the bridge, open it once, install this version again',
+      (tester) async {
+        final launcher = await pumpBelowFloor(tester);
+        final l10n = l10nOf(tester);
+        expect(
+          find.text(l10n.migrationBelowFloorBody('v0.10.0-beta')),
+          findsOneWidget,
+        );
+        final getBridge = find.byKey(const ValueKey('bootstrap-get-bridge'));
+        expect(tester.widget(getBridge), isA<FilledButton>());
+        await tester.tap(getBridge);
+        await tester.pumpAndSettle();
+        expect(launcher.launchedUrls, ['$kReleasesPageUrl/tag/v0.10.0-beta']);
+        expectResetsAndCopyDetailsKept();
+      },
+      variant: TargetPlatformVariant.desktop(),
+    );
+
+    testWidgets(
+      'Android: says not to uninstall, and nothing sends the caller to the '
+      'release page',
+      (tester) async {
+        final launcher = await pumpBelowFloor(tester);
+        final l10n = l10nOf(tester);
+        expect(
+          find.text(l10n.migrationBelowFloorBodyAndroid('v0.10.0-beta')),
+          findsOneWidget,
+        );
+        expect(
+          find.text(l10n.migrationBelowFloorBody('v0.10.0-beta')),
+          findsNothing,
+        );
+        // Android will not install the older bridge over this version, and
+        // uninstalling to make room deletes the library: no button offers it,
+        // and there is no filled (primary) action at all.
+        expect(
+          find.byKey(const ValueKey('bootstrap-get-bridge')),
+          findsNothing,
+        );
+        expect(
+          find.text(l10n.migrationBelowFloorGetBridge('v0.10.0-beta')),
+          findsNothing,
+        );
+        expect(find.bySubtype<FilledButton>(), findsNothing);
+        expect(
+          find.byKey(const ValueKey('bootstrap-releases-link')),
+          findsNothing,
+        );
+        expect(launcher.launchedUrls, isEmpty);
+        expectResetsAndCopyDetailsKept();
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.android),
+    );
+
+    testWidgets(
+      'iPhone and iPad: points to TestFlight previous builds, not the release '
+      'page',
+      (tester) async {
+        final launcher = await pumpBelowFloor(tester);
+        final l10n = l10nOf(tester);
+        // TestFlight lists the bridge by its version number, not its tag.
+        expect(
+          find.text(l10n.migrationBelowFloorBodyIos('0.10.0')),
+          findsOneWidget,
+        );
+        expect(
+          find.text(l10n.migrationBelowFloorBody('v0.10.0-beta')),
+          findsNothing,
+        );
+        // The release page has no iOS download.
+        expect(
+          find.byKey(const ValueKey('bootstrap-get-bridge')),
+          findsNothing,
+        );
+        expect(find.bySubtype<FilledButton>(), findsNothing);
+        expect(
+          find.byKey(const ValueKey('bootstrap-releases-link')),
+          findsNothing,
+        );
+        expect(launcher.launchedUrls, isEmpty);
+        expectResetsAndCopyDetailsKept();
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+    );
+  });
 
   testWidgets(
     'below-floor screen disables both buttons while a flow is in-flight '
@@ -498,86 +639,94 @@ void main() {
     };
 
     for (final entry in cases.entries) {
-      testWidgets('${entry.key}: Copy details, Releases link, no retry', (
-        tester,
-      ) async {
-        String? clipboardText;
-        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-          SystemChannels.platform,
-          (call) async {
-            if (call.method == 'Clipboard.setData') {
-              clipboardText = (call.arguments as Map)['text'] as String?;
-            }
-            return null;
-          },
-        );
-        addTearDown(
-          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      testWidgets(
+        '${entry.key}: Copy details, Releases link, no retry',
+        (tester) async {
+          String? clipboardText;
+          tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
             SystemChannels.platform,
-            null,
-          ),
-        );
-        final launcher = installFakeUrlLauncher();
-        final completer = Completer<void>();
-        await tester.pumpWidget(
-          MaterialApp(
-            localizationsDelegates: testLocalizationsDelegates,
-            supportedLocales: testSupportedLocales,
-            home: AppBootstrap(
-              future: completer.future,
-              onRetry: () {},
-              onBackUpAndReset: _noopReset,
-              onResetOnly: _noopReset,
-              builder: (_) => const Text('Collection ready'),
+            (call) async {
+              if (call.method == 'Clipboard.setData') {
+                clipboardText = (call.arguments as Map)['text'] as String?;
+              }
+              return null;
+            },
+          );
+          addTearDown(
+            () => tester.binding.defaultBinaryMessenger
+                .setMockMethodCallHandler(SystemChannels.platform, null),
+          );
+          final launcher = installFakeUrlLauncher();
+          final completer = Completer<void>();
+          await tester.pumpWidget(
+            MaterialApp(
+              localizationsDelegates: testLocalizationsDelegates,
+              supportedLocales: testSupportedLocales,
+              home: AppBootstrap(
+                future: completer.future,
+                onRetry: () {},
+                onBackUpAndReset: _noopReset,
+                onResetOnly: _noopReset,
+                builder: (_) => const Text('Collection ready'),
+              ),
             ),
-          ),
-        );
-        completer.completeError(entry.value.error, stack);
-        await tester.pumpAndSettle();
-
-        // R2-check-again: terminal means terminal, whatever could clear.
-        expect(find.text('Try again'), findsNothing);
-        expect(find.textContaining('Check again'), findsNothing);
-        expect(find.text('Collection ready'), findsNothing);
-
-        await tester.tap(find.byKey(const ValueKey('bootstrap-copy-details')));
-        await tester.pumpAndSettle();
-        expect(clipboardText, isNotNull);
-        for (final line in entry.value.detailLines) {
-          expect(clipboardText, contains(line));
-        }
-        expect(clipboardText, contains('Db.open'));
-        // Neither the stack's home directory nor the error's own message (which
-        // can carry a path) reaches the clipboard.
-        expect(clipboardText, isNot(contains('jane.doe')));
-        expect(clipboardText, isNot(contains('No space left')));
-
-        if (entry.key == 'below floor') {
-          // Its way to help is the primary Get button, which opens the bridge
-          // build's release; the generic Releases link is not shown here.
-          expect(
-            find.byKey(const ValueKey('bootstrap-releases-link')),
-            findsNothing,
           );
-          await tester.ensureVisible(
-            find.byKey(const ValueKey('bootstrap-get-bridge')),
-          );
-          await tester.tap(find.byKey(const ValueKey('bootstrap-get-bridge')));
+          completer.completeError(entry.value.error, stack);
           await tester.pumpAndSettle();
-          expect(launcher.launchedUrls, [
-            '$kReleasesPageUrl/tag/v0.1.0-beta.6',
-          ]);
-        } else {
-          await tester.ensureVisible(
-            find.byKey(const ValueKey('bootstrap-releases-link')),
-          );
+
+          // R2-check-again: terminal means terminal, whatever could clear.
+          expect(find.text('Try again'), findsNothing);
+          expect(find.textContaining('Check again'), findsNothing);
+          expect(find.text('Collection ready'), findsNothing);
+
           await tester.tap(
-            find.byKey(const ValueKey('bootstrap-releases-link')),
+            find.byKey(const ValueKey('bootstrap-copy-details')),
           );
           await tester.pumpAndSettle();
-          expect(launcher.launchedUrls, [kReleasesPageUrl]);
-        }
-      });
+          expect(clipboardText, isNotNull);
+          for (final line in entry.value.detailLines) {
+            expect(clipboardText, contains(line));
+          }
+          expect(clipboardText, contains('Db.open'));
+          // Neither the stack's home directory nor the error's own message (which
+          // can carry a path) reaches the clipboard.
+          expect(clipboardText, isNot(contains('jane.doe')));
+          expect(clipboardText, isNot(contains('No space left')));
+
+          if (entry.key == 'below floor') {
+            // Its way to help is the primary Get button, which opens the bridge
+            // build's release; the generic Releases link is not shown here.
+            expect(
+              find.byKey(const ValueKey('bootstrap-releases-link')),
+              findsNothing,
+            );
+            await tester.ensureVisible(
+              find.byKey(const ValueKey('bootstrap-get-bridge')),
+            );
+            await tester.tap(
+              find.byKey(const ValueKey('bootstrap-get-bridge')),
+            );
+            await tester.pumpAndSettle();
+            expect(launcher.launchedUrls, [
+              '$kReleasesPageUrl/tag/v0.1.0-beta.6',
+            ]);
+          } else {
+            await tester.ensureVisible(
+              find.byKey(const ValueKey('bootstrap-releases-link')),
+            );
+            await tester.tap(
+              find.byKey(const ValueKey('bootstrap-releases-link')),
+            );
+            await tester.pumpAndSettle();
+            expect(launcher.launchedUrls, [kReleasesPageUrl]);
+          }
+          // Only the desktop below-floor screen has a Get button; the Android
+          // and iOS ones are tested in their own group above.
+        },
+        variant: entry.key == 'below floor'
+            ? TargetPlatformVariant.desktop()
+            : const DefaultTestVariant(),
+      );
     }
 
     testWidgets('below floor keeps both reset actions beside the new ones', (
