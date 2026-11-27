@@ -1299,6 +1299,32 @@ void main() {
       expect(body['barnesReference'], 'BIII p. 92');
     });
 
+    test('skips a copy of another form when looking for a Barnes '
+        'reference', () {
+      final body = mergeDanceCandidates([
+        _danceCandidate(
+          'a-survivor',
+          'Shared',
+          updatedSeconds: 1,
+          extra: const {...ecd, 'barnesReference': 'A'},
+        ),
+        _danceCandidate(
+          'b-ecd',
+          'Shared',
+          updatedSeconds: 2,
+          extra: const {...ecd, 'barnesReference': 'B'},
+        ),
+        _danceCandidate(
+          'c-contra',
+          'Shared',
+          updatedSeconds: 3,
+          extra: const {'barnesReference': 'C'},
+        ),
+        _danceCandidate('d-newest', 'Shared', updatedSeconds: 4, extra: ecd),
+      ]).winner.blob.body;
+      expect(body['barnesReference'], 'B');
+    });
+
     test('any one such field in the newest copy makes it speak for all of '
         'them, so what it leaves out is cleared', () {
       final evidence = <String, Map<String, Object?>>{

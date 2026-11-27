@@ -4115,19 +4115,24 @@ column (`wire_mapping.dart`): a value moved off `other` drops the text.
 **Which copy speaks for them (amended 2026-11-27).** The latest copy speaks
 for all of these fields only when it holds at least one of them: `meter`,
 `musicalKey`, `interpretedOn`, `barnesReference`, a square field,
-`formation.improper`, `alternateTitles` or `interpreterIds`. A build that
-writes one knows them all, so what such a copy leaves out it cleared, and the
+`formation.improper`, `alternateTitles` or `interpreterIds`. A released build
+that writes one knows them all, so what such a copy leaves out it cleared, and the
 merged dance leaves it out too. A latest copy that holds none of them cannot
 say so: no build up to v0.10.0-beta writes any of them, and this build's copy
 that holds none is the same bytes as one of those. Each field is then taken
 from the most recent copy that holds it (for `barnesReference`, the most
 recent copy of the merged dance's form), or left out when none does. Ties
-go to the survivor, as for the latest copy. `alternateTitles` and
+go to the survivor, and between other copies to the smaller id, as for the
+latest copy. `alternateTitles` and
 `interpreterIds` are unioned either way.
 
 **Limit:** a newer build's latest copy in which the caller cleared every one
 of these fields reads as one that cannot speak for them, so a value another
-copy still holds comes back in the merged dance. Telling the two apart needs
+copy still holds comes back in the merged dance. The same holds for a newer
+build's copy that is not the latest: when the latest copy cannot speak, each
+field comes from the most recent copy that holds it, which can be older than a
+copy that cleared it. With two copies, the common case, only the first
+situation arises. Telling the two apart needs
 a marker every dance would carry, which changes every dance's body and
 content hash at once.
 
