@@ -172,27 +172,63 @@ void main() {
       expect(figures.last.params['balance'], isTrue);
     });
 
-    test(
-      'a role balance with more on its line is refused, as before',
-      () async {
-        // The fold would drop the extra words or annotation, so the role is not
-        // taken from the line and the balance stays custom.
-        for (final balance in [
-          '(4) Men balance long wave in center and slide left',
-          '(4) Men balance long wave in center (P2L,P3R)',
-        ]) {
-          final figures = await _figuresFor(['(0) Form long wave', balance]);
-          expect(figures, hasLength(2), reason: balance);
-          expect(figures.first.move, 'form_a_long_wave', reason: balance);
-          expect(
-            figures.first.params.containsKey('who'),
-            isFalse,
-            reason: balance,
-          );
-          expect(figures.last.isCustom, isTrue, reason: balance);
-        }
-      },
-    );
+    test('a role balance with more on its line is refused, and the bare wave '
+        'states no role or balance', () async {
+      // The fold would drop the extra words or annotation, so the balance stays
+      // custom. The bare wave stays the long waves it was: the centre wave's
+      // defaults would make it the robins' wave, already balanced, ahead of
+      // the larks' balance line (pre-release audit finding C-06).
+      void expectRefused(List<Figure> figures, String balance) {
+        expect(figures, hasLength(2), reason: balance);
+        final wave = figures.first;
+        expect(wave.move, 'form_long_waves', reason: balance);
+        expect(wave.params['who'], ParamVocab.unspecified, reason: balance);
+        expect(wave.params['balance'], isNot(isTrue), reason: balance);
+        expect(figures.last.isCustom, isTrue, reason: balance);
+        expect(
+          figures.last.params['text'],
+          contains('balance long wave in center'),
+          reason: balance,
+        );
+      }
+
+      for (final balance in [
+        '(4) Men balance long wave in center and slide left',
+        '(4) Men balance long wave in center (P2L,P3R)',
+        '(4) Women balance long wave in center and slide right',
+        '(4) Men, balance long wave in center and slide left',
+      ]) {
+        expectRefused(
+          await _figuresFor(['(0) Form long wave', balance]),
+          balance,
+        );
+        // Across a phrase boundary, the same.
+        final payload = jsonEncode({
+          'ID': '42',
+          'Name': 'Test Dance',
+          'Permission': 'full',
+          'phrases': [
+            {
+              'name': 'A1',
+              'figures': ['(8) Neighbor swing', '(0) Form long wave'],
+            },
+            {
+              'name': 'A2',
+              'figures': [balance],
+            },
+          ],
+        });
+        final adapter = CallersBoxAdapter();
+        final discovered = await adapter.discover(
+          ImportRequest(payload: payload),
+        );
+        final across = figuresOf(
+          adapter.parse(await adapter.fetch(discovered.single)).dance,
+        );
+        expect(across.first.move, 'swing', reason: balance);
+        expectRefused(across.skip(1).toList(), balance);
+      }
+    });
 
     test('a robins\' balance names the robins', () async {
       final figures = await _figuresFor([

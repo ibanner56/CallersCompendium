@@ -4571,7 +4571,7 @@ path's stance is deliberate and unchanged.
   paraphrased it as "https only, no userinfo, default port, hop cap" — an
   accurate list of that helper's *incidental* checks and a complete omission of
   its actual safety property, the `isAllowedArtifactHost` call re-run on every
-  hop (`artifact_downloader.dart:412`), which its own doc comment names as what
+  hop (`_sendFollowingHttpsRedirects` in `artifact_downloader.dart`), which its own doc comment names as what
   closes "the downgrade/exfil hole". Every rule that survived the paraphrase
   constrains what a hop looks like; the one that was dropped constrains where it
   can go.

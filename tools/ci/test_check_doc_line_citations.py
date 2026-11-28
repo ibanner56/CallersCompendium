@@ -49,8 +49,21 @@ def run_main(root: Path, *args: str) -> tuple[int, str]:
     return code, buf.getvalue()
 
 
-def test_code_line_is_clean() -> None:
-    assert stale("See `a.dart:3` and `app/lib/a.dart:6`.\n") == []
+def test_a_citation_that_lands_on_code_still_counts() -> None:
+    """Regression (audit H-05): a citation that slid onto a *different* line of
+    code passed, because only blank, comment and missing lines were stale. A
+    line number cannot be checked for meaning, so every one counts."""
+    assert stale("See `a.dart:3` and `app/lib/a.dart:6`.\n") == ["a.dart:3", "app/lib/a.dart:6"]
+
+
+def test_symbol_and_file_citations_are_clean() -> None:
+    assert stale("See `a` in `a.dart` and `app/lib/a.dart`.\n") == []
+
+
+def test_reason_names_the_fix_for_a_resolvable_citation() -> None:
+    findings, _, _ = checker.scan(make_tree({"app/lib/a.dart": DART, "docs/x.md": "`a.dart:3`\n"}))
+    (finding,) = findings
+    assert "cite a symbol" in finding.reason, finding.reason
 
 
 def test_positive_control_known_stale_citations_are_counted() -> None:
@@ -60,8 +73,8 @@ def test_positive_control_known_stale_citations_are_counted() -> None:
     ]
 
 
-def test_range_checks_only_the_first_line() -> None:
-    assert stale("`a.dart:3-99`\n") == []
+def test_a_range_counts_once() -> None:
+    assert stale("`a.dart:3-99`\n") == ["a.dart:3-99"]
 
 
 def test_unbackticked_and_non_dart_citations_are_ignored() -> None:
@@ -75,14 +88,18 @@ def test_missing_file_is_stale() -> None:
 def test_ambiguous_basename_is_stale_but_repo_path_resolves() -> None:
     extra = {"app/test/a.dart": DART}
     assert stale("`a.dart:3`\n", extra) == ["a.dart:3"]
-    assert stale("`app/lib/a.dart:3`\n", extra) == []
+    assert stale("`app/lib/a.dart:3`\n", extra) == ["app/lib/a.dart:3"]
 
 
-def test_partial_path_resolves_by_suffix_or_is_ambiguous() -> None:
-    assert stale("`lib/a.dart:3` `lib/a.dart:1` `b/a.dart:3`\n") == ["lib/a.dart:1", "b/a.dart:3"]
-    extra = {"packages/x/lib/a.dart": DART}
-    assert stale("`lib/a.dart:3`\n", extra) == ["lib/a.dart:3"]  # two suffix matches
-    assert stale("`x/lib/a.dart:3`\n", extra) == []
+def test_unresolvable_path_says_why() -> None:
+    def reasons(doc: str, extra: dict[str, str]) -> list[str]:
+        files = {"app/lib/a.dart": DART, "docs/x.md": doc, **extra}
+        return [f.reason for f in checker.scan(make_tree(files))[0]]
+
+    (ambiguous,) = reasons("`lib/a.dart:3`\n", {"packages/x/lib/a.dart": DART})
+    assert "ambiguous" in ambiguous, ambiguous
+    (missing,) = reasons("`b/a.dart:3`\n", {})
+    assert "not found" in missing, missing
 
 
 def test_audits_are_excluded() -> None:

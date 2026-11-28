@@ -57,9 +57,9 @@ Four details shape every proposal below.
 2. **A tag delete keeps its join rows.** `TagRepository.delete` tombstones the
    tag and leaves `dance_tags` alone, so a revived tag comes back with its
    dances (`TagRepository.delete`). Dance reads hide the tombstoned tag
-   (`dance_repository.dart:3386-3410`), and a dance write leaves those rows in
-   place (`:726-751`). Re-creating a tag under a deleted tag's name adopts the
-   tombstone's id but **clears its join rows** (`existence.dart:385-400`), so
+   (`_tagsForMany` in `dance_repository.dart`), and a dance write leaves those
+   rows in place (`_upsert` in the same file). Re-creating a tag under a deleted tag's name adopts the
+   tombstone's id but **clears its join rows** (`adoptTombstonedNaturalKey` in `existence.dart`), so
    the old dances do not get it back. Only a revival under the same id keeps
    them.
 3. **Author and source deletes are guarded.** Both refuse while a *live*
@@ -215,8 +215,8 @@ The steps run in one transaction:
    deleted are re-pointed too (trash-policy (b)), so restoring one shows the
    survivor.
    - Sync's reconciliation already does this in
-     `CompendiumSyncStorage._rewriteLocalReferences`
-     (`sync_storage.dart:5223-5425`).
+     `CompendiumSyncStorage._rewriteLocalReferences` (since moved, as
+     recommended below, to `rewriteLocalReferences` in `reference_rewrite.dart`).
    - **Recommendation:** extract that method into a storage helper that both
      sync and the user merge call. Rejected alternative: a second copy, which
      would let the two drift.
@@ -236,7 +236,7 @@ The steps run in one transaction:
    - A tombstone is ordinary deletion evidence. A peer whose dances still cite
      the loser holds the deletion pending until the last citation goes
      (§6.8, `sync-spec.md:3724-3734`).
-   - Sync's reconciliation erases its loser (`sync_storage.dart:5181-5182`),
+   - Sync's reconciliation erases its loser (`_migrateLocalIdentity` in `sync_storage.dart`),
      and can afford to, because every device reaches the same decision. A
      user merge is made on one device, so its peers learn of it only through
      the tombstone.
@@ -433,7 +433,7 @@ would broaden it (and, inside **None of**, invert it).
 does today** (D-N2-7 = N2-7 (a), 2026-10-30, as recommended). The reason is sync:
 
 - A dance whose tag is tombstoned no longer lists it in its wire
-  body (`dance_repository.dart:726-732`), so its serialised content changes
+  body (`_tagsForMany` in `dance_repository.dart`), so its serialised content changes
   and I1 requires a bump. A peer applying the bumped dance writes `tagIds`
   without the tag while the tag is still live there, so it deletes the join
   (`DanceRepository.upsert`'s tag-join write). This holds whatever the apply order,
@@ -469,7 +469,8 @@ counted: they don't protect the row (trash-policy (b)), and they lose the tag
 too.
 
 **How long Undo lasts.** The snackbar is the only Undo. Recently deleted lists
-only dances and programs (`recently_deleted_screen.dart:326-367`), and a venue
+only dances and programs (`danceRecentlyDeletedConfig` and `programRecentlyDeletedConfig` in
+`recently_deleted_screen.dart`), and a venue
 delete is already permanent (`settings.md:128-133`).
 
 - `ux.md:201`'s "restore within 30 days" would need tags in Recently deleted.
@@ -699,7 +700,7 @@ The question: should the GC spare rows the user has edited? The options:
 | --- | --- | --- | --- |
 | (a) Keep today's GC | Erase every unpublished row the purge leaves uncited | No change | Silently loses a colour or an author's contact block, and only for users without sync |
 | (b) **Spare rows with details** | Erase only a *bare* row: a tag with no colour; an author with no website, notes, email, location or deceased mark; a source with no author, year, URL or notes | No schema change and no new field, so no registry entry. What the user entered survives, and the manager shows it as **Not used** | Keeps third-party contact data after the dance that explained it is gone |
-| (c) Stop the GC | Uncited rows stay until the user deletes them in the manager | One rule for everyone: published rows are never collected today either (`dance_repository.dart:2255-2296`) | Bare rows from imports pile up |
+| (c) Stop the GC | Uncited rows stay until the user deletes them in the manager | One rule for everyone: published rows are never collected today either (`_garbageCollectOrphanedRefs` in `dance_repository.dart`) | Bare rows from imports pile up |
 | (d) Spare rows "the user edited" | The audit's wording, taken literally | Exact | Needs a per-row edit marker: a new column, a migration, and a registry entry on all three axes |
 
 **Decided: (b)** (D-N2-6 = N2-6 (b), 2026-10-30, as recommended). The test
@@ -735,7 +736,7 @@ default, not only the retention purge; the import-undo path passes
 
 `default_import_tag_names` stores tag **names**, so that it survives sync
 re-identification (`kDefaultImportTagNamesKey` in `display_defaults.dart`,
-`settings_registry.dart:269-278`). A rename or merge must rewrite it; a delete
+its `'default_import_tag_names'` entry in `settings_registry.dart`). A rename or merge must rewrite it; a delete
 should drop the name.
 
 - **Where.** The key is defined in the app (`kDefaultImportTagNamesKey` in `display_defaults.dart`), so
@@ -783,7 +784,7 @@ key, which needs its own entry.
 **Merging author details moves third-party data between rows.** The two rows
 stay in the same egress class (see the table above), so the registry is
 unchanged. The registry's note on `choreographers.email`
-(`field_registry.dart:478-480`) stays true.
+(in `field_registry.dart`) stays true.
 
 ## Sync, summarised
 
@@ -902,7 +903,7 @@ merged; B7 is in flight; B8 and B13 have not started). In the audit record's
     `PublishedSourceRepository` gain `rename`, `mergeInto` and an
     in-use-aware `delete` (tags only), each returning an undo token, plus
     the matching `undo`.
-  - `_rewriteLocalReferences` (`sync_storage.dart:5223-5425`) moves into a
+  - `_rewriteLocalReferences` (then in `sync_storage.dart`) moves into a
     storage helper that both sync and the merge call. Sync keeps its
     behaviour exactly; its existing tests are the guard.
   - The surviving id by the smaller-UUID rule, and the freeing of the

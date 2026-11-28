@@ -48,9 +48,10 @@ typedef SavedSearchUsageLookup =
 /// that something uses is refused (the venue precedent: a venue cannot be
 /// deleted while a program is linked to it).
 ///
-/// Nothing is registered until a dependent feature lands, so every delete is
-/// allowed until then. A saved search can still arrive later by sync from a
-/// peer that had not seen the delete; a dependent must handle a missing id.
+/// Event rules and program templates' slot rules register theirs; a delete
+/// that no registered lookup objects to is allowed. A saved search can still
+/// arrive later by sync from a peer that had not seen the delete; a dependent
+/// must handle a missing id.
 /// Saved searches keep no back-reference list: it would sync and drift.
 final class SavedSearchUsageRegistry {
   final Map<String, SavedSearchUsageLookup> _lookups = {};

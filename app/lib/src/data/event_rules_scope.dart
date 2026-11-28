@@ -7,7 +7,8 @@ const String kEventRulesEnabledKey = 'event_rules_enabled';
 /// Persisted-settings key for the rule picker's **Rule order** (#2341):
 /// the name of an `EventRuleOrder` (`manual` or `mostUsed`), as a `String`.
 /// Unset, or any other value, means `manual` (**My order**), the default.
-/// Read when the picker opens; nothing else reads it.
+/// Read when the picker opens, and read and set by its control in Settings ▸
+/// Experimental.
 const String kEventRuleOrderKey = 'event_rule_order';
 
 /// Exposes the Event rules toggle as a live [ValueNotifier]. While it is

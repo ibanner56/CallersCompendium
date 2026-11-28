@@ -103,7 +103,7 @@ which were brought onto `main` unchanged. Every other citation is against
 ### 4.1 Search
 
 **Today:** none, and the Programs list itself has no text filter either, only a
-sort (`program_sort.dart:12-24`). A caller with 80 programs scrolls an
+sort (`ProgramSort` in `program_sort.dart`). A caller with 80 programs scrolls an
 edit-time-ordered list.
 
 **Options**
@@ -152,7 +152,7 @@ adds a "called" entry to that dance's history. Nobody sees it until the history
 looks wrong.
 
 **What "past" can mean.** Only status is an explicit, user-set signal
-(`enums.dart:22`: `draft`, `finalized`, `performed`). `eventDate` is optional
+(`ProgramStatus` in `enums.dart`: `draft`, `finalized`, `performed`). `eventDate` is optional
 (`Program.eventDate` in `program.dart`) and a date-only value, so "before today" depends on the
 device's local day. A Draft with a past date is as likely to be a set list
 someone is writing up after the fact as a stale one.
@@ -354,7 +354,7 @@ Sync-spec §6.6 (collision reconciliation, `sync-spec.md:3197`) and §6.15 (the
 capability gate, `sync-spec.md:4417`) therefore do not apply.
 
 One adjacent point for F11 rather than this note: the append is read, modify,
-write (`add_to_program_sheet.dart:207-221`), not a compare-and-replace
+write (`_selectProgram` in `add_to_program_sheet.dart`), not a compare-and-replace
 (`ProgramRepository.replaceIfUnchanged`). A concurrent edit to the
 same program between the read and the write could be lost. F11 fixes the
 *Undo* (GIG-19); whether it also moves the *append* to `replaceIfUnchanged` is
