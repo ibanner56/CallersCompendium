@@ -100,7 +100,7 @@ enum SyncDetachCleanupOutcome {
   /// The `DELETE` was sent. Its answer is deliberately not examined.
   deleteSent,
 
-  /// No request was made: no connection, *Sync only on WiFi* on a metered
+  /// No request was made: no connection, *Sync only on Wi-Fi* on a metered
   /// one, or Device Sync turned off.
   skippedConnection,
 
@@ -221,7 +221,7 @@ enum SyncGateOutcome {
   /// Sync is on but no store has been paired yet, so there is nothing to sync.
   notPaired,
 
-  /// *Sync only on WiFi* is on and the connection is metered. An automatic
+  /// *Sync only on Wi-Fi* is on and the connection is metered. An automatic
   /// trigger is dropped; a manual one is routed to the setting.
   suppressedMetered,
 
@@ -379,7 +379,7 @@ class SyncController extends ChangeNotifier {
   bool _settingsUnreadable = false;
 
   /// Bumped when a manual attempt on a metered connection is routed to the
-  /// *Sync only on WiFi* setting; the settings section listens and surfaces it.
+  /// *Sync only on Wi-Fi* setting; the settings section listens and surfaces it.
   final ValueNotifier<int> wifiSettingRequests = ValueNotifier<int>(0);
 
   /// Whether the latest [load] could not read the stored Device Sync settings.
@@ -838,7 +838,7 @@ class SyncController extends ChangeNotifier {
   ///
   /// Returns the outcome that suppressed the attempt, or null when the
   /// connection permits it. [manual] marks an attempt the user just made, which
-  /// is routed to the *Sync only on WiFi* setting rather than dropped silently.
+  /// is routed to the *Sync only on Wi-Fi* setting rather than dropped silently.
   ///
   /// Every caller MUST consult this **before** taking [_inFlight] and notifying:
   /// a suppressed attempt must leave the controller bit-identical, and the
@@ -1266,7 +1266,7 @@ class SyncController extends ChangeNotifier {
   /// in this order so the cheapest refusal costs no request at all:
   ///
   /// 1. Device Sync is on and the §6.12 connection policy would allow a pass:
-  ///    online, and not metered while *Sync only on WiFi* is on. Read from the
+  ///    online, and not metered while *Sync only on Wi-Fi* is on. Read from the
   ///    classifier directly — not [_connectionGate], which would route the
   ///    user to the WiFi setting for an attempt they never made.
   /// 2. `GET /v1/store` lists at least one device other than this one.

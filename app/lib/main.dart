@@ -421,7 +421,7 @@ class CompendiumApp extends StatefulWidget {
   /// this hook never applies to them.
   final ConfiguredSyncCoordinatorFactory? productionSyncCoordinatorFactory;
 
-  /// Reports whether the connection is metered for *Sync only on WiFi*
+  /// Reports whether the connection is metered for *Sync only on Wi-Fi*
   /// (spec §6.12). Injected in widget tests, where the platform channel does
   /// not answer under fake async.
   final SyncNetworkClassifier syncNetworkClassifier;

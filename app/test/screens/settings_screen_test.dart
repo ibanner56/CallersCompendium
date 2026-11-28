@@ -6668,7 +6668,7 @@ void main() {
       // notifies, because this dialog re-shows itself on any notification
       // while the decision is pending — and it is barrier-dismissible-false,
       // so a reopened dialog covers both the routing snackbar and the *Sync
-      // only on WiFi* tile the user is being sent to. A controller unit test
+      // only on Wi-Fi* tile the user is being sent to. A controller unit test
       // cannot see that; this one can.
       testWidgets(
         'confirming on a metered connection routes to the WiFi setting '

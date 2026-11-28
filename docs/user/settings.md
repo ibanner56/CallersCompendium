@@ -64,15 +64,17 @@ The **General** section gathers everyday behavior into small groups.
   instead of fractions (¾). Screen-reader wording is unaffected, and so are
   printed and exported cards: PDFs, shared text and set-list cards always write
   turns as fractions.
-- **Confirm before delete** — adds a prompt before any delete you can undo: a
+- **Confirm before delete** — adds a prompt before these deletes you can undo: a
   dance or program from its **⋮** menu, from the dance or program screen, or
   from Collection's selection mode, and a venue, custom field, tag, author,
   source, shorthand, dialect, custom theme, walkthrough snippet, matrix
   column, program template or saved search, and an event rule when Event
-  rules is on under **Settings ▸ Experimental**. The one exception is swiping a row in the Collection or Programs
-  list: that reveals a **Delete** button, and tapping it deletes with no
-  prompt, because the swipe plus the tap is already a deliberate two-step
-  action. These deletes offer **Undo** either way. When you delete a program,
+  rules is on under **Settings ▸ Experimental**. Two undoable deletes never
+  ask: swiping a row in the Collection or Programs list reveals a **Delete**
+  button, and tapping it deletes with no prompt, because the swipe plus the tap
+  is already a deliberate two-step action; and removing a
+  difficulty level (see [Dance-authoring defaults](#dance-authoring-defaults))
+  asks nothing first. These deletes offer **Undo** either way. When you delete a program,
   the prompt also says how many dances lose it from their calling history. A
   dance already permanently deleted is not counted. A delete that can't be
   undone always asks first, whether this is on or off.
