@@ -17,6 +17,7 @@ import '../support/test_repositories.dart';
 void main() {
   late List<String> fetched;
   setUp(() => fetched = []);
+  setUp(readDanceLinksInPlace);
 
   Future<String> recordingFetcher(String url) async {
     fetched.add(url);
