@@ -151,16 +151,21 @@ bool _leftoverSharedFilesCleared = false;
 void resetLeftoverSharedFilesClearedForTesting() =>
     _leftoverSharedFilesCleared = false;
 
+/// Whether [clearLeftoverSharedFiles] has been called in this process.
+@visibleForTesting
+bool get leftoverSharedFilesClearedForTesting => _leftoverSharedFilesCleared;
+
 /// Clears what earlier runs left staged for sharing: the staging folder
 /// ([clearShareStaging]) and, on Android, `share_plus`'s copies
 /// ([clearSharePlusCopies]). Not on Linux, where a file is never staged (it
 /// is saved instead, [isBundleShareUnsupported]) and the temporary folder is
 /// the system's shared one. Never throws.
 ///
-/// Only the first call in a process does anything. The app calls it when a
-/// bootstrap succeeds, and a Retry or a reset bootstraps again in the same
+/// Only the first call in a process does anything. The app calls it as each
+/// bootstrap starts, and a Retry or a reset bootstraps again in the same
 /// process, possibly while a file shared moments before (a recovery copy
-/// shared before a reset) is still being read by the app it went to.
+/// shared from the recovery screen before a reset) is still being read by
+/// the app it went to.
 Future<void> clearLeftoverSharedFiles({
   required TargetPlatform platform,
   ShareTempDirProvider temporaryDirectory = getTemporaryDirectory,

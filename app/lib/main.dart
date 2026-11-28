@@ -1533,6 +1533,16 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// Runs [_startupSequence], recording any failure in the crash log (source
   /// `main.bootstrap`) exactly once before rethrowing it to the recovery UI.
   Future<void> _runBootstrap() async {
+    // A shared file stays staged until the next share, as the receiving app
+    // may not have read it when the share sheet closed; delete what the last
+    // run left. Once per process (later calls do nothing), at the first
+    // attempt and not the first success: the recovery screen a failed
+    // bootstrap shows can share a recovery copy, and a Reset then bootstraps
+    // again while that copy may still be being read. It reads no database.
+    // Local and silent, like the sweeps at the end of a bootstrap.
+    if (!kIsWeb) {
+      unawaited(clearLeftoverSharedFiles(platform: defaultTargetPlatform));
+    }
     try {
       await _startupSequence();
     } on Object catch (error, stackTrace) {
@@ -2152,14 +2162,6 @@ class _CompendiumAppState extends State<CompendiumApp>
     // Local and silent, like the sweep above.
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       unawaited(deleteLeftoverCapturedPhotos());
-    }
-    // A shared file stays staged until the next share, as the receiving app
-    // may not have read it when the share sheet closed; delete what the last
-    // run left. Once per process, not per bootstrap: a Retry or a reset may
-    // follow a share whose file is still being read. Local and silent, like
-    // the sweeps above.
-    if (!kIsWeb) {
-      unawaited(clearLeftoverSharedFiles(platform: defaultTargetPlatform));
     }
     // Scheduled only here, at the success tail, so a failed attempt that Retry
     // re-runs never queues a probe and each successful bootstrap probes once.
