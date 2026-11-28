@@ -333,7 +333,7 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "doc-line-citations",
-        "docs' `file.dart:N` line citations still land on code (count ceiling)",
+        "docs cite Dart code by symbol or file, not `file.dart:N` line (count ceiling)",
         (
             py("tools/ci/test_check_doc_line_citations.py"),
             py("tools/ci/check_doc_line_citations.py"),

@@ -46,8 +46,8 @@ app cannot express either today:
 
 - `CalledFilter` has only `called`, `callerFilter`, `performedOnly` and
   `requireEventDate`. It has no venue or date scope
-  (`packages/compendium_core/lib/src/search/filter.dart:282-302`, compiled at
-  `filter_compiler.dart`).
+  (`CalledFilter` in `packages/compendium_core/lib/src/search/filter.dart`,
+  compiled in `filter_compiler.dart`).
 - The Filters panel offers only a Called / Not called pair
   (the `call-status-called` and `call-status-not-called` chips in `app/lib/src/widgets/facet_panel.dart`). It becomes a `CalledFilter`
   in `packages/compendium_core/lib/src/search/collection_search_state.dart`
@@ -99,10 +99,10 @@ this note cites by bare name are in the same directory.
    event date when there is one, and the tap time only for undated programs. B1
    carried it out in #2032 as `COALESCE(event_date, performed_at, updated_at)`.
    The last fallback, `updated_at`, is B1's own choice, not part of the decision.
-   *Update, 2026-10-30 (all line numbers in this paragraph and the next are at
-   `90fe5e8`):* B1 put the expression in one helper, `callingHistoryDateSql`
-   (`packages/compendium_core/lib/src/storage/calling_history_scope.dart:47-52`;
-   the event-date clause in constraint 1 is now at `:65-68`).
+   *Update, 2026-10-30:* B1 put the expression in one helper,
+   `callingHistoryDateSql`
+   (`packages/compendium_core/lib/src/storage/calling_history_scope.dart`,
+   which also holds the event-date clause in constraint 1).
    History order (`ProgramRepository._callingHistoryRows`) and the Last-called sort
    (`DanceRepository._sortByLastCalled`) read it. It has two Dart copies, each with
    its own `eventDate ?? performedAt ?? programUpdatedAt` chain:
@@ -187,7 +187,7 @@ every option below.
 
 | Route | For | Against |
 | --- | --- | --- |
-| **A Dart SQL function** (recommended) | `applyCompendiumSqliteSetup` registers a function, `cc_venue_key(text)`, on every connection (`packages/compendium_core/lib/src/storage/database_setup.dart`). Both connections the app opens use that setup: the app's (`app/lib/src/data/app_database.dart`) and the sync isolate's (`app/lib/src/sync/sync_isolate.dart`). The compiler emits `AND p.venue_id IS NULL AND cc_venue_key(p.venue) = ?`. The summary calls the same Dart function. One rule, exact, no extra query. | Every connection must register it, and today only the two production ones run the setup. The test databases (`openTestDatabase` in `packages/compendium_core/test/storage/test_database.dart`, and a second connection there; `app/test/support/test_repositories.dart:29`) and the core tools and benchmarks (`packages/compendium_core/tool/write_head_database.dart:55`, `packages/compendium_core/benchmark/search_benchmark.dart:59` and `scalability_benchmark.dart:482`) open without it, and would fail with "no such function". Only a search with a `text:` venue scope would fail there with "no such function" (since then the same setup also registers `cc_fold`, which an All fields or Author search calls; see [search.md](search.md)), and many more test files open their own connection. So H1 passes the setup in the two shared test helpers and the tools above (WAL is a no-op in memory, `applyCompendiumSqliteSetup` in `database_setup.dart`). Venue-scope tests use those helpers, and one test per production path asserts the function exists. An open-time check was rejected: it would break every other connection site, whether or not it searches by venue. |
+| **A Dart SQL function** (recommended) | `applyCompendiumSqliteSetup` registers a function, `cc_venue_key(text)`, on every connection (`packages/compendium_core/lib/src/storage/database_setup.dart`). Both connections the app opens use that setup: the app's (`app/lib/src/data/app_database.dart`) and the sync isolate's (`app/lib/src/sync/sync_isolate.dart`). The compiler emits `AND p.venue_id IS NULL AND cc_venue_key(p.venue) = ?`. The summary calls the same Dart function. One rule, exact, no extra query. | Every connection must register it, and today only the two production ones run the setup. The test databases (`openTestDatabase` in `packages/compendium_core/test/storage/test_database.dart`, and a second connection there; `openWidgetTestDatabase` in `app/test/support/test_repositories.dart`) and the core tools and benchmarks (`packages/compendium_core/tool/write_head_database.dart`, `packages/compendium_core/benchmark/search_benchmark.dart` and `scalability_benchmark.dart`) open without it, and would fail with "no such function". Only a search with a `text:` venue scope would fail there with "no such function" (since then the same setup also registers `cc_fold`, which an All fields or Author search calls; see [search.md](search.md)), and many more test files open their own connection. So H1 passes the setup in the two shared test helpers and the tools above (WAL is a no-op in memory, `applyCompendiumSqliteSetup` in `database_setup.dart`). Venue-scope tests use those helpers, and one test per production path asserts the function exists. An open-time check was rejected: it would break every other connection site, whether or not it searches by venue. |
 | Resolve to program ids first | `DanceRepository.search` lists live programs and folds their venues in Dart before compiling, so the compiler stays pure. | An extra query on every search. An `IN (…)` list that grows with the venue's history and needs chunking past the bind limit (`_chunkIds` in `dance_repository.dart`). |
 | A stored folded column | Plain indexed SQL. | A schema bump, a migration, a registry entry and a sync review, all to fix a whitespace rule. |
 
@@ -431,7 +431,7 @@ being edited, and "in program ×N" shows that program separately.
 **The card-fields setting is an allow-list.** `collection_tile_visible_fields`
 stores the names of the **visible** fields. A user who has changed it has a list
 without `lastCalled`, so the chip stays hidden for them until they turn it on
-(`app/lib/src/data/collection_tile_fields_scope.dart:136-144`). Contrast the
+(`CollectionTileFieldsScope.decodeStored` in `app/lib/src/data/collection_tile_fields_scope.dart`). Contrast the
 hidden-facets key, a deny-list "so a filter added later is visible by default"
 (`kCollectionHiddenFacetsKey` in `app/lib/src/data/settings_keys.dart`).
 - The key is a shareable `_preference`
@@ -524,7 +524,7 @@ These hold on every surface.
   `savedSearches.v1`); the window is kept as months back, never as a date.
 - **`collection_tile_visible_fields` gains a value** (Q4). It is already
   `_preference`: non-personal, about the app user, shareable
-  (`settings_registry.dart:20-24`). An older peer ignores the new name, so the
+  (`_preference` in `settings_registry.dart`). An older peer ignores the new name, so the
   value needs no capability gate. The deny-list alternative in Q4 would need one.
 - **The picker does not remember the chip.** N1-5 = (a) starts it off for each
   program, so no key is needed. (Remembering an "off" choice was a sub-question
