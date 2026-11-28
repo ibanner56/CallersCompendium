@@ -4100,9 +4100,9 @@
   "@crashFallbackTitle": {
     "x-sourceSha256": "8f57c66fd319b8791131188ba4d99ec2acfbfa4c163fa2619b636df3550dd244"
   },
-  "crashFallbackBody": "Cette partie de l’application a rencontré une erreur inattendue. Les détails ont été enregistrés dans un journal de diagnostic local (Réglages ▸ Diagnostics) qui ne quitte jamais votre appareil. Revenez en arrière et réessayez.",
+  "crashFallbackBody": "Cette partie de l’application a rencontré une erreur inattendue. Les détails ont été enregistrés dans un journal de diagnostic local (Réglages ▸ Diagnostics) que l’application n’envoie jamais nulle part. Revenez en arrière et réessayez.",
   "@crashFallbackBody": {
-    "x-sourceSha256": "cd6f68c73b3c2787820f5718ad32da5f46fb8cbc3a2118cabd52661160020182"
+    "x-sourceSha256": "3bed66f33c77d41cd2da4526321ed13f64a936c5f8e7bfc22ef01ecfc92b0d90"
   },
   "crashFallbackCopied": "Copié",
   "@crashFallbackCopied": {

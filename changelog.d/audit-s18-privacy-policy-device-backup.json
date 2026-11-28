@@ -1,0 +1,11 @@
+{
+  "id": "audit-s18-privacy-policy-device-backup",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The privacy policy has changed. In this release it says that on iPhone and iPad the app can ask to use your camera, that a picture you choose with From an image… or Dance code from a picture… is read on your device and never uploaded, lists the calendar import beside the update check and says that a program imported from your calendar keeps a scrambled stamp of the calendar's address, never the address itself, and says that a calendar (.ics) export includes a venue's address when you tick that option. The website's copy now also says, as the store copy did, that a backup file's checksum catches accidental damage but is not encryption. It now also says that your device's own backup can copy the app's data: Android's backup to your Google account and its transfer to a new phone, or on iPhone and iPad an iCloud or computer backup and moving to a new device. That copy includes what the app's own backup file leaves out, such as your calendar address, your Device Sync settings and edits you haven't saved.",
+      "The user guide's Backup & portability page has a new section, Your device's own backup, on what that copy holds and where it is set.",
+      "When part of the app hits an unexpected error, its message now says the diagnostics log is one the app never sends anywhere, instead of one that never leaves your device, since your device's own backup can copy it."
+    ]
+  }
+}
