@@ -56,10 +56,23 @@ const _destructiveConfirms = <(String, String)>[
 /// resets, overwrites or discards the user's data. Matched as whole words of
 /// the camelCase key (`commonDelete`, `callingCardEditorReset`), so
 /// `recentlyDeletedRestore` (Restore, from the bin) is not one.
-final _destructiveVerb = RegExp(
-  r'(?:^|[a-z0-9])(Delete|Remove|Reset|Replace|Discard|Clear|Wipe|Purge|'
-  r'Overwrite|Erase)(?=[A-Z0-9]|$)',
-);
+const _destructiveVerbs = {
+  'delete',
+  'remove',
+  'reset',
+  'replace',
+  'discard',
+  'clear',
+  'wipe',
+  'purge',
+  'overwrite',
+  'erase',
+};
+
+/// Whether one of the camelCase words of the l10n [key] is a destructive verb.
+bool _namesDestructiveVerb(String key) => key
+    .split(RegExp(r'(?=[A-Z0-9])'))
+    .any((word) => _destructiveVerbs.contains(word.toLowerCase()));
 
 /// Dialog action buttons whose label names a destructive verb but which do
 /// not themselves confirm the destructive action, by `path#label key`, each
@@ -148,9 +161,9 @@ List<DialogAction> dialogActionsIn(
 
 /// The `path#label key` that names [action] in [_notConfirmations].
 String _id(DialogAction action) =>
-    '${action.path}#${action.labelKeys.firstWhere(_destructiveVerb.hasMatch)}';
+    '${action.path}#${action.labelKeys.firstWhere(_namesDestructiveVerb)}';
 
-bool _destructive(DialogAction a) => a.labelKeys.any(_destructiveVerb.hasMatch);
+bool _destructive(DialogAction a) => a.labelKeys.any(_namesDestructiveVerb);
 
 Set<String> _l10nKeys() => {
   for (final k
@@ -262,6 +275,11 @@ showDialog(builder: (ctx) => AlertDialog(
     expect(found[1].key, "const ValueKey('plain-delete')");
     expect(found[2].destructiveFilled, isTrue);
     expect(found[2].labelKeys, isEmpty);
+    // Whole words of the key: a verb at the start counts; "Deleted" does not.
+    expect(_namesDestructiveVerb('commonDelete'), isTrue);
+    expect(_namesDestructiveVerb('clearAllConfirm'), isTrue);
+    expect(_namesDestructiveVerb('recentlyDeletedRestore'), isFalse);
+    expect(_namesDestructiveVerb('commonCancel'), isFalse);
   });
 
   for (final (path, key) in _destructiveConfirms) {
