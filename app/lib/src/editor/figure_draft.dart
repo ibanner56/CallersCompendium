@@ -1129,11 +1129,13 @@ List<Object?> figureCounts(Iterable<FigureDraft> drafts) => [
 /// figures with a count (#709: its count is its expansion's, not the row's to
 /// change), no count changes and the result is [FigureBarsRescale.notExact].
 /// The rows' [FigureDraft.beatsTouched] are kept, so a count still follows
-/// its move's default as it did before.
+/// its move's default as it did before. Each count changed is recorded in
+/// [originals] with the value it had, unless it is there already.
 FigureBarsRescale rescaleFigureBars(
   List<FigureDraft> drafts, {
   required BarTiming from,
   required BarTiming to,
+  Map<FigureDraft, int>? originals,
 }) {
   if (from == to) return FigureBarsRescale.unchanged;
   final writes = <(FigureDraft, int)>[];
@@ -1185,6 +1187,7 @@ FigureBarsRescale rescaleFigureBars(
   }
   if (writes.isEmpty) return FigureBarsRescale.unchanged;
   for (final (draft, beats) in writes) {
+    originals?.putIfAbsent(draft, () => draft.params['beats']! as int);
     draft.params['beats'] = beats;
   }
   return FigureBarsRescale.rescaled;

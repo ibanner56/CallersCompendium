@@ -921,6 +921,7 @@ class DanceEditorController extends ChangeNotifier {
       _form = dance.form;
       _statedBeatsPerBarSeen = _statedBeatsPerBarApplied;
       _countsLeftInBars = null;
+      _stepBars = null;
       _followForm();
       _formationShape = dance.formation.shape;
       _progression = dance.progression;
@@ -1538,6 +1539,7 @@ class DanceEditorController extends ChangeNotifier {
     // and making it English applies the Meter as for a dance just opened.
     _statedBeatsPerBarSeen = _statedBeatsPerBarApplied;
     _countsLeftInBars = null;
+    _stepBars = null;
     _formationShape = s.formationShape;
     _improper = s.improper;
     _progression = s.progression;
@@ -1984,7 +1986,10 @@ class DanceEditorController extends ChangeNotifier {
     // Meter changes nothing (ADR-006 §9.2 point 8). Unlike a Meter typed in
     // an English dance ([onMeterChanged]), it changes no figure's count: the
     // other form counted them in beats, not in bars to keep.
-    if (from != value) _countsLeftInBars = null;
+    if (from != value) {
+      _countsLeftInBars = null;
+      _stepBars = null;
+    }
     if (from != value && offersNamedPhrases) {
       final perBar = statedBeatsPerBar;
       if (perBar != _statedBeatsPerBarSeen) {
@@ -3093,11 +3098,12 @@ class DanceEditorController extends ChangeNotifier {
     }
     // Reads the phrases again ([phraseStructure]).
     recomputeWarnings();
-    final change = _keepFigureBars(
-      before,
-      _timingFor(_phraseStructure, perBar),
-      stepBefore,
-    );
+    final after = _timingFor(_phraseStructure, perBar);
+    // A Meter the bars do not follow (phrases that differ in beats to the
+    // bar, or the same beats in other words) leaves the counts alone.
+    final change = before == after
+        ? null
+        : _keepFigureBars(before, after, stepBefore);
     _notify();
     scheduleUndoPush();
     scheduleAutosave();
@@ -3110,33 +3116,65 @@ class DanceEditorController extends ChangeNotifier {
   /// ([figureBarsChange]): the change, or null when no count needed changing.
   /// [stepBefore] is the undo step the edit's own step follows.
   ///
-  /// Counts an earlier edit could not move keep the bars they were entered
-  /// in while none of them has changed since ([_countsLeftInBars]). With no
-  /// new change, a notice whose figures no longer read the way it says (a
-  /// Meter typed back, say) goes stale. Callers read the phrases
+  /// Callers call it only when [before] and [after] differ.
+  ///
+  /// Within one undo step still waiting out its debounce, each edit counts
+  /// from where the step started ([_stepBars]): the counts go back to what
+  /// they were then, and are moved again from those bars, so typing `12` in
+  /// a phrase's beats to the bar is not two moves, through 1 and then to 12,
+  /// but one. Counts an earlier step could not move keep the bars they were
+  /// entered in while none of them has changed since ([_countsLeftInBars]).
+  /// With no new change, a notice whose figures no longer read the way it
+  /// says (a Meter typed back, say) goes stale. Callers read the phrases
   /// ([recomputeWarnings]) before, and notify after.
   FigureBarsChange? _keepFigureBars(
     BarTiming before,
     BarTiming after,
     EditorSnapshot? stepBefore,
   ) {
+    final step = _stepBars;
     final left = _countsLeftInBars;
     _countsLeftInBars = null;
-    final from =
-        left != null && listEquals(left.counts, figureCounts(figureDrafts))
-        ? left.timing
-        : before;
-    FigureBarsChange? change;
-    if (from != after) {
-      final outcome = rescaleFigureBars(figureDrafts, from: from, to: after);
-      if (outcome != FigureBarsRescale.unchanged) {
-        change = FigureBarsChange._(outcome, after, stepBefore);
+    final counts = figureCounts(figureDrafts);
+    final BarTiming from;
+    final Map<FigureDraft, int> originals;
+    if (step != null &&
+        identical(step.stepBefore, stepBefore) &&
+        (_undoTimer?.isActive ?? false) &&
+        listEquals(step.counts, counts)) {
+      from = step.timing;
+      originals = step.originals;
+      for (final MapEntry(key: draft, value: beats) in originals.entries) {
+        draft.params['beats'] = beats;
       }
-      if (outcome == FigureBarsRescale.notExact) {
-        _countsLeftInBars = (timing: from, counts: figureCounts(figureDrafts));
-      }
-      if (outcome == FigureBarsRescale.rescaled) recomputeWarnings();
+    } else {
+      from = left != null && listEquals(left.counts, counts)
+          ? left.timing
+          : before;
+      originals = {};
     }
+    final outcome = from == after
+        ? FigureBarsRescale.unchanged
+        : rescaleFigureBars(
+            figureDrafts,
+            from: from,
+            to: after,
+            originals: originals,
+          );
+    FigureBarsChange? change;
+    if (outcome != FigureBarsRescale.unchanged) {
+      change = FigureBarsChange._(outcome, after, stepBefore);
+    }
+    if (outcome == FigureBarsRescale.notExact) {
+      _countsLeftInBars = (timing: from, counts: figureCounts(figureDrafts));
+    }
+    _stepBars = (
+      stepBefore: stepBefore,
+      timing: from,
+      originals: originals,
+      counts: figureCounts(figureDrafts),
+    );
+    if (originals.isNotEmpty) recomputeWarnings();
     if (change != null) {
       _figureBarsChange = change;
     } else if (_figureBarsChange case final shown?
@@ -3168,6 +3206,21 @@ class DanceEditorController extends ChangeNotifier {
   /// when the counts mean the bars they read in. Not in a snapshot: an undo,
   /// a redo, a restored draft or a change of form forgets it.
   ({BarTiming timing, List<Object?> counts})? _countsLeftInBars;
+
+  /// Where the undo step waiting out its debounce started, for the edits
+  /// [_keepFigureBars] makes in it: the undo step before it, how the figures
+  /// were read then, each count changed since with the value it had then,
+  /// and the counts as the last of those edits left them ([figureCounts]).
+  /// It applies only while that step is still waiting and no count has
+  /// changed otherwise. Not in a snapshot: an undo, a redo, a restored draft
+  /// or a change of form forgets it.
+  ({
+    EditorSnapshot? stepBefore,
+    BarTiming timing,
+    Map<FigureDraft, int> originals,
+    List<Object?> counts,
+  })?
+  _stepBars;
 
   /// What the latest edit that keeps the figures' bars did to their counts
   /// (a Meter edit, [onMeterChanged], or a phrase's beats to the bar,
@@ -3298,11 +3351,11 @@ class DanceEditorController extends ChangeNotifier {
     if (offersNamedPhrases &&
         !listEquals(_beatsPerBarOf(before), _beatsPerBarOf(after))) {
       final stated = statedBeatsPerBar;
-      _keepFigureBars(
-        _timingFor(before, stated),
-        _timingFor(after, stated),
-        stepBefore,
-      );
+      final timingBefore = _timingFor(before, stated);
+      final timingAfter = _timingFor(after, stated);
+      if (timingBefore != timingAfter) {
+        _keepFigureBars(timingBefore, timingAfter, stepBefore);
+      }
     }
     _notify();
     scheduleUndoPush();

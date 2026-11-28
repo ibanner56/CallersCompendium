@@ -264,9 +264,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// and 48).
   _FigureBarsNotice? _figureBarsNotice;
 
-  /// Shows the notice for an edit that changed or kept the figures' counts ([DanceEditorController.figureBarsChange]), and puts it away once
-  /// its Undo would no longer take that edit back: a later edit, or an Undo
-  /// or Redo, moved the history on ([DanceEditorController.canUndoFigureBarsChange]).
+  /// Shows the notice for an edit that changed or kept the figures' counts
+  /// ([DanceEditorController.figureBarsChange]), and puts it away once its
+  /// Undo would no longer take that edit back: a later edit, or an Undo or
+  /// Redo, moved the history on
+  /// ([DanceEditorController.canUndoFigureBarsChange]).
   void _syncFigureBarsNotice() {
     final change = _controller.figureBarsChange;
     if (change != null && !identical(change, _figureBarsNoticeFor)) {

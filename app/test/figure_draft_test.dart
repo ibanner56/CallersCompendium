@@ -886,6 +886,74 @@ void main() {
       );
     });
 
+    test('reads the old counts where they fell before', () {
+      // The reverse of the first: A back in two beats to the bar.
+      final rows = [row(6), row(6), row(8)];
+      expect(
+        rescaleFigureBars(
+          rows,
+          from: byPhrase('A:1*4*3 + B:1*4*2'),
+          to: BarTiming.fixed(2),
+        ),
+        FigureBarsRescale.rescaled,
+      );
+      expect([for (final r in rows) r.beats], [4, 4, 8]);
+      // A sequence's steps too: two bars of A, then two of B.
+      final sequence = FigureDraft(sequenceFigures: [row(6), row(4)]);
+      expect(
+        rescaleFigureBars(
+          [sequence],
+          from: byPhrase('A:1*2*3 + B:1*6*2'),
+          to: BarTiming.fixed(2),
+        ),
+        FigureBarsRescale.rescaled,
+      );
+      expect(
+        [for (final step in sequence.sequenceFigures!) step.beats],
+        [4, 4],
+      );
+    });
+
+    test('a row Save leaves out keeps its bars but does not move the rows '
+        'after it', () {
+      // A meanwhile with one side filled in does not save.
+      final unsaved = FigureDraft.group(meanwhileMove, row(8), FigureDraft());
+      expect(unsaved.savesAsFigure, isFalse);
+      final rows = [unsaved, row(4), row(8)];
+      expect(
+        rescaleFigureBars(
+          rows,
+          from: BarTiming.fixed(2),
+          to: byPhrase('A:1*4*3 + B:1*4*2'),
+        ),
+        FigureBarsRescale.rescaled,
+      );
+      expect([for (final r in rows) r.beats], [12, 6, 10]);
+    });
+
+    test("a sequence's own span is read where it starts, its untimed steps "
+        'left so', () {
+      FigureDraft untimed() => FigureDraft(move: 'ecd_set', beatsTouched: true);
+      final span = FigureDraft(sequenceFigures: [untimed(), untimed()])
+        ..setSequenceSpan(4);
+      final rows = [span, row(8)];
+      expect(
+        rescaleFigureBars(
+          rows,
+          from: BarTiming.fixed(2),
+          to: byPhrase('A:1*2*3 + B:1*6*2'),
+        ),
+        FigureBarsRescale.rescaled,
+      );
+      // 2 bars of A, then 4 bars of B.
+      expect([for (final r in rows) r.beats], [6, 8]);
+      expect(span.sequenceSpanStated, isTrue);
+      expect(
+        [for (final step in span.sequenceFigures!) step.params['beats']],
+        [null, null],
+      );
+    });
+
     test('a half bar that now falls in a bar of three changes no count', () {
       final rows = [row(3), row(8)];
       expect(
