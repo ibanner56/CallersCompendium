@@ -311,29 +311,35 @@ class _PhraseGroupsEditorState extends State<PhraseGroupsEditor> {
             String label,
             int? value,
           ) {
+            // The row's number goes before the field's label for a screen
+            // reader, since every row's three fields share their labels
+            // (pre-release audit finding B-11).
             return SizedBox(
               width: width,
-              child: TextField(
-                key: ValueKey('phrase-row-$index-$name'),
-                controller: controller,
-                enabled: enabled,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(
-                    '${PhraseStructure.maxComponentNumber}'.length,
+              child: Semantics(
+                label: l10n.danceEditorPhraseRowsRow(index + 1),
+                child: TextField(
+                  key: ValueKey('phrase-row-$index-$name'),
+                  controller: controller,
+                  enabled: enabled,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(
+                      '${PhraseStructure.maxComponentNumber}'.length,
+                    ),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: label,
+                    errorText: value == null
+                        ? l10n.danceEditorPhraseRowsRange(
+                            PhraseStructure.maxComponentNumber,
+                          )
+                        : null,
+                    errorMaxLines: 2,
                   ),
-                ],
-                decoration: InputDecoration(
-                  labelText: label,
-                  errorText: value == null
-                      ? l10n.danceEditorPhraseRowsRange(
-                          PhraseStructure.maxComponentNumber,
-                        )
-                      : null,
-                  errorMaxLines: 2,
+                  onChanged: (_) => _write(typed: true),
                 ),
-                onChanged: (_) => _write(typed: true),
               ),
             );
           }

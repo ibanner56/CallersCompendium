@@ -78,8 +78,8 @@ class FigureTextSheet extends StatefulWidget {
   /// the dance.
   final FigureTextReading Function(String text) read;
 
-  /// Whether [read] drops a leading `A1`…`C2` phrase label (contra dances),
-  /// which the help text then says.
+  /// Whether [read] drops a leading `A1`…`C2` phrase label (contra and
+  /// square dances), which the help text then says.
   final bool dropsPhraseLabels;
 
   /// Opens the sheet and resolves to the rows to insert, or null when the

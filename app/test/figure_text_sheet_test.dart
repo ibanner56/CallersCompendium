@@ -229,6 +229,42 @@ void main() {
     expect(labelled, bare);
   });
 
+  testWidgets('a square line with a leading A1..C2 label reads as the line '
+      'without it, as contra\'s does (pre-release audit finding B-07)', (
+    tester,
+  ) async {
+    const lines = ['Heads forward and back (8)', 'Swing corners (16)'];
+    final bare = await _pasted(
+      tester,
+      lines.join('\n'),
+      freeText: false,
+      form: DanceForm.square,
+    );
+    final labelled = await _pasted(
+      tester,
+      ['A1  ${lines[0]}', 'B1: ${lines[1]}'].join('\n'),
+      freeText: false,
+      form: DanceForm.square,
+    );
+    expect(labelled, bare);
+    expect(labelled, hasLength(2));
+  });
+
+  testWidgets('a square\'s sheet says a leading label is left out', (
+    tester,
+  ) async {
+    final repos = await _repos(freeText: false, form: DanceForm.square);
+    await _pumpEditor(tester, repos);
+    await _openSheet(tester);
+    expect(
+      find.textContaining(
+        'A phrase label such as A1 at the start of a line '
+        'is left out',
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('an English "A1 1-8 lead up" reads as it does when typed', (
     tester,
   ) async {

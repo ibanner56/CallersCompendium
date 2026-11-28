@@ -9179,6 +9179,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseRowsRow(int number) {
+    return 'Zeile $number';
+  }
+
+  @override
   String danceEditorPhraseRowsInvalid(int max) {
     return 'Gib in jedes Feld eine ganze Zahl von 1 bis $max ein, in einer Struktur, die nicht zu lang ist. Bis dahin bleibt die letzte gültige Phrasierungsstruktur erhalten.';
   }

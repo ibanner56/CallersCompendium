@@ -317,13 +317,14 @@ class DanceEditorForm extends StatelessWidget {
   /// Builds rows without placing them, so the sheet can preview them on every
   /// change and the dance changes only on **Add figures**. Each line is placed
   /// after the lines before it, so a bar range counts from where it will
-  /// start. Contra dances drop a leading `A1`…`C2` phrase label first (but not
-  /// a `C1`/`C2` corner code, `C2 corner …`); English dances keep it, because
+  /// start. Contra and square dances, whose phrases are unnamed, drop a
+  /// leading `A1`…`C2` phrase label first (but not a `C1`/`C2` corner code,
+  /// `C2 corner …`); English dances keep it, because
   /// the parser reads `A1 1-8 lead up`.
   FigureTextReading _readFigureText(BuildContext context, String text) {
     final split = splitFigureTextLines(
       text,
-      dropPhraseLabels: controller.form == DanceForm.contra,
+      dropPhraseLabels: !controller.offersNamedPhrases,
     );
     final refusal = split.refusal;
     if (refusal != null) return FigureTextReading.refused(refusal);
@@ -395,7 +396,7 @@ class DanceEditorForm extends StatelessWidget {
     final drafts = await FigureTextSheet.show(
       context,
       read: (text) => _readFigureText(context, text),
-      dropsPhraseLabels: controller.form == DanceForm.contra,
+      dropsPhraseLabels: !controller.offersNamedPhrases,
     );
     if (drafts == null || drafts.isEmpty) return 0;
     return controller.appendFigureDrafts(drafts) ? drafts.length : 0;

@@ -9060,6 +9060,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseRowsRow(int number) {
+    return 'Row $number';
+  }
+
+  @override
   String danceEditorPhraseRowsInvalid(int max) {
     return 'Give each field a whole number from 1 to $max, in a structure that is not too long. Until then the last valid phrase structure is kept.';
   }

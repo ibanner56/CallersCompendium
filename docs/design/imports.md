@@ -645,7 +645,13 @@ declines the collapse.
   one. `Type` "Circle Mixer"/"Scatter Mixer"/"Longways" gives that shape (the
   two mixers with `mixer: true`). Otherwise the `Formation` family decides: Four
   Facing Four, Triplet, Triple Minor (its `ContraForm` start as the detail),
-  Square (`other`, detail "Square"; the dance form comes from `Type`), Other
+  Square (`other`, detail "Square"; the dance form comes from `Type`; a
+  square dance's formation is then one of a square's shapes,
+  `_mapSquareDanceFormation`: `square`, read as an English square set is,
+  when the source names a square or no shape (blank, a start alone, a duple
+  minor), `circle` for a big circle, else `other`, such as a hexagon, always
+  with the source's other words as the detail and no improper flag; ADR-007
+  §8.1, pre-release audit finding B-02), Other
   (`other`). A blank family and start with only `FormationOther` is read as the
   text export's single string would be. A Duple Minor, or a blank family, is
   refined by `ContraForm` and `Direction`: Becket with `CCW` is `becketCcw`
@@ -1973,11 +1979,14 @@ has to be judged in its own context.
   with `splitFigureTextLines` (`imports/figure_text_lines.dart`), which refuses
   text over `maxFigureTextLines` lines, `maxFigureTextLength` characters, or a
   line over `maxFreeTextEntryLength` (which the parser would read as nothing),
-  skips a line that is only a phrase label, and, in a contra dance, drops a
-  leading `A1`…`C2` label with `splitPhraseLabel`, the splitter the Caller's
-  Companion text adapter reads its sections with. English and square dances
-  keep the label: the ECD bar reader drops one only in front of a bar range
-  (`A1 1-8 lead up`), and other labelled lines stay custom.
+  skips a line that is only a phrase label, and, in a contra or square dance
+  (the forms whose phrases are unnamed), drops a leading `A1`…`C2` label with
+  `splitPhraseLabel`, the splitter the Caller's Companion text adapter reads
+  its sections with, but keeps a `C1` or `C2` followed by `corner(s)`, a
+  corner dancer as The Caller's Box writes one (`C2 corner allemande left
+  1`). English dances keep the label: the ECD bar reader drops
+  one only in front of a bar range (`A1 1-8 lead up`), and other labelled
+  lines stay custom.
 - **Only the dance's own form's calls.** Free-text entry and the re-read of
   import-gap lines (`reparseImportGapFigures`) keep a figure only when it
   and every figure inside it belong to the dance's form (`figureFitsForm`,
@@ -2854,7 +2863,12 @@ ECD dance.
   formation past the word "Square" stays as the detail (Newcastle's
   "Quadruplet; Four couples…", an unknown family such as "Hexagon", a
   `ContraForm` start and `Direction`, or a text "Square set"; a `.USR` with no
-  family and no start is read from its `FormationOther`, as #1972 reads it), so an unknown family is kept as its `cc_unmapped_formation`
+  family and no start is read from its `FormationOther`, as #1972 reads it;
+there the word "square" makes a square set only when the text starts with it
+or names no shape besides a start word, so "Sicilian circle; square through
+to start" stays a Sicilian circle with the text in its detail, while "Four
+couples in a square, improper" is a square set; the text export's single
+string still takes any "square"), so an unknown family is kept as its `cc_unmapped_formation`
   warning says, and a Square formation raises no such warning. A square in a
   big circle (`Circle` family) keeps the `circle` shape, which squares use for
   it (ADR-007 §8.1). A square keeps its SubType's repeat order and its

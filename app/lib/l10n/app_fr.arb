@@ -8858,6 +8858,10 @@
   "@danceEditorPhraseRowsRemove": {
     "x-sourceSha256": "5d1e14b6c4353c8b98e78ebd9904ec2da1cfd0312165096b4e426a686372bba8"
   },
+  "danceEditorPhraseRowsRow": "Ligne {number}",
+  "@danceEditorPhraseRowsRow": {
+    "x-sourceSha256": "f8c78edd52580dd65b891749165d17c30000da973e4777a05c3fe6cd9021d07b"
+  },
   "danceEditorPhraseRowsInvalid": "Saisissez dans chaque champ un nombre entier de 1 à {max}, dans une structure qui n’est pas trop longue. D’ici là, la dernière structure de phrase valide est conservée.",
   "@danceEditorPhraseRowsInvalid": {
     "x-sourceSha256": "136099aeff18e01fd168bc79ef22b4d6f416ab4f52bacc44c997852a7e31de66"
