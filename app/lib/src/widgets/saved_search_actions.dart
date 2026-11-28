@@ -14,6 +14,7 @@ import '../diagnostics/error_log.dart';
 import '../screens/settings/event_rules_screen.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
+import '../theme/destructive_button_style.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/l10n_joins.dart';
 import '../utils/undo_snack_bar.dart';
@@ -552,8 +553,9 @@ class SavedSearchActions {
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(l10n.commonCancel),
           ),
-          TextButton(
+          FilledButton(
             key: const ValueKey('saved-search-unreadable-delete'),
+            style: destructiveFilledButtonStyle(Theme.of(context).colorScheme),
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(l10n.commonDelete),
           ),

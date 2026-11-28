@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/source_scan.dart';
+
 /// Spacing comes from `AppSpacing` (2 / 4 / 8 / 12 / 16 / 24 / 32 / 48), so a
 /// gap between two controls is the same size wherever it appears and tracks one
 /// edit to the scale.
@@ -17,34 +19,22 @@ final RegExp _magnitude = RegExp(
   r'(?<![\w.$])(?:0*[1-9]\d*(?:\.\d+)?|0\.\d*[1-9]\d*)(?![\w.])',
 );
 
-String _stripComments(String s) => s
-    .replaceAll(RegExp(r'/\*.*?\*/', dotAll: true), '')
-    .replaceAll(RegExp(r'//[^\n]*'), '');
-
 /// The 1-based lines of [source] holding an `EdgeInsets` call that carries a
-/// non-zero number literal.
+/// non-zero number literal. Comments and strings are blanked first (so a
+/// `//` inside a string, such as a web address, does not hide the rest of its
+/// line), and each call is read to its own closing parenthesis.
+///
+/// Not caught: a number given a name first (`const pad = 10;` then
+/// `EdgeInsets.all(pad)`). Following a value through a variable is more than
+/// a text scan can do reliably; the name is at least a choice made on purpose,
+/// where review can see it.
 List<int> literalSpacingLines(String source) {
-  final code = _stripComments(source);
+  final code = codeOnly(source);
   final lines = <int>[];
   for (final m in _call.allMatches(code)) {
-    var depth = 1;
-    var i = m.end;
-    while (depth > 0 && i < code.length) {
-      final c = code[i];
-      if (c == "'" || c == '"') {
-        i++;
-        while (i < code.length && code[i] != c) {
-          i += code[i] == r'\' ? 2 : 1;
-        }
-      } else if (c == '(') {
-        depth++;
-      } else if (c == ')') {
-        depth--;
-      }
-      i++;
-    }
-    if (_magnitude.hasMatch(code.substring(m.end, i - 1))) {
-      lines.add('\n'.allMatches(code.substring(0, m.start)).length + 1);
+    final close = closingDelimiter(code, m.end - 1);
+    if (_magnitude.hasMatch(code.substring(m.end, close))) {
+      lines.add(lineAt(source, m.start));
     }
   }
   return lines;
@@ -91,5 +81,11 @@ void main() {
       ),
       isEmpty,
     );
+    // A `//` inside a string is not a comment: the call after it is code.
+    expect(
+      literalSpacingLines("link('https://example.org'), EdgeInsets.all(10),"),
+      [1],
+    );
+    expect(literalSpacingLines("Text('EdgeInsets.all(10)'),"), isEmpty);
   });
 }

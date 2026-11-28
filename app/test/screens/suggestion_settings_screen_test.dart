@@ -258,6 +258,41 @@ void main() {
     ]);
   });
 
+  testWidgets('Undo after Reset to defaults writes back the choices it '
+      'replaced', (tester) async {
+    // Reset acts at once (it can be undone, so it does not ask first); the
+    // prompt it shows must carry an Undo that puts the caller's choices back.
+    final changed = readSuggestionSettings({
+      'version': 1,
+      'factors': {
+        'matrixVariety': {'weight': 'off'},
+        'difficultyCurve': {'weight': 'aLot', 'shape': 'even'},
+      },
+    });
+    final h = await _pump(
+      tester,
+      const SuggestionSettingsScreen(),
+      read: changed,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('suggestion-settings-reset')));
+    await tester.pumpAndSettle();
+    expect((await _stored(h)).settings.hasDefaultChoices, isTrue);
+
+    final undo = find.byKey(const ValueKey('suggestion-settings-reset-undo'));
+    expect(undo, findsOneWidget);
+    await tester.tap(undo);
+    await tester.pumpAndSettle();
+
+    final want = changed.settings.toJson();
+    expect(h.settings.value.settings.toJson(), want);
+    expect((await _stored(h)).settings.toJson(), want);
+    expect(
+      _selected(tester, SuggestionFactor.matrixVariety),
+      SuggestionWeight.off,
+    );
+  });
+
   testWidgets('a value saved by a newer version is shown read-only and never '
       'overwritten', (tester) async {
     final h = await _pump(
