@@ -144,6 +144,20 @@
   "@appBootstrapReleasesLink": {
     "description": "Button on the terminal startup screens (newer data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded."
   },
+  "appBootstrapBugReportLink": "Report a bug",
+  "@appBootstrapBugReportLink": {
+    "description": "Button on every startup error screen, under Copy details, that opens the project's Bug report form on GitHub in the browser, where the user can paste the copied details. Offered before the email link."
+  },
+  "appBootstrapEmailLink": "Email {address}",
+  "@appBootstrapEmailLink": {
+    "description": "Button on every startup error screen, after Report a bug, that opens a new email to the project's address in the user's mail app, for someone who would rather not use GitHub. {address} is the email address itself and is never translated.",
+    "placeholders": {
+      "address": {
+        "type": "String",
+        "example": "compendium@contra.dance"
+      }
+    }
+  },
   "migrationDowngradeVersions": "Your data uses storage format {fileVersion}. This version of the app reads up to format {appVersion}.",
   "@migrationDowngradeVersions": {
     "description": "Second line of the newer-data startup screen. {fileVersion} is the storage format version recorded in the user's data file, {appVersion} the highest storage format version this build can read; both are plain integers. Helps a bug report and tells the user how far behind the app is.",
@@ -11500,6 +11514,15 @@
       }
     }
   },
+  "importReviewReimportRemovesWarning": "{count, plural, =1{1 of them becomes another dance form and loses its Barnes reference or Starts improper mark, as its row says.} other{{count} of them become another dance form and lose their Barnes reference or Starts improper mark, as their rows say.}}",
+  "@importReviewReimportRemovesWarning": {
+    "description": "Last sentence of the re-import warning above Import: how many of the dances being re-imported are English dances that the incoming figures make another form (such as contra), which removes their Barnes reference (where the tune is printed in the Barnes books; 'Barnes' is a name and stays as is) or their Starts improper mark (danceEditorImproperLabel). Each such row names which of the two it loses (danceReimportFormChangeNotice).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "importReviewWarningPrefix": "Warning: {message}",
   "@importReviewWarningPrefix": {
     "description": "Screen-reader label that prefixes the overwrite-warning message with 'Warning:'.",
@@ -20926,23 +20949,59 @@
   "@programTemplateSlotRuleBadge": {
     "description": "Screen-reader label of the icon on a slot rule in the program template editor, and its subtitle while the saved searches load, or when the latest read of them failed and its saved search was not among those last read; while it is the subtitle, the icon has no label of its own, so a screen reader reads it once (#2338)."
   },
-  "programTemplateSlotEditTooltip": "Edit {name}",
+  "programTemplateSlotEditTooltip": "Slot {position}, {name}: edit",
   "@programTemplateSlotEditTooltip": {
-    "description": "Tooltip and screen-reader label of the Edit button on a slot rule's row in the program template editor; {name} is the row's own label, so the buttons of one row can be told from the next (pre-release audit finding D1a-06).",
+    "description": "Tooltip and screen-reader label of the Edit button on a slot rule's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, so two slot rules with the same label can be told apart (pre-release audit finding D1a-06; the maintainer's ruling, 2026-11-28).",
     "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "3"
+      },
       "name": {
         "type": "String",
         "example": "Easy opener"
       }
     }
   },
-  "programTemplateSlotDeleteTooltip": "Delete {name}",
+  "programTemplateSlotDeleteTooltip": "Slot {position}, {name}: delete",
   "@programTemplateSlotDeleteTooltip": {
-    "description": "Tooltip and screen-reader label of the Delete button on a slot's row in the program template editor (a dance, note, break or slot rule); {name} is the row's own label, such as the dance's title, so the buttons of one row can be told from the next (pre-release audit finding D1a-06).",
+    "description": "Tooltip and screen-reader label of the Delete button on a slot's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, as on its other buttons.",
     "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "3"
+      },
       "name": {
         "type": "String",
-        "example": "Chorus Jig"
+        "example": "Break"
+      }
+    }
+  },
+  "programTemplateSlotMoveUpTooltip": "Slot {position}, {name}: move up",
+  "@programTemplateSlotMoveUpTooltip": {
+    "description": "Tooltip and screen-reader label of the Move up button on a slot's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, as on its other buttons.",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "3"
+      },
+      "name": {
+        "type": "String",
+        "example": "Break"
+      }
+    }
+  },
+  "programTemplateSlotMoveDownTooltip": "Slot {position}, {name}: move down",
+  "@programTemplateSlotMoveDownTooltip": {
+    "description": "Tooltip and screen-reader label of the Move down button on a slot's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, as on its other buttons.",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "3"
+      },
+      "name": {
+        "type": "String",
+        "example": "Break"
       }
     }
   },

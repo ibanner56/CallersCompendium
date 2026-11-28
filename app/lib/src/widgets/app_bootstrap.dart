@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../app_metadata.dart' show kSourceRepoUrl;
+import '../app_metadata.dart'
+    show kBugReportFormUrl, kProjectEmail, kSourceRepoUrl;
 import '../data/migration_error_labels.dart';
+import '../data/regional_formats.dart' show use24HourClockOf;
 import '../data/migration_guard.dart'
     show
         DatabaseBelowFloorError,
@@ -41,7 +43,9 @@ import 'brand_mark.dart';
 /// [DatabaseBelowFloorError], which offers Copy details and, on Windows, macOS
 /// and Linux, a button to the release that can update the data, in place of
 /// the generic link (Android and iOS share a copy to update on a computer
-/// instead; see [_BelowFloorRecoveryScreen]).
+/// instead; see [_BelowFloorRecoveryScreen]). Every startup error screen, the
+/// generic one included, then says where to report the problem: the Bug
+/// report form, then the project's email address ([_ReportProblemLinks]).
 /// - [DatabaseDowngradeError] (on-disk data written by a newer build): the only
 ///   fix is to update the app, so retrying would just fail again.
 /// - [DatabaseBelowFloorError] (on-disk data written by a build older than the
@@ -203,6 +207,7 @@ class AppBootstrap extends StatelessWidget {
                         l10n,
                         MaterialLocalizations.of(context),
                         copy,
+                        use24Hour: use24HourClockOf(context),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -479,6 +484,7 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
                   'bridgeTag: ${widget.error.bridgeTag}',
                 ], widget.stackTrace),
               ),
+              const _ReportProblemLinks(),
             ],
           ),
         ),
@@ -488,7 +494,8 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
 }
 
 /// The generic startup-failure screen: the error's *type* (never its message),
-/// a Copy details control, where the log lives, and Retry.
+/// a Copy details control, where to report the problem
+/// ([_ReportProblemLinks]), where the log lives, and Retry.
 ///
 /// The message is withheld on purpose. It can carry file paths or text derived
 /// from the database that just failed (#1469, CWE-209), and scrubbing needs
@@ -538,6 +545,7 @@ class _BootstrapErrorScreen extends StatelessWidget {
                 _CopyDetailsButton(
                   details: _terminalDetails(errorType, const [], stackTrace),
                 ),
+                const _ReportProblemLinks(),
               ],
             ),
           ),
@@ -569,7 +577,8 @@ String _terminalDetails(
 }
 
 /// One of the three terminal startup screens other than below-floor: an icon, [body], the log hint, and
-/// [_TerminalHelpActions] (Copy details and the Releases link). There is no
+/// [_TerminalHelpActions] (Copy details, the Releases link and where to report
+/// the problem). There is no
 /// Retry and no "Check again" — see [AppBootstrap].
 class _TerminalScreen extends StatelessWidget {
   const _TerminalScreen({
@@ -624,8 +633,9 @@ class _TerminalScreen extends StatelessWidget {
   }
 }
 
-/// Copy details and a link to the Releases page, shared by the three terminal
-/// startup screens other than below-floor.
+/// Copy details, a link to the Releases page and where to report the problem
+/// ([_ReportProblemLinks]), shared by the three terminal startup screens other
+/// than below-floor.
 class _TerminalHelpActions extends StatelessWidget {
   const _TerminalHelpActions({required this.details});
 
@@ -644,6 +654,39 @@ class _TerminalHelpActions extends StatelessWidget {
           onPressed: () => launchExternalUrl(context, kReleasesPageUrl),
           icon: const Icon(Icons.open_in_new),
           label: Text(l10n.appBootstrapReleasesLink),
+        ),
+        const _ReportProblemLinks(),
+      ],
+    );
+  }
+}
+
+/// Where to report the problem, under Copy details on every startup error
+/// screen: the repository's Bug report form first, then the project's email
+/// address, for someone without GitHub (the maintainer's ruling, 2026-11-28).
+/// The address is the button's own text, so it can be copied by hand where no
+/// mail app opens.
+class _ReportProblemLinks extends StatelessWidget {
+  const _ReportProblemLinks();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 8),
+        TextButton.icon(
+          key: const ValueKey('bootstrap-bug-report-link'),
+          onPressed: () => launchExternalUrl(context, kBugReportFormUrl),
+          icon: const Icon(Icons.open_in_new),
+          label: Text(l10n.appBootstrapBugReportLink),
+        ),
+        TextButton.icon(
+          key: const ValueKey('bootstrap-email-link'),
+          onPressed: () => launchEmail(context, kProjectEmail),
+          icon: const Icon(Icons.mail_outline),
+          label: Text(l10n.appBootstrapEmailLink(kProjectEmail)),
         ),
       ],
     );

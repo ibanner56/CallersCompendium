@@ -852,6 +852,7 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
         DateFormatScope.of(context),
         MaterialLocalizations.of(context),
         AppLocalizations.of(context),
+        use24Hour: use24HourClockOf(context),
       );
 
   /// The last completed trigger attempt when it was not a success, or null

@@ -46,6 +46,7 @@ import '../widgets/figure_diff_view.dart';
 import '../widgets/notice_card.dart';
 import 'custom_fields_screen.dart' show showCustomFieldSharingNoticeOnce;
 import 'dance_editor_screen.dart';
+import 'dance_reimport_flow.dart' show danceReimportNotice;
 import 'import_shorthand_seed_screen.dart';
 import 'published_collection_catalog_screen.dart';
 import '../published_collections/published_collection_manifest.dart';
@@ -614,6 +615,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// out from under the review — conservatively treated the same as any
   /// other ambiguous candidate rather than guessed at).
   Map<int, FigureDiffResult> _confidentDiffs = const {};
+
+  /// Row index → how re-importing that row onto its matched dance changes the
+  /// dance's form ([reimportFormChange]), computed once per plan in
+  /// [_adoptBatch] for every re-import row whose target could be loaded, and
+  /// read again after Import and edit ([_refreshReimportFormChanges]). Only
+  /// rows whose re-import changes the form have an entry: the row names what
+  /// the change removes, and the warning above Import counts those that
+  /// remove something (the maintainer's ruling, 2026-11-28).
+  Map<int, ReimportFormChange> _reimportFormChanges = const {};
 
   Object? _planError;
 
@@ -1536,6 +1546,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               e.id: e.title,
           };
     final confidentDiffs = await _computeConfidentDiffs(batch);
+    final formChanges = await _computeReimportFormChanges(batch);
     if (!mounted) return;
     setState(() {
       _batch = batch;
@@ -1544,6 +1555,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _ambiguousReview = ambiguousReview;
       _titlesById = titles;
       _confidentDiffs = confidentDiffs;
+      _reimportFormChanges = formChanges;
       _ambiguousGroupOfRow = _groupsForBatch(batch, ambiguousReview);
       _programLineOfRow = _programLinesForBatch(batch, ambiguousReview);
       _choices = [for (final plan in batch.records) _defaultChoice(plan)];
@@ -1664,6 +1676,56 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   ) {
     final group = _groupForPlan(plan, review);
     return group == null ? null : review.programLineIndexByGroup[group];
+  }
+
+  /// [_reimportFormChanges] for [batch]: each re-import row's change of form,
+  /// read off the commit's own [withReimportedChoreography] through
+  /// [reimportFormChange], so the row says exactly what Import will do. The
+  /// targets are read in one batched [DanceRepository.getByIds], so a large
+  /// re-import does not wait on a read per row.
+  Future<Map<int, ReimportFormChange>> _computeReimportFormChanges(
+    ImportBatchResult batch,
+  ) async {
+    final targetIds = {
+      for (final record in batch.records)
+        if (record.verdict.kind == DedupeKind.reimport)
+          ?record.verdict.targetDanceId,
+    };
+    if (targetIds.isEmpty) return const {};
+    final targets = {
+      for (final dance in await _repos.dances.getByIds(targetIds))
+        dance.id: dance,
+    };
+    final changes = <int, ReimportFormChange>{};
+    for (var i = 0; i < batch.records.length; i++) {
+      final verdict = batch.records[i].verdict;
+      if (verdict.kind != DedupeKind.reimport) continue;
+      final target = targets[verdict.targetDanceId];
+      if (target == null) continue;
+      final change = reimportFormChange(target, batch.records[i].draft.dance);
+      if (change != null) changes[i] = change;
+    }
+    return changes;
+  }
+
+  /// Reads [_reimportFormChanges] again after Import and edit wrote one row,
+  /// which can change the form of a dance another row re-imports onto. A
+  /// failed read keeps the map it had: it is logged, and the commit it
+  /// follows has already succeeded.
+  Future<void> _refreshReimportFormChanges() async {
+    final batch = _batch;
+    if (batch == null) return;
+    try {
+      final changes = await _computeReimportFormChanges(batch);
+      if (!mounted || !identical(batch, _batch)) return;
+      setState(() => _reimportFormChanges = changes);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'import_review_screen.reimport_form_changes',
+      );
+    }
   }
 
   /// Computes the issue #686 figure-level diff for every row whose verdict
@@ -1999,11 +2061,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   /// Asks before Import and edit writes onto [matchedTitle]'s dance. A
   /// re-import ([choice] is [_ActionKind.reimport]) says it replaces only the
-  /// choreography, plus the title and credit when its box is ticked; a link
-  /// says it replaces the dance.
-  Future<bool?> _confirmEditOverwrite(String matchedTitle, _RowChoice choice) {
+  /// choreography, plus the title and credit when its box is ticked, and
+  /// names what a change of the dance's form removes ([formChange]) in the
+  /// row's own words; a link says it replaces the dance.
+  Future<bool?> _confirmEditOverwrite(
+    String matchedTitle,
+    _RowChoice choice, {
+    ReimportFormChange? formChange,
+  }) {
     final l10n = AppLocalizations.of(context);
     final reimport = choice.kind == _ActionKind.reimport;
+    final formNotice = reimport ? danceReimportNotice(l10n, formChange) : null;
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -2014,11 +2082,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               : l10n.importReviewEditOverwriteTitle,
         ),
         content: Text(
-          !reimport
-              ? l10n.importReviewEditOverwriteBody(matchedTitle)
-              : choice.alsoTitleAndCredit
-              ? l10n.importReviewEditReimportTitleAndCreditBody(matchedTitle)
-              : l10n.importReviewEditReimportBody(matchedTitle),
+          [
+            !reimport
+                ? l10n.importReviewEditOverwriteBody(matchedTitle)
+                : choice.alsoTitleAndCredit
+                ? l10n.importReviewEditReimportTitleAndCreditBody(matchedTitle)
+                : l10n.importReviewEditReimportBody(matchedTitle),
+            ?formNotice,
+          ].join('\n\n'),
         ),
         actions: [
           TextButton(
@@ -2061,6 +2132,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final confirmed = await _confirmEditOverwrite(
         '${_titlesById[targetId] ?? targetId}',
         choice,
+        formChange: _reimportFormChanges[i],
       );
       if (confirmed != true || !mounted) return;
     }
@@ -2165,6 +2237,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
       );
       if (!mounted) return;
+      // The write and the edit can change the form of a dance another row
+      // re-imports onto, so what those rows say it removes is read again.
+      await _refreshReimportFormChanges();
     } catch (e, stackTrace) {
       if (!mounted) return;
       if (kDebugMode) {
@@ -3833,6 +3908,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final overwriteTargets = <String>{};
     final reimportTargets = <String>{};
     final retitleTargets = <String>{};
+    // Re-imports that make an English dance another form, removing its
+    // Barnes reference or Starts improper mark (each row names which).
+    final removingTargets = <String>{};
     for (var i = 0; i < _choices.length; i++) {
       if (_committed.contains(i) || _choices[i].kind == _ActionKind.skip) {
         continue;
@@ -3850,10 +3928,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       } else if (kind == _ActionKind.reimport) {
         reimportTargets.add(target);
         if (_choices[i].alsoTitleAndCredit) retitleTargets.add(target);
+        if (_reimportFormChanges[i] case final change?
+            when change.dropsBarnesReference || change.dropsImproper) {
+          removingTargets.add(target);
+        }
       }
     }
     reimportTargets.removeAll(overwriteTargets);
     retitleTargets.removeAll(overwriteTargets);
+    removingTargets.removeAll(overwriteTargets);
     final overwriteCount = overwriteTargets.length;
     return Column(
       children: [
@@ -3895,6 +3978,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                     context,
                     reimportTargets.length,
                     retitleTargets.length,
+                    removingTargets.length,
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -4062,7 +4146,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               row.localAuthors.isEmpty
                   ? l10n.importReviewTitleListOwnedUnknownAuthor
                   : l10n.importReviewTitleListOwnedBy(
-                      row.localAuthors.join(', '),
+                      // A name stored family name first keeps its comma, so
+                      // the names are then set apart with semicolons.
+                      joinPersonNames(
+                        row.localAuthors,
+                        separator: l10n.commonListSeparator,
+                      ),
                     ),
             _ => l10n.importReviewTitleListOwnedMany(row.localMatchCount),
           },
@@ -4251,12 +4340,20 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   /// The re-import counterpart of [_buildOverwriteWarning], styled and
   /// announced the same way: how many existing dances get new choreography,
-  /// and how many of those also take the file's title and credit.
-  Widget _buildReimportWarning(BuildContext context, int count, int retitled) {
+  /// how many of those also take the file's title and credit, and how many
+  /// become another dance form and lose their Barnes reference or Starts
+  /// improper mark, each named on its row ([_reimportFormChanges]).
+  Widget _buildReimportWarning(
+    BuildContext context,
+    int count,
+    int retitled,
+    int removing,
+  ) {
     final l10n = AppLocalizations.of(context);
     final message = [
       l10n.importReviewReimportWarning(count),
       if (retitled > 0) l10n.importReviewReimportTitleWarning(retitled),
+      if (removing > 0) l10n.importReviewReimportRemovesWarning(removing),
     ].join(' ');
     return Semantics(
       container: true,
@@ -4501,10 +4598,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   ) {
     final l10n = AppLocalizations.of(context);
     final details = <String>[];
-    final authors = draft.authorNames
-        .map((author) => author.trim())
-        .where((author) => author.isNotEmpty)
-        .join(', ');
+    final authors = joinPersonNames(
+      draft.authorNames
+          .map((author) => author.trim())
+          .where((author) => author.isNotEmpty),
+      separator: l10n.commonListSeparator,
+    );
     if (authors.isNotEmpty) {
       details.add(l10n.importReviewMetadataAuthor(authors));
     }
@@ -4674,6 +4773,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           _option(i, l10n.importReviewOptionSkip, _ActionKind.skip),
         ]);
         if (choice.kind != _ActionKind.reimport) return group;
+        final formNotice = danceReimportNotice(l10n, _reimportFormChanges[i]);
         // Shown only while the row is set to Re-import, the one choice it
         // changes. A CheckboxListTile reads its title, its hint (which names
         // the dance it applies to, since every re-import row has one) and its
@@ -4698,6 +4798,28 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                     setState(() => choice.alsoTitleAndCredit = value ?? false),
               ),
             ),
+            // The dance's new form, and what that removes, on the row it
+            // applies to (the maintainer's ruling, 2026-11-28).
+            if (formNotice != null)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(
+                  start: AppSpacing.xl,
+                  bottom: AppSpacing.xxs,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.warning_amber_outlined, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        formNotice,
+                        key: ValueKey('import-row-$i-form-change'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         );
       case DedupeKind.ambiguous:

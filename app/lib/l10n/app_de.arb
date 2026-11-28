@@ -132,6 +132,14 @@
   "@appBootstrapReleasesLink": {
     "x-sourceSha256": "aa932a0163205c8c118c750181bfdc29c51c68f28a545e66dfdf06cb25ce9fb9"
   },
+  "appBootstrapBugReportLink": "Fehler melden",
+  "@appBootstrapBugReportLink": {
+    "x-sourceSha256": "f75e0bd8ff2369251bc8767de55dd8c0bcb3efd1dbc34041bfca4058f9edf0ef"
+  },
+  "appBootstrapEmailLink": "E-Mail an {address} senden",
+  "@appBootstrapEmailLink": {
+    "x-sourceSha256": "9e537fc54df73ab84fb572f70641a065b775dc49953e2538e1619efda013b3c4"
+  },
   "migrationDowngradeVersions": "Deine Daten verwenden Speicherformat {fileVersion}. Diese Version der App liest bis Format {appVersion}.",
   "@migrationDowngradeVersions": {
     "x-sourceSha256": "e98535aaca5822fdd932b29a528215a0c8cb34647f524f6818da24899f6b538a"
@@ -8582,6 +8590,10 @@
   "@importReviewReimportTitleWarning": {
     "x-sourceSha256": "f1695458fa6aac28fb41eb780c35447bbbab515fceffe9ce59dd8866c14c0e4f"
   },
+  "importReviewReimportRemovesWarning": "{count, plural, =1{1 davon erhält eine andere Tanzform und verliert seinen Barnes-Verweis oder seine Markierung „Beginnt improper“, wie seine Zeile angibt.} other{{count} davon erhalten eine andere Tanzform und verlieren ihren Barnes-Verweis oder ihre Markierung „Beginnt improper“, wie ihre Zeilen angeben.}}",
+  "@importReviewReimportRemovesWarning": {
+    "x-sourceSha256": "3bd6dcb210e55143abec4c67880a29c51fee28c9fdfc2439acb1240a90e0dcd8"
+  },
   "importReviewWarningPrefix": "Warnung: {message}",
   "@importReviewWarningPrefix": {
     "x-sourceSha256": "bc349610f5be4b2da9ca53a9aaaa12b2701afbf54d5988b920d8f331c41f5f0a"
@@ -14742,13 +14754,21 @@
   "@programTemplateSlotRuleBadge": {
     "x-sourceSha256": "d3c802c982976b306a8676af4f5bc4811ecfbe9275f29e1ec1bab7a826d2f751"
   },
-  "programTemplateSlotEditTooltip": "{name} bearbeiten",
+  "programTemplateSlotEditTooltip": "Slot {position}, {name}: bearbeiten",
   "@programTemplateSlotEditTooltip": {
-    "x-sourceSha256": "2313fe21ea84567f451e913cae39bd4ef9775a83458b23f3f440c2108e5363a1"
+    "x-sourceSha256": "75f7f529ed01f6c425886734edaa138df2b4d14a3b3ef367ab998db0a64d3125"
   },
-  "programTemplateSlotDeleteTooltip": "{name} löschen",
+  "programTemplateSlotDeleteTooltip": "Slot {position}, {name}: löschen",
   "@programTemplateSlotDeleteTooltip": {
-    "x-sourceSha256": "3cf8146e529f1e4296d40d7ea32ffc63bc2647d416851ed43921bfedf3097cb3"
+    "x-sourceSha256": "482bf3c757428bc1b69a88488f99a26289afd806b32323131d13706dfa08f2bb"
+  },
+  "programTemplateSlotMoveUpTooltip": "Slot {position}, {name}: nach oben verschieben",
+  "@programTemplateSlotMoveUpTooltip": {
+    "x-sourceSha256": "67c4d607d116067555823f4eeaf1a94bec08604c446685b41f51713c037cef14"
+  },
+  "programTemplateSlotMoveDownTooltip": "Slot {position}, {name}: nach unten verschieben",
+  "@programTemplateSlotMoveDownTooltip": {
+    "x-sourceSha256": "c8689033ba4b637fc72f839aeaec1a6061f91f3e7b4bffcd0e1a01bb0fafcd85"
   },
   "programTemplateSlotRuleSubtitle": "Gefüllt aus der gespeicherten Suche „{name}“",
   "@programTemplateSlotRuleSubtitle": {

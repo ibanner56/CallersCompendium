@@ -185,7 +185,11 @@ The app couldn't open or get your library ready at startup. Try, in order:
    is writable.
 2. **Use Copy details** to copy the error type and its stack trace (the error's message is left out)
    if you want to report the problem. The stack trace can still contain file
-   paths, so look it over before you share it.
+   paths, so look it over before you share it. Then choose **Report a bug** to
+   open the project's
+   [Bug report form](https://github.com/ibanner56/CallersCompendium/issues/new?template=bug_report.yml)
+   on GitHub and paste the details there, or, if you'd rather not use GitHub,
+   email them to [compendium@contra.dance](mailto:compendium@contra.dance).
 3. **Look at the diagnostics log.** The app also writes the failure to a
    `diagnostics/crash.log` file in its support folder, which is available even
    when the database can't be opened. Its location depends on your system:
@@ -210,6 +214,8 @@ The app couldn't open or get your library ready at startup. Try, in order:
 Four startup screens have no Try again: newer data, data too old to open, a backup
 that couldn't be made, and data that couldn't be moved. They offer **Copy
 details** and, except on the data-too-old screen, a link to the Releases page.
+Every startup error screen, these and "Couldn't prepare your library.", also
+offers **Report a bug** and an email link, as above.
 On Windows, macOS and Linux the data-too-old screen instead leads with a **Get**
 button for the release that can update your data, with the two reset options
 below it under **Start fresh instead**. Fix the cause, then close and reopen the
