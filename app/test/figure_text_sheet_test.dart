@@ -204,6 +204,57 @@ void main() {
     expect(pasted, typed);
   });
 
+  // #2505: all typed entry counts as new entry, so a typed pass must state
+  // who and where before the dance saves, as one picked from the move
+  // picker must.
+  group('a typed pass counts as new entry (#2505)', () {
+    Future<void> expectNeedsValuesAndSaveRefused(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+    ) async {
+      // The added row shows collapsed, as its summary.
+      expect(
+        find.byKey(const ValueKey('figure-0-summary-needs-values')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('save-needs-figure-values')),
+        findsOneWidget,
+      );
+      expect(figuresOf((await repos.dances.getById('d1'))!), isEmpty);
+    }
+
+    testWidgets('typed in the Move box with Free-text entry on', (
+      tester,
+    ) async {
+      final repos = await _repos(freeText: true);
+      await _pumpEditor(tester, repos);
+      await _openAddMenu(tester);
+      await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-free-text-field')),
+        'pass through',
+      );
+      await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
+      await tester.pumpAndSettle();
+
+      await expectNeedsValuesAndSaveRefused(tester, repos);
+    });
+
+    testWidgets('added through Add figures from text', (tester) async {
+      final repos = await _repos(freeText: false);
+      await _pumpEditor(tester, repos);
+      await _openSheet(tester);
+      await _enterSheetText(tester, 'pass through');
+      await _tapAdd(tester);
+
+      await expectNeedsValuesAndSaveRefused(tester, repos);
+    });
+  });
+
   testWidgets('it works the same with Free-text entry off', (tester) async {
     final typed = await _typedOneByOne(tester, _lines);
     final pasted = await _pasted(tester, _lines.join('\n'), freeText: false);
