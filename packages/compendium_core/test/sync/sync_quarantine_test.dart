@@ -294,6 +294,44 @@ void main() {
     },
   );
 
+  test('quarantine closure reaches a dance that credits the person only as '
+      'interpreter', () {
+    // `dance_interpreters` is a foreign key like `dance_authors`: a dance
+    // published without its quarantined interpreter is one a peer must hold
+    // back as citing a missing record.
+    final quarantinedInterpreter = _candidate(
+      kind: SyncRecordKind.choreographer,
+      id: 'interpreter-1',
+      updatedAt: _windowEnd.add(const Duration(minutes: 1)),
+      existenceAt: _localNow,
+    );
+    final dance = _candidate(
+      kind: SyncRecordKind.dance,
+      id: 'dance-1',
+      body: const {
+        'id': 'dance-1',
+        'title': 'Dance',
+        'interpreterIds': ['interpreter-1'],
+      },
+      updatedAt: _localNow,
+      existenceAt: _localNow,
+    );
+    final candidates = {
+      quarantinedInterpreter.address: quarantinedInterpreter,
+      dance.address: dance,
+    };
+
+    expect(
+      syncRecordReferences(dance),
+      contains((kind: SyncRecordKind.choreographer, recordId: 'interpreter-1')),
+    );
+    final blocked = syncQuarantineClosure(
+      candidates: candidates,
+      quarantined: syncQuarantinedAddresses(candidates, windowEnd: _windowEnd),
+    );
+    expect(blocked, {quarantinedInterpreter.address, dance.address});
+  });
+
   test(
     'quarantine closure reaches database-enforced dependents but skips venueId',
     () {
