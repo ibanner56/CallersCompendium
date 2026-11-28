@@ -118,12 +118,12 @@ void main() {
     );
   });
 
-  test('a square is a square dance, and a mixer SubType makes it a mixer', () {
+  test('a square is a square dance in a square set, and a mixer SubType '
+      'makes it a mixer (pre-release audit finding B-02)', () {
     // Head for Home; The Auctioneer.
     expectFormation(
       {'Type': 'Square', 'Formation': 'Square', 'SubType': 'Keeper, H S H S'},
-      FormationShape.other,
-      detail: 'Square',
+      FormationShape.square,
       form: DanceForm.square,
     );
     expectFormation(
@@ -133,10 +133,43 @@ void main() {
         'ContraForm': 'Improper',
         'SubType': 'Mixer, H H S S',
       },
-      FormationShape.other,
-      detail: 'Square',
+      FormationShape.square,
+      detail: 'Improper',
       mixer: true,
       form: DanceForm.square,
+    );
+  });
+
+  test("a square's formation is one of a square's shapes (ADR-007 §8.1, "
+      'pre-release audit finding B-02)', () {
+    // No formation at all is a square set, not contra's improper default.
+    expectFormation(
+      {'Type': 'Square'},
+      FormationShape.square,
+      form: DanceForm.square,
+    );
+    // A big circle keeps the circle, which squares use for it.
+    final big = map({'Type': 'Square', 'Formation': 'Circle'});
+    expect(big.formation.shape, FormationShape.circle);
+    // Whatever the columns say, the shape is one a square offers, and the
+    // words the source gave stay in the detail.
+    for (final columns in const [
+      {'Type': 'Square', 'Formation': 'Hexagon'},
+      {'Type': 'Square', 'Formation': 'Duple Minor', 'ContraForm': 'Becket'},
+      {'Type': 'Square', 'FormationOther': 'Four couples'},
+    ]) {
+      final dance = map(columns);
+      expect(dance.form, DanceForm.square, reason: '$columns');
+      expect(
+        squareFormationShapes,
+        contains(dance.formation.shape),
+        reason: '$columns',
+      );
+      expect(dance.formation.improper, isFalse, reason: '$columns');
+    }
+    expect(
+      map({'Type': 'Square', 'Formation': 'Hexagon'}).formation.detail,
+      'Hexagon',
     );
   });
 

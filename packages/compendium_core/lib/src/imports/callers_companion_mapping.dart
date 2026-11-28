@@ -463,7 +463,11 @@ CcDanceMapping mapCallersCompanionDance(
   }
 
   // Formation → FormationShape, preserving unmapped text as detail. An
-  // English dance takes the ECD shape its contra shape names (ADR-006 W6).
+  // English dance takes the ECD shape its contra shape names (ADR-006 W6). A
+  // square dance takes a square's shape (ADR-007 §8.1) as an English square
+  // set does: a square set, or a circle for a big circle, the source's other
+  // words the detail (pre-release audit finding B-02). It has no improper
+  // flag (`formHasImproperFlag`), so a stated start stays in the detail.
   final formation = form == DanceForm.ecd
       ? _mapEcdFormation(
           record,
@@ -471,6 +475,13 @@ CcDanceMapping mapCallersCompanionDance(
           issues,
           squareType: mappedForm == DanceForm.square,
         )
+      : form == DanceForm.square
+      ? _mapEcdFormation(
+          record,
+          usr,
+          issues,
+          squareType: true,
+        ).copyWith(improper: false)
       : usr
       ? _mapFormationColumns(record, issues)
       : _mapFormation(record.formation, issues);
@@ -1555,7 +1566,9 @@ Formation _mapFormationColumns(CcDanceRecord r, List<ImportIssue> issues) {
 }
 
 /// An English dance's formation: the contra shape the source gives, as the
-/// ECD shape it names ([ecdFormationFromContra]).
+/// ECD shape it names ([ecdFormationFromContra]). With [squareType] it is a
+/// square set (or the circle of a big circle), which a square dance takes
+/// too.
 ///
 /// Improper only when the source says so: contra reads a formation that
 /// states no start as improper, but an ECD dance's improper flag defaults to

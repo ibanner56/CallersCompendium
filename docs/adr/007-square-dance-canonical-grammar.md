@@ -577,7 +577,11 @@ they state the count they mean.
 
 Every held square starts and ends in a squared set. At dance level the
 formation is normally `FormationShape.square` (§8.1 lists the others), and
-the Caller's Companion importer stops using `other` + "Square".
+the Caller's Companion importer stops using `other` + "Square". *Implemented
+28 November 2026: a Caller's Companion square dance is a `square` set, or a
+`circle` for a big circle, with the source's other formation words as the
+detail. Squares imported earlier keep `other` + "Square" until converted
+(§8.4).*
 
 For borrowed club calls, the registry records CALLERLAB's usual starting
 formations as glossary information. These are shipped data, not stored on

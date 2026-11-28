@@ -642,7 +642,11 @@ declines the collapse.
   one. `Type` "Circle Mixer"/"Scatter Mixer"/"Longways" gives that shape (the
   two mixers with `mixer: true`). Otherwise the `Formation` family decides: Four
   Facing Four, Triplet, Triple Minor (its `ContraForm` start as the detail),
-  Square (`other`, detail "Square"; the dance form comes from `Type`), Other
+  Square (`other`, detail "Square"; the dance form comes from `Type`; a
+  square dance's formation is then read as an English square set's is,
+  `_mapEcdFormation` with `squareType`, so it is `square`, or `circle` for a
+  big circle, with no improper flag and the source's other words as the
+  detail, ADR-007 §8.1, pre-release audit finding B-02), Other
   (`other`). A blank family and start with only `FormationOther` is read as the
   text export's single string would be. A Duple Minor, or a blank family, is
   refined by `ContraForm` and `Direction`: Becket with `CCW` is `becketCcw`
