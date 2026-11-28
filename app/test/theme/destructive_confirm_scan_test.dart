@@ -1,15 +1,20 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+
+import '../support/source_scan.dart';
 
 /// Confirmations whose action removes, resets, overwrites or discards the
 /// user's data, by the key on their confirm button. Each must be a
 /// [FilledButton] styled with `destructiveFilledButtonStyle`, and its label
 /// must name the action rather than say "Continue" or "OK".
 ///
-/// The delete confirmations proper go through `confirm_delete.dart`, whose
-/// buttons are tested where it is; this list is the other destructive
-/// confirmations, which build their own dialogs.
+/// This list pins the confirmations whose label is not itself a destructive
+/// verb (Merge, Disconnect, Continue past an overwrite warning) as well as some
+/// that are. Every other dialog action whose label names a destructive verb is
+/// found by the discovery scan in `main`, so a confirmation added later is
+/// checked without being listed here.
 const _destructiveConfirms = <(String, String)>[
   (
     'lib/src/screens/settings/sync_devices_screen.dart',
@@ -47,7 +52,218 @@ const _destructiveConfirms = <(String, String)>[
   ('lib/src/utils/confirm_delete.dart', 'confirm-delete-confirm'),
 ];
 
+/// The words a button label's l10n key uses for an action that removes,
+/// resets, overwrites or discards the user's data. Matched as whole words of
+/// the camelCase key (`commonDelete`, `callingCardEditorReset`), so
+/// `recentlyDeletedRestore` (Restore, from the bin) is not one.
+final _destructiveVerb = RegExp(
+  r'(?:^|[a-z0-9])(Delete|Remove|Reset|Replace|Discard|Clear|Wipe|Purge|'
+  r'Overwrite|Erase)(?=[A-Z0-9]|$)',
+);
+
+/// Dialog action buttons whose label names a destructive verb but which do
+/// not themselves confirm the destructive action, by `path#label key`, each
+/// with the reason. A button that confirms one must be a destructive
+/// [FilledButton]; one listed here must still exist (see the staleness
+/// check), so the list cannot outlive its entries.
+const _notConfirmations = <String, String>{
+  'lib/src/screens/dance_editor_screen.dart#danceEditorDiscard':
+      'a choice offered on opening (Restore an autosaved draft, the filled '
+      'primary, or Discard it), not a confirmation of an action the user took',
+  'lib/src/screens/program_editor_screen.dart#programsDraftDiscard':
+      'a choice offered on opening (Restore an autosaved draft, the filled '
+      'primary, or Discard it), not a confirmation of an action the user took',
+  'lib/src/widgets/batch_tag_dialog.dart#collectionBatchTagRemoveConfirm':
+      'a picker\'s apply button (Add or Remove the ticked tags); the batch '
+      'change it applies offers Undo',
+};
+
+/// A dialog action button: its file, line, key (the source text of its `key`
+/// argument, or empty), the l10n keys its label reads, and whether it follows
+/// the rule.
+typedef DialogAction = ({
+  String path,
+  int line,
+  String key,
+  List<String> labelKeys,
+  bool destructiveFilled,
+});
+
+final _alertDialog = RegExp(r'(?<![\w.])AlertDialog(?:\.adaptive)?\s*\(');
+final _button = RegExp(
+  r'(?<![\w.])(FilledButton|TextButton|OutlinedButton|ElevatedButton)'
+  r'(?:\.(\w+))?\s*\(',
+);
+
+/// Every button in the `actions:` of every [AlertDialog] in [source], whose
+/// label reads one of [l10nKeys] (directly or through `??`, a conditional or
+/// a wrapping widget: every key named in its `child` / `label` counts).
+List<DialogAction> dialogActionsIn(
+  String path,
+  String source,
+  Set<String> l10nKeys,
+) {
+  final code = codeOnly(source);
+  final found = <DialogAction>[];
+  for (final dialog in _alertDialog.allMatches(code)) {
+    final actions = callArgs(
+      source,
+      dialog.end - 1,
+      code: code,
+    ).where((a) => a.name == 'actions').firstOrNull;
+    if (actions == null) continue;
+    final region = code.substring(actions.start, actions.end);
+    for (final b in _button.allMatches(region)) {
+      final open = actions.start + b.end - 1;
+      final all = callArgs(source, open, code: code);
+      final args = {
+        for (final a in all)
+          if (a.name != null) a.name!: a.text,
+      };
+      // The label as code, so a key named inside a string is not read.
+      final label = [
+        for (final a in all)
+          if (a.name == 'child' || a.name == 'label')
+            code.substring(a.start, a.end),
+      ].join(' ');
+      final keys = [
+        for (final m in RegExp(r'\.(\w+)\b').allMatches(label))
+          if (l10nKeys.contains(m.group(1))) m.group(1)!,
+      ];
+      final variant = b.group(2);
+      found.add((
+        path: path,
+        line: lineAt(source, actions.start + b.start),
+        key: args['key'] ?? '',
+        labelKeys: keys,
+        destructiveFilled:
+            b.group(1) == 'FilledButton' &&
+            (variant == null || variant == 'icon') &&
+            (args['style'] ?? '').contains('destructiveFilledButtonStyle('),
+      ));
+    }
+  }
+  return found;
+}
+
+/// The `path#label key` that names [action] in [_notConfirmations].
+String _id(DialogAction action) =>
+    '${action.path}#${action.labelKeys.firstWhere(_destructiveVerb.hasMatch)}';
+
+bool _destructive(DialogAction a) => a.labelKeys.any(_destructiveVerb.hasMatch);
+
+Set<String> _l10nKeys() => {
+  for (final k
+      in (jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync())
+              as Map<String, Object?>)
+          .keys)
+    if (!k.startsWith('@')) k,
+};
+
 void main() {
+  group('every destructive dialog action is a destructive filled button', () {
+    final l10nKeys = _l10nKeys();
+    final actions = [
+      for (final (path, source) in dartSources('lib'))
+        if (!path.startsWith('lib/l10n/'))
+          ...dialogActionsIn(path, source, l10nKeys),
+    ];
+
+    test('the scan reads the app', () {
+      // Positive control: the pinned confirmations below whose label is a
+      // destructive verb are found by discovery too, so the scan is reading
+      // the dialogs, their actions and their labels.
+      expect(l10nKeys, contains('commonDelete'));
+      expect(actions.length, greaterThan(100));
+      final discovered = {for (final a in actions.where(_destructive)) a.key};
+      for (final key in [
+        'confirm-delete-confirm',
+        'calling-card-reset-confirm',
+        'sync-device-remove-confirm',
+      ]) {
+        expect(
+          discovered.any((k) => k.contains("'$key'")),
+          isTrue,
+          reason: '$key was not discovered',
+        );
+      }
+    });
+
+    test('a button that confirms a destructive action has the style', () {
+      final offenders = [
+        for (final a in actions)
+          if (_destructive(a) &&
+              !a.destructiveFilled &&
+              !_notConfirmations.containsKey(_id(a)))
+            '${a.path}:${a.line} ${a.key.isEmpty ? '(no key)' : a.key} '
+                '${a.labelKeys.join(', ')}',
+      ];
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'A dialog button that removes, resets, overwrites or discards '
+            'data is a FilledButton with destructiveFilledButtonStyle. If it '
+            'opens a confirmation rather than confirming, list it in '
+            '_notConfirmations with the reason.',
+      );
+    });
+
+    test('every entry in the allow-list is still a plain destructive '
+        'button', () {
+      final plain = {
+        for (final a in actions)
+          if (_destructive(a) && !a.destructiveFilled) _id(a),
+      };
+      for (final id in _notConfirmations.keys) {
+        expect(plain, contains(id), reason: '$id: remove the stale entry');
+      }
+    });
+  });
+
+  test('the discovery scan reads a multi-line dialog, and ignores comments, '
+      'strings and buttons outside actions', () {
+    const keys = {'commonDelete', 'commonCancel', 'thingReset'};
+    const source = '''
+showDialog(builder: (ctx) => AlertDialog(
+  content: TextButton(child: Text(l10n.commonDelete)), // not an action
+  actions: [
+    TextButton(onPressed: () {}, child: Text(l10n.commonCancel)),
+    // TextButton(child: Text(l10n.commonDelete)),
+    if (x) TextButton(
+      key: const ValueKey('plain-delete'),
+      onPressed: () => Navigator.of(ctx).pop(true),
+      child: Text(
+        label ?? l10n.commonDelete,
+      ),
+    ),
+    FilledButton(
+      key: const ValueKey('styled'),
+      style: destructiveFilledButtonStyle(scheme),
+      child: Text('a ) TextButton( l10n.thingReset'),
+      onPressed: () {},
+    ),
+    FilledButton.tonal(
+      style: destructiveFilledButtonStyle(scheme),
+      child: Text(l10n.thingReset),
+    ),
+  ],
+));
+''';
+    final found = dialogActionsIn('x.dart', source, keys);
+    expect([for (final a in found) a.line], [4, 6, 13, 19]);
+    expect(
+      [
+        for (final a in found.where(_destructive))
+          (a.line, a.destructiveFilled),
+      ],
+      [(6, false), (19, false)],
+    );
+    expect(found[1].key, "const ValueKey('plain-delete')");
+    expect(found[2].destructiveFilled, isTrue);
+    expect(found[2].labelKeys, isEmpty);
+  });
+
   for (final (path, key) in _destructiveConfirms) {
     test('$key is a destructive filled button that names its action', () {
       final src = File(path).readAsStringSync();
