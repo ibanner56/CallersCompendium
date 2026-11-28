@@ -57,11 +57,12 @@
       <div class="wrap legal-body">
         <a class="legal-back" href="../">← Back to home</a>
         <h1>Privacy Policy</h1>
-        <p class="dates"><strong>Effective date:</strong> November 24, 2026 · <strong>Last updated:</strong> November 25, 2026</p>
+        <p class="dates"><strong>Effective date:</strong> November 28, 2026 · <strong>Last updated:</strong> November 28, 2026</p>
 
         <p class="lead">
           Caller's Compendium ("the app") is a free, open-source, local-first
           application for dance callers, developed by Isaac Banner ("we," "us").
+          This policy explains what data the app does and does not handle.
           The short version: <strong>the app has no accounts or tracking and keeps
           your collection on your device.</strong> Optional Device Sync can also
           store selected shareable content on a configured sync service for app
@@ -109,7 +110,7 @@
         <p>
           Everything you create in the app — your dance collection, programs,
           custom fields, dialects, themes, and settings — is stored
-          <strong>locally on your device</strong> and is under your control. If you
+          <strong>locally on your device</strong>. It is under your control. If you
           enable Device Sync, selected shareable content is also stored by the sync
           service you configure so it can be synchronized.
         </p>
@@ -158,9 +159,35 @@
           with the note.
         </p>
         <p>
-          You can export a complete backup to a single, human-readable JSON file
-          with a built-in integrity checksum and restore it on another device.
-          Those backup files are created and kept by you; we never receive them.
+          You can export a complete backup to a single file (a plain,
+          human-readable JSON file carrying a built-in SHA-256 integrity checksum
+          that catches accidental corruption — not encryption, and, because the
+          checksum travels inside the file, not a safeguard against deliberate
+          tampering) and restore it on another device. Those backup files are created and kept by you; we never receive them.
+        </p>
+        <p>
+          <strong>Your device's own backup.</strong> Separately from the app's
+          backup file, your phone, tablet or computer can back up the app's data
+          along with your other apps. The app does not opt out of Android's
+          backup: if backup to your Google account is turned on in your phone's
+          settings, Android can copy the app's data there, and moving to a new
+          phone with Android's transfer can copy it to the new phone. Nor does it
+          exclude its data from Apple's backup: on iPhone and iPad, an iCloud or
+          computer backup of the device, and moving to a new iPhone or iPad from
+          the old one, can copy it too. These
+          copies hold the app's stored data, including what the
+          app's own backup file leaves out: your calendar address, your Device
+          Sync settings (whether sync is on, and which store and server it uses),
+          edits you have not saved yet, and the app's diagnostics log.
+          Restoring one, or setting up a new
+          phone from one, puts all of it back. On a phone or tablet, when the app
+          can tell the copy was restored, it forgets the identifier of the device
+          the copy came from and turns Device Sync off. It can't tell for a backup
+          made before the app had been opened on a version later than 0.10.0; from
+          such a backup, and on a Windows, macOS or Linux computer, the restored
+          copy keeps that identifier. These copies are made and kept by
+          your device's system and your Google or Apple account, under their
+          settings, not by us; we never receive them.
         </p>
 
         <h2>3. Network connections the app makes</h2>
@@ -200,7 +227,11 @@
             app starts, but this is <strong>off by default</strong> and only runs
             if you turn it on in Settings. Either way the app requests only that
             calendar from the service that hosts it, sends it nothing about you
-            or your data, and does not send the address to us.
+            or your data, and does not send the address to us. A program
+            imported from your calendar keeps a scrambled stamp of the calendar's
+            address, never the address itself, so the app can tell which calendar
+            it came from; the stamp travels with the program to your other
+            devices through Device Sync and is kept in your backups.
           </li>
           <li>
             <strong>Optional Device Sync.</strong> When you enable it, the app
@@ -227,7 +258,11 @@
           to us or anyone else, and the app does not save it to your photo
           library. On Android, some camera apps also keep their own copy of the
           photo in your gallery; check that app's settings if you don't want one.
-          The app
+          You can also choose a picture you already have with
+          <strong>From an image…</strong> or <strong>Dance code from a picture…</strong>;
+          it too is read on your device and never uploaded, and on iPhone and iPad
+          the system photo picker passes the app only the picture you choose,
+          without access to your photo library. The app
           does <strong>not</strong> request access to your microphone, location,
           contacts, photos, or similar sensitive device data.
         </p>
@@ -250,7 +285,7 @@
         <h2>7. Your control over your data</h2>
         <p>Your local data remains under your control:</p>
         <ul>
-          <li>Delete individual items in the app, or uninstall the app to remove its local data from your device.</li>
+          <li>Delete individual items in the app, or uninstall the app to remove its local data from your device. Uninstalling does not delete a copy your device's own backup has already made (Section 2); your device's backup settings manage that.</li>
           <li>Export a backup at any time to keep or move your data yourself.</li>
           <li>Disable Device Sync when you no longer want the app to synchronize selected content.</li>
         </ul>
@@ -273,7 +308,7 @@
 
         <h2>8. Open source</h2>
         <p>
-          Caller's Compendium is open source under the AGPL-3.0 license. You can
+          Caller's Compendium is open source under the AGPL-3.0-only license. You can
           inspect exactly what the app does — including every network request — in
           the source code at
           <a href="https://github.com/ibanner56/CallersCompendium" rel="noopener">github.com/ibanner56/CallersCompendium</a>.
@@ -315,12 +350,12 @@
         <a href="../">Home</a>
         <a href="https://github.com/ibanner56/CallersCompendium" rel="noopener">Source code</a>
         <a href="https://github.com/ibanner56/CallersCompendium/releases" rel="noopener">Releases</a>
-        <a href="https://github.com/ibanner56/CallersCompendium/blob/main/LICENSE" rel="noopener">License (AGPL-3.0)</a>
+        <a href="https://github.com/ibanner56/CallersCompendium/blob/main/LICENSE" rel="noopener">License (AGPL-3.0-only)</a>
         <a href="mailto:compendium@contra.dance">Contact</a>
       </nav>
     </div>
     <div class="wrap footer-fine">
-      <p class="tiny">Built with Flutter. No accounts, no tracking — your collection stays on your device.</p>
+      <p class="tiny">Built with Flutter. No accounts, no tracking — your collection lives on your device.</p>
     </div>
   </footer>
 </body>
