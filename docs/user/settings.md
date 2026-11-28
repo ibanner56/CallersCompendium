@@ -67,8 +67,9 @@ The **General** section gathers everyday behavior into small groups.
 - **Confirm before delete** — adds a prompt before any delete you can undo: a
   dance or program from its **⋮** menu, from the dance or program screen, or
   from Collection's selection mode, and a venue, custom field, tag, author,
-  source, shorthand, dialect, custom theme, walkthrough snippet or matrix
-  column. The one exception is swiping a row in the Collection or Programs
+  source, shorthand, dialect, custom theme, walkthrough snippet, matrix
+  column, program template or saved search, and an event rule when Event
+  rules is on under **Settings ▸ Experimental**. The one exception is swiping a row in the Collection or Programs
   list: that reveals a **Delete** button, and tapping it deletes with no
   prompt, because the swipe plus the tap is already a deliberate two-step
   action. These deletes offer **Undo** either way. When you delete a program,
@@ -464,7 +465,7 @@ as draft programs.
   the app runs when it starts, so events another of your devices has already
   imported and synced aren't added again here. Both can still add a draft for
   the same event if that device hasn't synced them yet, or if this one can't
-  sync when it starts (offline, or on mobile data with **Sync only on WiFi**)
+  sync when it starts (offline, or on mobile data with **Sync only on Wi-Fi**)
   or takes longer than that.
 - **At startup** — what that run does with events not imported before:
   - **Report new events** (the default) — adds nothing. If there are new events,
@@ -1955,8 +1956,10 @@ your [own figures and terms, and your notes on built-in
 figures](#glossary-and-custom-figures), the Custom Figures setting, your
 shorthands for your own figures, and your [saved
 searches](./collection.md#save-a-search-and-use-it-again), your [event
-rules](#event-rules), and the [Weekends and series](#weekends-and-series)
-switch. They start syncing only once every device
+rules](#event-rules), your [program templates](#program-defaults), the
+[Suggestions](#suggestions) settings, your [Swap a dance](#perform-mode)
+choices, and the [Weekends and series](#weekends-and-series) switch. They start
+syncing only once every device
 connected to your store has an up-to-date app. Until then changes to them
 aren't sent to your other devices, and nothing already on a device is removed;
 you can keep using and editing them on each device.

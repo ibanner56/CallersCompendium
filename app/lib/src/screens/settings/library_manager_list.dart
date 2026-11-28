@@ -56,8 +56,10 @@ class LibraryManagerAction {
   final IconData icon;
   final VoidCallback onSelected;
 
-  /// Drawn in the theme's error colour. It opens no confirm: a manager's
-  /// delete offers Undo instead (`docs/design/ux.md`, confirm only what Undo
+  /// Drawn in the theme's error colour; it is only styling. Whether the
+  /// action asks first is up to [onSelected]: a manager's delete offers Undo,
+  /// and asks first only when "Confirm before delete" is on
+  /// (`confirmDeleteIfEnabled`; `docs/design/ux.md`, confirm only what Undo
   /// cannot reverse).
   final bool destructive;
 }

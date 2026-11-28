@@ -1615,7 +1615,7 @@ makes self-hosting materially harder, which constraint 4 forbids.
   > no request — and it is safe because of that condition: the removal makes no
   > publication unreachable, since another manifest still names every one, so
   > nothing a peer could still fetch is lost. When the condition does not hold,
-  > when the device is offline or on mobile data with *Sync only on WiFi* on, or
+  > when the device is offline or on mobile data with *Sync only on Wi-Fi* on, or
   > when the attempt fails, the old entry remains as described above and is
   > removed under *Other devices*. A new pairing cancels the attempt, so the old
   > and new identifiers are never used side by side, as does turning Device

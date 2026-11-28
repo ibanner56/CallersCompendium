@@ -176,8 +176,9 @@ backup is refused the same way, with its size and the limit.
 > The same goes for a backup that holds an English country dance formation
 > (such as duple minor), a dance marked improper, a dance's meter or key,
 > who interpreted a dance and when, a dance's other titles or Barnes
-> reference, or a square's kind, repeat order, new partner, singing call or
-> free-form setting:
+> reference, a square's kind, repeat order, new partner, singing call or
+> free-form setting, a program with a start, end, beginner lesson or **Arrive
+> by** time, or a program with event rules applied to it:
 > versions without them refuse it as coming
 > from a newer version. A backup that holds an archived program, a program
 > imported from your calendar, an event rule, or a program slot that keeps a
