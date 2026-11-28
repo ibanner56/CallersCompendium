@@ -1,6 +1,8 @@
 // Settings ▸ Experimental ▸ Event rules (#2340): the switch, off by default,
 // Manage rules once it is on, the rules manager (add, edit, delete with Undo)
 // and the saved-search delete guard naming the rules that use the search.
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,6 +34,7 @@ Future<ValueNotifier<bool>> _pump(
   CompendiumRepositories repos,
   Widget home, {
   bool enabled = false,
+  bool settle = true,
 }) async {
   await tester.binding.setSurfaceSize(const Size(800, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -48,7 +51,11 @@ Future<ValueNotifier<bool>> _pump(
       home: home,
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    await tester.pump();
+  }
   return on;
 }
 
@@ -394,6 +401,38 @@ void main() {
         find.byKey(const ValueKey('event-rules-empty')),
       );
       expect(find.byType(LoadErrorView), findsNothing);
+    });
+
+    testWidgets('a rules event still reading its search names when the '
+        'watch fails does not hide the error', (tester) async {
+      final db = openWidgetTestDatabase();
+      final settings = _HeldSavedSearchReadsSettings(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      await seedRules(repos);
+      // The first rules event waits on its saved-search names read.
+      settings.hold = Completer<void>();
+      await _pump(
+        tester,
+        repos,
+        const EventRulesScreen(),
+        enabled: true,
+        settle: false,
+      );
+      // The watch fails meanwhile.
+      await repos.db.customStatement('DROP TABLE event_rules');
+      repos.db.markTablesUpdated([repos.db.eventRules]);
+      await pumpUntilFound(tester, find.byType(LoadErrorView));
+      expect(settings.hold!.isCompleted, isFalse);
+      // Then the earlier event's read finishes: the error stays.
+      settings.hold!.complete();
+      settings.hold = null;
+      await tester.pumpAndSettle();
+      expect(find.byType(LoadErrorView), findsOneWidget);
+      expect(find.text('A'), findsNothing);
     });
 
     testWidgets('a failed delete says the rule was not deleted', (
@@ -1255,4 +1294,18 @@ void main() {
       expect(find.byType(EventRuleEditorScreen), findsOneWidget);
     });
   });
+}
+
+/// Settings whose saved-search reads wait on [hold] while it is set.
+class _HeldSavedSearchReadsSettings extends SettingsRepository {
+  _HeldSavedSearchReadsSettings(super.db);
+
+  Completer<void>? hold;
+
+  @override
+  Future<List<String>> keysWithPrefix(String prefix) async {
+    final wait = hold;
+    if (wait != null && prefix == savedSearchKeyPrefix) await wait.future;
+    return super.keysWithPrefix(prefix);
+  }
 }
