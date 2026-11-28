@@ -592,9 +592,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
     until there is something to sort. Content under a floating button leaves
     `AppSpacing.fabClearance` below its last row.
   - **New.** A full-screen manager (Collection, Programs, venues, custom
-    fields, your figures, shorthands) floats New once it has a list; a list
-    inside a settings section (dialects, custom themes, the compound
-    shorthands section) creates with an inline button. The Glossary keeps its
+    fields, your figures, shorthands) floats New once it has a list, and the
+    Theme screen floats **Custom theme** above its themes; a list inside a
+    settings section (dialects, the compound shorthands section) creates with
+    an inline button. The Glossary keeps its
     "+" in the top bar, as a reference screen whose entries a floating button
     would cover (left unchanged in November 2026; not revisited by the
     maintainer).

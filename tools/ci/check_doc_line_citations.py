@@ -1,29 +1,30 @@
 #!/usr/bin/env python3
-"""CI ratchet: ``file.dart:N`` line citations in Markdown docs must still land on code.
+"""CI ratchet: Markdown docs must not cite Dart code by ``file.dart:N`` line number.
 
-Docs cite Dart code by line number (`` `appearance_section.dart:137` ``). Nothing
-moves the citation when lines are added above it, so it goes stale silently and a
-reader (or an agent) lands on a blank line, a comment, or past the end of the
-file. This is a **count ceiling**: it fails when the number of stale citations
-differs from ``doc_line_citations_ceiling.json`` -- above it, a new stale
-citation; below it, a cleanup that did not lower the ceiling and so left slack
-for the next one. It catches the cheap cases only, not every semantic drift;
-prefer citing a stable anchor (a symbol or widget key) where one exists.
+A line citation (`` `appearance_section.dart:137` ``) goes stale whenever lines
+are added above it, and nothing moves it. It used to be counted only when it
+slid onto a blank line, a comment or past the end of the file, so one that slid
+onto a *different* line of code passed, and that is the ordinary way they drift
+(audit H-05: at least eight of the 31 the audit counted were wrong, and the
+gate read 0; 30 remained when they were converted). A line number
+cannot be checked for meaning, so every one now counts: cite a symbol
+(`` `_tagsForMany` in `dance_repository.dart` ``) or the file instead.
+
+This is a **count ceiling**: it fails when the number of line citations differs
+from ``doc_line_citations_ceiling.json`` -- above it, a new citation; below it,
+a cleanup that did not lower the ceiling and so left slack for the next one.
 
 Scope. ``docs/**/*.md`` except ``docs/dev/audits/`` (dated historical records).
 
-A citation is a backticked ``path.dart:N`` or ``path.dart:N-M``. The path is
-resolved as a repo-relative path first; otherwise as a basename or partial path
-(``model/x.dart``) that is a path suffix of exactly one of the tracked ``.dart`` files (``git ls-files``; a directory walk when the
-root is not a git checkout). It is **stale** when
+A citation is a backticked ``path.dart:N`` or ``path.dart:N-M``. Each one is a
+finding. Its reason says what a reader following it would hit: the path is
+resolved as a repo-relative path first, otherwise as a basename or partial path
+(``model/x.dart``) that is a path suffix of exactly one of the tracked ``.dart``
+files (``git ls-files``; a directory walk when the root is not a git checkout),
+and the reason names a missing or ambiguous path, a line past the end of the
+file, a blank or comment-only line, or otherwise that the number will drift.
 
-* the path is missing, or matches more than one file (so adding a same-named
-  file can raise the count without any doc changing);
-* the line is past the end of the file; or
-* the cited line (the first line of a range) is blank or comment-only
-  (``//``, ``///``, ``/*``, ``*``).
-
-``count`` = the number of stale (doc, line, citation) occurrences.
+``count`` = the number of (doc, line, citation) occurrences.
 ``--ceiling N`` overrides the checked-in ceiling
 (``tools/ci/doc_line_citations_ceiling.json``).
 
@@ -47,6 +48,7 @@ EXCLUDED_PREFIXES = ("docs/dev/audits/",)
 
 _CITATION_RE = re.compile(r"`([A-Za-z0-9_./\-]+\.dart):(\d+)(?:[-–](\d+))?`")
 _COMMENT_PREFIXES = ("//", "/*", "*")
+DRIFTS = "a line number drifts when lines are added above it; cite a symbol or the file"
 
 
 @dataclass(frozen=True)
@@ -57,7 +59,7 @@ class Finding:
     reason: str
 
     def render(self) -> str:
-        return f"{self.doc}:{self.line}: stale citation `{self.citation}` ({self.reason})"
+        return f"{self.doc}:{self.line}: line citation `{self.citation}` ({self.reason})"
 
 
 def markdown_files(root: Path) -> list[Path]:
@@ -107,7 +109,8 @@ def resolve(path: str, files: set[str], by_name: dict[str, list[str]]) -> tuple[
 
 
 def check_line(root: Path, rel: str, line: int, cache: dict[str, list[str]]) -> str:
-    """Return "" when [line] of [rel] is code, else the reason it is stale."""
+    """Return why a citation of [line] of [rel] fails: what it now lands on, or
+    [DRIFTS] when it still lands on code (which may not be the code meant)."""
     if rel not in cache:
         text = (root / rel).read_text(encoding="utf-8", errors="replace")
         cache[rel] = text.splitlines()
@@ -119,11 +122,13 @@ def check_line(root: Path, rel: str, line: int, cache: dict[str, list[str]]) -> 
         return f"line {line} of {rel} is blank"
     if stripped.startswith(_COMMENT_PREFIXES):
         return f"line {line} of {rel} is only a comment"
-    return ""
+    return DRIFTS
 
 
 def scan(root: Path) -> tuple[list[Finding], int, int]:
-    """Return (stale findings, markdown files scanned, citations seen)."""
+    """Return (findings, markdown files scanned, citations seen).
+
+    Every citation is a finding, so ``seen`` equals ``len(findings)``."""
     files = dart_files(root)
     file_set = set(files)
     by_name: dict[str, list[str]] = {}
@@ -143,8 +148,7 @@ def scan(root: Path) -> tuple[list[Finding], int, int]:
                 resolved, reason = resolve(path, file_set, by_name)
                 if resolved is not None:
                     reason = check_line(root, resolved, start, cache)
-                if reason:
-                    findings.append(Finding(rel_doc, n, shown, reason))
+                findings.append(Finding(rel_doc, n, shown, reason))
     return findings, len(docs), seen
 
 
@@ -168,28 +172,28 @@ def run(root: Path, ceiling: int | None, quiet: bool = False) -> int:
             ceiling = read_ceiling()
         except (OSError, ValueError, KeyError) as e:
             return _fail(f"cannot read the ceiling ({CEILING_PATH.name}): {e}")
-    findings, doc_count, seen = scan(root)
+    findings, doc_count, _ = scan(root)
     count = len(findings)
     if not quiet:
         for finding in findings:
             print(finding.render())
     if count > ceiling:
         print(
-            f"::error::{count} stale doc line citation(s) exceeds the ceiling of "
-            f"{ceiling}. Update the citation you broke (or cite a symbol instead "
-            "of a line); do not raise the ceiling."
+            f"::error::{count} doc line citation(s) exceeds the ceiling of "
+            f"{ceiling}. Cite a symbol or the file instead of a line number; do "
+            "not raise the ceiling."
         )
         return 1
     if count < ceiling:
         print(
-            f"::error::{count} stale doc line citation(s) is below the ceiling of "
+            f"::error::{count} doc line citation(s) is below the ceiling of "
             f"{ceiling}. Lower {CEILING_PATH.name} to {count} in this change, so "
-            "the cleanup sticks and leaves no slack for a new stale citation."
+            "the cleanup sticks and leaves no slack for a new citation."
         )
         return 1
     print(
-        f"OK: {count} stale doc line citation(s) of {seen} across {doc_count} "
-        f"doc(s), ceiling {ceiling}."
+        f"OK: {count} doc line citation(s) across {doc_count} doc(s), "
+        f"ceiling {ceiling}."
     )
     return 0
 

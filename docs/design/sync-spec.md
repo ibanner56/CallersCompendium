@@ -1880,7 +1880,7 @@ sanitisation strips only characters NFC never produces, so applying the
 composition again is a no-op.
 
 **The transform is applied with line breaks permitted.** `allowLineBreaks`
-governs exactly three code points — tab, LF and CR (`text_sanitizer.dart:113`) —
+governs exactly three code points — tab, LF and CR (`_isDisallowed` in `text_sanitizer.dart`) —
 and every other class above is stripped unconditionally. Sanitising on write
 with the default therefore removes precisely the characters that threaten hash
 stability and touches no legitimate structure. Whether a *title* may contain a
@@ -5132,7 +5132,7 @@ A client MUST therefore show a **persistent hint** on a venue whose
 3. **It MUST name the fields that stay on the device, and MUST NOT promise that
    contact details do not travel.** `venues.notes` is `shareable` — ruled so
    deliberately, because it is the user's own words — and the classification it
-   carries (`_freeformNote`, `field_registry.dart:264`) records the interaction
+   carries (`_freeformNote` in `field_registry.dart`) records the interaction
    as knowingly accepted residual risk: *"a user who wrote 'ask for Bob,
    555-1234' into a venue note will have that text travel with the note."* A
    hint saying "contact details stay on this device" would be a false assurance
@@ -5692,8 +5692,8 @@ the server to parse arbitrary non-record JSON or binary opaque blobs.
 
 **Deployment ordering.** Because that mapping is generated from the client's
 registry and lives on the server, **the server MUST be deployed before any
-client emits a new `shareable` field or a new record kind.** Adding either does
-not bump `v` (§4.1 bumps only for a canonicalisation change), so nothing in the
+client emits a new `shareable` field, settings key or key prefix, or a new
+record kind** (§6.15, "Server"). Adding any of them does not bump `v` (§4.1 bumps only for a canonicalisation change), so nothing in the
 wire format signals the difference: a client shipping ahead of the server gets
 `422` on every affected blob, and `422` MUST be surfaced to the user and MUST
 NOT be retried (§5.3). This ordering constraint is load-bearing for every

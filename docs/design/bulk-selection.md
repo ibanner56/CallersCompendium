@@ -251,7 +251,7 @@ core method or a dialog that does not exist yet.
 | **Status** | `dances.status` | New `setStatusForMany` beside `setLevelForMany` | Per-dance prior status | Core + one dialog |
 | ~~Mixer~~ (not built, N4-5) | `dances.mixer` | — | — | — |
 | ~~Mixed level~~ (not built, N4-5) | `dances.mixed_level` | — | — | — |
-| **Add to program** | `program_slots` | Existing program `update`, as the single-dance sheet does (`widgets/add_to_program_sheet.dart:196-247`) | Restore each program's prior slot list | The N3 sheet's list widget, plus a list of dances |
+| **Add to program** | `program_slots` | Existing program `update`, as the single-dance sheet does (`_selectProgram` in `widgets/add_to_program_sheet.dart`) | Restore each program's prior slot list | The N3 sheet's list widget, plus a list of dances |
 | **Source** | `dance_sources` | New `addSourceForMany` (add only) | Per-dance prior citation list | Core + picker reuse |
 
 The two field writes (status, source) are `_updateMany` calls. That gives them the transaction and the `localUserEdit` stamp the
@@ -377,8 +377,8 @@ nothing extra.
 drops mixer and mixed level, so only status remains.)*
 
 **Fit.** `dances.status` is a plain column, classified
-(`privacy/field_registry.dart:365-368`) and edited today in the dance editor
-(`screens/dance_editor/dance_editor_form.dart:667`). The Collection already
+(`'dances.status'` in `privacy/field_registry.dart`) and edited today in the dance editor
+(the `status` drop-down in `screens/dance_editor/dance_editor_form.dart`). The Collection already
 filters on it (`CollectionSort.lastCalled` in `packages/compendium_core/lib/src/search/collection_sort.dart`), so the batch action closes
 the "find, then fix" loop the audit describes.
 
@@ -401,7 +401,7 @@ the "find, then fix" loop the audit describes.
 ### Source
 
 **What it can mean.** Sources attach as `SourceCitation(sourceId, page, number)`
-(`model/source_citation.dart:11`). A batch can reasonably set *which* source,
+(`model/source_citation.dart`). A batch can reasonably set *which* source,
 but not the page or number, which differ per dance.
 
 **Recommendation: add only** (this note's; N4-5 decided *that* source is built,
@@ -422,8 +422,9 @@ the others rather than last. T3 (N2's Authors and Sources managers) also edits
 
 ### Add to program
 
-**What exists.** The single-dance sheet appends one slot and offers Undo by
-writing the program's prior slot list back (`widgets/add_to_program_sheet.dart:196-247`).
+**What exists.** The single-dance sheet appends one slot and offers an Undo that
+takes that slot back out, as a compare-and-replace against the program it
+read (`_selectProgram` in `widgets/add_to_program_sheet.dart`).
 N3 designs that sheet's search, "already contains" and past-program rules. N4
 must not redesign any of them.
 

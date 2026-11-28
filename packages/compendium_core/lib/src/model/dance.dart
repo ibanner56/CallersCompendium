@@ -276,8 +276,8 @@ class Dance {
   /// Where the tune is printed in the Barnes books, as free text with the
   /// book and page in one value ("BIII p. 92"), or "NiB" for a tune Not in
   /// Barnes; `''` when not given, and always `''` for a form other than ECD
-  /// ([formHasBarnesReference]). Never parsed: shown on the dance page and
-  /// searched as typed. Printed cards and shared text don't show it yet.
+  /// ([formHasBarnesReference]). Never parsed: shown on the dance page, the
+  /// dance card and shared text, and searched, as typed.
   final String barnesReference;
 
   /// What a square dance record holds: its main part, a break, or patter

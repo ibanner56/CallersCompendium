@@ -9,9 +9,9 @@ pure-Dart core package (no Flutter imports) per ADR-001.*
    stored canonically; user dialect is presentation (see design/dialect.md).
 2. **Structured figures with named parameters.** No positional parameter arrays
    (ContraDB pitfall). Every persisted structure carries a schema version.
-3. **Contra first, forms extensible.** `DanceForm` discriminates now; figure
-   taxonomies are per-form so ECD/Squares can add their own later without
-   schema surgery.
+3. **Contra first, forms extensible.** `DanceForm` discriminates; figure
+   taxonomies are per form, so English country dances (ADR-006) and squares
+   (ADR-007) each have their own without schema surgery.
 4. **Provenance everywhere.** Imported data keeps its source, external ID,
    permission/license, and import time. (The raw source payload was dropped
    at schema v21, #781 — see [Provenance](#provenance) below.)
@@ -48,7 +48,8 @@ erDiagram
 | id | UUID | |
 | title | string, required | |
 | authors | ordered refs → Choreographer | multiple; "Traditional"/"Unknown" are real Choreographer rows |
-| form | enum `DanceForm` | `contra` (v1); `ecd`, `square` reserved |
+| form | enum `DanceForm` | `contra`, `ecd` (English country dance, ADR-006) or `square` (ADR-007); each has its own taxonomy, formations and fields |
+| alternateTitles | string[] | other names the dance is known by, in the order entered; shown under the title and found by a title search |
 | formation | `Formation` value | see below |
 | mixer | `bool`, default `false` | dancers change partners each time through; a flag orthogonal to `formation` — see below |
 | progression | enum | none/single/double/triple/quadruple/other |
@@ -58,6 +59,10 @@ erDiagram
 | callingNotes | text | teaching/history notes, dialect-aware free text |
 | status | enum | `active` / `deprecated` / `broken` / `draft` / `variation`. The first three mirror TCB; `draft` and `variation` are app-local additions (#1121) |
 | difficultyLevelId | UUID-like stable ref → DifficultyLevel, nullable | `null` = unspecified; separate from `mixedLevel` |
+| meter, musicalKey | string, default `""` | the tune's written meter ("3/2") and key ("G minor"), as typed (ADR-006 §12, F3). Where the meter states one meter, an English dance whose phrases agree counts its bars by it (`danceBeatsPerBar`) |
+| barnesReference | string, default `""` | where the tune is printed in the Barnes books ("BIII p. 92", or "NiB"); English dances only (`formHasBarnesReference`), never parsed |
+| interpreterIds, interpretedOn | ordered refs → Choreographer; `PartialDate?` | who reconstructed the dance from its original publication, and when, as ECD dances often are; stored for every form |
+| squareKind, repeatOrder, repeatOrderText, newPartner, newPartnerText, singing, freeForm | enums, strings, `bool`, `bool?` | a square's record: main part, break or patter; how the main part repeats; who the new partner is; whether it is a singing call; whether it is free-form patter (`null` follows the kind). Kept for every form, so changing the form and back loses nothing; they mean something only for a square (ADR-007 §8.1) |
 | tunes | string[], derived from `tunesSource` | suggested music. `tunesSource` is a sealed `TunesSource` on the same pattern as `figuresSource`: `DecodedTunes` holds the list, `UnreadableTunes` holds the stored text verbatim when it cannot be decoded (#1347, landed in #1391). The `Dance` constructor still takes `tunes: string[]` |
 | customFields, tags, links, provenance | | see below |
 | createdAt / updatedAt / deletedAt | timestamps | deletedAt = soft delete |
@@ -234,11 +239,23 @@ decide what counts and override all four.
   phraseStructure, not stored — keeps reordering/beat edits consistent.
 
 ### Formation
-Canonical enum seeded from the TCB vocabulary (duple improper/progressed improper/reverse progression
-improper/becket(cw|ccw)/proper/indecent…, triple minor, 3-face-3, 4-face-4,
-circle mixer, Sicilian circle, scatter mixer, longways, triplet, grid, quadruplet,
-other) **plus** an optional free-text `detail`. Enum-with-detail avoids ContraDB's
-regex-over-free-text weakness while never losing information.
+Canonical enum (`FormationShape`) **plus** an optional free-text `detail`.
+Enum-with-detail avoids ContraDB's regex-over-free-text weakness while never
+losing information. Each form offers its own shapes (`offeredFormationShapes`):
+
+- **Contra:** the TCB vocabulary (duple improper/progressed improper/reverse
+  progression improper/becket(cw|ccw)/proper/indecent…, triple minor, 3-face-3,
+  4-face-4, circle mixer, Sicilian circle, scatter mixer, longways, triplet,
+  grid, quadruplet, other).
+- **English country dance:** duple minor, triple minor, two-couple set,
+  three- to six-couple longways, longways, circle, Sicilian circle, square set,
+  other (ADR-006 §12, F2). An English formation also says whether the dance
+  **starts improper** (`Formation.improper`), apart from its shape; the flag is
+  cleared for any other form (`formHasImproperFlag`), whose shapes already say it.
+- **Square:** square set, circle (a Southern big circle or big set), other
+  (ADR-007 §8.1).
+
+A stored shape outside its form's list is still read and shown.
 
 ### Mixer
 A `bool` flag (default `false`) marking a dance in which dancers change
@@ -363,9 +380,12 @@ and never deletes one.
 
 `eventRuleIds` (schema v42, #2340, Experimental) lists the
 [event rules](#eventrule) the caller applied to this program, in order and
-without repeats (`normalizeEventRuleIds`). It is empty by default and never
-filled automatically: creating, duplicating or importing a program applies
-none. An id with no live rule is ignored. It syncs and is in backups; share
+without repeats (`normalizeEventRuleIds`). It is empty by default. A program
+made from a program template (New program, or a calendar import's draft from
+the Default template) starts with that template's live rules while Event rules
+is on (#2342): choosing the template is the caller adding them, and they are
+copied. Duplicating or importing a program, or creating one any other way,
+applies none. An id with no live rule is ignored. It syncs and is in backups; share
 files, the programs CSV and the PDF leave it out.
 
 Duplicate-program = deep copy of slots, as a Draft with performed marks, pay,
@@ -488,8 +508,8 @@ URLs. (Every settings key is classified in
 
 ## Explicitly out of v1
 
-Multi-user/sync, choreography validation (external project), ECD/square
-taxonomies (schema-ready, not populated), authoring back to online sources.
+Multi-user accounts (Device Sync syncs one person's devices; ADR-004),
+choreography validation (external project), authoring back to online sources.
 
 ## CC parity backfill (2026-07-12 schema audit → ROADMAP Phase 4b+)
 

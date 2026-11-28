@@ -151,7 +151,8 @@ const int maxEventRuleNicknameLength = 200;
 /// whole program."
 ///
 /// A rule applies to a program only when the caller adds it there
-/// (`Program.eventRuleIds`); none is ever added automatically.
+/// (`Program.eventRuleIds`), directly or by making the program from a template
+/// that carries it; see `Program.eventRuleIds`.
 ///
 /// [quantifierName] and [scopeName] are the stored text, known to this build
 /// or not, so a rule a newer build wrote is carried and published again as it
