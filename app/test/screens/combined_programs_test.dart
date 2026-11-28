@@ -399,6 +399,32 @@ void main() {
       expect(find.text('1st'), findsNothing);
     });
 
+    testWidgets('the alternates toggle hides and shows alternate rows', (
+      tester,
+    ) async {
+      final repos = await seed();
+      await pumpCombined(tester, repos, {'sun', 'sat'});
+      final toggle = find.byKey(
+        const ValueKey('combined-matrix-toggle-alternates'),
+      );
+      final butterfly = find.descendant(
+        of: find.byKey(const ValueKey('combined-matrix-table')),
+        matching: find.text('Butterfly'),
+      );
+      // Saturday plans Butterfly; Sunday holds it as an alternate.
+      expect(butterfly, findsNWidgets(2));
+      expect(find.byTooltip('Hide alternate rows'), findsOneWidget);
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(butterfly, findsOneWidget, reason: 'Sunday\'s alternate hidden');
+      expect(find.byTooltip('Show alternate rows'), findsOneWidget);
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(butterfly, findsNWidgets(2), reason: 'shown again');
+    });
+
     testWidgets('Repeats lists dances in two programs, with where, and marks '
         'one that is only an alternate somewhere', (tester) async {
       final repos = await seed();

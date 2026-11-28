@@ -269,6 +269,38 @@ void main() {
       expect((await dances.getById('d1'))!.authorIds, ['c1']);
     });
 
+    test('a person credited only as interpreter of a trashed dance is '
+        'tombstoned, and the credit survives a restore', () async {
+      // The #1357 rule for authors, extended to interpreters (#2251):
+      // `dance_interpreters` cascades too, so erasing would take the trashed
+      // dance's interpreter credit with it.
+      // ignore: unused_result
+      await repo.upsert(Choreographer(id: 'c1', name: 'Interpreter'));
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Some Dance',
+          interpreterIds: const ['c1'],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+
+      await repo.delete('c1', permanent: true);
+
+      final row = await (db.select(
+        db.choreographers,
+      )..where((t) => t.id.equals('c1'))).getSingleOrNull();
+      expect(row, isNotNull, reason: 'the row must survive the rollback');
+      expect(row!.deletedAt, isNotNull, reason: 'as a tombstone');
+      expect(await repo.getById('c1'), isNull);
+
+      await dances.restore('d1', at: DateTime.utc(2026, 3));
+      await repo.restore('c1', at: DateTime.utc(2026, 3));
+      expect((await dances.getById('d1'))!.interpreterIds, ['c1']);
+    });
+
     test('still erases an unreferenced, unpublished choreographer', () async {
       // ignore: unused_result
       await repo.upsert(Choreographer(id: 'c1', name: 'Solo'));

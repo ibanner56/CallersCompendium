@@ -99,6 +99,28 @@ void main() {
       }
     });
 
+    // Stored values arrive from sync and backups, not only from
+    // encodeProgramTemplate (which cuts the name), so the decoder holds the
+    // cap itself.
+    test('a stored name longer than the limit is refused', () {
+      String stored(String name) =>
+          jsonEncode({'version': 1, 'name': name, 'slots': <Object>[]});
+      expect(
+        tryDecodeProgramTemplate(
+          'a',
+          stored('a' * kMaxProgramTemplateNameLength),
+        )?.name,
+        'a' * kMaxProgramTemplateNameLength,
+      );
+      expect(
+        tryDecodeProgramTemplate(
+          'a',
+          stored('a' * (kMaxProgramTemplateNameLength + 1)),
+        ),
+        isNull,
+      );
+    });
+
     test('order and default decoders accept only ids', () {
       expect(tryDecodeProgramTemplateOrder(['a', 'b']), ['a', 'b']);
       expect(tryDecodeProgramTemplateOrder(['a', 'a']), isNull);

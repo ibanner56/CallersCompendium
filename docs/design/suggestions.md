@@ -354,8 +354,12 @@ sync capability ([sync-spec.md §6.15](sync-spec.md#615-capability-gate)):
   build's choices are never overwritten by one that cannot read them.
   Suggestions rank with the defaults meanwhile.
 - **Reset to defaults** writes the default choices for the four factors and
-  keeps the preserved unknown factors and `preferences`. It is disabled while
-  the choices already are the defaults.
+  keeps the preserved unknown factors and `preferences`. It acts at once and
+  offers Undo, which writes back the choices it replaced onto the value held
+  when Undo is tapped, so a part synced in meanwhile is kept; if a choice was
+  made since, here or on another device, or the library was restored or reset
+  meanwhile, Undo changes nothing and says it failed. It does
+  not ask first. It is disabled while the choices already are the defaults.
 
 The backup validator accepts a value with an integer `version` of at least 1,
 an object `factors` and a list `preferences` (each when present); for version

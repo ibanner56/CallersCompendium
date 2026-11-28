@@ -38,13 +38,32 @@ CompendiumDatabase openWidgetTestDatabase({
   return db;
 }
 
-/// An in-memory [CompendiumRepositories] for widget tests. Each call opens a
-/// fresh, isolated database (no shared state between tests), mirroring
+/// [CompendiumRepositories] over [db] with the taxonomies the app runs with
+/// (`AppData` in `app_database.dart`): every shipped form's moves, and each
+/// dance read, canonicalised and re-checked under its own form's taxonomy,
+/// so an English or square dance's `ecd_`/`sq_` figures resolve here as they
+/// do on a caller's device.
+CompendiumRepositories _appTaxonomyRepositories(
+  CompendiumDatabase db, {
+  SettingsRepository? settings,
+  ProgramRepository? programs,
+  VenueRepository? venues,
+}) => CompendiumRepositories(
+  db,
+  shippedTaxonomies.anyForm,
+  taxonomyForForm: shippedTaxonomies.forForm,
+  settings: settings,
+  programs: programs,
+  venues: venues,
+);
+
+/// An in-memory [CompendiumRepositories] for widget tests, with the app's
+/// per-form taxonomies. Each call opens a fresh, isolated database (no shared
+/// state between tests), mirroring
 /// `packages/compendium_core/test/storage/test_database.dart`.
 CompendiumRepositories openTestRepositories({bool closeOnTearDown = true}) =>
-    CompendiumRepositories(
+    _appTaxonomyRepositories(
       openWidgetTestDatabase(closeOnTearDown: closeOnTearDown),
-      contraTaxonomy,
     );
 
 /// A [SettingsRepository] that can be forced to fail its writes, used to
@@ -111,7 +130,7 @@ class InjectedSettingsFailure implements Exception {
 openTestRepositoriesWithFailingSettings({bool closeOnTearDown = true}) {
   final db = openWidgetTestDatabase(closeOnTearDown: closeOnTearDown);
   final settings = FailingSettingsRepository(db);
-  final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
+  final repos = _appTaxonomyRepositories(db, settings: settings);
   return (repos: repos, settings: settings);
 }
 
@@ -516,7 +535,7 @@ class InjectedProgramFailure implements Exception {
 openTestRepositoriesWithFailingPrograms({bool closeOnTearDown = true}) {
   final db = openWidgetTestDatabase(closeOnTearDown: closeOnTearDown);
   final programs = FailingProgramRepository(db);
-  final repos = CompendiumRepositories(db, contraTaxonomy, programs: programs);
+  final repos = _appTaxonomyRepositories(db, programs: programs);
   return (repos: repos, programs: programs);
 }
 
@@ -524,7 +543,7 @@ openTestRepositoriesWithFailingPrograms({bool closeOnTearDown = true}) {
 openTestRepositoriesWithDelayedPrograms({bool closeOnTearDown = true}) {
   final db = openWidgetTestDatabase(closeOnTearDown: closeOnTearDown);
   final programs = DelayedProgramRepository(db);
-  final repos = CompendiumRepositories(db, contraTaxonomy, programs: programs);
+  final repos = _appTaxonomyRepositories(db, programs: programs);
   return (repos: repos, programs: programs);
 }
 
@@ -539,9 +558,8 @@ openTestRepositoriesWithDelayedProgramsAndVenues({
   final db = openWidgetTestDatabase(closeOnTearDown: closeOnTearDown);
   final programs = DelayedProgramRepository(db);
   final venues = DelayedVenueRepository(db);
-  final repos = CompendiumRepositories(
+  final repos = _appTaxonomyRepositories(
     db,
-    contraTaxonomy,
     programs: programs,
     venues: venues,
   );
@@ -555,7 +573,7 @@ openTestRepositoriesWithDelayedProgramsAndVenues({
 openTestRepositoriesWithDelayedSettings({bool closeOnTearDown = true}) {
   final db = openWidgetTestDatabase(closeOnTearDown: closeOnTearDown);
   final settings = DelayedSettingsRepository(db);
-  final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
+  final repos = _appTaxonomyRepositories(db, settings: settings);
   return (repos: repos, settings: settings);
 }
 
@@ -623,6 +641,6 @@ class DelayedReadSettingsRepository extends SettingsRepository {
 openTestRepositoriesWithDelayedSettingsRead({bool closeOnTearDown = true}) {
   final db = openWidgetTestDatabase(closeOnTearDown: closeOnTearDown);
   final settings = DelayedReadSettingsRepository(db);
-  final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
+  final repos = _appTaxonomyRepositories(db, settings: settings);
   return (repos: repos, settings: settings);
 }

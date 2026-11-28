@@ -1684,6 +1684,44 @@ void main() {
       },
     );
 
+    test('merge mode with tombstone: dance interpreterId adopts the written id '
+        '(remap)', () async {
+      // The interpreter half of the author remap above: without it the dance
+      // keeps an id no row holds and is not restored at all.
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'live-id', name: 'Alice'),
+      );
+      await repos.choreographers.delete('live-id');
+
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        choreographers: [Choreographer(id: 'archived-id', name: 'Alice')],
+        dances: [
+          Dance(
+            id: 'd1',
+            title: 'Remap Dance',
+            interpreterIds: const ['archived-id'],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ],
+      );
+
+      final result = await ArchiveRestorer(
+        repos,
+      ).restore(archive, mode: RestoreMode.merge);
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+      final dance = await repos.dances.getById('d1');
+      expect(dance, isNotNull);
+      expect(dance!.interpreterIds, ['live-id']);
+    });
+
     test(
       'merge mode with tombstone: dance tagId adopts the written id (remap)',
       () async {

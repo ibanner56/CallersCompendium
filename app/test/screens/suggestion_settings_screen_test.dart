@@ -13,8 +13,12 @@ import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
 class _Harness {
-  _Harness(this.repos, this.enabled, this.settings, this.inPerformSwap);
-  final CompendiumRepositories repos;
+  _Harness(this.library, this.enabled, this.settings, this.inPerformSwap);
+
+  /// The open library; a test may swap it, as a restore or a reset to a
+  /// clean install does.
+  final ValueNotifier<CompendiumRepositories> library;
+  CompendiumRepositories get repos => library.value;
   final ValueNotifier<bool> enabled;
   final ValueNotifier<SuggestionSettingsRead> settings;
   final ValueNotifier<bool> inPerformSwap;
@@ -31,7 +35,8 @@ Future<_Harness> _pump(
 }) async {
   await tester.binding.setSurfaceSize(const Size(800, 2000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  final repos = openTestRepositories();
+  final library = ValueNotifier(openTestRepositories());
+  addTearDown(library.dispose);
   final enabledNotifier = ValueNotifier<bool>(enabled);
   addTearDown(enabledNotifier.dispose);
   final settings = ValueNotifier<SuggestionSettingsRead>(read);
@@ -42,13 +47,16 @@ Future<_Harness> _pump(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: SuggestionsEnabledScope(
-          notifier: enabledNotifier,
-          child: SuggestionsInPerformSwapScope(
-            notifier: inPerformSwap,
-            child: SuggestionSettingsScope(notifier: settings, child: child!),
+      builder: (context, child) => ValueListenableBuilder(
+        valueListenable: library,
+        builder: (context, repos, _) => RepositoriesScope(
+          repositories: repos,
+          child: SuggestionsEnabledScope(
+            notifier: enabledNotifier,
+            child: SuggestionsInPerformSwapScope(
+              notifier: inPerformSwap,
+              child: SuggestionSettingsScope(notifier: settings, child: child!),
+            ),
           ),
         ),
       ),
@@ -56,7 +64,7 @@ Future<_Harness> _pump(
     ),
   );
   await tester.pumpAndSettle();
-  return _Harness(repos, enabledNotifier, settings, inPerformSwap);
+  return _Harness(library, enabledNotifier, settings, inPerformSwap);
 }
 
 Finder _segment(SuggestionFactor factor, String label) => find.descendant(
@@ -256,6 +264,211 @@ void main() {
     expect(json['preferences'], [
       {'savedSearchId': 's1', 'mode': 'prefer'},
     ]);
+  });
+
+  testWidgets('Undo after Reset to defaults writes back the choices it '
+      'replaced', (tester) async {
+    // Reset acts at once (it can be undone, so it does not ask first); the
+    // prompt it shows must carry an Undo that puts the caller's choices back.
+    final changed = readSuggestionSettings({
+      'version': 1,
+      'factors': {
+        'matrixVariety': {'weight': 'off'},
+        'difficultyCurve': {'weight': 'aLot', 'shape': 'even'},
+      },
+    });
+    final h = await _pump(
+      tester,
+      const SuggestionSettingsScreen(),
+      read: changed,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('suggestion-settings-reset')));
+    await tester.pumpAndSettle();
+    expect((await _stored(h)).settings.hasDefaultChoices, isTrue);
+
+    final undo = find.byKey(const ValueKey('suggestion-settings-reset-undo'));
+    expect(undo, findsOneWidget);
+    await tester.tap(undo);
+    await tester.pumpAndSettle();
+
+    final want = changed.settings.toJson();
+    expect(h.settings.value.settings.toJson(), want);
+    expect((await _stored(h)).settings.toJson(), want);
+    expect(
+      _selected(tester, SuggestionFactor.matrixVariety),
+      SuggestionWeight.off,
+    );
+  });
+
+  testWidgets('Undo after Reset to defaults keeps a choice made since, and '
+      'says it failed', (tester) async {
+    final changed = readSuggestionSettings({
+      'version': 1,
+      'factors': {
+        'matrixVariety': {'weight': 'off'},
+      },
+    });
+    final h = await _pump(
+      tester,
+      const SuggestionSettingsScreen(),
+      read: changed,
+    );
+    await tester.tap(find.byKey(const ValueKey('suggestion-settings-reset')));
+    await tester.pumpAndSettle();
+
+    // A choice made after the reset, here or synced in from another device.
+    await tester.tap(_segment(SuggestionFactor.formationBalance, 'A lot'));
+    await tester.pumpAndSettle();
+    final since = h.settings.value.settings.toJson();
+
+    await tester.tap(
+      find.byKey(const ValueKey('suggestion-settings-reset-undo')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(h.settings.value.settings.toJson(), since);
+    expect((await _stored(h)).settings.toJson(), since);
+    expect(find.byKey(const ValueKey('undo-failed-snackbar')), findsOneWidget);
+  });
+
+  testWidgets("Undo after Reset to defaults keeps a peer's kept part that "
+      'synced in meanwhile', (tester) async {
+    final h = await _pump(
+      tester,
+      const SuggestionSettingsScreen(),
+      read: readSuggestionSettings({
+        'version': 1,
+        'factors': {
+          'matrixVariety': {'weight': 'off'},
+        },
+      }),
+    );
+    await tester.tap(find.byKey(const ValueKey('suggestion-settings-reset')));
+    await tester.pumpAndSettle();
+
+    // Another device's value arrives: the default choices, plus a part this
+    // build does not read, which it must keep.
+    h.settings.value = readSuggestionSettings({
+      'version': 1,
+      'factors': <String, Object?>{},
+      'peerOnly': 'kept',
+    });
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('suggestion-settings-reset-undo')),
+    );
+    await tester.pumpAndSettle();
+
+    final stored = (await _stored(h)).settings;
+    expect(stored.matrixVariety, SuggestionWeight.off);
+    expect(stored.toJson()['peerOnly'], 'kept');
+  });
+
+  testWidgets('Undo after Reset to defaults still writes once the screen has '
+      'closed', (tester) async {
+    final h = await _pump(
+      tester,
+      Builder(
+        builder: (context) => Scaffold(
+          body: TextButton(
+            key: const ValueKey('open'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const SuggestionSettingsScreen(),
+              ),
+            ),
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+      read: readSuggestionSettings({
+        'version': 1,
+        'factors': {
+          'matrixVariety': {'weight': 'off'},
+        },
+      }),
+    );
+    await tester.tap(find.byKey(const ValueKey('open')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('suggestion-settings-reset')));
+    await tester.pumpAndSettle();
+
+    // Back out of the screen; the Undo prompt belongs to the app's messenger.
+    final NavigatorState navigator = tester.state(find.byType(Navigator));
+    navigator.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(SuggestionSettingsScreen), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('suggestion-settings-reset-undo')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(h.settings.value.settings.matrixVariety, SuggestionWeight.off);
+    expect((await _stored(h)).settings.matrixVariety, SuggestionWeight.off);
+    expect(find.byKey(const ValueKey('undo-failed-snackbar')), findsNothing);
+  });
+
+  testWidgets('Undo after Reset to defaults writes nothing into a library '
+      'opened since', (tester) async {
+    final h = await _pump(
+      tester,
+      const SuggestionSettingsScreen(),
+      read: readSuggestionSettings({
+        'version': 1,
+        'factors': {
+          'matrixVariety': {'weight': 'off'},
+        },
+      }),
+    );
+    await tester.tap(find.byKey(const ValueKey('suggestion-settings-reset')));
+    await tester.pumpAndSettle();
+
+    // A restore or a reset to a clean install: another library, read with
+    // the default choices.
+    final old = h.repos;
+    h.library.value = openTestRepositories();
+    h.settings.value = (settings: const SuggestionSettings(), isNewer: false);
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('suggestion-settings-reset-undo')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(await h.repos.settings.get(kSuggestionSettingsKey), isNull);
+    expect(h.settings.value.settings.hasDefaultChoices, isTrue);
+    expect(find.byKey(const ValueKey('undo-failed-snackbar')), findsOneWidget);
+    expect(identical(old, h.repos), isFalse);
+  });
+
+  testWidgets('Reset to defaults announces nothing when a newer build\'s value '
+      'arrived first', (tester) async {
+    final h = await _pump(
+      tester,
+      const SuggestionSettingsScreen(),
+      read: readSuggestionSettings({
+        'version': 1,
+        'factors': {
+          'matrixVariety': {'weight': 'off'},
+        },
+      }),
+    );
+    // Synced in after the screen was built, before the tap is handled.
+    h.settings.value = readSuggestionSettings({
+      'version': 2,
+      'factors': <String, Object?>{},
+    });
+    await tester.tap(find.byKey(const ValueKey('suggestion-settings-reset')));
+    await tester.pumpAndSettle();
+
+    expect(await h.repos.settings.get(kSuggestionSettingsKey), isNull);
+    expect(
+      find.byKey(const ValueKey('suggestion-settings-reset-undo')),
+      findsNothing,
+    );
   });
 
   testWidgets('a value saved by a newer version is shown read-only and never '

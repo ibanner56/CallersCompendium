@@ -182,9 +182,14 @@ void main() {
         isNull,
       );
       expect(breach(rule(none, neighbours), ['a', 'slot:Becket', 'b']), isNull);
-      // A pair with the placeholder is not judged until it is filled.
+      // A pair with the placeholder is not judged until it is filled, even
+      // one that would break the rule as it stands.
       expect(
         breach(rule(atLeast, neighbours, 1), ['M1', 'slot:Becket', 'M2']),
+        isNull,
+      );
+      expect(
+        breach(rule(atLeast, neighbours, 1), ['a', 'slot:Becket', 'M1']),
         isNull,
       );
       // The dances next to each other still pair up.
@@ -230,6 +235,16 @@ void main() {
         breach(rule(atMost, neighbours, 1), ['M1', '|', 'b', 'alt:M2']),
         isNull,
       );
+    });
+
+    test('a leading alternate, with no primary, is tried where it stands', () {
+      // Nothing before it to replace: called, it is one more dance.
+      final b = breach(rule(atMost, whole, 1), ['alt:M2', 'M1', 'a']);
+      expect(b!.brokenAsPlanned, isFalse);
+      expect(b.alternateSlotIds, ['s0']);
+      // And it sits next to the first dance.
+      final n = breach(rule(atMost, neighbours, 1), ['alt:M2', 'M1', 'a']);
+      expect(n!.alternateSlotIds, ['s0']);
     });
 
     test('is listed with a broken program only when it is at fault', () {

@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/source_scan.dart';
+
 /// Every dropdown in the app, form fields and list rows' compact controls
 /// alike, file by file in source order, by the source
 /// text of its `key` argument and of its `filterable` argument (whether typing
@@ -212,6 +214,43 @@ void main() {
     expect(_buildsPlainDropdown('DropdownButtonFormField<int>('), isFalse);
   });
 
+  test('the AppDropdownField scan finds every construction', () {
+    // With type arguments or without (inferred from its entries), across
+    // lines; not in prose or a string, and not the type named elsewhere.
+    const src = '''
+AppDropdownField<int>(key: a, entries: e);
+AppDropdownField(
+  key: b,
+  entries: e,
+);
+AppDropdownField<Map<String, int>>(key: c);
+// AppDropdownField(key: d)
+final s = 'AppDropdownField(key: e)';
+final AppDropdownField<int> f = g;
+''';
+    expect(
+      [for (final open in appDropdownCalls(src)) lineAt(src, open)],
+      [1, 2, 6],
+    );
+  });
+
+  test('no Material DropdownMenu is built outside the wrapper: it would skip '
+      'the outline and the typing choice the wrapper records', () {
+    final offenders = [
+      for (final file in _dartSources())
+        if (file.path.replaceAll(r'\', '/') != _wrapper &&
+            _buildsDropdownMenu(file.readAsStringSync()))
+          file.path.replaceAll(r'\', '/'),
+    ];
+    expect(offenders, isEmpty);
+    // Positive control: the wrapper builds one, and the scan sees it.
+    expect(_buildsDropdownMenu(File(_wrapper).readAsStringSync()), isTrue);
+    expect(_buildsDropdownMenu('DropdownMenu(\n  entries: e,'), isTrue);
+    expect(_buildsDropdownMenu('/// a [DropdownMenu] asserts'), isFalse);
+    expect(_buildsDropdownMenu('DropdownMenuEntry<int>('), isFalse);
+    expect(_buildsDropdownMenu('DropdownMenuThemeData('), isFalse);
+  });
+
   test('the scan sees code, not comments', () {
     // Positive control: the wrapper names the old widget in its doc comment,
     // which the raw text shows and the code-only view does not.
@@ -227,15 +266,7 @@ void main() {
       final path = file.path.replaceAll(r'\', '/');
       if (path == _wrapper) continue;
       final src = file.readAsStringSync();
-      for (final m in RegExp(r'AppDropdownField<').allMatches(src)) {
-        // The call's own `(`, after the type arguments.
-        var depth = 0;
-        var i = m.end - 1;
-        for (; i < src.length; i++) {
-          if (src[i] == '<') depth++;
-          if (src[i] == '>' && --depth == 0) break;
-        }
-        final open = src.indexOf('(', i);
+      for (final open in appDropdownCalls(src)) {
         final args = _topLevelArgs(src, open);
         (found[path] ??= []).add((
           args['key'] ?? '',
@@ -246,6 +277,37 @@ void main() {
     expect(found, _sites);
   });
 }
+
+/// The offset of the `(` of each `AppDropdownField` construction in [src],
+/// with or without type arguments, in code only (not comments or strings).
+List<int> appDropdownCalls(String src) {
+  final code = codeOnly(src);
+  final opens = <int>[];
+  for (final m in RegExp(
+    r'(?<![\w.])AppDropdownField\s*(?=[<(])',
+  ).allMatches(code)) {
+    var i = m.end;
+    if (code[i] == '<') {
+      var depth = 0;
+      for (; i < code.length; i++) {
+        if (code[i] == '<') depth++;
+        if (code[i] == '>' && --depth == 0) break;
+      }
+      i++;
+      while (i < code.length && code[i].trim().isEmpty) {
+        i++;
+      }
+      // A type annotation (`AppDropdownField<int> f`), not a construction.
+      if (i >= code.length || code[i] != '(') continue;
+    }
+    opens.add(i);
+  }
+  return opens;
+}
+
+/// Whether [src] constructs Material's `DropdownMenu` in code.
+bool _buildsDropdownMenu(String src) =>
+    RegExp(r'(?<![\w.])DropdownMenu\s*(<|\()').hasMatch(codeOnly(src));
 
 /// Whether [src] constructs a plain `DropdownButton` (with or without type
 /// arguments) in code, not in a comment.

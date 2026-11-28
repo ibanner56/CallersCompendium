@@ -212,6 +212,26 @@ void main() {
       expect((await held(b, address)).wireHash, tombstone.wireHash);
     });
 
+    test(
+      "a conflict choice shows when this device last changed a rule",
+      () async {
+        // `SyncReviewResolver` labels this device's version with it.
+        await storeSavedSearches(a.settings, ['search-1']);
+        await a.eventRules.save(rule(), at: edited);
+        const address = (kind: SyncRecordKind.eventRule, recordId: 'r1');
+        expect(
+          (await CompendiumSyncStorage(a).recordUpdatedAt(address))!.toUtc(),
+          edited,
+        );
+        expect(
+          await CompendiumSyncStorage(
+            a,
+          ).recordUpdatedAt((kind: SyncRecordKind.eventRule, recordId: 'none')),
+          isNull,
+        );
+      },
+    );
+
     test('a rule a newer build wrote arrives byte for byte', () async {
       await a.eventRules.writeFromSync(
         rule(quantifier: 'exactly', scope: 'lastHour'),

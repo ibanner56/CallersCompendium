@@ -869,6 +869,89 @@ void main() {
       expect(linked.barnesReference, '');
     });
 
+    // The other direction (pre-release audit finding TESTS-02): what the
+    // incoming record names is carried onto a fresh insert and onto the
+    // linked-over dance alike.
+    Map<String, Object?> englishWithTitles(String id) =>
+        record(id, 'Nice Combination', form: 'ecd')
+          ..['alternateTitles'] = ['Monymusk', 'The Other Name']
+          ..['barnesReference'] = 'BIII p. 92';
+    Map<String, Object?> squareWithNewPartner(String id) =>
+        record(id, 'Nice Combination', form: 'square')
+          ..['newPartner'] = 'other'
+          ..['newPartnerText'] = 'The lady across';
+
+    test('a fresh insert keeps the incoming other titles, Barnes reference '
+        'and new partner', () async {
+      final session = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([
+            englishWithTitles('fresh-e'),
+            squareWithNewPartner('fresh-s'),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+      expect(session.insertedDanceIds, hasLength(2));
+      final english = (await dances.getById(session.insertedDanceIds[0]))!;
+      expect(english.alternateTitles, ['Monymusk', 'The Other Name']);
+      expect(english.barnesReference, 'BIII p. 92');
+      final square = (await dances.getById(session.insertedDanceIds[1]))!;
+      expect(square.newPartner, SquareNewPartner.other);
+      expect(square.newPartnerText, 'The lady across');
+    });
+
+    test('resolution link takes the incoming other titles and Barnes '
+        'reference over the existing ones', () async {
+      final existingId = await seedExisting();
+      await dances.update(
+        (await dances.getById(existingId))!.copyWith(
+          form: DanceForm.ecd,
+          alternateTitles: ['Old Name'],
+          barnesReference: 'BI p. 1',
+        ),
+      );
+      final session = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([englishWithTitles('fake-2')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      expect(session.records.single.action, CommitAction.link);
+      final linked = (await dances.getById(existingId))!;
+      expect(linked.alternateTitles, ['Monymusk', 'The Other Name']);
+      expect(linked.barnesReference, 'BIII p. 92');
+    });
+
+    test('resolution link takes the incoming new partner over the existing '
+        'one', () async {
+      final existingId = await seedExisting();
+      await dances.update(
+        (await dances.getById(existingId))!.copyWith(
+          form: DanceForm.square,
+          newPartner: SquareNewPartner.corner,
+        ),
+      );
+      final session = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([squareWithNewPartner('fake-2')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      expect(session.records.single.action, CommitAction.link);
+      final linked = (await dances.getById(existingId))!;
+      expect(linked.newPartner, SquareNewPartner.other);
+      expect(linked.newPartnerText, 'The lady across');
+    });
+
     // Likewise a source that states no square fields (ADR-007 §8.1).
     test('resolution link keeps the existing square fields when the incoming '
         'record states none', () async {

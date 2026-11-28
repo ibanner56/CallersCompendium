@@ -90,6 +90,29 @@ void main() {
     expect(bravo.formation.shape, FormationShape.dupleProper);
   });
 
+  testWidgets('a dance unticked and ticked again is converted', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('Alpha'));
+    await repos.dances.create(_dance('Bravo'));
+    await _pump(tester, repos);
+
+    // Untick Bravo, then tick it again: both are converted.
+    await tester.tap(find.byKey(const ValueKey('ecd-migration-dance-Bravo')));
+    await tester.pumpAndSettle();
+    expect(find.text('Convert 1 dance'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('ecd-migration-dance-Bravo')));
+    await tester.pumpAndSettle();
+    expect(find.text('Convert 2 dances'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('ecd-migration-apply')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ecd-migration-confirm')));
+    await tester.pumpAndSettle();
+
+    final bravo = (await repos.dances.getById('Bravo'))!;
+    expect(figuresOf(bravo).single.move, 'ecd_circle');
+    expect(bravo.formation.shape, FormationShape.dupleMinor);
+  });
+
   testWidgets('nothing ticked: the convert button is off', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance('Alpha'));

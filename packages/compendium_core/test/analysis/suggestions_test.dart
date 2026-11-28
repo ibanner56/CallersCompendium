@@ -299,6 +299,35 @@ void main() {
       );
       expect(common.count, 3);
     });
+
+    test('a formation is common from three dances that are at least half of '
+        'the rest, not before', () {
+      // [improper] of them, padded to [others] with triplets.
+      bool common(int improper, int others) {
+        final program = [
+          for (var i = 0; i < others; i++)
+            i < improper
+                ? dance('p$i', [fig('circle', 16)])
+                : dance('p$i', [
+                    fig('circle', 16),
+                  ], shape: FormationShape.triplet),
+        ];
+        final r = rank(
+          program: program,
+          candidates: [
+            dance('improper', [fig('circle', 16)]),
+          ],
+          settings: only(SuggestionFactor.formationBalance),
+        );
+        return kinds(
+          of(r, 'improper'),
+        ).contains(SuggestionReasonKind.formationCommonTonight);
+      }
+
+      expect(common(2, 3), isFalse, reason: 'two is not many');
+      expect(common(3, 6), isTrue, reason: 'three, half the program');
+      expect(common(3, 7), isFalse, reason: 'three, under half');
+    });
   });
 
   group('difficulty curve', () {

@@ -11,103 +11,92 @@
 // `readSavedSearchContext(...)` call, and every
 // `SavedSearchSpec.fromPanelState(...)` call. Timers and Undo stamps in the
 // same files are not "today" and need no allow-list.
-import 'dart:io';
-
+//
+// The hosts are discovered, not listed: every file under lib/ that makes one
+// of those calls is checked, so a new host is checked from its first call.
 import 'package:flutter_test/flutter_test.dart';
 
-/// The hosts that build a Collection filter or save a search.
-const _hosts = [
-  'lib/src/screens/dance_list_screen.dart',
-  'lib/src/widgets/collection_picker.dart',
-  'lib/src/widgets/saved_search_actions.dart',
+import '../support/source_scan.dart';
+
+/// Hosts that take today from a `SearchClock` of their own making
+/// (`const SearchClock().today()`) instead of the one they were given, by
+/// path, with how many such calls each holds and why. Such a day is the
+/// caller's calendar day, so it is right in use, but a test cannot pin it to a
+/// fixed instant and zone. The count is exact, so a new such call in a listed
+/// file fails as it would anywhere else, and one fewer means the entry needs
+/// updating.
+const _ownClockHosts = <String, (int, String)>{
+  'lib/src/screens/perform_swap_sheet.dart': (
+    1,
+    'reads event-rule contexts with today from const SearchClock(); found '
+        'when this scan began discovering hosts, not yet given an injected '
+        'clock',
+  ),
+  'lib/src/screens/program_editor_screen.dart': (
+    1,
+    'reads event-rule contexts with today from const SearchClock(); found '
+        'when this scan began discovering hosts, not yet given an injected '
+        'clock',
+  ),
+};
+
+/// A local or field holding a `SearchClock` the host made itself
+/// (`final clock = SearchClock();`, `final SearchClock _clock = const
+/// SearchClock();`), which `clock.today()` would then read as if it were the
+/// one the host was given. A parameter's default (`this.clock = const
+/// SearchClock()`) is not one: a test passes its own.
+final _ownClockField = RegExp(
+  r'\b(?:final|var|late|static)\s+(?:SearchClock\s+)?_?clock\s*=\s*'
+  r'(?:const\s+)?SearchClock\s*\(',
+);
+
+final _todayCall = RegExp(
+  r'\b(buildCollectionFilter|readSavedSearchContext|SavedSearchSpec\s*\.\s*fromPanelState)\s*\(',
+);
+
+/// The calls in [code] (from [codeOnly]) that take a day: each
+/// `buildCollectionFilter(`, `readSavedSearchContext(` and
+/// `SavedSearchSpec.fromPanelState(` that is a call, not the declaration of
+/// the function (which a body or `=>` follows).
+List<RegExpMatch> todayCalls(String code) => [
+  for (final m in _todayCall.allMatches(code))
+    if (!RegExp(
+      r'^\s*(?:async\b|\{|=>)',
+    ).hasMatch(code.substring(closingDelimiter(code, m.end - 1) + 1)))
+      m,
 ];
-
-/// [source] with every comment and string literal blanked to spaces (same
-/// length, so offsets still line up), so a `(` or `DateTime.now` inside one is
-/// not code.
-String _codeOnly(String source) {
-  final out = StringBuffer();
-  var i = 0;
-  while (i < source.length) {
-    final c = source[i];
-    final next = i + 1 < source.length ? source[i + 1] : '';
-    if (c == '/' && next == '/') {
-      while (i < source.length && source[i] != '\n') {
-        out.write(' ');
-        i++;
-      }
-      continue;
-    }
-    if (c == '/' && next == '*') {
-      while (i < source.length &&
-          !(source[i] == '*' &&
-              i + 1 < source.length &&
-              source[i + 1] == '/')) {
-        out.write(source[i] == '\n' ? '\n' : ' ');
-        i++;
-      }
-      out.write('  ');
-      i += 2;
-      continue;
-    }
-    if (c == "'" || c == '"') {
-      final triple =
-          i + 2 < source.length && source[i + 1] == c && source[i + 2] == c;
-      final quote = triple ? c * 3 : c;
-      out.write(' ' * quote.length);
-      i += quote.length;
-      while (i < source.length && !source.startsWith(quote, i)) {
-        if (source[i] == r'\') {
-          out.write('  ');
-          i += 2;
-          continue;
-        }
-        out.write(source[i] == '\n' ? '\n' : ' ');
-        i++;
-      }
-      out.write(' ' * quote.length);
-      i += quote.length;
-      continue;
-    }
-    out.write(c);
-    i++;
-  }
-  return out.toString();
-}
-
-/// The text from [open] (an opening delimiter) to its matching close, walking
-/// the delimiters rather than a fixed window of lines.
-String _balanced(String code, int open) {
-  const pairs = {'(': ')', '{': '}', '[': ']'};
-  final stack = <String>[];
-  for (var i = open; i < code.length; i++) {
-    final c = code[i];
-    if (pairs.containsKey(c)) {
-      stack.add(pairs[c]!);
-    } else if (stack.isNotEmpty && c == stack.last) {
-      stack.removeLast();
-      if (stack.isEmpty) return code.substring(open, i + 1);
-    }
-  }
-  throw StateError('unbalanced from offset $open');
-}
 
 /// What is wrong with [source]'s "today", one line each; empty when nothing.
 List<String> todayProblems(String source) {
-  final code = _codeOnly(source);
+  final code = codeOnly(source);
   final problems = <String>[];
   final now = RegExp(r'DateTime\s*\.\s*now\b');
 
-  // Every call that counts a window back from a day takes `today: _today()`.
-  for (final call in RegExp(
-    r'\b(buildCollectionFilter|readSavedSearchContext|SavedSearchSpec\s*\.\s*fromPanelState)\s*\(',
-  ).allMatches(code)) {
-    final args = _balanced(code, call.end - 1);
+  // Every call that counts a window back from a day takes today from the
+  // host's clock: `today: _today()`, or `today: clock.today()` from a clock
+  // the host was given.
+  for (final call in todayCalls(code)) {
+    final args = code.substring(
+      call.end - 1,
+      closingDelimiter(code, call.end - 1) + 1,
+    );
     final name = call.group(1)!.replaceAll(RegExp(r'\s'), '');
-    if (!RegExp(r'\btoday\s*:\s*_today\s*\(\s*\)').hasMatch(args)) {
-      problems.add('$name(...) does not pass today: _today()');
+    final today = namedArgs(source, call.end - 1, code: code)['today'];
+    final compact = today?.replaceAll(RegExp(r'\s'), '');
+    if (compact == 'constSearchClock().today()' ||
+        compact == 'SearchClock().today()') {
+      problems.add('$name(...) takes today from a new SearchClock');
+    } else if (compact == null ||
+        !RegExp(
+          r'^(?:_today\(\)|(?:widget\.)?_?clock\.today\(\))$',
+        ).hasMatch(compact)) {
+      problems.add('$name(...) does not pass today from its clock');
     }
     if (now.hasMatch(args)) problems.add('$name(...) reads DateTime.now');
+  }
+
+  if (_ownClockField.hasMatch(code)) {
+    problems.add('keeps a SearchClock of its own making as its clock');
   }
 
   // `_today()` reads the injected clock and nothing else.
@@ -119,7 +108,7 @@ List<String> todayProblems(String source) {
     if (rest.startsWith('=>')) {
       body = rest.substring(0, rest.indexOf(';') + 1);
     } else {
-      body = _balanced(code, def.end);
+      body = code.substring(def.end, closingDelimiter(code, def.end) + 1);
     }
     if (now.hasMatch(body)) problems.add('_today() reads DateTime.now');
     // The day comes from the host's SearchClock: its own `today()` (which is
@@ -176,7 +165,7 @@ void run() {
       expect(
         todayProblems(source),
         containsAll([
-          'buildCollectionFilter(...) does not pass today: _today()',
+          'buildCollectionFilter(...) does not pass today from its clock',
           'buildCollectionFilter(...) reads DateTime.now',
         ]),
       );
@@ -192,7 +181,7 @@ void run() {
 }
 ''';
       expect(todayProblems(source), [
-        'buildCollectionFilter(...) does not pass today: _today()',
+        'buildCollectionFilter(...) does not pass today from its clock',
       ]);
     });
 
@@ -223,27 +212,110 @@ void save() {
         contains('SavedSearchSpec.fromPanelState(...) reads DateTime.now'),
       );
     });
-  });
-
-  for (final path in _hosts) {
-    test('$path takes today only from its SearchClock', () {
-      final source = File(path).readAsStringSync();
-      final code = _codeOnly(source);
-      // The guard must have something to guard: each host defines _today()
-      // and makes at least one call that takes it.
-      expect(
-        RegExp(r'DateTime\s+_today\s*\(').hasMatch(code),
-        isTrue,
-        reason: '$path defines no _today()',
-      );
-      expect(
-        RegExp(
-          r'\b(buildCollectionFilter|readSavedSearchContext|SavedSearchSpec\s*\.\s*fromPanelState)\s*\(',
-        ).hasMatch(code),
-        isTrue,
-        reason: '$path makes no call that takes today',
-      );
+    test('a host given a clock, rather than defining _today(), is clean', () {
+      const source = '''
+Future<void> f(SearchClock clock) => readSavedSearchContext(
+  repos,
+  today: clock.today(),
+  taxonomy: t,
+);
+''';
       expect(todayProblems(source), isEmpty);
     });
+
+    test('positive control: a new SearchClock in place of the host\'s is '
+        'found', () {
+      const source = '''
+void run() {
+  readSavedSearchContext(repos, today: const SearchClock().today());
+}
+''';
+      expect(todayProblems(source), [
+        'readSavedSearchContext(...) takes today from a new SearchClock',
+      ]);
+    });
+
+    test('positive control: a clock the host made itself is found, a '
+        "parameter's default is not", () {
+      const own = '''
+final clock = SearchClock();
+void run() {
+  buildCollectionFilter(ftsText: f(x), today: clock.today());
+}
+''';
+      expect(todayProblems(own), [
+        'keeps a SearchClock of its own making as its clock',
+      ]);
+      const field = '''
+final SearchClock _clock = const SearchClock();
+''';
+      expect(todayProblems(field), [
+        'keeps a SearchClock of its own making as its clock',
+      ]);
+      const given = '''
+class Host {
+  const Host({this.clock = const SearchClock()});
+  final SearchClock clock;
+}
+Future<void> f({SearchClock clock = const SearchClock()}) =>
+    readSavedSearchContext(repos, today: clock.today());
+''';
+      expect(todayProblems(given), isEmpty);
+    });
+
+    test('the declaration of a function is not a call to it', () {
+      const source = '''
+Future<SavedSearchContext> readSavedSearchContext(
+  CompendiumRepositories repos, {
+  required DateTime today,
+}) async {
+  return SavedSearchContext(today: today);
+}
+''';
+      expect(todayCalls(codeOnly(source)), isEmpty);
+      expect(todayProblems(source), isEmpty);
+    });
+  });
+
+  final hosts = {
+    for (final (path, source) in dartSources('lib'))
+      if (todayCalls(codeOnly(source)).isNotEmpty) path: source,
+  };
+
+  test('the hosts are discovered', () {
+    // Positive control: the hosts this test once listed by hand are found.
+    expect(
+      hosts.keys,
+      containsAll([
+        'lib/src/screens/dance_list_screen.dart',
+        'lib/src/widgets/collection_picker.dart',
+        'lib/src/widgets/saved_search_actions.dart',
+      ]),
+    );
+  });
+
+  for (final MapEntry(key: path, value: source) in hosts.entries) {
+    test('$path takes today only from its SearchClock', () {
+      final problems = todayProblems(source);
+      bool ownClock(String p) =>
+          p.endsWith('takes today from a new SearchClock');
+      final allowed = _ownClockHosts[path]?.$1 ?? 0;
+      if (allowed == 0) {
+        expect(problems, isEmpty);
+      } else {
+        expect(problems.where((p) => !ownClock(p)), isEmpty);
+        expect(
+          problems.where(ownClock).length,
+          allowed,
+          reason: "update $path's _ownClockHosts count (or remove the entry)",
+        );
+      }
+    });
   }
+
+  test('every _ownClockHosts entry is a host', () {
+    for (final path in _ownClockHosts.keys) {
+      expect(hosts.keys, contains(path), reason: 'remove the stale entry');
+    }
+  });
 }
