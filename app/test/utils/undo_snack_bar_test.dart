@@ -752,6 +752,28 @@ void main() {
       expect(find.text('Row deleted.'), findsNothing);
     });
 
+    testWidgets('the key and the Undo button run one undo between them, '
+        'whichever comes first', (tester) async {
+      final undone = ValueNotifier(0);
+      addTearDown(undone.dispose);
+      await tester.pumpWidget(listHarness(undone: undone));
+      // The button, then the key while the prompt is still leaving.
+      await deleteFromKeyboard(tester);
+      await tester.tap(find.text('Undo'));
+      await tester.pump(const Duration(milliseconds: 50));
+      await pressUndoKey(tester);
+      await tester.pumpAndSettle();
+      expect(undone.value, 1);
+
+      // The key, then the button while the prompt is still leaving.
+      await deleteFromKeyboard(tester);
+      await pressUndoKey(tester);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.text('Undo'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(undone.value, 2);
+    });
+
     testWidgets('the key works on a prompt that waits to be closed', (
       tester,
     ) async {
