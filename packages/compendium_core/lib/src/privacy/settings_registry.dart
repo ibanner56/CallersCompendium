@@ -317,6 +317,20 @@ final Map<String, DataClassification> settingsClassifications = {
     note:
         'Per-installation Device Sync consent. Never synced and never restored from a backup: consent given on one device is not consent on another.',
   ),
+  'no_backup_marker_written': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Records that this library has started beside the marker file this '
+        'installation keeps outside device backup, so a library that has the '
+        'flag and no marker was restored from a device backup, and gets a new '
+        'Device Sync identity with sync turned off (sync-spec §3.3). Says '
+        'something about this installation, not the user, and would be false '
+        'on any other, so it never syncs and is left out of backup files. A '
+        'device backup that copies the database does carry it: that is how '
+        'the restored copy is recognised.',
+  ),
   'sync_endpoint': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,

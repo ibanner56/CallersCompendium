@@ -362,6 +362,94 @@ void main() {
     });
   });
 
+  // A note typed but not yet added used to be lost when the sheet closed. The
+  // maintainer chose (question 43 of the pre-release audit's decision sheet,
+  // 2026-11-27) to keep it for the life of the Perform screen and show it the
+  // next time the sheet opens, without asking: there is no prompt during a
+  // performance.
+  group('a note typed but not added', () {
+    final dances = [_dance(id: 'd1', title: 'First Dance')];
+    Program oneSlot() =>
+        _program([_slot(id: 's1', position: 0, danceId: 'd1')]);
+    final noteField = find.byKey(const ValueKey('adjust-note-field'));
+    String fieldText(WidgetTester tester) =>
+        tester.widget<TextField>(noteField).controller!.text;
+
+    final closings = <String, Future<void> Function(WidgetTester)>{
+      'swipe down': (tester) => tester.fling(
+        find.byKey(const ValueKey('adjust-done')),
+        const Offset(0, 1500),
+        3000,
+      ),
+      'barrier tap': (tester) => tester.tapAt(const Offset(700, 20)),
+      'system Back': (tester) => tester.binding.handlePopRoute(),
+      'Done': (tester) => tester.tap(find.byKey(const ValueKey('adjust-done'))),
+    };
+
+    for (final MapEntry(key: how, value: close) in closings.entries) {
+      testWidgets('is shown again after $how, and is not added', (
+        tester,
+      ) async {
+        final persisted = await _pumpAdjustable(
+          tester,
+          dances: dances,
+          program: oneSlot(),
+        );
+        await _openAdjust(tester);
+        await tester.enterText(noteField, 'Tea at nine');
+        await tester.pumpAndSettle();
+
+        await close(tester);
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('adjust-done')), findsNothing);
+        // An unfinished note is no edit: nothing is added or saved.
+        expect(persisted, isEmpty);
+        expect(find.text('Undo'), findsNothing);
+
+        await _openAdjust(tester);
+        expect(fieldText(tester), 'Tea at nine');
+        expect(find.byType(AlertDialog), findsNothing);
+      });
+    }
+
+    testWidgets('is forgotten once added', (tester) async {
+      final persisted = await _pumpAdjustable(
+        tester,
+        dances: dances,
+        program: oneSlot(),
+      );
+      await _openAdjust(tester);
+      await tester.enterText(noteField, 'Tea at nine');
+      await tester.tap(find.byKey(const ValueKey('adjust-add-note')));
+      await tester.pumpAndSettle();
+      await closings['swipe down']!(tester);
+      await tester.pumpAndSettle();
+      expect(persisted.single.slots.map((s) => s.text), [null, 'Tea at nine']);
+
+      await _openAdjust(tester);
+      expect(fieldText(tester), isEmpty);
+    });
+
+    testWidgets('is forgotten once the box is emptied', (tester) async {
+      await _pumpAdjustable(tester, dances: dances, program: oneSlot());
+      await _openAdjust(tester);
+      await tester.enterText(noteField, 'Tea at nine');
+      await tester.pumpAndSettle();
+      await closings['barrier tap']!(tester);
+      await tester.pumpAndSettle();
+
+      await _openAdjust(tester);
+      // Spaces alone are an empty box: Add would refuse them too.
+      await tester.enterText(noteField, '   ');
+      await tester.pumpAndSettle();
+      await closings['barrier tap']!(tester);
+      await tester.pumpAndSettle();
+
+      await _openAdjust(tester);
+      expect(fieldText(tester), isEmpty);
+    });
+  });
+
   testWidgets('insert a dance from quick-search lands after the current slot', (
     tester,
   ) async {

@@ -281,9 +281,9 @@
       }
     }
   },
-  "migrationBelowFloorBodyAndroid": "Your data is still on this device, but this version can't update it. Don't uninstall the app: that deletes your data, and Android won't install {bridgeTag} over this version anyway. To keep your data, leave the app installed and don't reset it, and choose Copy details when you ask for help.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.",
+  "migrationBelowFloorBodyAndroid": "Your data is still on this device, but this version can't update it here. Don't uninstall the app: that deletes your data, and Android won't install {bridgeTag} over this version anyway. To keep your data, choose Share a copy of your data and save the file outside the app, for example on a computer or a cloud drive. A computer with {bridgeTag} can update it, and this app can then restore it: see How to update it on a computer.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.",
   "@migrationBelowFloorBodyAndroid": {
-    "description": "Body of the below-floor recovery screen on Android, in place of migrationBelowFloorBody. Android refuses to install an older release over a newer one, and uninstalling deletes the app's data, so the desktop route (install the older release, then this one again) would lose the library there. 'Copy details' is the label of the button below (appBootstrapCopyDetails). {bridgeTag} is the release tag of the migration-bridge release.",
+    "description": "Body of the below-floor recovery screen on Android, in place of migrationBelowFloorBody. Android refuses to install an older release over a newer one, and uninstalling deletes the app's data, so the desktop route (install the older release, then this one again) would lose the library there. 'Share a copy of your data' is the label of the button below it (migrationBelowFloorShareCopy) and 'How to update it on a computer' the label of the link below that (migrationBelowFloorComputerGuide). {bridgeTag} is the release tag of the migration-bridge release.",
     "placeholders": {
       "bridgeTag": {
         "type": "String",
@@ -291,15 +291,47 @@
       }
     }
   },
-  "migrationBelowFloorBodyIos": "Your data is still on this device. Don't delete the app: that deletes your data. In TestFlight, open Caller's Compendium and look under Previous Builds for version {bridgeVersion}. If it's listed, install it, open the app once to let it update your data, then install the newest build again. If it isn't listed, keep the app as it is and choose Copy details when you ask for help.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.",
+  "migrationBelowFloorBodyIos": "Your data is still on this device. Don't delete the app: that deletes your data. In TestFlight, open Caller's Compendium and look under Previous Builds for version {bridgeVersion}. If it's listed, install it, open the app once to let it update your data, then install the newest build again. If it isn't listed, choose Share a copy of your data and update it on a computer instead: see How to update it on a computer.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.",
   "@migrationBelowFloorBodyIos": {
-    "description": "Body of the below-floor recovery screen on iPhone and iPad, in place of migrationBelowFloorBody. The iOS app comes only from TestFlight, whose 'Previous Builds' list (use TestFlight's own label in your language) may still offer the older release that can update the data. 'Copy details' is the label of the button below (appBootstrapCopyDetails). {bridgeVersion} is that release's version number as TestFlight shows it.",
+    "description": "Body of the below-floor recovery screen on iPhone and iPad, in place of migrationBelowFloorBody. The iOS app comes only from TestFlight, whose 'Previous Builds' list (use TestFlight's own label in your language) may still offer the older release that can update the data. 'Share a copy of your data' is the label of the button below it (migrationBelowFloorShareCopy) and 'How to update it on a computer' the label of the link below that (migrationBelowFloorComputerGuide). {bridgeVersion} is that release's version number as TestFlight shows it.",
     "placeholders": {
       "bridgeVersion": {
         "type": "String",
         "example": "0.10.0"
       }
     }
+  },
+  "migrationBelowFloorShareCopy": "Share a copy of your data",
+  "@migrationBelowFloorShareCopy": {
+    "description": "Primary button on the below-floor recovery screen on Android, iPhone and iPad. It makes a copy of the library that leaves out what must stay on this device (unsaved edits, Device Sync settings) and opens the system share sheet with it, so the caller can save it outside the app before anything is reset or uninstalled."
+  },
+  "migrationBelowFloorShareBackup": "Share a copy",
+  "@migrationBelowFloorShareBackup": {
+    "description": "Button in the 'Reset app data?' dialog on Android, iPhone and iPad, after 'Back up + reset' has saved a backup inside the app. It shares a copy of that backup through the system share sheet, the same copy as migrationBelowFloorShareCopy. Keep it short: it sits beside Cancel and Reset."
+  },
+  "migrationBelowFloorBackupKeptInApp": "The backup is kept inside the app, where you can't open it. To keep a copy you can use on a computer, choose Share a copy before you reset.",
+  "@migrationBelowFloorBackupKeptInApp": {
+    "description": "Shown on Android, iPhone and iPad in the 'Reset app data?' dialog in place of the folder the backup was saved to, which is private to the app there. 'Share a copy' is the label of migrationBelowFloorShareBackup."
+  },
+  "migrationBelowFloorShareCopyFailedTitle": "Couldn't make a copy",
+  "@migrationBelowFloorShareCopyFailedTitle": {
+    "description": "Title of the dialog shown when the copy for migrationBelowFloorShareCopy or migrationBelowFloorShareBackup could not be made. Nothing was shared."
+  },
+  "migrationBelowFloorShareCopyFailedBody": "Nothing was shared, and your data hasn't been changed. Free up some space, then try again.",
+  "@migrationBelowFloorShareCopyFailedBody": {
+    "description": "Body of the dialog titled migrationBelowFloorShareCopyFailedTitle."
+  },
+  "migrationBelowFloorShareSheetFailedTitle": "Couldn't open the share sheet",
+  "@migrationBelowFloorShareSheetFailedTitle": {
+    "description": "Title of the dialog shown when the copy for migrationBelowFloorShareCopy or migrationBelowFloorShareBackup was made but the system share sheet failed to open or to take it."
+  },
+  "migrationBelowFloorShareSheetFailedBody": "The copy was made, but it couldn't be shared. Your data hasn't been changed. Try again.",
+  "@migrationBelowFloorShareSheetFailedBody": {
+    "description": "Body of the dialog titled migrationBelowFloorShareSheetFailedTitle."
+  },
+  "migrationBelowFloorComputerGuide": "How to update it on a computer",
+  "@migrationBelowFloorComputerGuide": {
+    "description": "Link on the below-floor recovery screen on Android, iPhone and iPad. It opens the user guide's steps for updating a shared copy of the data with the older release on a computer and restoring it on this device."
   },
   "migrationBelowFloorGetBridge": "Get {bridgeTag}",
   "@migrationBelowFloorGetBridge": {
@@ -950,6 +982,10 @@
   "settingsSyncStatusSettingsUnreadable": "Device Sync's settings couldn't be read, so the settings shown here may be out of date, and Device Sync may be off even if you turned it on. Restart the app to try again.",
   "@settingsSyncStatusSettingsUnreadable": {
     "description": "Shown in the Device Sync section when the app failed to read its stored Device Sync settings. At startup, Device Sync stays off for that launch although the saved setting may say on. After restoring a backup, the app keeps the Device Sync state it had before the restore (which may be on), so what is shown may not match the restored settings. In both cases the user must be told rather than left to assume the screen is current. Not a sync failure: nothing was sent or lost."
+  },
+  "syncRestoredCopyNotice": "Device Sync is off because this library was restored from a device backup. Turn it back on under Settings ▸ Experimental ▸ Device Sync and this device will sync as a new device, not the one the backup came from.",
+  "@syncRestoredCopyNotice": {
+    "description": "Message shown once at start-up when the app finds its library was restored from a device backup (Android Auto Backup or phone-to-phone transfer, an iCloud or computer backup, or iPhone-to-iPhone transfer) on a device where Device Sync was on. The app turned Device Sync off and dropped the old device's sync identity, so two devices never sync as one. 'Settings ▸ Experimental ▸ Device Sync' is where the toggle lives."
   },
   "settingsSyncFailureUnreachable": "Couldn't reach the sync server.",
   "@settingsSyncFailureUnreachable": {
@@ -6791,6 +6827,24 @@
   "danceEditorHalfBarRefused": "Whole bars only, with {beatsPerBar} beats to the bar",
   "@danceEditorHalfBarRefused": {
     "description": "Error under a bars field when half a bar is entered in a tune whose bar has an odd number of beats, such as triple time.",
+    "placeholders": {
+      "beatsPerBar": {
+        "type": "int"
+      }
+    }
+  },
+  "danceEditorMeterFigureBarsKept": "Figure counts changed so each figure keeps its bars, now with {beatsPerBar, plural, =1{1 beat} other{{beatsPerBar} beats}} to the bar.",
+  "@danceEditorMeterFigureBarsKept": {
+    "description": "Message with an Undo button, shown when an English country dance's Meter is typed or changed after its figures: each figure's count in beats was changed so that it lasts as many bars as before, in bars of the new meter's beats.",
+    "placeholders": {
+      "beatsPerBar": {
+        "type": "int"
+      }
+    }
+  },
+  "danceEditorMeterFigureBarsNotKept": "Figure counts not changed: not every figure could keep its bars exactly, so they now read in bars of {beatsPerBar, plural, =1{1 beat} other{{beatsPerBar} beats}}. Check them.",
+  "@danceEditorMeterFigureBarsNotKept": {
+    "description": "Message with an Undo button, shown when an English country dance's Meter is typed or changed after its figures and some figure's count cannot last the same number of bars in the new meter as a whole number of beats (such as a bar and a half moving into three beats to the bar): no count was changed, so the figures' lengths in bars now read differently.",
     "placeholders": {
       "beatsPerBar": {
         "type": "int"

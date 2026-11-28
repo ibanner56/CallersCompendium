@@ -1,0 +1,12 @@
+{
+  "id": "q44-paste-translated-break",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Pasting a set list into **From title list** reads the app’s own word for a break in any of its languages (“Pause”, “Pauze”, “ブレイク” as well as “Break”) as a break, when it is alone on its line, so a set list you shared or printed from the app in your language pastes back with its break."
+    ],
+    "fixed": [
+      "In **From title list**, a pasted “Break” line is labelled as a break in the preview, and **Resolve unmatched online** no longer looks it up as a dance title."
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "q43-perform-adjust-note-draft",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "In Perform, a note you typed in **Adjust program** but didn’t add is no longer lost when you swipe the sheet away or tap outside it: it is back in the note box the next time you open the sheet, until you add it or clear the box, for as long as you stay in Perform."
+    ]
+  }
+}

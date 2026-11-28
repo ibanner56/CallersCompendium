@@ -1,0 +1,9 @@
+{
+  "id": "sync-merged-level-field-save",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "If Device Sync merges a level or custom field while a saved search that uses it is open in the Collection, Save and Update now save the merged one instead of the one it merged away, as they already did for tags, authors and sources."
+    ]
+  }
+}

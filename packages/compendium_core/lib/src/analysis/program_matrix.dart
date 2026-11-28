@@ -169,9 +169,11 @@ String _roleVariant(Object? who) {
     case 'shadows':
     case 'secondShadows':
       return 'shadow';
-    case 'role1s':
+    // v40: a role among the previous or next neighbours is still that role
+    // (`N2 Women chain` is a robins chain), so it shares the role's column.
+    case 'role1s' || 'prevRole1s' || 'nextRole1s':
       return 'larks';
-    case 'role2s':
+    case 'role2s' || 'prevRole2s' || 'nextRole2s':
       return 'robins';
     case 'ones':
       return 'ones';

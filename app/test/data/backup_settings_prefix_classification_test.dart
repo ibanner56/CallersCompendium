@@ -115,6 +115,9 @@ void main() {
       'sync_wifi_only',
       'sync_exclude_imports',
       'sync_last_success_at',
+      // Whether this library has started beside this installation's
+      // device-backup marker (sync-spec §3.3).
+      'no_backup_marker_written',
       // This installation's own startup calendar runs (#2353).
       kCalendarLastResultKey,
       kCalendarStartupFailuresKey,

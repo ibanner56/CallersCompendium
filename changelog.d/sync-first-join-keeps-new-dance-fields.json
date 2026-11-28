@@ -1,0 +1,14 @@
+{
+  "id": "sync-first-join-keeps-new-dance-fields",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "When you turn on Device Sync and the same dance is on two of your devices, the two copies are joined into one (as they are when you choose Merge for two dances Device Sync asks about). If the copy last changed was on a device still on 0.10.x or older, the joined dance now keeps the meter, key, square-dance details, Barnes reference, improper mark and interpretation date your other copy had, instead of losing them."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "mergeDanceCandidates (fresh-attach dedupe and a review's Merge) takes meter, musicalKey, interpretedOn, barnesReference, formation.improper and the square fields from the latest copy (for barnesReference and formation.improper, the latest copy of the merged dance's form) only when that copy holds at least one field added after v0.10.0-beta (those, alternateTitles or interpreterIds); otherwise each comes from the most recent copy that holds it. A latest copy from an older build cannot know them, so it used to clear them all (sync-spec §6.7, \"Which copy speaks for them\"). Wire bodies and content hashes are unchanged."
+    ]
+  }
+}

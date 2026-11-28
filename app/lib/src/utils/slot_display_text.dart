@@ -37,3 +37,22 @@ String storedSlotText(
   }
   return shown;
 }
+
+/// The break token [Program.breakSlotText] and the break label
+/// ([AppLocalizations.programsBreakSlotLabel]) of every language the app
+/// ships, trimmed and lowercased: exactly what the app itself prints for a
+/// break, and nothing else.
+final Set<String> _appBreakLabels = {
+  Program.breakSlotText.trim().toLowerCase(),
+  for (final locale in AppLocalizations.supportedLocales)
+    lookupAppLocalizations(locale).programsBreakSlotLabel.trim().toLowerCase(),
+};
+
+/// Whether [text], trimmed and in any case, is the break token or one of the
+/// app's own translated break labels: the text a set list the app shared or
+/// printed carries for a break. Pasting such a list back reads that line as a
+/// break, stored as the token (the maintainer's answer to question 44 of the
+/// pre-release audit's decision sheet, 2026-11-27). It recognises no other
+/// word: a translation the person typed themselves stays a note.
+bool isAppBreakLabel(String? text) =>
+    text != null && _appBreakLabels.contains(text.trim().toLowerCase());

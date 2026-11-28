@@ -54,6 +54,8 @@ import 'src/data/incoming_file_channel.dart';
 import 'src/data/locale_scope.dart';
 import 'src/data/migration_error_labels.dart';
 import 'src/data/migration_guard.dart';
+import 'src/data/recovery_copy.dart'
+    show prepareRecoveryCopy, shareRecoveryCopyFile;
 import 'src/data/online_search.dart';
 import 'src/data/persisted_preference.dart';
 import 'src/data/colour_dance_theme_scope.dart';
@@ -135,6 +137,7 @@ import 'src/screens/settings_screen.dart'
 import 'src/theme/app_motion.dart';
 import 'src/theme/app_theme.dart';
 import 'src/app_metadata.dart';
+import 'src/sync/restored_copy_check.dart';
 import 'src/sync/sync_controller.dart';
 import 'src/sync/sync_coordinator.dart';
 import 'src/sync/sync_network.dart';
@@ -291,6 +294,7 @@ Future<void> main(List<String> args) async {
           );
         },
         seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
+        noBackupMarker: platformNoBackupMarker(),
         incomingFileChannel: incomingFileChannel,
         installPlatformMenuBar:
             !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS,
@@ -354,6 +358,7 @@ class CompendiumApp extends StatefulWidget {
     this.backupSaver,
     this.crashReporter,
     this.seedInitialCollection,
+    this.noBackupMarker,
     this.incomingFileChannel,
     this.incomingFileReader,
     this.incomingFileDeleter,
@@ -495,6 +500,13 @@ class CompendiumApp extends StatefulWidget {
   /// seed failure is non-fatal to startup, mirroring [integrityCheck].
   final Future<void> Function(CompendiumRepositories repos)?
   seedInitialCollection;
+
+  /// This installation's device-backup marker, which start-up uses to
+  /// recognise a library restored from a device backup and stop it syncing as
+  /// the device it came from ([checkRestoredCopy], sync-spec §3.3). Injected
+  /// from [main] on Android and iOS; `null` on other platforms and in tests
+  /// that don't exercise it, and the check is then skipped.
+  final NoBackupMarker? noBackupMarker;
 
   /// Delivers a shared [CompendiumArchive] file the OS handed the app (AirDrop /
   /// "Open with" / a share intent), including whether native code staged an
@@ -2112,6 +2124,9 @@ class _CompendiumAppState extends State<CompendiumApp>
         logCaughtError(error, stackTrace, source: 'startup.purge_programs');
       }
     }
+    // Before anything reads the Device Sync settings, so a library restored
+    // from a device backup never starts syncing as the device it came from.
+    await _checkRestoredCopy();
     await _loadPreferences();
     await _configureSyncCoordinator();
     // Read now: the pass the configure above started, if sync is on.
@@ -2143,6 +2158,59 @@ class _CompendiumAppState extends State<CompendiumApp>
       if (!mounted) return;
       unawaited(_runDeferredIntegrityProbe());
     });
+    if (_restoredCopyNoticePending) {
+      unawaited(_showRestoredCopyNotice());
+    }
+  }
+
+  /// Set when [_checkRestoredCopy] turned Device Sync off, until the notice
+  /// saying why has been shown. A field rather than a local, so a bootstrap
+  /// that fails after the check and is retried still shows it: the retry's
+  /// own check finds an ordinary start.
+  bool _restoredCopyNoticePending = false;
+
+  /// Runs [checkRestoredCopy] where the platform keeps a device-backup marker.
+  /// Never fatal: a failure is logged and the app starts as it would have
+  /// without the check, with Device Sync as it was.
+  Future<void> _checkRestoredCopy() async {
+    final marker = widget.noBackupMarker;
+    if (marker == null) return;
+    try {
+      final outcome = await checkRestoredCopy(
+        _appData.repositories.settings,
+        marker,
+      );
+      if (outcome == RestoredCopyOutcome.restoredSyncTurnedOff) {
+        _restoredCopyNoticePending = true;
+      }
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'startup.restored_copy_check');
+    }
+  }
+
+  /// Says, once, why Device Sync is off on a library restored from a device
+  /// backup. After the first frame, so the messenger and its localizations
+  /// exist.
+  Future<void> _showRestoredCopyNotice() async {
+    await WidgetsBinding.instance.endOfFrame;
+    final messenger = _messengerKey.currentState;
+    final shownContext = _navigatorKey.currentContext;
+    if (!mounted ||
+        messenger == null ||
+        shownContext == null ||
+        !shownContext.mounted) {
+      return;
+    }
+    _restoredCopyNoticePending = false;
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('restored-copy-sync-notice'),
+        content: Text(AppLocalizations.of(shownContext).syncRestoredCopyNotice),
+        duration: const Duration(seconds: 15),
+        showCloseIcon: true,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   /// The startup calendar import's once-per-launch gate (#2353): a failed
@@ -2643,22 +2711,34 @@ class _CompendiumAppState extends State<CompendiumApp>
       return; // Snapshot failed: do NOT wipe.
     }
 
-    // Snapshot written — confirm then wipe, showing where the files were saved.
+    // Snapshot written — confirm then wipe. On desktop the dialog shows where
+    // the files were saved. On Android, iPhone and iPad that folder is private
+    // to the app, so the dialog says so and offers to share a scrubbed copy of
+    // the backup instead (pre-release audit finding F-01).
     if (!context.mounted) return;
     final ready = result as BackUpReady;
+    final onPhoneOrTablet =
+        belowFloorRouteFor(defaultTargetPlatform) != BelowFloorRoute.desktop;
     final pathLines = StringBuffer(l10n.migrationBelowFloorResetConfirmBody);
-    pathLines
-      ..write('\n\n')
-      ..write(l10n.migrationBelowFloorBackupSavedAt(ready.snapshotFile.path));
-    if (ready.diagnosticLogFile != null) {
+    if (onPhoneOrTablet) {
       pathLines
-        ..write('\n')
-        ..write(
-          l10n.migrationBelowFloorDiagnosticLogSavedAt(
-            ready.diagnosticLogFile!.path,
-          ),
-        );
+        ..write('\n\n')
+        ..write(l10n.migrationBelowFloorBackupKeptInApp);
+    } else {
+      pathLines
+        ..write('\n\n')
+        ..write(l10n.migrationBelowFloorBackupSavedAt(ready.snapshotFile.path));
+      if (ready.diagnosticLogFile != null) {
+        pathLines
+          ..write('\n')
+          ..write(
+            l10n.migrationBelowFloorDiagnosticLogSavedAt(
+              ready.diagnosticLogFile!.path,
+            ),
+          );
+      }
     }
+    var sharingBackup = false;
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -2674,6 +2754,30 @@ class _CompendiumAppState extends State<CompendiumApp>
               onPressed: () => Navigator.of(ctx).pop(false),
               child: Text(l10n.commonCancel),
             ),
+            if (onPhoneOrTablet)
+              // Disabled while a share is being prepared, so a second tap
+              // cannot overwrite the copy the first is sharing.
+              StatefulBuilder(
+                builder: (buttonContext, setButtonState) => TextButton(
+                  key: const ValueKey('below-floor-share-backup'),
+                  onPressed: sharingBackup
+                      ? null
+                      : () async {
+                          setButtonState(() => sharingBackup = true);
+                          try {
+                            await _shareRecoveryCopy(
+                              ready.snapshotFile,
+                              _shareOriginOf(buttonContext),
+                            );
+                          } finally {
+                            if (buttonContext.mounted) {
+                              setButtonState(() => sharingBackup = false);
+                            }
+                          }
+                        },
+                  child: Text(l10n.migrationBelowFloorShareBackup),
+                ),
+              ),
             FilledButton(
               style: destructiveFilledButtonStyle(Theme.of(ctx).colorScheme),
               onPressed: () => Navigator.of(ctx).pop(true),
@@ -2687,6 +2791,84 @@ class _CompendiumAppState extends State<CompendiumApp>
     if (confirmed != true) return;
 
     await _doReset(dbFile, l10n);
+  }
+
+  /// "Share a copy of your data" on the below-floor recovery screen (Android,
+  /// iPhone and iPad): shares a scrubbed copy of the live database.
+  Future<void> _shareRecoveryCopyOfLibrary(
+    DatabaseBelowFloorError error,
+    Rect? origin,
+  ) async {
+    final dbFile = await widget.databaseFileResolver();
+    await _shareRecoveryCopy(dbFile, origin);
+  }
+
+  /// Shares a scrubbed recovery copy of [source] (`recovery_copy.dart`): the
+  /// live database from the recovery screen, or the snapshot "Back up + reset"
+  /// just wrote, from its confirmation dialog. The source is never changed. If
+  /// the copy cannot be made, nothing is shared; if the share sheet fails, the
+  /// copy was made but not handed over. A dialog says which.
+  Future<void> _shareRecoveryCopy(File source, Rect? origin) async {
+    final File copy;
+    try {
+      copy = await prepareRecoveryCopy(source: source);
+    } on Object catch (e, st) {
+      logCaughtErrorTypeOnly(e, st, source: 'main.prepareRecoveryCopy');
+      final l10n = _currentL10n();
+      if (l10n == null) return;
+      await _showRecoveryCopyFailure(
+        l10n.migrationBelowFloorShareCopyFailedTitle,
+        l10n.migrationBelowFloorShareCopyFailedBody,
+      );
+      return;
+    }
+    try {
+      await shareRecoveryCopyFile(copy, origin: origin);
+    } on Object catch (e, st) {
+      logCaughtErrorTypeOnly(e, st, source: 'main.shareRecoveryCopyFile');
+      final l10n = _currentL10n();
+      if (l10n == null) return;
+      await _showRecoveryCopyFailure(
+        l10n.migrationBelowFloorShareSheetFailedTitle,
+        l10n.migrationBelowFloorShareSheetFailedBody,
+      );
+    }
+  }
+
+  AppLocalizations? _currentL10n() {
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted) return null;
+    return AppLocalizations.of(context);
+  }
+
+  Future<void> _showRecoveryCopyFailure(String title, String body) async {
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+    final l10n = AppLocalizations.of(context);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_outlined),
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            autofocus: true,
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.commonOk),
+          ),
+        ],
+      ),
+      animationStyle: AppMotion.styleFor(context),
+    );
+  }
+
+  /// The on-screen rectangle of the widget [context] belongs to, which the
+  /// iPad share sheet anchors to; `null` before layout.
+  static Rect? _shareOriginOf(BuildContext context) {
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
   }
 
   /// Reset only action for the below-floor recovery screen (issue #841).
@@ -3465,6 +3647,7 @@ class _CompendiumAppState extends State<CompendiumApp>
               onRetry: _retry,
               onBackUpAndReset: _backUpAndReset,
               onResetOnly: _resetOnly,
+              onShareRecoveryCopy: _shareRecoveryCopyOfLibrary,
               builder: _buildReadyApp,
               rebuildProgress: _derivedRebuildProgress,
             ),

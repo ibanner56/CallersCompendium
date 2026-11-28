@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../app_metadata.dart' show kSourceRepoUrl;
 import '../data/migration_error_labels.dart';
 import '../data/migration_guard.dart'
     show
@@ -39,16 +40,17 @@ import 'brand_mark.dart';
 /// **Copy details** and a link to the Releases page ([_TerminalScreen]), except
 /// [DatabaseBelowFloorError], which offers Copy details and, on Windows, macOS
 /// and Linux, a button to the release that can update the data, in place of
-/// the generic link (Android and iOS get wording instead; see
-/// [_BelowFloorRecoveryScreen]).
+/// the generic link (Android and iOS share a copy to update on a computer
+/// instead; see [_BelowFloorRecoveryScreen]).
 /// - [DatabaseDowngradeError] (on-disk data written by a newer build): the only
 ///   fix is to update the app, so retrying would just fail again.
 /// - [DatabaseBelowFloorError] (on-disk data written by a build older than the
 ///   minimum supported schema version): retrying cannot recover the data; the
-///   user must run the bridge release to migrate it (on desktop, or through
-///   TestFlight on iPhone and iPad; Android will not install an older release
-///   over this one), or reset. [onBackUpAndReset]
-///   and [onResetOnly] supply the recovery actions.
+///   user must run the bridge release to migrate it (on desktop, through
+///   TestFlight on iPhone and iPad, or on a computer from a shared copy, since
+///   Android will not install an older release over this one), or reset.
+///   [onBackUpAndReset], [onResetOnly] and [onShareRecoveryCopy] supply the
+///   recovery actions.
 /// - [MigrationSnapshotAborted] (no backup could be written): free space, fix
 ///   the backups folder, or close another app that has the library open, then
 ///   reopen.
@@ -62,6 +64,7 @@ class AppBootstrap extends StatelessWidget {
     required this.onRetry,
     required this.onBackUpAndReset,
     required this.onResetOnly,
+    required this.onShareRecoveryCopy,
     this.rebuildProgress,
   });
 
@@ -79,6 +82,14 @@ class AppBootstrap extends StatelessWidget {
   /// screen. This action is unrecoverable; the implementation is responsible
   /// for any confirmation friction the maintainer has specified.
   final Future<void> Function(DatabaseBelowFloorError error) onResetOnly;
+
+  /// Called when the user chooses "Share a copy of your data" on the
+  /// below-floor recovery screen, shown on Android, iPhone and iPad only. The
+  /// implementation shares a scrubbed recovery copy of the database
+  /// (`recovery_copy.dart`) and reports a failure itself. [origin] is the
+  /// button's rectangle, which the iPad share sheet anchors to.
+  final Future<void> Function(DatabaseBelowFloorError error, Rect? origin)
+  onShareRecoveryCopy;
 
   /// Optional live progress of the derived-index rebuild step of [future]. When
   /// `null` (the default) or reporting an empty collection, the loading screen
@@ -128,6 +139,8 @@ class AppBootstrap extends StatelessWidget {
               stackTrace: snapshot.stackTrace,
               onBackUpAndReset: () => onBackUpAndReset(error),
               onResetOnly: () => onResetOnly(error),
+              onShareRecoveryCopy: (origin) =>
+                  onShareRecoveryCopy(error, origin),
             );
           }
           // The user was asked to consent to migrating without a recoverable
@@ -291,6 +304,13 @@ class AppBootstrap extends StatelessWidget {
   }
 }
 
+/// The user guide's steps for updating a shared recovery copy on a computer and
+/// restoring it on a phone or tablet (`docs/user/faq.md`; the heading's anchor
+/// is checked by `app_bootstrap_test.dart`).
+const String kBelowFloorRecoveryGuideUrl =
+    '$kSourceRepoUrl/blob/main/docs/user/faq.md'
+    '#my-data-is-too-old-to-open-on-my-phone-or-tablet';
+
 /// Terminal recovery screen shown when the on-disk database was written by a
 /// build older than the minimum supported schema version floor (issue #841).
 ///
@@ -308,23 +328,29 @@ class AppBootstrap extends StatelessWidget {
 ///   bridge release first; a filled **Get** button opens its release page.
 /// - **Android**: there is no Get button. Android will not install the older
 ///   bridge over this version, and uninstalling to make room deletes the
-///   library, so the message says not to uninstall or reset, and that the data
-///   is still on the device.
+///   library, so the message says not to uninstall. The primary action is
+///   **Share a copy of your data**: a scrubbed copy ([onShareRecoveryCopy],
+///   `recovery_copy.dart`) the caller saves off the device, updates with the
+///   bridge on a computer and restores here, following the user guide that
+///   **How to update it on a computer** opens ([kBelowFloorRecoveryGuideUrl]).
 /// - **iPhone and iPad**: there is no Get button either (the release page has
 ///   no iOS download); the message points to TestFlight's earlier builds,
-///   without promising the bridge is still listed there.
+///   without promising the bridge is still listed there, and offers the same
+///   share action and guide as Android for when it is not.
 class _BelowFloorRecoveryScreen extends StatefulWidget {
   const _BelowFloorRecoveryScreen({
     required this.error,
     required this.stackTrace,
     required this.onBackUpAndReset,
     required this.onResetOnly,
+    required this.onShareRecoveryCopy,
   });
 
   final DatabaseBelowFloorError error;
   final StackTrace? stackTrace;
   final Future<void> Function() onBackUpAndReset;
   final Future<void> Function() onResetOnly;
+  final Future<void> Function(Rect? origin) onShareRecoveryCopy;
 
   @override
   State<_BelowFloorRecoveryScreen> createState() =>
@@ -333,6 +359,14 @@ class _BelowFloorRecoveryScreen extends StatefulWidget {
 
 class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
   bool _inFlight = false;
+
+  /// The on-screen rectangle of the widget [context] belongs to, which the
+  /// iPad share sheet anchors to; `null` before layout.
+  static Rect? _originOf(BuildContext context) {
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
 
   Future<void> _run(Future<void> Function() action) async {
     if (_inFlight) return;
@@ -374,11 +408,36 @@ class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              // On desktop, recovering the data is the primary action; the two
-              // resets abandon it, so they are outlined and sit under their own
-              // label. Android and iOS have no Get button: Android will not
-              // install the older release over this one, and the release page
-              // has no iOS download (pre-release audit finding F-01).
+              // Recovering the data is the primary action; the two resets
+              // abandon it, so they are outlined and sit under their own label.
+              // Android and iOS have no Get button: Android will not install
+              // the older release over this one, and the release page has no
+              // iOS download (pre-release audit finding F-01). They share a
+              // scrubbed copy instead, to update on a computer.
+              if (route != BelowFloorRoute.desktop) ...[
+                Builder(
+                  builder: (buttonContext) => FilledButton.icon(
+                    key: const ValueKey('bootstrap-share-recovery-copy'),
+                    onPressed: _inFlight
+                        ? null
+                        : () => _run(
+                            () => widget.onShareRecoveryCopy(
+                              _originOf(buttonContext),
+                            ),
+                          ),
+                    icon: Icon(Icons.adaptive.share),
+                    label: Text(l10n.migrationBelowFloorShareCopy),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  key: const ValueKey('bootstrap-recovery-guide'),
+                  onPressed: () =>
+                      launchExternalUrl(context, kBelowFloorRecoveryGuideUrl),
+                  child: Text(l10n.migrationBelowFloorComputerGuide),
+                ),
+                const SizedBox(height: 16),
+              ],
               if (route == BelowFloorRoute.desktop) ...[
                 FilledButton.icon(
                   key: const ValueKey('bootstrap-get-bridge'),

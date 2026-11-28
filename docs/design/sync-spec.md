@@ -518,6 +518,78 @@ device published before it detached, so the *Other devices* line for it counts
 as waiting only what changed since, and a record unchanged since that detach is
 not counted as waiting for it even when no live device has it.
 
+**A library restored from a device backup.** On Android, Auto Backup and
+device-to-device transfer copy the app's database, and so do an iCloud or
+computer backup and iPhone-to-iPhone transfer on iOS. The copy carries
+`sync_device_id`, `sync_id` and `sync_enabled`, so a phone set up that way
+would publish under the identifier of the device it was copied from, which may
+still be in use: two devices with one manifest, by a route no envelope check
+sees. The client therefore keeps, on Android and iOS, a marker file where device
+backup does not copy it (Android: `noBackupFilesDir`; iOS: Application Support,
+with `isExcludedFromBackup` set), and a settings flag in the library,
+`no_backup_marker_written`. The marker MUST NOT be kept anywhere the system
+clears on its own (a cache or temporary directory): one that vanished on a
+device that was never restored would read as a restore, and a false restore
+costs the user their sync, where a missed one costs only what this paragraph
+existed to prevent. At start-up, after migration and before anything reads the
+Device Sync settings (`restored_copy_check.dart`):
+
+1. **No flag:** the first start of a build that keeps the marker, on a fresh
+   install or after an update. Every install that updates has a library and no
+   marker yet, so the missing marker means nothing here. The client writes the
+   marker, then the flag, and changes nothing else. The flag is written only
+   once the marker is in place, because a flag beside a missing marker is what
+   a restored copy looks like.
+2. **Flag and marker:** an ordinary start.
+3. **Flag, no marker:** a restored copy. In one transaction the client erases
+   `sync_device_id`, sets `sync_enabled` to `false` and removes the flag; it
+   then writes the marker and the flag as in rule 1, and says why Device Sync
+   is off if it was on. A start interrupted before the transaction commits is
+   recognised again. If the marker cannot be written afterwards, the failure
+   is logged and the notice still shown; with the flag gone, the next start is
+   rule 1, so a sync the user has turned back on is not turned off again.
+
+Any other failure to read or write the marker or a setting is logged and
+changes nothing: the start goes on with Device Sync as it was. The notice is
+shown once, at that start; an app closed before it appears does not show it
+again, and Device Sync's own section still shows that sync is off. Desktop platforms
+keep no marker and run no check; a desktop library moves by copying files or by
+the app's own backup file, and no desktop folder is known to be skipped by its
+backup tools.
+
+When the user turns Device Sync on again, the next coordinator mints a new
+identifier, as it does whenever none is stored. The restored copy keeps its sync ID, endpoint and
+sync-local tables, so it resumes steady-state sync with the copied baseline
+rather than attaching afresh. Its first pass publishes in full, because the
+store does not list its new identifier and so its last publication is not
+current (§6.3 step 8). The identifier it gave up stays with the device the
+library came from. Nothing is sent on restore: the detach clean-up below does
+not run, and the store keeps the old device's manifest, which is that device's
+own as long as it is in use.
+
+The check cannot tell another device from the same one restored. A reinstall
+on Android, whose Auto Backup puts the database back, and a phone erased and
+restored from its own backup are treated as restored copies too, as is a new
+phone whose old one has been wiped. There the old identifier is no longer in
+use, and its manifest is the leftover the re-attach paragraph above
+describes: it occupies a device slot and counts as a peer until it is removed
+under *Other devices*, since manifests do not expire per device (rule 4's
+bound, below). That is the cost of not linking
+installations, the same one re-attaching already pays.
+
+**Known gap:** a backup taken by a build older than this one holds no flag, so
+restoring it reads as rule 1, an update, and the copy keeps the old identifier.
+So does any copy whose marker a backup carried despite its exclusion. Neither
+can be told apart from a genuine update or an ordinary start without the link
+between installations this check avoids.
+
+*Amended 2026-11-27 (pre-release audit finding PRIV-03): added. The maintainer
+chose a marker kept out of device backup, and that a restored copy gets a new
+identifier with Device Sync off until the user turns it on. The flag that keeps
+an update from reading as a restore, the marker's locations, erasing the
+identifier rather than minting at start-up, and saying nothing when sync was
+already off were the implementing change's calls, not the maintainer's.*
+
 **Detach clean-up.** After detach has committed its local clear, a client MAY
 make one attempt to `DELETE /v1/manifests/{self}` for the attachment it has just
 left. It MUST NOT delay or fail the detach, MUST NOT be retried later, MUST hold
@@ -4087,7 +4159,8 @@ content hash at once.
 reconciliation rewrites it, a dance naming a choreographer the receiver lacks
 is an unresolved reference, and a choreographer it names is held back from an
 inbound tombstone while a live dance cites it. A fresh-attach merge unions it
-as it does `authorIds` and takes `interpretedOn` from the latest copy; neither
+as it does `authorIds` and takes `interpretedOn` from the latest copy (but see
+*Which copy speaks for them* below); neither
 is part of the choreography fingerprint. **Limit:** a device on a build older
 than v42 keeps the key aside without knowing it cites anyone, so a deletion of
 a person credited only as interpreter there is not refused, and a merge of two
@@ -4096,19 +4169,57 @@ rewrites it through the alias.
 
 A fresh-attach merge also unions `alternateTitles`, every copy's other titles
 in order with repeats dropped, and takes `barnesReference` from the latest
-copy, as it takes `meter`, but only when that copy has the merged dance's
-form: only an ECD dance holds one, and a merge the person chose may join
+copy, as it takes `meter` (but see *Which copy speaks for them* below), and
+only from a copy that has the merged dance's form: only an ECD dance holds one, and a merge the person chose may join
 copies of different forms, so a newer copy of another form leaves the
-survivor's value alone. Neither is part of the choreography fingerprint,
-which a build older than v42 computes without them.
+survivor's value alone. `formation.improper` is taken the same way, only
+from a copy of the merged dance's form, because only an ECD dance holds one
+(`formHasImproperFlag`): a newer contra copy leaves an English survivor's
+mark alone (amended 2026-11-27, the audit lead's call as an agent, not the
+maintainer's; until then a merge took it from the latest copy of any form).
+Neither `alternateTitles` nor `barnesReference` is part of the choreography
+fingerprint, which a build older than v42 computes without them.
 
-The square fields are taken from the latest copy too, each one omitted when
+The square fields are taken from the latest copy too (but see *Which copy
+speaks for them* below), each one omitted when
 that copy leaves it at its default. They are kept for every form, so unlike
 `barnesReference` the latest copy's form does not matter. None is part of the
 choreography fingerprint. A value this build does not know (a newer build's)
 reads as the default, as an unknown `progression` or `status` does, so an
 edit here writes the default back. Each text depends on its value as well as its own
 column (`wire_mapping.dart`): a value moved off `other` drops the text.
+
+**Which copy speaks for them (amended 2026-11-27).** The latest copy speaks
+for all of these fields only when it holds at least one of them: `meter`,
+`musicalKey`, `interpretedOn`, `barnesReference`, a square field,
+`formation.improper`, `alternateTitles` or `interpreterIds`. A released build
+that writes one knows them all, so what such a copy leaves out it cleared, and the
+merged dance leaves it out too. A latest copy that holds none of them cannot
+say so: no build up to v0.10.0-beta writes any of them, and this build's copy
+that holds none is the same bytes as one of those. Each field is then taken
+from the most recent copy that holds it (for `barnesReference` and
+`formation.improper`, the most recent copy of the merged dance's form), or
+left out when none does. Ties
+go to the survivor, and between other copies to the smaller id, as for the
+latest copy. `alternateTitles` and
+`interpreterIds` are unioned either way.
+
+**Limit:** a newer build's latest copy in which the caller cleared every one
+of these fields reads as one that cannot speak for them, so a value another
+copy still holds comes back in the merged dance. The same holds for a newer
+build's copy that is not the latest: when the latest copy cannot speak, each
+field comes from the most recent copy that holds it, which can be older than a
+copy that cleared it. With two copies, the common case, only the first
+situation arises. Telling the two apart needs
+a marker every dance would carry, which changes every dance's body and
+content hash at once.
+
+> The maintainer chose this rule (the audit's decision sheet, question 37,
+> answer c, 2026-11-27), after pre-release audit finding MIG-05 showed a
+> v0.10.0-beta copy edited last clearing every one of these fields from the
+> merged dance. It was chosen over adding that marker, over always keeping
+> the most recent copy that holds a field (which undoes a clear this build
+> made), and over leaving the merge as it was with the limit documented.
 
 **A field the receiver does not sync is kept, not dropped and not applied.**
 Any part of an inbound body that the receiver does not classify `shareable` for
@@ -4713,7 +4824,8 @@ On silent merge the survivor is the lexicographically smaller UUID; id
 collections outside the choreography fingerprint are unioned;
 `program_slots.dance_id` MUST be rewired to the survivor; scalars outside the
 fingerprint (`walkthrough`, `rating`, `status`, `composedOn`, `revisedOn`)
-resolve by last-writer-wins. Dance merges write `id_aliases` entries.
+resolve by last-writer-wins. The dance fields added after v0.10.0-beta do too,
+from a copy that can speak for them (§6.7, *Which copy speaks for them*). Dance merges write `id_aliases` entries.
 
 Where `updatedAt` is **equal** and such a scalar differs, the survivor's value
 MUST be taken. This is the one place the survivor's values win, and it does not

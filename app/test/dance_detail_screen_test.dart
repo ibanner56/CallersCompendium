@@ -701,6 +701,23 @@ void main() {
       expect(find.byKey(note), findsNothing);
     });
 
+    // Her dances also leave out a gendered move wording (question 35 of the
+    // pre-release audit's decision sheet), but that sets no role term aside,
+    // so it is no reason for the note.
+    testWidgets('no note for a gendered wording alone', (tester) async {
+      await pump(
+        tester,
+        author: 'Rachel Fifer',
+        dialect: Dialect.larksRobins.copyWith(
+          name: 'Mine',
+          moves: const {'chain': 'ladies chain'},
+        ),
+      );
+
+      expect(find.text('larks and robins balance the ring'), findsOneWidget);
+      expect(find.byKey(note), findsNothing);
+    });
+
     testWidgets("another choreographer's dance follows the dialect", (
       tester,
     ) async {

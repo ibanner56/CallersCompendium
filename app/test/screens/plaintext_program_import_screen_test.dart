@@ -144,6 +144,44 @@ void main() {
     expect(find.text('3 slots'), findsOneWidget);
   });
 
+  // Question 44 of the pre-release audit's decision sheet (the maintainer's
+  // answer) makes a pasted break label a break. Labelling it as one in the
+  // preview, and offering no lookup for it, are this change's own call (the
+  // author's): otherwise the preview would say "added as note" for a break.
+  testWidgets('a pasted break label previews as a break, not a lookup', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'Pause\nBREAK',
+    );
+    await tester.pumpAndSettle();
+
+    // Each line's text, then its "Break" label.
+    expect(find.text('Break'), findsNWidgets(2));
+    expect(find.text('No match — added as note'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+      findsNothing,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'Pause\nPauses',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Break'), findsOneWidget);
+    expect(find.text('No match — added as note'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets(
     'commit creates a program with ordered slots and undo removes it, '
     'taking nothing from the Default template (#2337)',
@@ -393,6 +431,33 @@ void main() {
     final program = (await repos.programs.listAll()).single;
     expect(program.slots.single.danceId, isNull);
     expect(program.slots.single.text, 'Totally Unknown Dance');
+  });
+
+  testWidgets('after a lookup, a pasted break is not counted as a note', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final online = CallersBoxOnline(
+      searchFetcher: (_) async => _emptyResultsHtml,
+      jsonFetcher: (_) async => throw StateError('should not fetch json'),
+    );
+    final contraDb = ContraDbOnline(
+      searchFetcher: (_) async => '{"dances":[]}',
+      htmlFetcher: (_) async => throw StateError('should not fetch a dance'),
+    );
+    await _pump(tester, repos, online: online, contraDb: contraDb);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'Pause\nTotally Unknown Dance',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('1 title kept as a note'), findsOneWidget);
   });
 
   // ── 2026-10 audit, batch F12 (INTAKE-4, FAIL-2) ──────────────────────────

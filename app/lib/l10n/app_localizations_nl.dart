@@ -231,13 +231,42 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String migrationBelowFloorBodyAndroid(String bridgeTag) {
-    return 'Je gegevens staan nog op dit apparaat, maar deze versie kan ze niet bijwerken. Verwijder de app niet: daarmee worden je gegevens gewist, en Android installeert $bridgeTag sowieso niet over deze versie heen. Wil je je gegevens houden, laat de app dan geïnstalleerd, reset haar niet en kies ‘Details kopiëren’ als je om hulp vraagt.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.';
+    return 'Je gegevens staan nog op dit apparaat, maar deze versie kan ze hier niet bijwerken. Verwijder de app niet: daarmee worden je gegevens gewist, en Android installeert $bridgeTag sowieso niet over deze versie heen. Wil je je gegevens houden, kies dan ‘Een kopie van je gegevens delen’ en bewaar het bestand buiten de app, bijvoorbeeld op een computer of in cloudopslag. Een computer met $bridgeTag kan ze bijwerken, en daarna kan deze app ze terugzetten: zie ‘Zo werk je ze bij op een computer’.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.';
   }
 
   @override
   String migrationBelowFloorBodyIos(String bridgeVersion) {
-    return 'Je gegevens staan nog op dit apparaat. Verwijder de app niet: daarmee worden je gegevens gewist. Open in TestFlight Caller’s Compendium en zoek onder ‘Vorige builds’ naar versie $bridgeVersion. Staat die erbij, installeer haar dan, open de app één keer zodat je gegevens worden bijgewerkt en installeer daarna weer de nieuwste build. Staat die er niet bij, laat de app dan zoals ze is en kies ‘Details kopiëren’ als je om hulp vraagt.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.';
+    return 'Je gegevens staan nog op dit apparaat. Verwijder de app niet: daarmee worden je gegevens gewist. Open in TestFlight Caller’s Compendium en zoek onder ‘Vorige builds’ naar versie $bridgeVersion. Staat die erbij, installeer haar dan, open de app één keer zodat je gegevens worden bijgewerkt en installeer daarna weer de nieuwste build. Staat die er niet bij, kies dan ‘Een kopie van je gegevens delen’ en werk ze in plaats daarvan bij op een computer: zie ‘Zo werk je ze bij op een computer’.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.';
   }
+
+  @override
+  String get migrationBelowFloorShareCopy => 'Een kopie van je gegevens delen';
+
+  @override
+  String get migrationBelowFloorShareBackup => 'Kopie delen';
+
+  @override
+  String get migrationBelowFloorBackupKeptInApp =>
+      'De back-up staat in de app, waar je hem niet kunt openen. Wil je een kopie houden die je op een computer kunt gebruiken, kies dan ‘Kopie delen’ voordat je reset.';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedTitle => 'Kan geen kopie maken';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedBody =>
+      'Er is niets gedeeld en je gegevens zijn niet gewijzigd. Maak wat ruimte vrij en probeer het dan opnieuw.';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedTitle =>
+      'Kan het deelmenu niet openen';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedBody =>
+      'De kopie is gemaakt, maar kon niet worden gedeeld. Je gegevens zijn niet gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get migrationBelowFloorComputerGuide =>
+      'Zo werk je ze bij op een computer';
 
   @override
   String migrationBelowFloorGetBridge(String bridgeTag) {
@@ -736,6 +765,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsSyncStatusSettingsUnreadable =>
       'De instellingen voor apparaatsynchronisatie konden niet worden gelezen, dus de hier getoonde instellingen kunnen verouderd zijn, en apparaatsynchronisatie kan uit staan, ook als je het had aangezet. Start de app opnieuw op om het nog eens te proberen.';
+
+  @override
+  String get syncRestoredCopyNotice =>
+      'Apparaatsynchronisatie staat uit, omdat deze bibliotheek is hersteld uit een back-up van het apparaat. Zet het weer aan onder Instellingen ▸ Experimenteel ▸ Apparaatsynchronisatie, dan synchroniseert dit apparaat als een nieuw apparaat en niet als het apparaat waar de back-up van komt.';
 
   @override
   String get settingsSyncFailureUnreachable =>
@@ -5306,6 +5339,28 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String danceEditorHalfBarRefused(int beatsPerBar) {
     return 'Alleen hele maten, bij $beatsPerBar tellen per maat';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar tellen',
+      one: '1 tel',
+    );
+    return 'De tellen van de figuren zijn aangepast, zodat elke figuur haar maten houdt, nu met $_temp0 per maat.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar tellen',
+      one: '1 tel',
+    );
+    return 'Tellen niet aangepast: niet elke figuur kon haar maten precies houden, dus ze lezen nu in maten van $_temp0. Controleer ze.';
   }
 
   @override

@@ -231,13 +231,43 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String migrationBelowFloorBodyAndroid(String bridgeTag) {
-    return 'Dine data er stadig på denne enhed, men denne version kan ikke opdatere dem. Afinstaller ikke appen: Det sletter dine data, og Android vil alligevel ikke installere $bridgeTag oven på denne version. For at beholde dine data skal du lade appen være installeret og ikke nulstille den, og vælge »Kopiér detaljer«, når du beder om hjælp.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.';
+    return 'Dine data er stadig på denne enhed, men denne version kan ikke opdatere dem her. Afinstaller ikke appen: Det sletter dine data, og Android vil alligevel ikke installere $bridgeTag oven på denne version. For at beholde dine data skal du vælge »Del en kopi af dine data« og gemme filen uden for appen, for eksempel på en computer eller i et cloudlager. En computer med $bridgeTag kan opdatere dem, og derefter kan denne app gendanne dem: se »Sådan opdaterer du dem på en computer«.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.';
   }
 
   @override
   String migrationBelowFloorBodyIos(String bridgeVersion) {
-    return 'Dine data er stadig på denne enhed. Slet ikke appen: Det sletter dine data. Åbn Caller’s Compendium i TestFlight, og kig under »Tidligere builds« efter version $bridgeVersion. Hvis den står der, så installer den, åbn appen én gang for at lade den opdatere dine data, og installer derefter det nyeste build igen. Hvis den ikke står der, så lad appen være, som den er, og vælg »Kopiér detaljer«, når du beder om hjælp.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.';
+    return 'Dine data er stadig på denne enhed. Slet ikke appen: Det sletter dine data. Åbn Caller’s Compendium i TestFlight, og kig under »Tidligere builds« efter version $bridgeVersion. Hvis den står der, så installer den, åbn appen én gang for at lade den opdatere dine data, og installer derefter det nyeste build igen. Hvis den ikke står der, så vælg »Del en kopi af dine data«, og opdater dem i stedet på en computer: se »Sådan opdaterer du dem på en computer«.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.';
   }
+
+  @override
+  String get migrationBelowFloorShareCopy => 'Del en kopi af dine data';
+
+  @override
+  String get migrationBelowFloorShareBackup => 'Del en kopi';
+
+  @override
+  String get migrationBelowFloorBackupKeptInApp =>
+      'Sikkerhedskopien ligger i appen, hvor du ikke kan åbne den. Hvis du vil beholde en kopi, du kan bruge på en computer, så vælg »Del en kopi«, før du nulstiller.';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedTitle =>
+      'Kunne ikke lave en kopi';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedBody =>
+      'Intet blev delt, og dine data er ikke ændret. Frigør noget plads, og prøv så igen.';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedTitle =>
+      'Kunne ikke åbne delingsmenuen';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedBody =>
+      'Kopien blev lavet, men den kunne ikke deles. Dine data er ikke ændret. Prøv igen.';
+
+  @override
+  String get migrationBelowFloorComputerGuide =>
+      'Sådan opdaterer du dem på en computer';
 
   @override
   String migrationBelowFloorGetBridge(String bridgeTag) {
@@ -730,6 +760,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsSyncStatusSettingsUnreadable =>
       'Indstillingerne for enhedssynkronisering kunne ikke læses, så de indstillinger, der vises her, kan være forældede, og enhedssynkronisering kan være slået fra, selvom du har slået den til. Genstart appen for at prøve igen.';
+
+  @override
+  String get syncRestoredCopyNotice =>
+      'Enhedssynkronisering er slået fra, fordi dette bibliotek er gendannet fra en sikkerhedskopi af enheden. Slå det til igen under Indstillinger ▸ Eksperimentelt ▸ Enhedssynkronisering, så synkroniserer denne enhed som en ny enhed og ikke som den enhed, sikkerhedskopien kom fra.';
 
   @override
   String get settingsSyncFailureUnreachable =>
@@ -5278,6 +5312,28 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String danceEditorHalfBarRefused(int beatsPerBar) {
     return 'Kun hele takter med $beatsPerBar slag pr. takt';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar slag',
+      one: '1 slag',
+    );
+    return 'Figurernes slagantal er ændret, så hver figur beholder sine takter, nu med $_temp0 pr. takt.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar slag',
+      one: '1 slag',
+    );
+    return 'Slagantallet er ikke ændret: ikke alle figurer kunne beholde deres takter præcist, så de læses nu i takter med $_temp0. Tjek dem.';
   }
 
   @override

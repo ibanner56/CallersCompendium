@@ -1089,9 +1089,7 @@ resolver reports the missing tag.
 
 A Collection that has the search loaded when the merge runs still shows the
 loser. Two things keep it from undoing the rewrite: **Save** and **Update**
-write the panel's tag, author and source ids through the same aliases
-(`movingReferences`; not yet its level and custom-field ids, which only a
-reconciliation merges, so those are still read through the alias), then load
+write the panel's ids through the same aliases (`movingReferences`), then load
 what they wrote when that differs, so the panel is on the survivor too; and
 when the Collection is shown again a loaded search whose stored form changed
 meanwhile is loaded again, unless the panel was changed from it there or

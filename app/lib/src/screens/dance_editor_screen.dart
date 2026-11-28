@@ -17,6 +17,7 @@ import '../data/shorthand_mappings_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../editor/draft_save_health.dart';
 import '../editor/editor_snapshot.dart';
+import '../editor/figure_draft.dart' show FigureBarsRescale;
 import '../search/dance_editor_reference_data.dart';
 import '../theme/app_motion.dart';
 import '../utils/confirm_delete.dart';
@@ -249,8 +250,74 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       // The authors may have changed; a conversion this starts notifies
       // again, and the second pass finds nothing left to change.
       _syncEditorDialect();
+      _syncMeterBarsNotice();
       setState(_rebuildTagOptions);
     }
+  }
+
+  /// The Meter edit [_meterBarsNotice] was shown for, so that each is shown
+  /// once.
+  MeterBarsChange? _meterBarsNoticeFor;
+
+  /// The notice of what the latest Meter edit did to an English dance's
+  /// figure counts, while it is showing or waiting to (pre-release audit
+  /// finding A2-02).
+  _MeterBarsNotice? _meterBarsNotice;
+
+  /// Shows the notice for a Meter edit that changed or kept the figures'
+  /// counts ([DanceEditorController.meterBarsChange]), and puts it away once
+  /// its Undo would no longer take that edit back: a later edit, or an Undo
+  /// or Redo, moved the history on ([DanceEditorController.canUndoMeterChange]).
+  void _syncMeterBarsNotice() {
+    final change = _controller.meterBarsChange;
+    if (change != null && !identical(change, _meterBarsNoticeFor)) {
+      _meterBarsNoticeFor = change;
+      _showMeterBarsNotice(change);
+    } else if (_meterBarsNoticeFor case final shown?
+        when !_controller.canUndoMeterChange(shown)) {
+      _closeMeterBarsNotice();
+    }
+  }
+
+  void _showMeterBarsNotice(MeterBarsChange change) {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final shown = _MeterBarsNotice(messenger);
+    shown.controller = showUndoSnackBar(
+      messenger,
+      key: const ValueKey('meter-bars-notice'),
+      actionKey: const ValueKey('meter-bars-notice-undo'),
+      message: switch (change.outcome) {
+        FigureBarsRescale.notExact => l10n.danceEditorMeterFigureBarsNotKept(
+          change.beatsPerBar,
+        ),
+        _ => l10n.danceEditorMeterFigureBarsKept(change.beatsPerBar),
+      },
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onVisible: shown.cameIn,
+      onUndo: () {
+        // The prompt has already closed itself; the Undo's own notification
+        // must not close it again.
+        shown.closed = true;
+        if (identical(_meterBarsNotice, shown)) _meterBarsNotice = null;
+        _controller.undoMeterChange(change);
+      },
+    );
+    _meterBarsNotice = shown;
+    unawaited(
+      shown.controller.closed.then((_) {
+        shown.closed = true;
+        if (identical(_meterBarsNotice, shown)) _meterBarsNotice = null;
+      }),
+    );
+  }
+
+  void _closeMeterBarsNotice() {
+    final shown = _meterBarsNotice;
+    _meterBarsNotice = null;
+    shown?.close();
   }
 
   void _rebuildTagOptions() {
@@ -361,6 +428,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   @override
   void dispose() {
+    // Its Undo is this editor's to run. Closed once the tree is unlocked
+    // (closing can rebuild the messenger), and only while the messenger is
+    // still there: not when the whole app is going.
+    if (_meterBarsNotice != null) scheduleMicrotask(_closeMeterBarsNotice);
     _formScroll.dispose();
     if (_dependenciesInitialized) {
       _unregisterShutdownFlush?.call();
@@ -1260,4 +1331,41 @@ class _UndoIntent extends Intent {
 /// Redo intent for the Ctrl/Cmd+Shift+Z (and Ctrl+Y) keyboard shortcuts.
 class _RedoIntent extends Intent {
   const _RedoIntent();
+}
+
+/// One Meter notice ([_DanceEditorScreenState._showMeterBarsNotice]). A
+/// snackbar can only be closed while it is the one the messenger shows, and
+/// a new one waits behind the one going out, so a close asked for before the
+/// notice has come in is made when it does.
+class _MeterBarsNotice {
+  _MeterBarsNotice(this.messenger);
+
+  final ScaffoldMessengerState messenger;
+  late final ScaffoldFeatureController<SnackBar, SnackBarClosedReason>
+  controller;
+
+  /// Whether it has come in, so it is the snackbar the messenger shows.
+  bool visible = false;
+
+  /// Whether it is closed, or closing: closing it again would close another.
+  bool closed = false;
+
+  /// Whether a close was asked for before it came in.
+  bool closeWhenVisible = false;
+
+  /// Its snackbar has come in (once for each copy the messenger builds).
+  void cameIn() {
+    visible = true;
+    if (closeWhenVisible) close();
+  }
+
+  void close() {
+    if (closed) return;
+    if (!visible) {
+      closeWhenVisible = true;
+      return;
+    }
+    closed = true;
+    if (messenger.mounted) controller.close();
+  }
 }

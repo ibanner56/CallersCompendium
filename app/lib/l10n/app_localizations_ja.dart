@@ -221,13 +221,40 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String migrationBelowFloorBodyAndroid(String bridgeTag) {
-    return 'データはまだこのデバイスにありますが、このバージョンでは更新できません。アプリをアンインストールしないでください。アンインストールするとデータが削除されます。また、Androidではこのバージョンの上に$bridgeTagをインストールすることもできません。データを残すには、アプリはインストールしたままにし、リセットもしないでください。サポートを求めるときは「詳細をコピー」を選んでください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。';
+    return 'データはまだこのデバイスにありますが、このバージョンではここで更新できません。アプリをアンインストールしないでください。アンインストールするとデータが削除されます。また、Androidではこのバージョンの上に$bridgeTagをインストールすることもできません。データを残すには、「データのコピーを共有」を選んで、ファイルをアプリの外（コンピューターやクラウドストレージなど）に保存してください。$bridgeTagを入れたコンピューターでデータを更新でき、その後このアプリで復元できます。詳しくは「コンピューターで更新する方法」をご覧ください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。';
   }
 
   @override
   String migrationBelowFloorBodyIos(String bridgeVersion) {
-    return 'データはまだこのデバイスにあります。アプリを削除しないでください。削除するとデータも削除されます。TestFlightでCaller’s Compendiumを開き、「以前のビルド」でバージョン$bridgeVersionを探してください。表示されている場合は、それをインストールし、データを更新するためにアプリを一度開いてから、最新のビルドを再度インストールしてください。表示されていない場合は、アプリをそのままにして、サポートを求めるときは「詳細をコピー」を選んでください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。';
+    return 'データはまだこのデバイスにあります。アプリを削除しないでください。削除するとデータも削除されます。TestFlightでCaller’s Compendiumを開き、「以前のビルド」でバージョン$bridgeVersionを探してください。表示されている場合は、それをインストールし、データを更新するためにアプリを一度開いてから、最新のビルドを再度インストールしてください。表示されていない場合は、「データのコピーを共有」を選んで、代わりにコンピューターで更新してください。詳しくは「コンピューターで更新する方法」をご覧ください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。';
   }
+
+  @override
+  String get migrationBelowFloorShareCopy => 'データのコピーを共有';
+
+  @override
+  String get migrationBelowFloorShareBackup => 'コピーを共有';
+
+  @override
+  String get migrationBelowFloorBackupKeptInApp =>
+      'バックアップはアプリの中に保存されていて、開くことはできません。コンピューターで使えるコピーを残すには、リセットする前に「コピーを共有」を選んでください。';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedTitle => 'コピーを作成できませんでした';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedBody =>
+      '何も共有されておらず、データも変更されていません。空き容量を増やしてから、もう一度お試しください。';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedTitle => '共有メニューを開けませんでした';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedBody =>
+      'コピーは作成されましたが、共有できませんでした。データは変更されていません。もう一度お試しください。';
+
+  @override
+  String get migrationBelowFloorComputerGuide => 'コンピューターで更新する方法';
 
   @override
   String migrationBelowFloorGetBridge(String bridgeTag) {
@@ -699,6 +726,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsSyncStatusSettingsUnreadable =>
       'デバイス同期の設定を読み込めなかったため、ここに表示されている設定が最新でない可能性があり、オンにしていてもデバイス同期がオフになっている可能性があります。アプリを再起動してもう一度お試しください。';
+
+  @override
+  String get syncRestoredCopyNotice =>
+      'このライブラリはデバイスのバックアップから復元されたため、デバイス同期はオフになっています。設定 ▸ 実験的 ▸ デバイス同期 でもう一度オンにすると、このデバイスはバックアップ元のデバイスとしてではなく、新しいデバイスとして同期します。';
 
   @override
   String get settingsSyncFailureUnreachable => '同期サーバーに接続できませんでした。';
@@ -5036,6 +5067,26 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String danceEditorHalfBarRefused(int beatsPerBar) {
     return '1小節$beatsPerBar拍では小節単位で入力してください';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar拍',
+    );
+    return '各フィギュアの小節数が変わらないよう拍数を変更しました（1小節$_temp0）。';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar拍',
+    );
+    return '拍数は変更していません。小節数をそのまま保てないフィギュアがあるため、1小節$_temp0で読み直されます。確認してください。';
   }
 
   @override

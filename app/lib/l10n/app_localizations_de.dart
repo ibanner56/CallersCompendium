@@ -230,13 +230,43 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String migrationBelowFloorBodyAndroid(String bridgeTag) {
-    return 'Deine Daten sind noch auf diesem Gerät, aber diese Version kann sie nicht aktualisieren. Deinstalliere die App nicht: Dabei werden deine Daten gelöscht, und Android installiert $bridgeTag ohnehin nicht über diese Version. Damit deine Daten erhalten bleiben, lass die App installiert, setze sie nicht zurück und wähle „Details kopieren“, wenn du um Hilfe bittest.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.';
+    return 'Deine Daten sind noch auf diesem Gerät, aber diese Version kann sie hier nicht aktualisieren. Deinstalliere die App nicht: Dabei werden deine Daten gelöscht, und Android installiert $bridgeTag ohnehin nicht über diese Version. Damit deine Daten erhalten bleiben, wähle „Eine Kopie deiner Daten teilen“ und speichere die Datei außerhalb der App, zum Beispiel auf einem Computer oder in einem Cloud-Speicher. Ein Computer mit $bridgeTag kann sie aktualisieren, und diese App kann sie dann wiederherstellen: siehe „So aktualisierst du sie auf einem Computer“.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.';
   }
 
   @override
   String migrationBelowFloorBodyIos(String bridgeVersion) {
-    return 'Deine Daten sind noch auf diesem Gerät. Lösche die App nicht: Dabei werden deine Daten gelöscht. Öffne in TestFlight Caller’s Compendium und suche unter „Frühere Builds“ nach Version $bridgeVersion. Wenn sie dort steht, installiere sie, öffne die App einmal, damit sie deine Daten aktualisiert, und installiere dann wieder den neuesten Build. Wenn sie nicht dort steht, lass die App, wie sie ist, und wähle „Details kopieren“, wenn du um Hilfe bittest.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.';
+    return 'Deine Daten sind noch auf diesem Gerät. Lösche die App nicht: Dabei werden deine Daten gelöscht. Öffne in TestFlight Caller’s Compendium und suche unter „Frühere Builds“ nach Version $bridgeVersion. Wenn sie dort steht, installiere sie, öffne die App einmal, damit sie deine Daten aktualisiert, und installiere dann wieder den neuesten Build. Wenn sie nicht dort steht, wähle „Eine Kopie deiner Daten teilen“ und aktualisiere sie stattdessen auf einem Computer: siehe „So aktualisierst du sie auf einem Computer“.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.';
   }
+
+  @override
+  String get migrationBelowFloorShareCopy => 'Eine Kopie deiner Daten teilen';
+
+  @override
+  String get migrationBelowFloorShareBackup => 'Kopie teilen';
+
+  @override
+  String get migrationBelowFloorBackupKeptInApp =>
+      'Die Sicherung liegt in der App, wo du sie nicht öffnen kannst. Wenn du eine Kopie behalten willst, die du auf einem Computer nutzen kannst, wähle vor dem Zurücksetzen „Kopie teilen“.';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedTitle =>
+      'Kopie konnte nicht erstellt werden';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedBody =>
+      'Es wurde nichts geteilt, und deine Daten wurden nicht geändert. Gib etwas Speicherplatz frei und versuche es dann erneut.';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedTitle =>
+      'Das Teilen-Menü ließ sich nicht öffnen';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedBody =>
+      'Die Kopie wurde erstellt, konnte aber nicht geteilt werden. Deine Daten wurden nicht geändert. Versuche es erneut.';
+
+  @override
+  String get migrationBelowFloorComputerGuide =>
+      'So aktualisierst du sie auf einem Computer';
 
   @override
   String migrationBelowFloorGetBridge(String bridgeTag) {
@@ -734,6 +764,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsSyncStatusSettingsUnreadable =>
       'Die Einstellungen der Gerätesynchronisierung konnten nicht gelesen werden, daher können die hier angezeigten Einstellungen veraltet sein, und die Gerätesynchronisierung kann ausgeschaltet sein, obwohl du sie eingeschaltet hast. Starte die App neu, um es erneut zu versuchen.';
+
+  @override
+  String get syncRestoredCopyNotice =>
+      'Die Gerätesynchronisierung ist ausgeschaltet, weil diese Bibliothek aus einer Gerätesicherung wiederhergestellt wurde. Schalte sie unter Einstellungen ▸ Experimentell ▸ Gerätesynchronisierung wieder ein, dann synchronisiert dieses Gerät als neues Gerät und nicht als das Gerät, von dem die Sicherung stammt.';
 
   @override
   String get settingsSyncFailureUnreachable =>
@@ -5321,6 +5355,28 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String danceEditorHalfBarRefused(int beatsPerBar) {
     return 'Nur ganze Takte bei $beatsPerBar Schlägen pro Takt';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar Schlägen',
+      one: '1 Schlag',
+    );
+    return 'Die Schlagzahlen der Figuren wurden angepasst, damit jede Figur ihre Takte behält, jetzt mit $_temp0 pro Takt.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar Schlägen',
+      one: '1 Schlag',
+    );
+    return 'Schlagzahlen nicht geändert: Nicht jede Figur konnte ihre Takte genau behalten, darum zählen sie jetzt in Takten zu $_temp0. Prüfe sie.';
   }
 
   @override

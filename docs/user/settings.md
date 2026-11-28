@@ -1546,6 +1546,20 @@ sends nothing anywhere. Turning it on does not send anything by itself; nothing
 is exchanged until you connect a store. The section starts closed while Device
 Sync is off and open while it is on.
 
+**A phone or tablet set up from a device backup.** If you set up a phone or
+tablet from your device's own backup of another one (Android's backup or its
+phone-to-phone transfer, an iCloud or computer backup, or moving to a new
+iPhone or iPad), the app notices the first time it opens there and turns
+Device Sync off, with a message saying why. It also forgets the old device's
+identity, so when you turn Device Sync back on, this device connects to the
+same store as a device of its own, and the old one is listed under **Other
+devices**. The same happens if Android puts the app's data back when you
+reinstall it, or you restore a phone from its own backup: there the old entry
+under **Other devices** is no longer in use, and you can remove it. This works
+for backups made by this version of the app or a later one; a backup made by
+an earlier version isn't recognised, and Device Sync stays as it was in the
+copy.
+
 - **Sync only on Wi-Fi** is on by default. On a mobile-data connection automatic
   sync waits, and pressing **Sync now** tells you why. In this section it points
   at this setting; from the sync icon on **Collection** or **Programs** it tells

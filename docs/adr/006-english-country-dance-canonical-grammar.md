@@ -1348,7 +1348,9 @@ recommendation; the answer is quoted.
    existing dance keeps its other titles and Barnes reference when the
    record carries none (the record's form still applies). Implementer's
    calls, not yet ratified: a fresh-attach sync merge unions other titles and takes
-   the latest copy's Barnes reference; the choreography fingerprint
+   the latest copy's Barnes reference (since refined by the maintainer: only
+   from a copy that can speak for it, sync-spec §6.7 "Which copy speaks for
+   them", 2026-11-27); the choreography fingerprint
    ignores both, so a build from before them agrees on duplicates; the
    Title search scope reads other titles and All fields reads both. Also
    answered: a 4/4 bar keeps counting four beats, and an

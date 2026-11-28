@@ -228,13 +228,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String migrationBelowFloorBodyAndroid(String bridgeTag) {
-    return 'Your data is still on this device, but this version can\'t update it. Don\'t uninstall the app: that deletes your data, and Android won\'t install $bridgeTag over this version anyway. To keep your data, leave the app installed and don\'t reset it, and choose Copy details when you ask for help.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.';
+    return 'Your data is still on this device, but this version can\'t update it here. Don\'t uninstall the app: that deletes your data, and Android won\'t install $bridgeTag over this version anyway. To keep your data, choose Share a copy of your data and save the file outside the app, for example on a computer or a cloud drive. A computer with $bridgeTag can update it, and this app can then restore it: see How to update it on a computer.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.';
   }
 
   @override
   String migrationBelowFloorBodyIos(String bridgeVersion) {
-    return 'Your data is still on this device. Don\'t delete the app: that deletes your data. In TestFlight, open Caller\'s Compendium and look under Previous Builds for version $bridgeVersion. If it\'s listed, install it, open the app once to let it update your data, then install the newest build again. If it isn\'t listed, keep the app as it is and choose Copy details when you ask for help.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.';
+    return 'Your data is still on this device. Don\'t delete the app: that deletes your data. In TestFlight, open Caller\'s Compendium and look under Previous Builds for version $bridgeVersion. If it\'s listed, install it, open the app once to let it update your data, then install the newest build again. If it isn\'t listed, choose Share a copy of your data and update it on a computer instead: see How to update it on a computer.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.';
   }
+
+  @override
+  String get migrationBelowFloorShareCopy => 'Share a copy of your data';
+
+  @override
+  String get migrationBelowFloorShareBackup => 'Share a copy';
+
+  @override
+  String get migrationBelowFloorBackupKeptInApp =>
+      'The backup is kept inside the app, where you can\'t open it. To keep a copy you can use on a computer, choose Share a copy before you reset.';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedTitle => 'Couldn\'t make a copy';
+
+  @override
+  String get migrationBelowFloorShareCopyFailedBody =>
+      'Nothing was shared, and your data hasn\'t been changed. Free up some space, then try again.';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedTitle =>
+      'Couldn\'t open the share sheet';
+
+  @override
+  String get migrationBelowFloorShareSheetFailedBody =>
+      'The copy was made, but it couldn\'t be shared. Your data hasn\'t been changed. Try again.';
+
+  @override
+  String get migrationBelowFloorComputerGuide =>
+      'How to update it on a computer';
 
   @override
   String migrationBelowFloorGetBridge(String bridgeTag) {
@@ -725,6 +754,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsSyncStatusSettingsUnreadable =>
       'Device Sync\'s settings couldn\'t be read, so the settings shown here may be out of date, and Device Sync may be off even if you turned it on. Restart the app to try again.';
+
+  @override
+  String get syncRestoredCopyNotice =>
+      'Device Sync is off because this library was restored from a device backup. Turn it back on under Settings ▸ Experimental ▸ Device Sync and this device will sync as a new device, not the one the backup came from.';
 
   @override
   String get settingsSyncFailureUnreachable =>
@@ -5240,6 +5273,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String danceEditorHalfBarRefused(int beatsPerBar) {
     return 'Whole bars only, with $beatsPerBar beats to the bar';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar beats',
+      one: '1 beat',
+    );
+    return 'Figure counts changed so each figure keeps its bars, now with $_temp0 to the bar.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar beats',
+      one: '1 beat',
+    );
+    return 'Figure counts not changed: not every figure could keep its bars exactly, so they now read in bars of $_temp0. Check them.';
   }
 
   @override

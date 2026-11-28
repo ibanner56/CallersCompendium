@@ -1,0 +1,9 @@
+{
+  "id": "f01-below-floor-share-copy",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "On Android, iPhone and iPad, the screen shown when your data is too old to open now offers Share a copy of your data. The copy leaves out what has to stay on your device (unsaved edits, Device Sync settings and the app's own bookkeeping), and the user guide's new section \"My data is too old to open on my phone or tablet\" walks you through updating it on a computer and restoring it on your phone or tablet. After Back up + reset, the confirmation there offers Share a copy too, in place of a folder you can't open."
+    ]
+  }
+}

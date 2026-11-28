@@ -1442,10 +1442,14 @@ class SyncController extends ChangeNotifier {
   /// minted.
   ///
   /// Minted by `resolveSyncDeviceId` the first time a coordinator is built for
-  /// an attachment, and erased by [detach], [wipeStore] and [completePairing].
-  /// A null here means this attachment has never published a manifest, so its
-  /// id cannot appear in the store's `devices` either — which is why the
-  /// exclusion below is still correct when it excludes nothing.
+  /// an attachment, and erased by [detach], [wipeStore] and [completePairing],
+  /// and at start-up on a library restored from a device backup
+  /// (`checkRestoredCopy`). A null here means this device has published no
+  /// manifest under an identifier of its own, so none of the store's
+  /// `devices` is this device's — which is why the exclusion below is still
+  /// correct when it excludes nothing. After such a restore the store still
+  /// lists the identifier the library was copied with; it belongs to the
+  /// device the copy came from, and is shown as another device.
   Future<String?> _selfDeviceId() async {
     final raw = await _settings.get(kSyncDeviceIdKey);
     return raw is String && raw.isNotEmpty ? raw : null;
@@ -1730,8 +1734,11 @@ class SyncController extends ChangeNotifier {
         if (admin == null) return;
         attached = true;
         try {
-          // A null id means this attachment never published a manifest, so
-          // there is nothing on the server to remove.
+          // A null id means this device has published no manifest under an
+          // identifier of its own, so there is nothing of its own on the
+          // server to remove. (After a restore from a device backup the
+          // store may still list the identifier the library was copied with:
+          // that manifest is the other device's, and stays.)
           final selfId = await _selfDeviceId();
           if (selfId != null) {
             final response = await admin.deleteManifest(selfId);
