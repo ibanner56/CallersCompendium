@@ -27,6 +27,10 @@ the [update check](./settings.md#updates), or the
 [calendar import at startup](./settings.md#calendar) set to add drafts — is
 saying so: it runs only once you switch it on.
 
+When you choose a file to import on iPhone, iPad or Android, the system's file
+picker gives the app a copy of it. The app deletes that copy once it has read
+the file; your own file is left as it is.
+
 ## Nothing gets lost when a dance comes in
 
 Every import follows one promise: **bringing a dance in never loses the dance.**

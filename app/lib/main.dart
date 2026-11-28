@@ -23,6 +23,7 @@ import 'src/data/archive_intake_labels.dart';
 import 'src/data/archive_intake_service.dart';
 import 'src/data/dance_link_intake.dart';
 import 'src/export/dance_code.dart' show DanceLinkException;
+import 'src/export/share_file.dart' show clearShareStaging;
 import 'src/data/backup_export_labels.dart';
 import 'src/data/backup_io.dart' show BackupSaver, saveBackupToFile;
 import 'src/data/backup_reminder.dart';
@@ -2152,6 +2153,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       unawaited(deleteLeftoverCapturedPhotos());
     }
+    // A shared file stays staged until the next share, as the receiving app
+    // may not have read it when the share sheet closed; delete what the last
+    // run left. Local and silent, like the sweeps above.
+    if (!kIsWeb) unawaited(clearShareStaging());
     // Scheduled only here, at the success tail, so a failed attempt that Retry
     // re-runs never queues a probe and each successful bootstrap probes once.
     WidgetsBinding.instance.addPostFrameCallback((_) {

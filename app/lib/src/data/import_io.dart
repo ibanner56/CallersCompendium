@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
 import 'file_dialog_labels.dart';
+import 'picker_copy.dart';
 import 'picker_extensions.dart';
 import 'usr_archive_isolate.dart';
 
@@ -208,7 +209,7 @@ typedef ImportPicker = Future<String?> Function();
 Future<String?> pickImportFile() async {
   final file = await openFile(acceptedTypeGroups: [importJsonTypeGroup()]);
   if (file == null) return null;
-  return readImportTextCapped(file);
+  return readPickedFile(file, readImportTextCapped);
 }
 
 /// A file chosen in the import dialog: its [name] (as the picker reports it)
@@ -264,14 +265,17 @@ Future<PickedImportFile?> pickImportAnyFile() async {
   );
   if (file == null) return null;
   final kind = importSourceKindForFileName(file.name);
-  final bytes = await readImportBytesCapped(
+  final bytes = await readPickedFile(
     file,
-    maxBytes: switch (kind) {
-      ImportSourceKind.callersCompanionUsr => kMaxImportUsrBytes,
-      ImportSourceKind.csv ||
-      ImportSourceKind.textDocument => kMaxCsvImportBytes,
-      _ => kMaxImportFileBytes,
-    },
+    (file) => readImportBytesCapped(
+      file,
+      maxBytes: switch (kind) {
+        ImportSourceKind.callersCompanionUsr => kMaxImportUsrBytes,
+        ImportSourceKind.csv ||
+        ImportSourceKind.textDocument => kMaxCsvImportBytes,
+        _ => kMaxImportFileBytes,
+      },
+    ),
   );
   return PickedImportFile(name: file.name, bytes: bytes);
 }
@@ -298,7 +302,7 @@ typedef ImportBytePicker = Future<Uint8List?> Function();
 Future<Uint8List?> pickImportUsrFile() async {
   final file = await openFile(acceptedTypeGroups: [importUsrTypeGroup()]);
   if (file == null) return null;
-  return readImportUsrBytesCapped(file);
+  return readPickedFile(file, readImportUsrBytesCapped);
 }
 
 /// Default [ImportBytePicker] for a spreadsheet (#2329): opens the native
@@ -309,7 +313,10 @@ Future<Uint8List?> pickImportUsrFile() async {
 Future<Uint8List?> pickImportCsvFile() async {
   final file = await openFile(acceptedTypeGroups: [importCsvTypeGroup()]);
   if (file == null) return null;
-  return readImportBytesCapped(file, maxBytes: kMaxCsvImportBytes);
+  return readPickedFile(
+    file,
+    (file) => readImportBytesCapped(file, maxBytes: kMaxCsvImportBytes),
+  );
 }
 
 /// The file-type filter behind [pickImportCsvFile]. Its label is the format
@@ -331,7 +338,10 @@ Future<Uint8List?> pickImportTextDocumentFile() async {
     acceptedTypeGroups: [importTextDocumentTypeGroup()],
   );
   if (file == null) return null;
-  return readImportBytesCapped(file, maxBytes: kMaxCsvImportBytes);
+  return readPickedFile(
+    file,
+    (file) => readImportBytesCapped(file, maxBytes: kMaxCsvImportBytes),
+  );
 }
 
 /// The file-type filter behind [pickImportTextDocumentFile]: `.txt` and

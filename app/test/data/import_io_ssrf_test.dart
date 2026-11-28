@@ -94,10 +94,7 @@ void main() {
     ]) {
       test('$host is refused without a request', () async {
         await expectLater(
-          fetchCalendarFeed(
-            'https://$host/a.ics',
-            client: recordingClient(),
-          ),
+          fetchCalendarFeed('https://$host/a.ics', client: recordingClient()),
           throwsA(
             isA<UrlFetchException>().having(
               (e) => e.reason,

@@ -81,17 +81,66 @@ XTypeGroup csvTypeGroup({bool? isLinux}) => XTypeGroup(
   mimeTypes: const [csvMimeType],
 );
 
-/// Writes [json] to a path-safe [fileName] in the temporary directory, typed
-/// as [mimeType] for the share sheet.
+/// The folder, in the app's temporary folder, that every file handed to the
+/// share sheet or a phone's save dialog is staged in. Not `share_plus`: on
+/// Android that plugin copies a shared file into a folder of that name in the
+/// cache, and refuses a file already in it.
+const String kShareStagingFolderName = 'share_staging';
+
+/// The staging folder: [kShareStagingFolderName] in [temporaryDirectory]
+/// (the app's temporary folder by default). It may not exist yet.
+Future<Directory> shareStagingDirectory({
+  ShareTempDirProvider temporaryDirectory = getTemporaryDirectory,
+}) async => Directory(
+  p.join((await temporaryDirectory()).path, kShareStagingFolderName),
+);
+
+/// Deletes everything in the staging folder [stagingDirectory] gives
+/// ([shareStagingDirectory] by default), leaving the folder itself.
+///
+/// A file handed to the share sheet is not deleted when the sheet returns:
+/// on some platforms the receiving app has not read it by then. It is
+/// deleted here instead, before the next file is staged and once at start,
+/// so a spreadsheet with a caller's pay or a calendar file with a hall's
+/// address does not stay in the app's temporary folder. Anything that cannot
+/// be deleted is left for the next time; this never throws.
+Future<void> clearShareStaging({ShareTempDirProvider? stagingDirectory}) async {
+  final Directory dir;
+  try {
+    dir = await (stagingDirectory ?? shareStagingDirectory)();
+  } on Exception {
+    // diagnostics: silent — no temporary folder, so nothing staged in it
+    return;
+  }
+  try {
+    if (!await dir.exists()) return;
+    await for (final entry in dir.list(followLinks: false)) {
+      try {
+        await entry.delete(recursive: true);
+      } on FileSystemException {
+        // diagnostics: silent — left for the next clear
+      }
+    }
+  } on FileSystemException {
+    // diagnostics: silent — the folder could not be listed; the next clear tries again
+  }
+}
+
+/// Writes [json] to a path-safe [fileName] in the staging folder [getDir]
+/// gives ([shareStagingDirectory] by default), typed as [mimeType] for the
+/// share sheet. The folder is emptied first ([clearShareStaging]): a file
+/// staged before has had its share sheet closed by now. So [getDir] must give
+/// a folder kept for staging, never the temporary folder itself.
 Future<XFile> writeBundleFile(
   String json,
   String fileName, {
-  ShareTempDirProvider getDir = getTemporaryDirectory,
+  ShareTempDirProvider getDir = shareStagingDirectory,
   String mimeType = 'application/json',
 }) async {
   final dir = await getDir();
+  await clearShareStaging(stagingDirectory: () async => dir);
   await dir.create(recursive: true);
-  final file = File('${dir.path}/$fileName');
+  final file = File(p.join(dir.path, fileName));
   await file.writeAsString(json);
   return XFile(file.path, mimeType: mimeType);
 }
@@ -109,9 +158,9 @@ Future<XFile> writeCsvTempFile(String csv, String fileName) =>
 /// Saves a JSON export through a user-reachable native file destination.
 ///
 /// Desktop uses [file_selector]'s Save As panel. Android and iOS stage the
-/// exact JSON in a temporary file, then hand that file to the platform
-/// document-save dialog, filtered to [mobileMimeTypes]. A `null` result means
-/// the user cancelled.
+/// exact JSON in the staging folder ([writeBundleFile]), hand that file to the
+/// platform document-save dialog, filtered to [mobileMimeTypes], and delete
+/// it once the dialog returns. A `null` result means the user cancelled.
 Future<JsonSaveResult?> saveJsonBundle(
   String json,
   String fileName, {

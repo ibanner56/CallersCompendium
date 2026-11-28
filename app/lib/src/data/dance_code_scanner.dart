@@ -285,8 +285,8 @@ final _androidCopyFolder = RegExp(
 /// Deletes [path] when it is the Android file selector's copy of a chosen
 /// file: a file in a UUID-named folder directly in [cacheDirectory] (the
 /// app's cache), links resolved on both sides. The folder goes too, once
-/// empty. Any other path is left alone.
-@visibleForTesting
+/// empty. Any other path is left alone. Also used for the import pickers'
+/// copies ([deletePickerCopy]).
 Future<void> deleteAndroidPickerCopy(
   String path, {
   required Directory cacheDirectory,
