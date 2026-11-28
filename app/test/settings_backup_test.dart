@@ -1297,6 +1297,63 @@ void main() {
     expect(find.text('Settings applied.'), findsNothing);
   });
 
+  testWidgets('event rules a restore deleted before its settings failed are '
+      'still counted in the message after the retry', (tester) async {
+    // No rules section, and a setting re-applied after the rules and their
+    // saved search are removed: that write fails, so the rules are already
+    // gone when the restore reports the settings failure.
+    final backupJson = jsonEncode({
+      'backupVersion': 2,
+      'createdAt': '2026-10-15T00:00:00.000Z',
+      'core': {'dances': <Object?>[]},
+      'app': {
+        'settings': {kSoftDeleteRetentionKey: 30},
+      },
+    });
+    final target = openTestRepositoriesWithFailingSettings();
+    target.settings.failWrites = false;
+    await storeSavedSearches(target.repos.settings, ['search-1']);
+    for (final nickname in ['First', 'Second']) {
+      await target.repos.eventRules.create(
+        savedSearchId: 'search-1',
+        quantifier: EventRuleQuantifier.none,
+        scope: EventRuleScope.wholeProgram,
+        nickname: nickname,
+      );
+    }
+    target.settings.failWrites = true;
+    await _pumpGeneral(tester, target.repos);
+
+    await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('restore-paste-field')),
+      backupJson,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.text('Try again'), findsOneWidget);
+    expect(await target.repos.eventRules.listAll(), isEmpty);
+
+    // A retry that fails again still carries the count.
+    await tester.tap(find.text('Try again'));
+    await tester.pumpAndSettle();
+    expect(find.text('Try again'), findsOneWidget);
+
+    target.settings.failWrites = false;
+    await tester.tap(find.text('Try again'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Settings applied. 2 event rules were deleted, because the backup '
+        "doesn't have their saved searches.",
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('a failed restore pre-hook still runs the post-hook recovery', (
     tester,
   ) async {
