@@ -415,6 +415,25 @@ void main() {
   });
 
   group('caps', () {
+    // Every paragraph is folded into the one dance, in order, near the dance
+    // cap. The fold was once a `removeAt` per paragraph, quadratic in their
+    // number: about two seconds for this file.
+    test('prose under a single # dance folds in whole, near the cap', () {
+      // Each paragraph is a block until it is folded, and so counts towards
+      // the cap; the two dances take the rest.
+      final count = kMaxTextDocumentDances - 2;
+      final paragraphs = [for (var i = 0; i < count; i++) 'Prose $i here.'];
+      final dances = readTextDocument(
+        '# One\nFormation: x\n\n${paragraphs.join('\n\n')}\n\n'
+        'Two\n- A1 swing',
+      );
+      expect(dances.map((d) => d.title), ['One', 'Two']);
+      expect(dances.first.labels, [('Formation', 'x')]);
+      expect(dances.first.notes, paragraphs);
+      expect(dances.last.notes, isEmpty);
+      expect(dances.last.figureLines, ['A1 swing']);
+    });
+
     test('too many dances is refused', () {
       final atCap = List.generate(
         kMaxTextDocumentDances,
