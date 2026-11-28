@@ -22,7 +22,8 @@ import 'dart:async';
 
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
-import 'package:compendium_app/src/data/display_defaults.dart' show ProgramTemplateEntry;
+import 'package:compendium_app/src/data/display_defaults.dart'
+    show ProgramTemplateEntry;
 import 'package:compendium_app/src/data/event_rules_scope.dart';
 import 'package:compendium_app/src/data/program_templates.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -194,6 +195,23 @@ Future<AppData> _seed() async {
     );
   }
   await saveProgramTemplate(repos.settings, _template);
+  // English dances stored with contra moves, for Convert English dances.
+  for (final title in ['Upon a Summer Day', 'Wakefield Hunt']) {
+    await repos.dances.create(
+      Dance(
+        id: title,
+        title: title,
+        form: DanceForm.ecd,
+        formation: Formation(FormationShape.dupleProper),
+        figures: [
+          Figure(move: 'circle', params: const {'direction': 'left'}),
+        ],
+        status: DanceStatus.active,
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+  }
   return appData;
 }
 
@@ -654,7 +672,9 @@ void main() {
   _screen(
     'Convert English dances',
     (tester) => _push(tester, const EcdMigrationScreen()),
-    landedOn: find.byType(EcdMigrationScreen),
+    landedOn: find.byKey(
+      const ValueKey('ecd-migration-dance-Upon a Summer Day'),
+    ),
   );
 
   // A ratchet on [_settingsSections]: a section added to the hub is swept, or

@@ -222,7 +222,7 @@ Future<AppData> _seed() async {
     );
   }
   // English dances stored with contra moves, for Convert English dances.
-  for (final title in ['Hole in the Wall', 'Juice of Barley']) {
+  for (final title in ['Upon a Summer Day', 'Wakefield Hunt']) {
     await repos.dances.create(
       Dance(
         id: title,
@@ -975,7 +975,9 @@ void main() {
   _screen(
     'Convert English dances',
     (tester) => _push(tester, const EcdMigrationScreen()),
-    landedOn: find.byType(EcdMigrationScreen),
+    landedOn: find.byKey(
+      const ValueKey('ecd-migration-dance-Upon a Summer Day'),
+    ),
     small: true,
   );
 }
