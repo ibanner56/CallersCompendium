@@ -330,5 +330,48 @@ void main() {
         );
       });
     }
+
+    // A swap under a note or break stays in place as an alternate, so the
+    // group's front is a slot the swap never touches: only the front-slot
+    // check sees another device marking it performed meanwhile.
+    test('a swap in a group led by a note is refused once the note has been '
+        'marked performed elsewhere', () {
+      final before = numbered([
+        ProgramSlot(id: 'n', position: 0, text: 'Raffle'),
+        ProgramSlot(id: 'x', position: 0, danceId: 'dx', isAlt: true),
+      ]);
+      final after = numbered(
+        Program.swapSlotDanceKeepingAlternate(
+          before,
+          1,
+          danceId: 'dn',
+          alternateId: 'kept',
+        ),
+      );
+      // The swap left the note leading the group.
+      expect(after.first.id, 'n');
+      expect(after.first, before.first);
+      expect(
+        performAdjustmentStillApplies(
+          before: before,
+          after: after,
+          onto: before,
+        ),
+        isTrue,
+      );
+
+      final noteMarked = [
+        before[0].copyWith(performedAt: mark),
+        before[1],
+      ];
+      expect(
+        performAdjustmentStillApplies(
+          before: before,
+          after: after,
+          onto: noteMarked,
+        ),
+        isFalse,
+      );
+    });
   });
 }

@@ -430,6 +430,35 @@ void main() {
       expect(_tile('d1'), findsNothing);
     });
 
+    testWidgets('leaves an alternate already marked performed out of Your '
+        'alternates', (tester) async {
+      // s1's group: the planned dance, an alternate already called, and one
+      // not yet called. Both alternates fail the default Keep items and are
+      // in the program, so only Your alternates could list either.
+      final slots = _slots();
+      final altAt = slots.indexWhere((s) => s.id == 's1-alt');
+      slots[altAt] = slots[altAt].copyWith(performedAt: _played);
+      slots.insert(
+        altAt + 1,
+        ProgramSlot(
+          id: 's1-alt2',
+          position: altAt + 1,
+          danceId: 'harder',
+          isAlt: true,
+        ),
+      );
+      await _pump(tester, program: _program(slots));
+      await _openAdjust(tester);
+      await _tap(tester, find.byKey(const ValueKey('adjust-swap-current')));
+
+      expect(
+        _inSwap(find.byKey(const ValueKey('picker-pinned-heading'))),
+        findsOneWidget,
+      );
+      expect(_tile('harder'), findsOneWidget, reason: 'not yet called');
+      expect(_tile('alt'), findsNothing, reason: 'already called');
+    });
+
     testWidgets('a kept figure offers In the same phrase and With what comes '
         'before it', (tester) async {
       await _pump(
