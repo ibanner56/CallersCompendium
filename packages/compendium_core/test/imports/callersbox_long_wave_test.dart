@@ -579,6 +579,15 @@ void main() {
       expect(figures.single.note, 'then slide left');
     });
 
+    test('a leftover too long for a note keeps the whole line', () async {
+      final tail = 'and slide left ${'very ' * 30}far';
+      final figures = await _import({
+        'A1': ['(4) Form long wave', '(4) Balance long wave in center $tail'],
+      });
+      expect(figures.last.isCustom, isTrue);
+      expect(figures.last.params['text'], 'Balance long wave in center $tail');
+    });
+
     for (final line in const [
       '(4) Balance long wave in center',
       '(4) Balance the long wave in the center.',

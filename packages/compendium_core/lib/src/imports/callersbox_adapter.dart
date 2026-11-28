@@ -1677,8 +1677,8 @@ class CallersBoxAdapter implements SourceAdapter {
     // A bare long wave takes only what the balance states in long-wave
     // terms: a decoded long-wave hold, or a generic `Balance [the] [long]
     // wave[s]` with nothing else. Any other word — a dancer prefix, `for
-    // all`, an undecoded annotation, a wave of four's holds — would be
-    // dropped by the fold, so the balance stays text (#2331).
+    // all`, an undecoded annotation, a wave of four's holds — says more than
+    // the bare wave can hold, so the balance stays text (#2331).
     if (_isTcbLongWave(wave) &&
         decoded?.move != 'form_long_waves' &&
         !_isGenericBalanceWaveLine(balance)) {
@@ -1724,6 +1724,9 @@ class CallersBoxAdapter implements SourceAdapter {
     // kept as a note instead (the maintainer's ruling, 2026-11-28: lose no
     // word of the source).
     final leftover = decoded == null ? _balanceWaveLeftover(balance) : null;
+    // Bounded as a `;` clause's note is (kMaxClauseNote), so the combined
+    // note's cap never cuts it: a longer leftover stays text with its line.
+    if (leftover != null && leftover.length > kMaxClauseNote) return null;
     final balanceNote = combineFigureNotes(
       leftover,
       decoded?.note ?? balance.note,
@@ -1909,7 +1912,7 @@ class CallersBoxAdapter implements SourceAdapter {
     // that forms the centre wave and balances it (maintainer ruling
     // 2026-11-24: the bare `form long wave` before it is the same wave). Only
     // a line with nothing else on it names the role here: one with more words
-    // or an annotation would lose them in the fold, so it is refused.
+    // or an annotation is refused, below.
     final text = balance.isCustom ? _customText(balance) : '';
     // A role's in-centre balance with more on its line (`Men balance long
     // wave in center and slide left`) is refused by the fold and stays text.

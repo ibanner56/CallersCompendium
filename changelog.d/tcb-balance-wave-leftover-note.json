@@ -1,0 +1,14 @@
+{
+  "id": "tcb-balance-wave-leftover-note",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "In a dance imported from The Caller's Box, a balance line that says more than the balance, such as \"Balance long wave in center and slide left\" after \"form long wave\", now keeps its other words (\"and slide left\") as a note on the wave. Before, they were lost when the balance was joined to the wave."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The Caller's Box adapter's trailing balance-wave fold keeps what a custom balance-wave line says after its balance and the wave's own words as the folded figure's note, so no word of the line is dropped; a leftover longer than `kMaxClauseNote` refuses the fold and the line stays custom."
+    ]
+  }
+}

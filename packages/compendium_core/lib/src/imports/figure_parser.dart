@@ -13,7 +13,8 @@ import 'structured_draft.dart';
 ///
 /// Import text is untrusted (OWASP): each contributing part is already bounded
 /// by its own producer (an annotation run by `_annotationRe`'s `{0,120}`, a
-/// note-eligible `;` clause by `kMaxClauseNote`), so this only ever bites a
+/// note-eligible `;` clause, or the words a Caller's Box balance-wave line
+/// says after its balance, by `kMaxClauseNote`), so this only ever bites a
 /// hostile line that stacks many parts. Generous by design — the longest
 /// combined note the whole Caller's Box mirror produces is under 60 characters.
 const int kMaxFigureNote = 400;
