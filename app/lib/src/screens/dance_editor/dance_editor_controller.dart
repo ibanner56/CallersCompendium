@@ -3212,12 +3212,24 @@ class DanceEditorController extends ChangeNotifier {
   /// How an English dance set to [structure] counts its figures in bars when
   /// the Meter states [stated] beats to the bar (or none): the rule
   /// [barTimingFor] reads from the Meter's text, by phrase where the phrases
-  /// differ in beats to the bar.
+  /// differ in beats to the bar. The phrases' names are left out: they count
+  /// no bars, so renaming a phrase is not a change of timing.
   static BarTiming _timingFor(PhraseStructure structure, int? stated) {
     final perBar = danceBeatsPerBar(DanceForm.ecd, structure);
     return perBar == null
-        ? BarTiming.byPhrase(structure)
+        ? BarTiming.byPhrase(_unnamed(structure))
         : BarTiming.fixed(stated ?? perBar);
+  }
+
+  /// [structure] with the same parts, phrases, bars and beats to the bar, and
+  /// no names.
+  static PhraseStructure _unnamed(PhraseStructure structure) {
+    if (!structure.isNamed) return structure;
+    return PhraseStructure.parse(
+      structure.components
+          .map((c) => '${c.phraseCount}*${c.bars}*${c.beatsPerBar}')
+          .join(' + '),
+    );
   }
 
   /// How the figures' counts were read when they were entered, and the
@@ -3246,9 +3258,10 @@ class DanceEditorController extends ChangeNotifier {
   _stepBars;
 
   /// What the latest edit that keeps the figures' bars did to their counts
-  /// (a Meter edit, [onMeterChanged], or a phrase's beats to the bar,
-  /// [onPhraseChanged]), for the notice the editor shows, or null when none
-  /// has changed them.
+  /// (a Meter edit, [onMeterChanged], or a phrase edit that changes how the
+  /// figures are counted in bars, [onPhraseChanged] and
+  /// [setPhraseStructureText]), for the notice the editor shows, or null when
+  /// none has changed them.
   FigureBarsChange? get figureBarsChange => _figureBarsChange;
   FigureBarsChange? _figureBarsChange;
 
@@ -3444,9 +3457,12 @@ class DanceEditorController extends ChangeNotifier {
   }
 }
 
-/// What an English dance's Meter edit, or a phrase's beats to the bar, did to
-/// its figures' counts ([DanceEditorController.onMeterChanged],
-/// [DanceEditorController.onPhraseChanged]), for the notice the editor shows.
+/// What an English dance's Meter edit, or a phrase edit that changes how its
+/// figures are counted in bars, did to its figures' counts
+/// ([DanceEditorController.onMeterChanged],
+/// [DanceEditorController.onPhraseChanged],
+/// [DanceEditorController.setPhraseStructureText]), for the notice the editor
+/// shows.
 final class FigureBarsChange {
   FigureBarsChange._(this.outcome, this._timing, this._stepBefore);
 

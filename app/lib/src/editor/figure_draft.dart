@@ -1108,8 +1108,10 @@ List<Object?> figureCounts(Iterable<FigureDraft> drafts) => [
 /// Gives every count [drafts] store the beats that keep its length in bars
 /// when an English dance's bars go from being counted by [from] to [to]: its
 /// Meter typed or corrected after the figures were entered (pre-release audit
-/// finding A2-02, decision sheet question 14), or a phrase's beats to the bar
-/// changed (question 48). The counts are stored in beats and shown in bars,
+/// finding A2-02, decision sheet question 14), or a phrase edit that changes
+/// how the figures are counted in bars (question 48, and the maintainer's
+/// ruling, 2026-11-28, for every such edit). The counts are stored in beats
+/// and shown in bars,
 /// so without this a caller's "4 bars" would read differently in the new
 /// bars.
 ///

@@ -1022,6 +1022,51 @@ void main() {
       expect(counts(controller), [12, 8, 8]);
     });
 
+    test('renaming a phrase is not a change of timing: the notice a phrase '
+        'edit left stays the same one', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        phraseStructure: 'A:1*4*2 + B:1*4*2',
+        figures: [
+          testFigure(move: 'ecd_set', params: {'beats': 3}),
+          testFigure(move: 'ecd_set', params: {'beats': 8}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      controller.setPhraseStructureText('A:1*4*3 + B:1*4*2');
+      final left = controller.figureBarsChange!;
+      expect(left.outcome, FigureBarsRescale.notExact);
+      controller.setPhraseStructureText('A:1*4*3 + C:1*4*2', typed: false);
+      expect(controller.figureBarsChange, same(left));
+      expect(counts(controller), [3, 8]);
+    });
+
+    test('a phrase\'s Bars after counts were left in their bars counts from '
+        'the bars they were entered in', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        phraseStructure: 'A:1*4*2 + B:1*4*2',
+        figures: [
+          testFigure(move: 'ecd_set', params: {'beats': 3}),
+          testFigure(move: 'ecd_set', params: {'beats': 8}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      // A bar and a half of 2/2 cannot follow A into 3/4: left as it was.
+      controller.setPhraseStructureText('A:1*4*3 + B:1*4*2');
+      expect(controller.figureBarsChange!.outcome, FigureBarsRescale.notExact);
+      // In an undo step of its own, so the counts are read in the bars they
+      // were left in.
+      await settleDebounce();
+      // A down to one bar of 3: the figure's bar and a half (entered in 2/2)
+      // is that bar, then half a bar of 2 in B.
+      controller.setPhraseStructureText('A:1*1*3 + B:1*4*2');
+      expect(counts(controller), [4, 8]);
+      expect(controller.figureBarsChange!.outcome, FigureBarsRescale.rescaled);
+    });
+
     test('removing the last named phrase of a dance with no Meter keeps the '
         'bars in the two beats it falls back to', () async {
       final repos = openTestRepositories();
@@ -1048,8 +1093,8 @@ void main() {
         figures: [
           for (var i = 0; i < 2; i++)
             testFigure(move: 'ecd_set', params: {'beats': 12}),
-          for (var i = 0; i < 2; i++)
-            testFigure(move: 'ecd_set', params: {'beats': 8}),
+          testFigure(move: 'ecd_set', params: {'beats': 8}),
+          // At beat 32, in the second part: half a bar of 2/2.
           testFigure(move: 'ecd_set', params: {'beats': 1}),
         ],
       );
@@ -1057,7 +1102,7 @@ void main() {
       // Half a bar of 2/2 cannot be whole beats in 3/2: nothing moves, and
       // the notice says so.
       controller.setPhraseStructureText('A:1*8*3 + B:1*8*3', typed: false);
-      expect(counts(controller), [12, 12, 8, 8, 1]);
+      expect(counts(controller), [12, 12, 8, 1]);
       expect(controller.figureBarsChange?.outcome, FigureBarsRescale.notExact);
     });
 
