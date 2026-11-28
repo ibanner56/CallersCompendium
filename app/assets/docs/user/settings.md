@@ -82,8 +82,10 @@ The **General** section gathers everyday behavior into small groups.
   delete or change something: **2**, **5**, **10** or **15 seconds**, or
   **Until I close it** (default **10 seconds**). It also stays while you point
   at it or move to it with the keyboard, and its time starts again when you
-  move away. With a screen reader running it always stays until you act on it
-  or close it.
+  move away. While it shows, **Ctrl-Z** (**Cmd-Z** on a Mac) presses its
+  **Undo**, wherever the keyboard focus is, except in a text field or the
+  dance editor, where it undoes your typing or your last edit. With a screen
+  reader running it always stays until you act on it or close it.
 
 These are the highlights; the [Accessibility guide](./accessibility.md) gives you
 the full picture.
