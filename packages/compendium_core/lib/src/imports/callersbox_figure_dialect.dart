@@ -1433,8 +1433,8 @@ FigureMatch? _readNumberedRolePair(
 /// The moves in which the two dancers `who` names do something **together**,
 /// meeting each other: only then does the role token name *which* pair meets
 /// (`N2 Men allemande` is the next larks, `nextRole1s`). When the role acts by
-/// itself (`N2 Men turn alone`, `… shift left`, `… roll away neighbor`) it is
-/// all the larks acting, which pair does not matter, and the line reads as the
+/// itself (`N2 Men turn alone`, `… shift left`, `N0 Women form long wave`)
+/// it is all the larks or robins acting, which pair does not matter, and the line reads as the
 /// role with the number kept as the note *(user-ruled 2026-11-28, replacing
 /// the 2026-11-27 ruling that a solo move takes the token)*. Aliases count as
 /// their target (`see_saw` is a `do_si_do`). *(Which moves are listed:
