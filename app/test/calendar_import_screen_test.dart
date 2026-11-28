@@ -117,7 +117,10 @@ void main() {
       // are in Recently deleted, so it does not add them back (pre-release
       // audit finding E1-05).
       final left = await repos.programs.listAll(includeDeleted: true);
-      expect(left.map((p) => p.title), unorderedEquals(['Contra A', 'Contra B']));
+      expect(
+        left.map((p) => p.title),
+        unorderedEquals(['Contra A', 'Contra B']),
+      );
       expect(left.every((p) => p.isDeleted), isTrue);
       expect(fetched, hasLength(1));
     });

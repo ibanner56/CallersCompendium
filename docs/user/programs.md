@@ -250,7 +250,14 @@ ever written back to your calendar.
    calendar** on a narrow screen), or **Pull now** in
    [Settings ▸ Program ▸ Calendar](./settings.md#calendar). Paste the address and
    choose **Fetch events**. The app remembers it on this device.
-3. Review the list, then choose **Import**.
+3. Review the list, then choose **Import**. An **Undo** option appears: it
+   moves the drafts you haven't touched since to
+   [Recently deleted](./settings.md#recently-deleted), keeps any you have
+   started filling in, and puts back any program the import updated, unless it
+   has changed again since. The
+   events of the drafts it moved are listed next time under **You deleted
+   these programs**, unticked, so an import when the app starts doesn't add
+   them back.
 
 The app goes online only when you choose **Fetch events**, or once each time
 the app starts if you turn on **Import calendar when the app starts** in
@@ -269,7 +276,9 @@ in the background, on a timer, or when you come back to the app.
   A series that repeats in a way the app can't read (anything beyond every so
   many days, weeks, months or years, on given weekdays such as "second
   Saturday", or on given days of the month) is listed under **Repeating events
-  the app can't read** and not imported. The app never guesses.
+  the app can't read** and not imported, and so is one set to repeat a number
+  of times from a start so far back, centuries for a daily event, that
+  counting its dates would take too long. The app never guesses.
 - Events with no identifier can't be recognised next time, so they are skipped,
   and the list says how many.
 
@@ -293,7 +302,11 @@ emails and phone numbers live. The draft starts with your **Default template**,
 **The times.** An event's start and end become the draft's **Start time** and
 **End time**, shown beside its date in the list before you import. A time your
 calendar keeps in a time zone is taken as written, the clock at the hall; a
-time your calendar keeps in UTC is turned into your device's local time. An
+time your calendar keeps in UTC is turned into your device's local time, and
+the list says so when it shows one. So import at home: such an event imported
+while your device is set to another time zone gets the date and time it has
+there, which a later import does not correct (see **Updated in your
+calendar** below); change it in the program. An
 event that ends after midnight gets an end earlier than its start, read as the
 next day; one that lasts a day or more, or no time at all, gets only its
 start. The **Beginner lesson** and **Arrive by** times are never read from an
@@ -342,7 +355,8 @@ behind your back, and never deletes one because of your calendar.
   judged only for programs dated from today up to 30 days ahead, and only when
   the app could read the whole
   calendar (not when it holds repeating events the app can't read, or more
-  events than the app reads). The
+  upcoming or repeating events than the app reads, or arrived cut off
+  part-way). The
   program is kept as it is and, when you choose **Import**, labeled **Canceled
   in your calendar** or **No longer in your calendar** in the Programs list and
   on its summary, with an icon and words. Archive or delete it yourself if you

@@ -5,9 +5,25 @@ import 'package:crypto/crypto.dart';
 import '../export/program_calendar.dart' show programCalendarUidSuffix;
 import '../util/text_sanitizer.dart';
 
-/// The most `VEVENT`s [parseICalFeed] reads from one feed. Events after it
-/// are not read, and [ICalFeed.truncated] says so.
+/// The most `VEVENT`s [parseICalFeed] reads from one feed, not counting a
+/// one-off event that is already over (pre-release audit finding E1-07):
+/// that can never be offered, so a long-lived calendar written oldest first
+/// does not spend the cap on its past and lose its upcoming gigs. Events after
+/// it are not read, and [ICalFeed.truncated] says so. A past event is still
+/// read, whatever the count, so it is known to be in the calendar; the
+/// fetch's size cap bounds how many there can be.
 const int iCalMaxEvents = 5000;
+
+/// The most days [planCalendarImport] tries, across all of one feed's
+/// series, counting the occurrences a `COUNT` series had before the dates it
+/// reads (pre-release audit findings SEC-03 and E1-02): a series dated
+/// centuries back would otherwise cost a walk across those centuries, on
+/// every import. Only the days a rule can fall on are tried (each day of a
+/// daily series, each listed weekday of a weekly one, and so on), so this is
+/// about 2,700 years of a daily series between them; a calendar's own series
+/// come nowhere near it. A series that would need more is listed in
+/// [CalendarImportPlan.unreadableSeries], like a rule the app can't read.
+const int iCalCountWorkLimit = 1000000;
 
 /// How far ahead a repeating series is expanded, counted in days from today
 /// (maintainer decision on #2352: "Only import repeating series 30 days out,
@@ -128,6 +144,9 @@ class ICalDateValue {
     final year = int.parse(m.group(1)!);
     final month = int.parse(m.group(2)!);
     final day = int.parse(m.group(3)!);
+    // Year 0000 is not read (pre-release audit finding SEC-03): no calendar
+    // writes it, and a series starting there is the costliest to count.
+    if (year < 1) return null;
     if (month < 1 || month > 12 || day < 1 || day > 31) return null;
     if (DateTime.utc(year, month, day).day != day) return null;
     if (m.group(4) == null) {
@@ -200,7 +219,7 @@ class ICalFeed {
     this.skippedNoUid = 0,
     this.skippedNoStart = 0,
     this.truncated = false,
-    this.complete = true,
+    required this.complete,
   });
 
   final List<ICalEvent> events;
@@ -212,20 +231,29 @@ class ICalFeed {
   /// `VEVENT`s with no readable `DTSTART`.
   final int skippedNoStart;
 
-  /// Whether the feed had more than [iCalMaxEvents] events.
+  /// Whether the feed had more than [iCalMaxEvents] events that count
+  /// toward it.
   final bool truncated;
 
-  /// Whether the document ended properly.
+  /// Whether the document ended properly: an `END:VCALENDAR` closed it and
+  /// no component was left open (pre-release audit finding E1-10). A
+  /// response cut off part-way, as a dropped connection can leave it, is
+  /// not, and then nothing can be judged missing from it.
   final bool complete;
 }
 
 /// Parses an iCalendar (RFC 5545) document.
 ///
-/// Handles line unfolding (§3.1) with CRLF or bare LF line ends, parameters,
-/// and TEXT unescaping (§3.3.11). Reads only `VEVENT`s at the calendar's top
-/// level: other components (`VTIMEZONE`, `VTODO`, `VALARM` inside an event)
-/// are skipped. Throws [NotACalendarException] when there is no
-/// `BEGIN:VCALENDAR`.
+/// Handles line unfolding (§3.1) with CRLF, bare LF or bare CR line ends,
+/// parameters, and TEXT unescaping (§3.3.11). Reads only `VEVENT`s at the
+/// calendar's top level: other components (`VTIMEZONE`, `VTODO`, `VALARM`
+/// inside an event) are skipped. Throws [NotACalendarException] when there is
+/// no `BEGIN:VCALENDAR`.
+///
+/// [maxEvents] counts every event except, when [today] (the reader's local
+/// date) is given, a one-off event (no `RRULE`, no `RECURRENCE-ID`) written
+/// as starting before yesterday: that is over wherever the reader is, and is
+/// read without counting ([iCalMaxEvents]).
 ICalFeed parseICalFeed(
   String body, {
   int maxEvents = iCalMaxEvents,
@@ -235,10 +263,20 @@ ICalFeed parseICalFeed(
   if (!lines.any((l) => l.trim().toUpperCase() == 'BEGIN:VCALENDAR')) {
     throw const NotACalendarException();
   }
+  // A `Z` start's local date is at most a day from its written one.
+  final pastBefore = today == null
+      ? null
+      : DateTime.utc(
+          today.year,
+          today.month,
+          today.day,
+        ).subtract(const Duration(days: 1));
   final events = <ICalEvent>[];
+  var counted = 0;
   var skippedNoUid = 0;
   var skippedNoStart = 0;
   var truncated = false;
+  var closed = false;
   // Component nesting below VCALENDAR; an event's own properties are read
   // only at depth 1 inside it.
   final stack = <String>[];
@@ -257,17 +295,25 @@ ICalFeed parseICalFeed(
     if (prop.name == 'END') {
       final kind = prop.value.trim().toUpperCase();
       if (kind == 'VEVENT' && stack.length == 2 && current != null) {
-        if (events.length >= maxEvents) {
-          truncated = true;
+        final props = current;
+        final uid = _text(props, 'UID');
+        final start = _date(props, 'DTSTART');
+        if (uid == null || uid.trim().isEmpty) {
+          skippedNoUid++;
+        } else if (start == null) {
+          skippedNoStart++;
         } else {
-          final props = current;
-          final uid = _text(props, 'UID');
-          final start = _date(props, 'DTSTART');
-          if (uid == null || uid.trim().isEmpty) {
-            skippedNoUid++;
-          } else if (start == null) {
-            skippedNoStart++;
+          final rrule = props['RRULE']?.first.value.trim();
+          final recurrenceId = _date(props, 'RECURRENCE-ID');
+          final past =
+              pastBefore != null &&
+              rrule == null &&
+              recurrenceId == null &&
+              start.writtenDate.isBefore(pastBefore);
+          if (!past && counted >= maxEvents) {
+            truncated = true;
           } else {
+            if (!past) counted++;
             events.add(
               ICalEvent(
                 uid: uid.trim(),
@@ -277,20 +323,23 @@ ICalFeed parseICalFeed(
                 summary: _text(props, 'SUMMARY'),
                 location: _text(props, 'LOCATION'),
                 status: _text(props, 'STATUS')?.trim().toUpperCase(),
-                rrule: props['RRULE']?.first.value.trim(),
+                rrule: rrule,
                 exdates: [
                   for (final p in props['EXDATE'] ?? const <_Prop>[])
                     for (final part in p.value.split(','))
                       ?ICalDateValue.tryParse(part),
                 ],
-                recurrenceId: _date(props, 'RECURRENCE-ID'),
+                recurrenceId: recurrenceId,
               ),
             );
           }
         }
         current = null;
       }
-      if (stack.isNotEmpty) stack.removeLast();
+      if (stack.isNotEmpty) {
+        stack.removeLast();
+        if (kind == 'VCALENDAR' && stack.isEmpty) closed = true;
+      }
       continue;
     }
     if (current != null && stack.length == 2) {
@@ -302,22 +351,30 @@ ICalFeed parseICalFeed(
     skippedNoUid: skippedNoUid,
     skippedNoStart: skippedNoStart,
     truncated: truncated,
+    complete: closed && stack.isEmpty,
   );
 }
 
+/// The content lines of [body], unfolded. Each is built in one buffer, so a
+/// line folded many times costs time in proportion to its length (pre-release
+/// audit finding SEC-03): joining the parts one at a time copied the line so
+/// far for every fold.
 List<String> _unfold(String body) {
   final physical = body
       .replaceAll('\r\n', '\n')
       .replaceAll('\r', '\n')
       .split('\n');
   final out = <String>[];
-  for (final line in physical) {
-    if ((line.startsWith(' ') || line.startsWith('\t')) && out.isNotEmpty) {
-      out[out.length - 1] += line.substring(1);
+  StringBuffer? line;
+  for (final part in physical) {
+    if ((part.startsWith(' ') || part.startsWith('\t')) && line != null) {
+      line.write(part.substring(1));
     } else {
-      out.add(line);
+      if (line != null) out.add(line.toString());
+      line = StringBuffer(part);
     }
   }
+  if (line != null) out.add(line.toString());
   return out;
 }
 
@@ -512,33 +569,159 @@ class ICalRecurrence {
     );
   }
 
-  /// The occurrence dates of a series starting on [start] (its written date),
-  /// up to and including [last]. Each is also bounded by [count] and [until]
-  /// ([beforeOrAtUntil] compares an occurrence's date and time against it). Walks day
-  /// by day, so a series is never expanded past [last] whatever its rule
-  /// says; [count] is counted from [start], including occurrences before
-  /// today.
+  /// The occurrence dates of a series starting on [start] (its written
+  /// date), from [from] up to and including [last], or `null` when counting
+  /// them would try more than [maxTries] days. Each is also bounded by [count]
+  /// and [until] ([beforeOrAtUntil] compares an occurrence's date and time
+  /// against it). [tries] is how many days were tried before [from].
   ///
-  /// Without [count], nothing before [from] can matter, so the walk starts
-  /// there; the rule's alignment (interval, week, month) is still taken from
-  /// [start].
-  List<DateTime> datesThrough(
+  /// Only the days the rule can fall on are tried ([_candidates]): every
+  /// [interval]th day, the days of every [interval]th week or month, or the
+  /// date in every [interval]th year, starting from [from]'s own period, so
+  /// a series is never expanded past [last] whatever its rule says. [count]
+  /// is counted from [start], so for a series with one the occurrences
+  /// before [from] are counted first, the same way: the one part whose length
+  /// is set by how old the series is rather than by [last], and the part
+  /// [maxTries] bounds (pre-release audit findings SEC-03 and E1-02).
+  ({List<DateTime> dates, int tries})? datesThrough(
     DateTime start,
     DateTime last, {
     required DateTime from,
     required bool Function(DateTime date) beforeOrAtUntil,
+    int? maxTries,
   }) {
-    final out = <DateTime>[];
+    final first = from.isAfter(start) ? from : start;
+    final end = last.add(const Duration(days: 1));
     var seen = 0;
-    final first = count == null && from.isAfter(start) ? from : start;
-    for (var d = first; !d.isAfter(last); d = d.add(const Duration(days: 1))) {
+    var tries = 0;
+    if (count != null && first != start) {
+      for (final d in _candidates(start, start, first)) {
+        if (maxTries != null && tries >= maxTries) return null;
+        tries++;
+        if (!(d == start || _matches(start, d))) continue;
+        // Ended, or used up, before [from]: nothing from there on.
+        if (!beforeOrAtUntil(d) || ++seen >= count!) {
+          return (dates: const <DateTime>[], tries: tries);
+        }
+      }
+    }
+    final out = <DateTime>[];
+    for (final d in _candidates(start, first, end)) {
       if (!(d == start || _matches(start, d))) continue;
       if (!beforeOrAtUntil(d)) break;
       seen++;
       if (count != null && seen > count!) break;
       out.add(d);
     }
-    return out;
+    return (dates: out, tries: tries);
+  }
+
+  /// The days from [from] (not before [start]) up to, not including, [end],
+  /// in order, on which this rule can fall for a series starting on [start]:
+  /// [_matches] still decides each. [start] itself is always one, as
+  /// `DTSTART` is always the first occurrence.
+  Iterable<DateTime> _candidates(
+    DateTime start,
+    DateTime from,
+    DateTime end,
+  ) sync* {
+    if (!from.isAfter(start) && start.isBefore(end)) yield start;
+    for (final d in _ruleDays(start, from, end)) {
+      if (d != start) yield d;
+    }
+  }
+
+  /// The days of [_candidates] the rule itself names. The first is found by
+  /// arithmetic, not by walking from [start], and no step is taken past
+  /// [end], however large [interval] is.
+  Iterable<DateTime> _ruleDays(
+    DateTime start,
+    DateTime from,
+    DateTime end,
+  ) sync* {
+    DateTime day(int y, int m, int d) => DateTime.utc(y, m, d);
+    switch (freq) {
+      case 'DAILY':
+        final total = end.difference(start).inDays;
+        var k = from.difference(start).inDays;
+        final r = k % interval;
+        if (r != 0) {
+          if (interval - r >= total - k) return;
+          k += interval - r;
+        }
+        while (k < total) {
+          yield start.add(Duration(days: k));
+          if (interval >= total - k) return;
+          k += interval;
+        }
+      case 'WEEKLY':
+        // Only the weekdays it can fall on, unless BYMONTHDAY picks the days.
+        final weekdays = byMonthDay.isNotEmpty
+            ? const {1, 2, 3, 4, 5, 6, 7}
+            : byDay.isEmpty
+            ? {start.weekday}
+            : {for (final b in byDay) b.$2};
+        final week0 = _weekStartOf(start);
+        final weeks = end.difference(week0).inDays ~/ 7;
+        var k = _weekStartOf(from).difference(week0).inDays ~/ 7;
+        k -= k % interval;
+        while (k <= weeks) {
+          final weekFirst = week0.add(Duration(days: 7 * k));
+          for (var i = 0; i < 7; i++) {
+            final d = weekFirst.add(Duration(days: i));
+            if (!d.isBefore(end)) return;
+            if (!d.isBefore(from) && weekdays.contains(d.weekday)) yield d;
+          }
+          if (interval > weeks - k) return;
+          k += interval;
+        }
+      case 'MONTHLY':
+        final month0 = start.year * 12 + start.month - 1;
+        final months = end.year * 12 + end.month - 1 - month0;
+        var k = from.year * 12 + from.month - 1 - month0;
+        k -= k % interval;
+        final weekdays = {for (final b in byDay) b.$2};
+        while (k <= months) {
+          final y = (month0 + k) ~/ 12;
+          final m = (month0 + k) % 12 + 1;
+          final len = day(y, m + 1, 0).day;
+          final List<int> days;
+          if (byMonthDay.isNotEmpty) {
+            days = {
+              for (final n in byMonthDay)
+                if (n.abs() <= len) n > 0 ? n : len + n + 1,
+            }.toList()..sort();
+          } else if (byDay.isNotEmpty) {
+            days = [
+              for (var dd = 1; dd <= len; dd++)
+                if (weekdays.contains(day(y, m, dd).weekday)) dd,
+            ];
+          } else {
+            days = [if (start.day <= len) start.day];
+          }
+          for (final dd in days) {
+            final d = day(y, m, dd);
+            if (!d.isBefore(end)) return;
+            if (!d.isBefore(from)) yield d;
+          }
+          if (interval > months - k) return;
+          k += interval;
+        }
+      case 'YEARLY':
+        final years = end.year - start.year;
+        var k = from.year - start.year;
+        k -= k % interval;
+        while (k <= years) {
+          final d = day(start.year + k, start.month, start.day);
+          // 29 February in a common year is no date.
+          if (d.month == start.month) {
+            if (!d.isBefore(end)) return;
+            if (!d.isBefore(from)) yield d;
+          }
+          if (interval > years - k) return;
+          k += interval;
+        }
+    }
   }
 
   bool _matches(DateTime start, DateTime d) {
@@ -697,13 +880,16 @@ class CalendarImportPlan {
   /// as gone rather than canceled.
   final Set<String> cancelledAnywhereKeys;
 
-  /// Whether the feed was read whole: not truncated, no repeating rule the
-  /// app cannot read, no event whose start it could not read. Only then can
-  /// an event's absence mean it is gone.
+  /// Whether the feed was read whole: the document closed properly
+  /// ([ICalFeed.complete]), not truncated, no repeating rule the app cannot
+  /// read and no `COUNT` series too long to count ([iCalCountWorkLimit]), no
+  /// event whose start it could not read. Only then can an event's absence
+  /// mean it is gone.
   final bool canJudgeMissing;
 
-  /// Titles of repeating events whose rule the import cannot read. They are
-  /// not imported, and never guessed.
+  /// Titles of repeating events whose rule the import cannot read, or that
+  /// would take too long to count ([iCalCountWorkLimit]). They are not
+  /// imported, and never guessed.
   final List<String> unreadableSeries;
 
   final int skippedNoUid;
@@ -818,8 +1004,15 @@ String calendarEventKey(String uid, String recurrenceId) =>
 ///   and including day [iCalRepeatHorizonDays], whatever the window. Each
 ///   occurrence is its own candidate, keyed by `UID` and its start.
 ///   `EXDATE` removes an occurrence; a `RECURRENCE-ID` override replaces it.
-///   A rule outside [ICalRecurrence.tryParse]'s subset lists the series in
-///   [CalendarImportPlan.unreadableSeries].
+///   Either matches an occurrence written the same way or, written in another
+///   form (UTC against a `TZID` start), one that falls at the same local date
+///   and time for the reader (pre-release audit finding E1-11). A rule
+///   outside [ICalRecurrence.tryParse]'s subset, or a `COUNT` series too long
+///   to count ([iCalCountWorkLimit]), lists the series in
+///   [CalendarImportPlan.unreadableSeries]. Only the first series with a
+///   given `UID` is offered; a second, which RFC 5545 does not allow, would
+///   offer every override of that `UID` again (pre-release audit finding
+///   SEC-03). Its dates are still known.
 /// * `STATUS:CANCELLED` events, series and overrides are not offered.
 /// * [titleFilter], when not blank, keeps events whose sanitized title
 ///   contains it, ignoring case.
@@ -841,10 +1034,11 @@ CalendarImportPlan planCalendarImport(
   final filter = titleFilter?.trim().toLowerCase();
 
   // Overrides, by series UID and the recurrence id they replace.
-  final overrides = <String, Map<String, ICalEvent>>{};
+  final overrides = <String, _Overrides>{};
   for (final e in feed.events) {
-    final rid = e.recurrenceId;
-    if (rid != null) (overrides[e.uid] ??= {})[rid.text] = e;
+    if (e.recurrenceId != null) {
+      (overrides[e.uid] ??= _Overrides(localOf)).add(e);
+    }
   }
   final seriesUids = {
     for (final e in feed.events)
@@ -853,6 +1047,30 @@ CalendarImportPlan planCalendarImport(
 
   final candidates = <CalendarImportCandidate>[];
   final unreadable = <String>[];
+  // #2354: every event the feed holds; see the loop after the sort.
+  final knownKeys = <String>{};
+  final cancelledAnywhere = <String>{};
+  void know(ICalEvent e, String recurrenceId) {
+    final key = calendarEventKey(e.uid, recurrenceId);
+    (e.isCancelled ? cancelledAnywhere : knownKeys).add(key);
+  }
+
+  void listUnreadable(ICalEvent e) {
+    if (e.isCancelled) return;
+    final title = _clean(e.summary) ?? '';
+    if (filter == null ||
+        filter.isEmpty ||
+        title.toLowerCase().contains(filter)) {
+      unreadable.add(title);
+    }
+  }
+
+  // Days the `COUNT` series may still try ([iCalCountWorkLimit]), and
+  // whether one could not be counted: then nothing can be judged missing,
+  // whatever its title or status.
+  var triesLeft = iCalCountWorkLimit;
+  var uncounted = false;
+  final offeredSeries = <String>{};
 
   /// [start] is when this occurrence starts: the event's own `DTSTART`, or
   /// for a series occurrence, the series' moved to that day.
@@ -916,35 +1134,50 @@ CalendarImportPlan planCalendarImport(
     }
     final rule = ICalRecurrence.tryParse(rrule);
     if (rule == null) {
-      if (e.isCancelled) continue;
-      final title = _clean(e.summary) ?? '';
-      if (filter == null ||
-          filter.isEmpty ||
-          title.toLowerCase().contains(filter)) {
-        unreadable.add(title);
-      }
+      listUnreadable(e);
       continue;
     }
-    final start = e.start.writtenDate;
+    // One walk per series, over everything either use below needs: from 31
+    // days back (the known keys) to a day past the window.
     final until = rule.until;
-    final removed = _removedByExdate(e);
-    final seriesOverrides = overrides[e.uid] ?? const {};
-    final placed = <String>{};
-    // The walk is on written dates; a `Z` series can land a day either side
-    // locally, so walk one day past the horizon and filter on local dates.
-    for (final d in rule.datesThrough(
-      start,
-      horizonEnd.add(const Duration(days: 1)),
-      from: day0.subtract(const Duration(days: 1)),
+    final untilKey = until == null ? null : _untilKey(until, e.start, localOf);
+    final walk = rule.datesThrough(
+      e.start.writtenDate,
+      windowEnd.add(const Duration(days: 1)),
+      from: day0.subtract(const Duration(days: 31)),
       beforeOrAtUntil: (d) =>
-          until == null ||
-          e.start.onDate(d)._sortKey <= _untilKey(until, e.start, localOf),
-    )) {
-      final occurrence = e.start.onDate(d);
-      final rid = occurrence.text;
-      if (removed(d, rid)) continue;
-      final override = seriesOverrides[rid];
+          untilKey == null || e.start.onDate(d)._sortKey <= untilKey,
+      maxTries: triesLeft,
+    );
+    if (walk == null) {
+      uncounted = true;
+      triesLeft = 0;
+      listUnreadable(e);
+      continue;
+    }
+    triesLeft -= walk.tries;
+    final removed = _removedByExdate(e, localOf);
+    final occurrences = [
+      for (final d in walk.dates)
+        if (e.start.onDate(d) case final o when !removed(o)) o,
+    ];
+    for (final o in occurrences) {
+      know(e, o.text);
+    }
+    if (!offeredSeries.add(e.uid)) continue;
+    final seriesOverrides = overrides[e.uid];
+    final placed = <String>{};
+    // The offers are on written dates; a `Z` series can land a day either
+    // side locally, so take one day either side of the horizon and filter on
+    // local dates.
+    final offerFrom = day0.subtract(const Duration(days: 1));
+    final offerTo = horizonEnd.add(const Duration(days: 1));
+    for (final occurrence in occurrences) {
+      final d = occurrence.writtenDate;
+      if (d.isBefore(offerFrom) || d.isAfter(offerTo)) continue;
+      final override = seriesOverrides?.replacing(occurrence);
       if (override != null) {
+        final rid = override.recurrenceId!.text;
         placed.add(rid);
         final date = override.start.localDate(localOf);
         if (inRange(date, horizonEnd)) {
@@ -953,14 +1186,17 @@ CalendarImportPlan planCalendarImport(
         continue;
       }
       final date = occurrence.localDate(localOf);
-      if (inRange(date, horizonEnd)) offer(e, rid, date, occurrence);
+      if (inRange(date, horizonEnd)) {
+        offer(e, occurrence.text, date, occurrence);
+      }
     }
     // An override moved into the horizon from an occurrence outside it.
-    for (final entry in seriesOverrides.entries) {
-      if (placed.contains(entry.key)) continue;
-      final date = entry.value.start.localDate(localOf);
+    for (final override in seriesOverrides?.all ?? const <ICalEvent>[]) {
+      final rid = override.recurrenceId!.text;
+      if (placed.contains(rid)) continue;
+      final date = override.start.localDate(localOf);
       if (inRange(date, horizonEnd)) {
-        offer(entry.value, entry.key, date, entry.value.start);
+        offer(override, rid, date, override.start);
       }
     }
   }
@@ -976,38 +1212,18 @@ CalendarImportPlan planCalendarImport(
   // filter, so a program whose event, or one occurrence of it, only moved is
   // never taken for gone. (A whole series moved, re-ruled or split gets new
   // keys; see [CalendarImportPlan.knownKeys].)
-  // Single events and overrides at any date; a readable series' occurrences
-  // from 31 days back to a day past the window (a program's own date can have
-  // been edited away from its occurrence's), less the dates its `EXDATE`
-  // removes, which the offer walk above skips too: a deleted occurrence is
-  // gone. A moved one is an override, known by its own recurrence id.
-  final knownKeys = <String>{};
-  final cancelledAnywhere = <String>{};
-  void know(ICalEvent e, String recurrenceId) {
-    final key = calendarEventKey(e.uid, recurrenceId);
-    (e.isCancelled ? cancelledAnywhere : knownKeys).add(key);
-  }
-
+  // Single events and overrides at any date, here; a readable series'
+  // occurrences from 31 days back to a day past the window (a program's own
+  // date can have been edited away from its occurrence's), less the dates
+  // its `EXDATE` removes, in the series loop above, from the same walk as
+  // its offers: a deleted occurrence is gone. A moved one is an override,
+  // known by its own recurrence id.
   for (final e in feed.events) {
     final rid = e.recurrenceId;
     if (rid != null) {
       know(e, rid.text);
     } else if (e.rrule == null) {
       know(e, '');
-    } else if (ICalRecurrence.tryParse(e.rrule!) case final rule?) {
-      final until = rule.until;
-      final removed = _removedByExdate(e);
-      for (final d in rule.datesThrough(
-        e.start.writtenDate,
-        windowEnd.add(const Duration(days: 1)),
-        from: day0.subtract(const Duration(days: 31)),
-        beforeOrAtUntil: (d) =>
-            until == null ||
-            e.start.onDate(d)._sortKey <= _untilKey(until, e.start, localOf),
-      )) {
-        final rid = e.start.onDate(d).text;
-        if (!removed(d, rid)) know(e, rid);
-      }
     }
   }
   return CalendarImportPlan(
@@ -1015,32 +1231,77 @@ CalendarImportPlan planCalendarImport(
     knownKeys: knownKeys,
     cancelledAnywhereKeys: cancelledAnywhere,
     canJudgeMissing:
-        !feed.truncated && unreadable.isEmpty && feed.skippedNoStart == 0,
+        feed.complete &&
+        !feed.truncated &&
+        unreadable.isEmpty &&
+        !uncounted &&
+        feed.skippedNoStart == 0,
     unreadableSeries: unreadable,
     skippedNoUid: feed.skippedNoUid,
     truncated: feed.truncated,
   );
 }
 
-/// Whether a series' `EXDATE` removes the occurrence on written date `d`,
-/// whose recurrence id is `rid`. Shared by the offer walk and the known-keys
-/// walk of [planCalendarImport], which must agree (#2354): an occurrence one
-/// offers and the other forgets would be wrongly flagged gone, and one it
-/// skips and the other knows would never be. An occurrence is removed when
-/// an `EXDATE` matches its text exactly or, once any `EXDATE` is a `DATE`,
-/// when one falls on its written date. A `DATE-TIME` `EXDATE` written in
-/// another form from `DTSTART` (UTC against a `TZID` start) matches nothing,
-/// which keeps the occurrence: never a false "gone".
-bool Function(DateTime d, String rid) _removedByExdate(ICalEvent e) {
-  if (e.exdates.isEmpty) return (_, _) => false;
+/// Whether a series' `EXDATE` removes an occurrence. Shared by the offers
+/// and the known keys of [planCalendarImport], which must agree (#2354): an
+/// occurrence one offers and the other forgets would be wrongly flagged gone,
+/// and one it skips and the other knows would never be. An occurrence is
+/// removed when an `EXDATE` matches its text exactly, or, once any `EXDATE`
+/// is a `DATE`, when one falls on its written date, or when a `DATE-TIME`
+/// `EXDATE` written in another form (UTC against a `TZID` start) falls at
+/// its local date and time for the reader ([ICalDateValue.localDateTime];
+/// pre-release audit finding E1-11). That is exact when the calendar's zone
+/// is the reader's; in another zone the two fall at different times of day,
+/// so nothing is removed: never a false "gone".
+bool Function(ICalDateValue occurrence) _removedByExdate(
+  ICalEvent e,
+  DateTime Function(DateTime utc) localOf,
+) {
+  if (e.exdates.isEmpty) return (_) => false;
   final anyDate = e.exdates.any((x) => x.isDate);
   final days = {for (final x in e.exdates) x.writtenDate};
   final texts = {for (final x in e.exdates) x.text};
-  return (d, rid) => texts.contains(rid) || (anyDate && days.contains(d));
+  final wallClocks = {for (final x in e.exdates) ?x.localDateTime(localOf)};
+  return (o) =>
+      texts.contains(o.text) ||
+      (anyDate && days.contains(o.writtenDate)) ||
+      (!o.isDate && wallClocks.contains(o.localDateTime(localOf)));
+}
+
+/// A series' `RECURRENCE-ID` overrides: by the recurrence id as written, and
+/// by its local date and time for the reader, for an override written in
+/// another form than the series' `DTSTART` (pre-release audit finding
+/// E1-11), on the same rule as [_removedByExdate].
+class _Overrides {
+  _Overrides(this._localOf);
+
+  final DateTime Function(DateTime utc) _localOf;
+  final _byText = <String, ICalEvent>{};
+  final _byWallClock = <DateTime, ICalEvent>{};
+
+  void add(ICalEvent override) {
+    final rid = override.recurrenceId!;
+    _byText[rid.text] = override;
+    if (rid.localDateTime(_localOf) case final at?) _byWallClock[at] = override;
+  }
+
+  /// The override that replaces [occurrence], if any.
+  ICalEvent? replacing(ICalDateValue occurrence) =>
+      _byText[occurrence.text] ??
+      (occurrence.isDate
+          ? null
+          : _byWallClock[occurrence.localDateTime(_localOf)]);
+
+  /// Every override, one per recurrence id as written.
+  Iterable<ICalEvent> get all => _byText.values;
 }
 
 /// `UNTIL` as a key comparable with an occurrence written like [start]. A
-/// `DATE` `UNTIL` covers its whole day.
+/// `DATE` `UNTIL` covers its whole day, and so does any `UNTIL` of an
+/// all-day series, on its written date (UTC for a `Z` one): RFC 5545 wants a
+/// `DATE` there, and a `Z` time read in this device's zone could move it a
+/// day earlier and drop the last occurrence (pre-release audit finding
+/// E1-11).
 ///
 /// RFC 5545 §3.3.10 has `UNTIL` in UTC whenever `DTSTART` has a `TZID`, and
 /// calendar apps write it so; the occurrences are in that zone's wall-clock
@@ -1054,7 +1315,14 @@ int _untilKey(
   ICalDateValue start,
   DateTime Function(DateTime utc) toLocal,
 ) {
-  if (until.isDate) return until._sortKey + 235959;
+  if (until.isDate || start.isDate) {
+    return ICalDateValue(
+          year: until.year,
+          month: until.month,
+          day: until.day,
+        )._sortKey +
+        235959;
+  }
   if (until.isUtc && !start.isUtc) {
     final local = toLocal(
       DateTime.utc(

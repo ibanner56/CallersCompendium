@@ -29,8 +29,9 @@ typedef CalendarFeedFetcher = Future<String> Function(String url);
 /// then: nothing runs on open, in the background, or on resume. The preview
 /// lists new events ticked, events whose program the caller deleted unticked,
 /// and events already imported or exported by this app for information.
-/// **Import** creates the ticked drafts and pops with their ids; the caller of
-/// this screen offers **Undo**.
+/// **Import** creates the ticked drafts, offers **Undo**
+/// ([undoCalendarImportDrafts], then [undoCalendarUpdates]), and pops with
+/// their ids.
 class CalendarImportScreen extends StatefulWidget {
   const CalendarImportScreen({
     super.key,

@@ -192,7 +192,8 @@ Future<CalendarImportPreview> buildCalendarImportPreview(
 }) async {
   final source = CalendarFeedSource(feedUrl, random: random);
   final plan = planCalendarImport(
-    parseICalFeed(body),
+    // [today] so a past one-off event does not use up the event cap.
+    parseICalFeed(body, today: today),
     today: today,
     windowMonths: settings.windowMonths,
     titleFilter: settings.titleFilter,
@@ -557,12 +558,31 @@ Future<void> undoCalendarUpdates(
   }
 }
 
-/// Undo for the drafts a calendar import created. STUB for the red run.
+/// Undo for the drafts [commitCalendarImport] created, from the review or
+/// from the startup run (#2353): moves the ones nobody has touched since
+/// ([Program.isUntouchedCalendarDraft]) to Recently deleted, all in one
+/// transaction, so Undo moves all of them or none. A draft the caller has
+/// started filling in is kept. Not a hard delete: the import offers an event
+/// whose program is in Recently deleted unticked and the startup run skips
+/// it, so the next start does not add the drafts back (pre-release audit
+/// finding E1-05).
 Future<void> undoCalendarImportDrafts(
   CompendiumRepositories repos,
   List<String> ids, {
   required DateTime now,
-}) => repos.programs.hardDelete(ids);
+}) async {
+  final untouched = [
+    for (final id in ids)
+      if (await repos.programs.getById(id) case final p?
+          when p.isUntouchedCalendarDraft)
+        id,
+  ];
+  await repos.transaction(() async {
+    for (final id in untouched) {
+      await repos.programs.softDelete(id, at: now);
+    }
+  });
+}
 
 /// One program a calendar import updated: as it was, and the stamp written.
 class CalendarUpdateRecord {

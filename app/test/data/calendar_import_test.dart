@@ -132,7 +132,10 @@ void main() {
       // The caller starts filling in B before pressing Undo.
       final b = (await repos.programs.getById(ids[1]))!;
       await repos.programs.update(
-        b.copyWith(notes: 'mine', updatedAt: _now.add(const Duration(hours: 1))),
+        b.copyWith(
+          notes: 'mine',
+          updatedAt: _now.add(const Duration(hours: 1)),
+        ),
       );
       await undoCalendarImportDrafts(
         repos,
@@ -140,14 +143,20 @@ void main() {
         now: _now.add(const Duration(hours: 2)),
       );
       final all = await repos.programs.listAll(includeDeleted: true);
-      expect([
-        for (final p in all)
-          if (!p.isDeleted) p.title,
-      ], ['Contra B']);
-      expect([
-        for (final p in all)
-          if (p.isDeleted) p.title,
-      ], ['Contra A']);
+      expect(
+        [
+          for (final p in all)
+            if (!p.isDeleted) p.title,
+        ],
+        ['Contra B'],
+      );
+      expect(
+        [
+          for (final p in all)
+            if (p.isDeleted) p.title,
+        ],
+        ['Contra A'],
+      );
 
       await repos.settings.set(kCalendarImportOnStartupKey, true);
       await repos.settings.set(

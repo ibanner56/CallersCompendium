@@ -3,6 +3,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/calendar_import.dart' show undoCalendarImportDrafts;
 import '../data/calendar_startup.dart';
 import '../utils/l10n_joins.dart';
 import '../utils/undo_snack_bar.dart';
@@ -53,10 +54,11 @@ void presentCalendarStartupOutcome({
 ///   shown as the app's Undo prompt ([showUndoSnackBar]: its timeout, its
 ///   accessibility handling) with **Undo**, and **Show** beside the message.
 ///   Undo moves only the drafts nobody has touched since to Recently
-///   deleted: one the caller has already started filling in is kept. Not a
-///   hard delete, because the import skips events whose programs are in
-///   Recently deleted, so the next start does not add them back (the
-///   maintainer's choice).
+///   deleted ([undoCalendarImportDrafts], which the review's own Undo shares):
+///   one the caller has already started filling in is kept. Not a hard
+///   delete, because the import skips events whose programs are in Recently
+///   deleted, so the next start does not add them back (the maintainer's
+///   choice).
 ///
 /// Either way, upstream changes and cancellations (#2354) are only counted
 /// ("1 change needs you") with **Review**; the startup run never applies
@@ -104,21 +106,8 @@ void showCalendarStartupMessage({
     undoLabel: l10n.commonUndo,
     undoFailedMessage: l10n.commonUndoFailed,
     accessibleNavigation: accessibleNavigation,
-    onUndo: () async {
-      final untouched = [
-        for (final id in added)
-          if (await repositories.programs.getById(id) case final p?
-              when p.isUntouchedCalendarDraft)
-            id,
-      ];
-      final at = clock.now().toUtc();
-      // One transaction: Undo moves all of them or none.
-      await repositories.transaction(() async {
-        for (final id in untouched) {
-          await repositories.programs.softDelete(id, at: at);
-        }
-      });
-    },
+    onUndo: () =>
+        undoCalendarImportDrafts(repositories, added, now: clock.now().toUtc()),
     extraActions: [
       TextButton(
         key: const ValueKey('calendar-startup-show'),

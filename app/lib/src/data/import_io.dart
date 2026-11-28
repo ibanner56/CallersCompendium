@@ -901,9 +901,12 @@ String calendarFeedFetchUrl(String url) {
 }
 
 /// Undoes RFC 5545 line folding (§3.1) on raw bytes: each line break (CRLF,
-/// or a bare LF) followed by one space or tab is removed. Done before UTF-8
-/// decoding because §3.1 warns that some generators fold in the middle of a
-/// multi-byte character, which decoding first would turn into U+FFFD.
+/// a bare LF, or a bare CR as old Mac files end lines) followed by one space
+/// or tab is removed. Done before UTF-8 decoding because §3.1 warns that some
+/// generators fold in the middle of a multi-byte character, which decoding
+/// first would turn into U+FFFD. A bare-CR fold left for the parser cost it
+/// time in proportion to the square of the line (pre-release audit finding
+/// SEC-03).
 @visibleForTesting
 List<int> unfoldICalendarBytes(List<int> bytes) {
   final out = <int>[];
@@ -917,7 +920,9 @@ List<int> unfoldICalendarBytes(List<int> bytes) {
       i += 3;
       continue;
     }
-    if (b == 0x0A &&
+    // A bare LF or a bare CR (one not followed by LF, so not the CRLF
+    // above).
+    if ((b == 0x0A || b == 0x0D) &&
         i + 1 < bytes.length &&
         (bytes[i + 1] == 0x20 || bytes[i + 1] == 0x09)) {
       i += 2;
