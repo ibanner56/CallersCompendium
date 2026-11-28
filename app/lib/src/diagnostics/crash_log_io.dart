@@ -2,12 +2,13 @@ import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../data/backup_io.dart' show shareFilesViaSheet;
 import '../data/file_dialog_labels.dart';
 import '../data/picker_extensions.dart';
+import '../export/share_file.dart'
+    show clearShareStaging, shareStagingDirectory;
 
 /// Delivers the exported diagnostics [contents] to the user as a file named
 /// [suggestedFileName]. Returns `true` if it was saved/shared, or `false` if
@@ -44,8 +45,9 @@ String diagnosticsLogFileName([DateTime? now]) {
 /// Default [LogSaver].
 ///
 /// On desktop this is a "save a file" action (native Save As via
-/// `file_selector`); on mobile it is a "share to another app" action (temp file
-/// + OS share sheet via `share_plus`, `false` if the sheet is dismissed).
+/// `file_selector`); on mobile it is a "share to another app" action (a file
+/// in the share staging folder, [shareStagingDirectory], + OS share sheet via
+/// `share_plus`, `false` if the sheet is dismissed).
 /// Mirrors `saveBackupToFile`, including the defensive `create(recursive: true)`
 /// before the mobile temp-file write.
 Future<bool> saveDiagnosticsLog(
@@ -62,7 +64,11 @@ Future<bool> saveDiagnosticsLog(
     return true;
   }
 
-  final dir = await getTemporaryDirectory();
+  // Staged where every shared file is, emptied first ([clearShareStaging]),
+  // so the log is deleted at the next share or start rather than left in the
+  // temporary folder.
+  final dir = await shareStagingDirectory();
+  await clearShareStaging(stagingDirectory: () async => dir);
   await dir.create(recursive: true);
   final file = File('${dir.path}/$suggestedFileName');
   await file.writeAsString(contents);

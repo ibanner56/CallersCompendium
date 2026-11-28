@@ -1,0 +1,10 @@
+{
+  "id": "0-audit-diagnostics-terms-and-staging",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The scrubbed diagnostics export now also removes a dance's other titles, formation detail, meter, key, Barnes reference and square details, link addresses, event rules' nicknames, saved searches' names, search text, tunes and field values, program templates' names and slot text (the Starting program's too), the calendar title filter, the default caller and band names, and the Device Sync ID.",
+      "A diagnostics log handed to the share sheet on a phone or tablet is now deleted the next time you share a file or start the app, like other shared files, instead of staying in the app's temporary folder. Logs shared by earlier versions are deleted at the next start."
+    ]
+  }
+}

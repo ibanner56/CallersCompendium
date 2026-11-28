@@ -10,6 +10,10 @@ import 'package:share_plus/share_plus.dart' show ShareParams;
 import 'package:sqlite3/sqlite3.dart' as sql;
 
 import 'package:compendium_app/src/data/recovery_copy.dart';
+import 'package:compendium_app/src/export/share_file.dart'
+    show kShareStagingFolderName;
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 /// The v39 release fixture: a library written by v0.7.0-beta (schema 39), the
 /// version the schema floor of 40 sends to the "data too old to open" screen.
@@ -21,6 +25,17 @@ const String _fixture = 'test/fixtures/below_floor_v39.sqlite';
 /// A value written into rows the copy must drop. If it survives anywhere in
 /// the copy's bytes, a free page kept a deleted row.
 const String _marker = 'RECOVERY-COPY-MUST-NOT-CARRY';
+
+class _FakePathProvider extends Fake
+    with MockPlatformInterfaceMixin
+    implements PathProviderPlatform {
+  _FakePathProvider(this.temp);
+
+  final String temp;
+
+  @override
+  Future<String?> getTemporaryPath() async => temp;
+}
 
 void main() {
   late Directory tmp;
@@ -320,6 +335,26 @@ void main() {
     } finally {
       live.close();
     }
+  });
+
+  // The copy is the whole library: it is staged where every shared file is
+  // (share_file.dart), so it is deleted at the next share or start, not left
+  // in the temporary folder.
+  test('by default the copy is staged in the share staging folder, which is '
+      'emptied first', () async {
+    final original = PathProviderPlatform.instance;
+    PathProviderPlatform.instance = _FakePathProvider(tmp.path);
+    addTearDown(() => PathProviderPlatform.instance = original);
+    final staging = Directory(p.join(tmp.path, kShareStagingFolderName))
+      ..createSync();
+    final older = File(p.join(staging.path, 'programs.csv'))
+      ..writeAsStringSync('x');
+
+    final copy = await prepareRecoveryCopy(source: source);
+
+    expect(copy.path, p.join(staging.path, kRecoveryCopyFileName));
+    expect(copy.existsSync(), isTrue);
+    expect(older.existsSync(), isFalse);
   });
 
   test('no copy is left when it cannot be made', () async {
