@@ -554,7 +554,10 @@ If your camera app shows the link but won't open it, copy the link, open
 **Import…**, and paste it into the URL field (then choose **Fetch**) or into the
 text field (then choose **Review import**). That works on a computer too, if
 someone sends you the link as text. The link is read on your device; nothing
-is fetched.
+is fetched. A scanned code corrects its own small errors, but a pasted link
+can't: if a character of it was changed on the way, it's usually refused as
+damaged, and sometimes opens as a slightly different dance. Look over the
+review before you import it.
 
 If the app can't read a code, it says why and nothing is imported: a code made
 by a **newer version** of Caller's Compendium asks you to update the app, and a
