@@ -716,6 +716,10 @@
   "@settingsSyncStatusSettingsUnreadable": {
     "x-sourceSha256": "ca37e41b6ed2d11c6b10cc81f386b054608b46b292f35d4b47ef8a395e84576b"
   },
+  "syncRestoredCopyNotice": "Die Gerätesynchronisierung ist ausgeschaltet, weil diese Bibliothek aus einer Gerätesicherung wiederhergestellt wurde. Schalte sie unter Einstellungen ▸ Experimentell ▸ Gerätesynchronisierung wieder ein, dann synchronisiert dieses Gerät als neues Gerät und nicht als das Gerät, von dem die Sicherung stammt.",
+  "@syncRestoredCopyNotice": {
+    "x-sourceSha256": "68688d2f85a4cbb6308d0663cefe4c30f1b62a53f59d3488138e9cc6aba02df6"
+  },
   "settingsSyncFailureUnreachable": "Der Synchronisierungsserver war nicht erreichbar.",
   "@settingsSyncFailureUnreachable": {
     "x-sourceSha256": "1fec844573d970b89ddae666fddb4c01cf8065fb587bcb5fa4de0e8f4fcce1c7"
@@ -3856,6 +3860,10 @@
   "@backupRestored": {
     "x-sourceSha256": "40383528e1b1ee32fcfe833921c4fe7e010762a1628901658710f272a0b15e7e"
   },
+  "backupRestoreRemovedEventRules": "{count, plural, =1{1 Abendregel wurde gelöscht, weil die Sicherung ihre gespeicherte Suche nicht enthält.} other{{count} Abendregeln wurden gelöscht, weil die Sicherung ihre gespeicherten Suchen nicht enthält.}}",
+  "@backupRestoreRemovedEventRules": {
+    "x-sourceSha256": "57482705cc04a138371124f81fb2de69bc1b1aa2ae3970a69b43451f810fa927"
+  },
   "backupRestoreFailed": "Die Sicherung konnte nicht wiederhergestellt werden. Versuche es erneut.",
   "@backupRestoreFailed": {
     "x-sourceSha256": "5e6ce844a9bcd105a5f921edc09bdc9aa05e89f90dbb31d960508ea9e585df3f"
@@ -5343,6 +5351,14 @@
   "danceEditorHalfBarRefused": "Nur ganze Takte bei {beatsPerBar} Schlägen pro Takt",
   "@danceEditorHalfBarRefused": {
     "x-sourceSha256": "93140ef37e7658ae19604224df5f4f69822740dcf1121a0648c365663385774b"
+  },
+  "danceEditorMeterFigureBarsKept": "Die Schlagzahlen der Figuren wurden angepasst, damit jede Figur ihre Takte behält, jetzt mit {beatsPerBar, plural, =1{1 Schlag} other{{beatsPerBar} Schlägen}} pro Takt.",
+  "@danceEditorMeterFigureBarsKept": {
+    "x-sourceSha256": "6dd8845f7d30905e881b3012a37ed97ac11868106a6f9124446e6278d1a54689"
+  },
+  "danceEditorMeterFigureBarsNotKept": "Schlagzahlen nicht geändert: Nicht jede Figur konnte ihre Takte genau behalten, darum zählen sie jetzt in Takten zu {beatsPerBar, plural, =1{1 Schlag} other{{beatsPerBar} Schlägen}}. Prüfe sie.",
+  "@danceEditorMeterFigureBarsNotKept": {
+    "x-sourceSha256": "efc7fb0ae0879a42dc8ca78dac63969b6dad4a686b93bc5fffa490eb031faee1"
   },
   "danceEditorSequenceSpanLabel": "Takte für alle",
   "@danceEditorSequenceSpanLabel": {
@@ -8842,6 +8858,10 @@
   "@danceEditorPhraseRowsRemove": {
     "x-sourceSha256": "5d1e14b6c4353c8b98e78ebd9904ec2da1cfd0312165096b4e426a686372bba8"
   },
+  "danceEditorPhraseRowsRow": "Zeile {number}",
+  "@danceEditorPhraseRowsRow": {
+    "x-sourceSha256": "f8c78edd52580dd65b891749165d17c30000da973e4777a05c3fe6cd9021d07b"
+  },
   "danceEditorPhraseRowsInvalid": "Gib in jedes Feld eine ganze Zahl von 1 bis {max} ein, in einer Struktur, die nicht zu lang ist. Bis dahin bleibt die letzte gültige Phrasierungsstruktur erhalten.",
   "@danceEditorPhraseRowsInvalid": {
     "x-sourceSha256": "136099aeff18e01fd168bc79ef22b4d6f416ab4f52bacc44c997852a7e31de66"
@@ -11505,6 +11525,10 @@
   "danceReimportTargetChanged": "Dieser Tanz wurde geändert, bevor er aktualisiert werden konnte. Überprüfe ihn und versuche es erneut.",
   "@danceReimportTargetChanged": {
     "x-sourceSha256": "7213bdad9aa2abba7fd089889171b48ce5c3d80ecc5a5760c1881cf8c4a6125a"
+  },
+  "danceReimportFormChangeNotice": "{dropped, select, both{Der Import ändert die Tanzform dieses Tanzes in {form}, daher werden sein Barnes-Verweis und seine Markierung „Beginnt improper“ entfernt.} barnes{Der Import ändert die Tanzform dieses Tanzes in {form}, daher wird sein Barnes-Verweis entfernt.} improper{Der Import ändert die Tanzform dieses Tanzes in {form}, daher wird seine Markierung „Beginnt improper“ entfernt.} other{Der Import ändert die Tanzform dieses Tanzes in {form}.}}",
+  "@danceReimportFormChangeNotice": {
+    "x-sourceSha256": "d425b2974ae4956d338dc9f6899e1d2c1234daeb4b70842515997292eb6d3e8b"
   },
   "publishedCollectionsTitle": "Veröffentlichte Sammlungen",
   "@publishedCollectionsTitle": {
@@ -14362,6 +14386,18 @@
   "@eventRuleSavedSearchGone": {
     "x-sourceSha256": "feec3c2b76bd8ac9a0924b28c9bae1e77a2eb88f8fe4ceeeafff4337baff3d5b"
   },
+  "eventRuleSaveFailed": "Die Regel konnte nicht gespeichert werden. Versuche es noch einmal.",
+  "@eventRuleSaveFailed": {
+    "x-sourceSha256": "8a574e43f69bcc8cbf1c9e1c07a031561df7828e1cb97d0f89696b1f8f285807"
+  },
+  "eventRuleSaveLimit": "Dieses Gerät hat {max} Regeln, mehr geht nicht. Lösche eine, um eine andere hinzuzufügen.",
+  "@eventRuleSaveLimit": {
+    "x-sourceSha256": "90d039f15588eb30cef22ed24a6a6f18b7db7fb9a5255cc523d079d48287cde9"
+  },
+  "eventRuleSearchesUnreadable": "Deine gespeicherten Suchen können gerade nicht gelesen werden, daher kann hier keine gewählt werden.",
+  "@eventRuleSearchesUnreadable": {
+    "x-sourceSha256": "8feb7b13d1cf2b52930b22b8f0ed5e48fd65978b0155e6161d90dca0c7ca9baf"
+  },
   "eventRuleQuantifierLabel": "Wie viele",
   "@eventRuleQuantifierLabel": {
     "x-sourceSha256": "e2a6ff2c78fdb163d02c7b5c66431cab9b1b418470219eb4e342b0324dfab14f"
@@ -14618,9 +14654,9 @@
   "@programTemplateRuleRemoved": {
     "x-sourceSha256": "9d5df0a088d8b8460775e6b44026d42f231f247934827c011a7ef143ae12ea1e"
   },
-  "programTemplateRuleRemovedUnknown": "Entfernt: eine Regel, die nicht auf diesem Gerät ist",
+  "programTemplateRuleRemovedUnknown": "Eine Regel, die nicht auf diesem Gerät ist",
   "@programTemplateRuleRemovedUnknown": {
-    "x-sourceSha256": "c1c09c9abcef4143bb960f232a083639dd0de19bf45eb0542206522fabadee1c"
+    "x-sourceSha256": "b5f15fcea141a41c4b1fc76f7ba8639805b2c939e3cdc6391c79e90872b57421"
   },
   "programTemplateRulesPickerTitle": "Regeln für diese Vorlage",
   "@programTemplateRulesPickerTitle": {
@@ -14637,6 +14673,14 @@
   "programsRulesPickerNotHereHelp": "Auf einem anderen Gerät hinzugefügt und noch unterwegs, oder endgültig weg. Entfernen nimmt sie aus diesem Programm.",
   "@programsRulesPickerNotHereHelp": {
     "x-sourceSha256": "d712197bddacd3cb51a680b3db35e0f4eb3804b7975780c6faa3eeb40d6c5cd0"
+  },
+  "programTemplateRulesPickerNotHereHelp": "Auf einem anderen Gerät hinzugefügt und noch unterwegs, oder endgültig weg. Entfernen nimmt sie aus dieser Vorlage.",
+  "@programTemplateRulesPickerNotHereHelp": {
+    "x-sourceSha256": "82acc6e74c26a3aa39171937f4021563afffba4cbe73fcdea53c7b48b1da5dcd"
+  },
+  "programsRulesPickerUnreadable": "Deine Regeln können gerade nicht gelesen werden.",
+  "@programsRulesPickerUnreadable": {
+    "x-sourceSha256": "d077f46371174d7678bb7663d4738aba68552c07fb9bd0c6eefc6063cb5733ce"
   },
   "programsRulesChangeFailed": "Die Regeln dieses Programms konnten nicht geändert werden. Versuche es noch einmal.",
   "@programsRulesChangeFailed": {

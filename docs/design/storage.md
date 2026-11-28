@@ -109,8 +109,8 @@ dances(id PK, title, form, formation_shape, formation_detail,
        formation_improper, progression, phrase_structure, figures_json, hook,
        calling_notes, meter, musical_key, alternate_titles,
        barnes_reference, square_kind, repeat_order, repeat_order_text,
-       new_partner, new_partner_text, singing, free_form NULL, status,
-       level_id NULL,
+       new_partner, new_partner_text, singing, free_form NULL,
+       interpreted_on NULL, status, level_id NULL,
        tunes_json,
        created_at, updated_at, deleted_at, existence_at)
 difficulty_levels(id PK, label UNIQUE, position,
@@ -145,10 +145,14 @@ CREATE VIRTUAL TABLE dance_fts USING fts5(     -- derived; canonical text only
 -- batch edit changes `custom_values` and does rebuild.
 
 programs(id PK, title, event_date, venue, venue_id NULL, notes, status,
+         start_minute NULL, end_minute NULL, lesson_minute NULL,
+         arrival_minute NULL, archived_at NULL, calendar_event_key NULL,
+         calendar_event_fingerprint NULL, calendar_flag NULL,
+         calendar_written_at NULL, event_rule_ids,
          created_at, updated_at, deleted_at,
          existence_at)                         -- venue_id → venues.id (v14)
 program_slots(id PK, program_id FK, position, dance_id NULL, text,
-              is_alt, performed_at)
+              is_alt, performed_at, placeholder_search_id NULL)
 
 event_rules(id PK, saved_search_id, quantifier, count, scope, nickname NULL,
             position, updated_at, deleted_at, existence_at)  -- (v42, #2340)
@@ -1024,8 +1028,13 @@ file past v39 already ran that repair on the same open.)
   archive holding a program with rules is stamped core archive v8. Backups
   carry the rules under `app.eventRules` (envelope v3,
   `backupSchemaVersionEventRules`); a backup without the section leaves the
-  live rules alone; a rule the restore refuses is skipped and reported, and
-  its id stays on the programs (#2529). The table and the column are added by
+  live rules alone (none is written for no rules, keeping the v1 envelope),
+  except that a Replace deletes softly, at the backup's time, each live rule
+  the backup does not hold whose saved search the settings replace removes
+  (a `saved_search:` key stored before and not restored), and counts them in
+  `BackupRestoreOutcome.removedEventRules`; a rule whose search was already
+  gone is kept, and a Merge deletes none. A rule the restore refuses is
+  skipped and reported, and its id stays on the programs (#2529). The table and the column are added by
   `_ensureV42EventRules`, run from
   the `from < 42` step and from the on-open v42 ensure below, each time right
   after `_ensureV42Schema` (so after the placeholder column and the other v42

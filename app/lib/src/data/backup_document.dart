@@ -345,8 +345,10 @@ class BackupReadResult {
   final bool glossaryComplete;
 
   /// Whether `app.eventRules` was a list (#2340). When false the restore
-  /// leaves the live rules untouched: absent is not "empty", so restoring a
-  /// backup made before them, or where there were none, never clears them.
+  /// keeps the live rules: absent is not "empty", so restoring a backup made
+  /// before them, or where there were none, never clears them. A Replace
+  /// still deletes a kept rule whose saved search it removes
+  /// (`BackupRestoreOutcome.removedEventRules`).
   final bool hasEventRulesSection;
 
   /// Whether every rule in `app.eventRules` was read (#2340). When one could

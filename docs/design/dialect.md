@@ -248,15 +248,46 @@ wording, saved unchanged, reads as the default line. Imported
   the role terms "larks" and "robins". This is the one place the reader's
   dialect does not win. `dialectForDance` (`dialect/author_role_terms.dart`)
   takes the reader's dialect for the dance's form (`DialectsByForm.forDance`)
-  and the dance's title and author names, and when `requiresLarksRobins`
-  returns a copy with `lark`/`robin` role terms. It also
+  and the dance's title and author names, and when `requiresLarksRobins` and
+  the reader's role terms are not already lark and robin (`overridesRoleTerms`)
+  returns a copy with `lark`/`robin` role terms. That copy also
   drops the reader's single-dancer substitutions (`onesRole1` …, which usually
-  spell a role) and stops flagging lark and robin as discouraged. Move
-  substitutions and wordings stay the reader's, even one that holds a
-  gendered word, which a caller's own dialect may now do (ADR-006 §9.1,
-  point 7; whether her dances should drop those too is open for the
-  maintainer, and keeping them as written is the implementer's call). A dance requires it when any
-  author's name has Rachel or Rae as its first word and Fifer as its last.
+  spell a role) and stops flagging lark and robin as discouraged. A caller's
+  own dialect may hold a gendered word (ADR-006 §9.1, point 7), so on her
+  dances it also drops each move substitution, move wording and wording
+  branch that holds a gendered role word, and that move reads in the app's
+  default wording: a caller's "ladies chain" reads as the default chain. The
+  maintainer decided this (question 35 of the pre-release audit's decision
+  sheet, 2026-11-27); every other move substitution and wording stays the
+  reader's, and the stored dialect is never changed. Its words are the app's
+  own former list of gendered role words (gent, gents, gentleman, gentlemen,
+  man, men, lady, ladies, woman, women), restored privately in
+  `author_role_terms.dart` from the file #2570 removed; that choice, and
+  keeping the list's rule that "man" and "men" in a sentence are everyday
+  words in German, Danish and Dutch, were the audit's lead session's call,
+  not the maintainer's. The cost of that rule: an English wording whose only
+  role word is "man" or "men" is kept. Even when the reader's role terms
+  already say lark and robin, so the roles need no change, these wordings
+  are still dropped, in a copy that changes nothing else; so a copy alone does
+  not mean the role terms were set aside, and the dance page asks
+  `overridesRoleTerms` before it shows its note. Two limits, the implementer's
+  calls: it covers dialect entries only, so a figure of the caller's own whose
+  dropped dialect name or wording falls back to that figure's own definition
+  shows the definition's words, gendered or not; and the dance editor parses
+  typed figures through the same dialect, so on her dances a caller's own
+  gendered move name that no built-in alias covers is not recognised when
+  typed and stays unparsed text (giving the parser the reader's unfiltered
+  dialect would mean threading a second dialect through the editor form).
+  A dance requires it when any
+  author credit holds the words Fifer and Rachel or Rae, in any order, so
+  "Fifer, Rachel" and "Rachel Fifer (2019)" count. An author name that holds
+  a joint credit ("Bob Smith & Rae Fifer", split at `&`, `+`, `/`, `;`, "and",
+  "with", and into comma pieces, where a one-word piece is a family name put
+  first and takes the next piece as its given names) is read one person at a
+  time, so neither "Bob Fifer & Rachel Smith" nor "Bob Fifer, Rachel" does,
+  while "Bob Smith, Fifer, Rachel" does (pre-release audit finding A1-03; the
+  split is the implementer's call, over matching the words of the whole name,
+  which would catch that pair). An initial alone ("R. Fifer") does not count.
   "Renewed Joy" and "If I Was Dead and It Wouldn't Go To Waste" also require it
   when no author is named (none, or only Unknown/Traditional), so a dance
   imported without its author is still caught. The request that added this

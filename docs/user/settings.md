@@ -755,7 +755,9 @@ Select **Program defaults** to open this group.
   program](./programs.md#fill-a-placeholder)). A template without a slot rule
   makes exactly the slots it always did. A rule's **Edit** button (the pencil)
   changes its label or saved search; its label can't be "Break", which marks a
-  break. While a template has a rule that uses a saved search, that search
+  break. A rule whose saved search is gone, or can't be opened, says so in
+  **Edit** too, and keeps that search until you choose another, so you can
+  still change its label and save it. While a template has a rule that uses a saved search, that search
   can't be deleted; the message names the template and the rule. If the
   saved search you choose for a rule is deleted before the rule is saved, the
   template says so and undoes just that rule: a new rule is removed, and an
@@ -781,7 +783,10 @@ Select **Program defaults** to open this group.
   template](./programs.md#check-your-program-against-your-rules)); changing
   them later changes no program already made. A rule you delete stays on the
   template, shown as **Removed**, and isn't added to new programs; **Undo** of
-  the delete brings it back on the template too. A template can carry up to 64
+  the delete brings it back on the template too. A rule this device doesn't
+  have, still on its way from another device or gone for good, is shown as
+  **A rule that isn't on this device**; the picker says how many there are,
+  and **Remove** there takes them off the template. A template can carry up to 64
   rules; once it does, only the rules you deleted are let go to make room for
   another.
 - **Default template** — the template a new program starts from when you are
@@ -1344,7 +1349,12 @@ A rule has:
   [saved searches](./collection.md#save-a-search-and-use-it-again). Save a
   search in the Collection first. If you choose a search and it is deleted
   before you save (in the Collection, or on another device), **Save** says so
-  and doesn't save the rule, and you choose another.
+  and doesn't save the rule, and you choose another. If a rule's own saved
+  search is gone or can't be read, the editor marks it **Needs attention**
+  and keeps that search until you choose another, so you can still rename the
+  rule, or change **How many** or **Where**, and save it. If your saved
+  searches can't be read at all, the editor says so and offers none to
+  choose.
 - **How many** — **At most** or **At least** a number of dances from 1 to 99,
   or **None**. For **Any two neighboring dances**, which holds two dances,
   it is **At most** 1 or **At least** 1 or 2: a larger number could never
@@ -1363,7 +1373,9 @@ A rule has:
   it to show the sentence alone again.
 
 If you close the rule editor with changes you haven't saved, it asks
-**Discard changes?** first.
+**Discard changes?** first. If a rule can't be saved, the editor says why and
+stays open: this device already holds 500 rules, the most it can, or the save
+failed, and you can try again.
 
 Also shown while it is on, **Rule order** chooses how a program's rule picker
 lists your rules:
@@ -1389,10 +1401,16 @@ Your rules are in your [backup](#backup--restore), with the rules each program
 uses and **Check Perform's Swap this dance**, and sync with [Device Sync](#device-sync) once every device connected to
 your store has a version of the app that knows them (see
 [New kinds of data wait for every device](#new-kinds-of-data-wait-for-every-device)).
-They are never in a program you share, print or export. A rule made by a newer
-version of the app, or whose saved search is gone, is marked **Needs
-attention** and is never checked. A rule from a newer version can't be edited
-here, but you can delete it.
+They are never in a program you share, print or export. Restoring a backup
+made while you had no rules, or by a version without event rules, keeps your
+rules, except those whose saved search was on this device and isn't in the
+backup: restoring removes those searches, so it deletes those rules too, and
+says how many (see
+[What's inside a backup](./backup-portability.md#whats-inside-a-backup)). A
+rule made by a newer version of the app, or whose saved search is gone, is
+marked **Needs attention**, in Manage rules, a template's **Rules** row and
+a program's rule picker, and is never checked. A rule from a newer version
+can't be edited here, but you can delete it.
 
 ### Weekends and series
 
@@ -1539,6 +1557,20 @@ until you turn it on** with **Turn on Device Sync**, and while it is off the app
 sends nothing anywhere. Turning it on does not send anything by itself; nothing
 is exchanged until you connect a store. The section starts closed while Device
 Sync is off and open while it is on.
+
+**A phone or tablet set up from a device backup.** If you set up a phone or
+tablet from your device's own backup of another one (Android's backup or its
+phone-to-phone transfer, an iCloud or computer backup, or moving to a new
+iPhone or iPad), the app notices the first time it opens there and turns
+Device Sync off, with a message saying why. It also forgets the old device's
+identity, so when you turn Device Sync back on, this device connects to the
+same store as a device of its own, and the old one is listed under **Other
+devices**. The same happens if Android puts the app's data back when you
+reinstall it, or you restore a phone from its own backup: there the old entry
+under **Other devices** is no longer in use, and you can remove it. This works
+for backups made by this version of the app or a later one; a backup made by
+an earlier version isn't recognised, and Device Sync stays as it was in the
+copy.
 
 - **Sync only on Wi-Fi** is on by default. On a mobile-data connection automatic
   sync waits, and pressing **Sync now** tells you why. In this section it points

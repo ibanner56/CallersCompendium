@@ -767,6 +767,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'De instellingen voor apparaatsynchronisatie konden niet worden gelezen, dus de hier getoonde instellingen kunnen verouderd zijn, en apparaatsynchronisatie kan uit staan, ook als je het had aangezet. Start de app opnieuw op om het nog eens te proberen.';
 
   @override
+  String get syncRestoredCopyNotice =>
+      'Apparaatsynchronisatie staat uit, omdat deze bibliotheek is hersteld uit een back-up van het apparaat. Zet het weer aan onder Instellingen ▸ Experimenteel ▸ Apparaatsynchronisatie, dan synchroniseert dit apparaat als een nieuw apparaat en niet als het apparaat waar de back-up van komt.';
+
+  @override
   String get settingsSyncFailureUnreachable =>
       'Kan de synchronisatieserver niet bereiken.';
 
@@ -3862,6 +3866,19 @@ class AppLocalizationsNl extends AppLocalizations {
   String get backupRestored => 'Back-up hersteld.';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count avondregels zijn verwijderd, omdat de back-up hun opgeslagen zoekopdrachten niet bevat.',
+      one:
+          '1 avondregel is verwijderd, omdat de back-up de opgeslagen zoekopdracht ervan niet bevat.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed =>
       'De back-up kon niet worden hersteld. Probeer het opnieuw.';
 
@@ -5335,6 +5352,28 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String danceEditorHalfBarRefused(int beatsPerBar) {
     return 'Alleen hele maten, bij $beatsPerBar tellen per maat';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar tellen',
+      one: '1 tel',
+    );
+    return 'De tellen van de figuren zijn aangepast, zodat elke figuur haar maten houdt, nu met $_temp0 per maat.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar tellen',
+      one: '1 tel',
+    );
+    return 'Tellen niet aangepast: niet elke figuur kon haar maten precies houden, dus ze lezen nu in maten van $_temp0. Controleer ze.';
   }
 
   @override
@@ -9112,6 +9151,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseRowsRow(int number) {
+    return 'Rij $number';
+  }
+
+  @override
   String danceEditorPhraseRowsInvalid(int max) {
     return 'Vul in elk veld een geheel getal van 1 tot $max in, in een structuur die niet te lang is. Tot dan blijft de laatste geldige fraseopbouw behouden.';
   }
@@ -12024,6 +12068,20 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceReimportTargetChanged =>
       'Deze dans is gewijzigd voordat deze kon worden bijgewerkt. Controleer de dans en probeer het opnieuw.';
+
+  @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both':
+          'Importeren wijzigt de dansvorm van deze dans in $form, dus de Barnes-verwijzing en de markering Begint improper worden verwijderd.',
+      'barnes':
+          'Importeren wijzigt de dansvorm van deze dans in $form, dus de Barnes-verwijzing wordt verwijderd.',
+      'improper':
+          'Importeren wijzigt de dansvorm van deze dans in $form, dus de markering Begint improper wordt verwijderd.',
+      'other': 'Importeren wijzigt de dansvorm van deze dans in $form.',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get publishedCollectionsTitle => 'Gepubliceerde collecties';
@@ -15091,6 +15149,19 @@ class AppLocalizationsNl extends AppLocalizations {
       'Die opgeslagen zoekopdracht is net verwijderd, dus de regel is niet opgeslagen. Kies een andere.';
 
   @override
+  String get eventRuleSaveFailed =>
+      'Kan de regel niet opslaan. Probeer het opnieuw.';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'Dit apparaat heeft $max regels, het maximum. Verwijder er een om een andere toe te voegen.';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable =>
+      'Je opgeslagen zoekopdrachten kunnen nu niet worden gelezen, dus hier kan er geen worden gekozen.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Hoeveel';
 
   @override
@@ -15455,7 +15526,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programTemplateRuleRemovedUnknown =>
-      'Verwijderd: een regel die niet op dit apparaat staat';
+      'Een regel die niet op dit apparaat staat';
 
   @override
   String get programTemplateRulesPickerTitle => 'Regels voor dit sjabloon';
@@ -15479,6 +15550,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       'Toegevoegd op een ander apparaat en nog onderweg, of voorgoed weg. Verwijderen haalt ze van dit programma.';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      'Toegevoegd op een ander apparaat en nog onderweg, of voorgoed weg. Verwijderen haalt ze van dit sjabloon.';
+
+  @override
+  String get programsRulesPickerUnreadable =>
+      'Je regels kunnen nu niet worden gelezen.';
 
   @override
   String get programsRulesChangeFailed =>

@@ -160,6 +160,31 @@ void main() {
     });
   });
 
+  test('a chain takes them, with its role\'s hand, and reads back', () {
+    // 2026-11-27: chain.who lists its own choices, so it names all four.
+    final who = contraTaxonomy.moves['chain']!.params['who']!;
+    for (final token in added) {
+      expect(who.validate(token), isTrue, reason: token);
+    }
+    expect(chainHandForWho('nextRole2s'), 'right');
+    expect(chainHandForWho('prevRole2s'), 'right');
+    expect(chainHandForWho('nextRole1s'), 'left');
+    expect(chainHandForWho('prevRole1s'), 'left');
+    for (final dialect in [Dialect.canonical, Dialect.larksRobins]) {
+      for (final hand in ['right', 'left']) {
+        final chain = testFigure(
+          move: 'chain',
+          params: {'who': 'nextRole2s', 'hand': hand},
+        );
+        final text = renderer.renderSummary(chain, dialect);
+        final read = parseFreeTextFigureEntry(text, dialect: dialect).single;
+        expect(read.move, 'chain', reason: text);
+        expect(read.params['who'], 'nextRole2s', reason: text);
+        expect(read.params['hand'], hand, reason: text);
+      }
+    }
+  });
+
   test('a dialect may still reword one, as it can a neighbors entry', () {
     final dialect = Dialect(
       name: 'Reworded',

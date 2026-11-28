@@ -18,6 +18,7 @@ import 'dialect_library_controller.dart';
 import '../update/update_config.dart' show kUpdateRetirementNoticeKey;
 import 'settings_keys.dart'
     show
+        kNoBackupMarkerWrittenKey,
         kSyncDeviceIdKey,
         kSyncEnabledKey,
         kSyncEndpointKey,
@@ -149,6 +150,9 @@ const String kNormalisationDerivedIndexRepairDoneKey =
 ///   consent on another, so a restore must leave sync off (spec §6.1):
 ///   [kSyncEnabledKey], [kSyncEndpointKey], [kSyncWifiOnlyKey],
 ///   [kSyncExcludeImportsKey], [kSyncLastSuccessAtKey].
+/// - **the device-backup marker flag** ([kNoBackupMarkerWrittenKey]) — says
+///   this library has started beside this installation's no-backup marker,
+///   which is false of the installation a backup file is restored on.
 /// - **the calendar feed address** ([kCalendarFeedUrlKey], #2352) — a private
 ///   calendar's secret address embeds an access token, so it is kept out of
 ///   backup files (maintainer decision, issue draft review, 2026-11-22). After
@@ -196,6 +200,7 @@ const Set<String> kBackupSettingsDenylist = {
   kSyncWifiOnlyKey,
   kSyncExcludeImportsKey,
   kSyncLastSuccessAtKey,
+  kNoBackupMarkerWrittenKey,
 };
 
 /// Key *prefixes* excluded from backups. Some settings-table keys are dynamic
@@ -248,10 +253,21 @@ class BackupRestoreOutcome {
     this.settingsFailed = false,
     this.newerSchema = false,
     this.missingAppSection = false,
+    this.removedEventRules = 0,
   });
 
   final List<ArchiveError> errors;
   final List<String> warnings;
+
+  /// How many event rules a Replace restore deleted because it removed the
+  /// saved search each one used. A backup with no event-rules section (one
+  /// made before event rules, or by this build while there were none) says
+  /// nothing about the rules, so the restore keeps them; it does replace the
+  /// saved searches, and a kept rule whose search it removed would name a
+  /// search that is gone. A rule whose search was gone before the restore,
+  /// or that the backup holds, is not counted or removed. Always 0 for a
+  /// Merge restore, which removes no rule.
+  final int removedEventRules;
 
   /// Whether the restore actually wrote to live data. `false` means the backup
   /// was rejected before anything was touched (a fatal envelope error such as
@@ -581,8 +597,15 @@ class BackupService {
     // bug that must surface loudly rather than be silently downgraded to a
     // routine "settings failed". Log the caught failure (guarded so it never
     // reaches a release build, per #617) so the failure isn't invisible.
+    final tally = _AppApplyTally();
     try {
-      await _applyAppSettings(read, warnings, errors: errors, mode: mode);
+      await _applyAppSettings(
+        read,
+        warnings,
+        errors: errors,
+        mode: mode,
+        tally: tally,
+      );
     } on Exception catch (e, st) {
       // diagnostics: silent — settings-apply failed; outcome returned to caller (general_section._onRestoreBackup) which handles user surface.
       if (kDebugMode) {
@@ -593,6 +616,7 @@ class BackupService {
         warnings: warnings,
         applied: true,
         settingsFailed: true,
+        removedEventRules: tally.removedEventRules,
       );
     }
 
@@ -600,6 +624,7 @@ class BackupService {
       errors: errors,
       warnings: warnings,
       applied: true,
+      removedEventRules: tally.removedEventRules,
     );
   }
 
@@ -669,8 +694,15 @@ class BackupService {
     // next pass is a fresh attach that lets the newer copies win. Callers run
     // this inside the sync-writer lifecycle, as they do the restore.
     await _repos.syncLocal.clearBaseline();
+    final tally = _AppApplyTally();
     try {
-      await _applyAppSettings(read, warnings, errors: errors, mode: mode);
+      await _applyAppSettings(
+        read,
+        warnings,
+        errors: errors,
+        mode: mode,
+        tally: tally,
+      );
     } on Exception catch (e, st) {
       // diagnostics: silent — settings-apply retry failed; outcome returned to caller (general_section._retrySettingsRestore) which handles user surface.
       if (kDebugMode) {
@@ -681,6 +713,7 @@ class BackupService {
         warnings: warnings,
         applied: true,
         settingsFailed: true,
+        removedEventRules: tally.removedEventRules,
       );
     }
 
@@ -688,6 +721,7 @@ class BackupService {
       errors: errors,
       warnings: warnings,
       applied: true,
+      removedEventRules: tally.removedEventRules,
     );
   }
 
@@ -834,6 +868,71 @@ class BackupService {
     }
   });
 
+  /// The event rules a Replace restore deletes because it removes the saved
+  /// search each one uses, returning how many.
+  ///
+  /// A backup with no `app.eventRules` section, whether made before event
+  /// rules or by this build while there were none (an empty section is not
+  /// written, to keep older builds' envelope), says nothing about the rules,
+  /// so [_applyEventRules] does not run and the rules stay. The saved
+  /// searches are settings, though, and [_applyAppSettings] replaces them: a
+  /// kept rule would then name a search that is gone. So a live rule goes
+  /// when its saved search is stored now ([storedKeys]) and the restore will
+  /// not write it back (the backup lacks it, or holds a value the schema
+  /// refuses). These rules are kept:
+  /// - one whose saved search is in the backup;
+  /// - one whose saved search was already gone (a peer's rule, or a search
+  ///   deleted on another device): the restore did not remove it;
+  /// - one the backup holds, which [_applyEventRules] writes as the backup
+  ///   has it;
+  /// - every rule, when the backup's rules section was read whole: it
+  ///   replaces the rules itself.
+  ///
+  /// [_applyAppSettings] runs this in one transaction with the removal of the
+  /// settings the backup lacks, so a failure part way removes neither the
+  /// rules nor their searches, and a retried settings apply
+  /// ([retryApplySettings]) finds and counts them all. (A backed-up search
+  /// whose value the schema refuses is removed later, by the re-apply; if
+  /// that fails first, its rule is gone and the retry removes the search.)
+  /// Deleted softly at the backup's time, as [_applyEventRules] deletes, so
+  /// the deletion syncs and a peer's newer copy still wins (SYNC-1).
+  Future<int> _deleteRulesOfRemovedSearches(
+    BackupReadResult read,
+    Iterable<String> storedKeys,
+  ) async {
+    if (read.hasEventRulesSection && read.eventRulesComplete) return 0;
+    final doc = read.document;
+    final removed = <String>{
+      for (final key in storedKeys)
+        if (key.startsWith(savedSearchKeyPrefix) &&
+            isBackupEligibleSettingKey(key) &&
+            !(doc.settings.containsKey(key) &&
+                _restoresSetting(key, doc.settings[key])))
+          key.substring(savedSearchKeyPrefix.length),
+    };
+    if (removed.isEmpty) return 0;
+    final carried = {for (final r in doc.eventRules) r.id};
+    final stamp = restoreStampFor(backupCreatedAt(doc));
+    return _repos.transaction(() async {
+      var count = 0;
+      for (final rule in await _repos.eventRules.listAll()) {
+        if (carried.contains(rule.id)) continue;
+        if (!removed.contains(rule.savedSearchId)) continue;
+        await _repos.eventRules.deleteFromRestore(rule.id, at: stamp);
+        count++;
+      }
+      return count;
+    });
+  }
+
+  /// Whether the restore writes the backed-up setting [key] as [value]: the
+  /// key is eligible, and the value is neither nested too deep nor refused
+  /// by the schema. [_applyAppSettings] removes one it does not write.
+  static bool _restoresSetting(String key, Object? value) =>
+      isBackupEligibleSettingKey(key) &&
+      !jsonNestedDeeperThan(value, kMaxBackupSettingDepth) &&
+      validateBackupSettingValue(key, value) != false;
+
   /// Writes the backup's app-local pieces into the `settings` table so the
   /// dialect/theme controllers and preference notifiers pick them up on reload,
   /// and the user's glossary into its own tables ([_applyGlossary]).
@@ -849,11 +948,17 @@ class BackupService {
   /// Denylisted keys (device-local geometry, backup metadata, and the
   /// structurally-represented dialect/theme keys) are preserved and handled
   /// explicitly below.
+  ///
+  /// The event rules are the one exception to "absent is not empty": in a
+  /// Replace, a rule kept because the file has no rules section is still
+  /// deleted when the settings replace removes its saved search
+  /// ([_deleteRulesOfRemovedSearches]), counted in [tally].
   Future<void> _applyAppSettings(
     BackupReadResult read,
     List<String> warnings, {
     required List<ArchiveError> errors,
     required RestoreMode mode,
+    required _AppApplyTally tally,
   }) async {
     final doc = read.document;
     final settings = _repos.settings;
@@ -869,11 +974,21 @@ class BackupService {
     if (read.hasSettingsSection) {
       final existing = await settings.all();
       final backedUp = doc.settings.keys.toSet();
-      for (final key in existing.keys) {
-        if (!isBackupEligibleSettingKey(key)) continue;
-        if (backedUp.contains(key)) continue;
-        await remove(key);
-      }
+      // The rules whose saved search goes, and the settings the backup
+      // lacks, saved searches among them, in one transaction: a failure part
+      // way removes neither, so a retry finds them all and counts them.
+      final removedRules = await settings.transaction(() async {
+        final removed = mode == RestoreMode.replace
+            ? await _deleteRulesOfRemovedSearches(read, existing.keys)
+            : 0;
+        for (final key in existing.keys) {
+          if (!isBackupEligibleSettingKey(key)) continue;
+          if (backedUp.contains(key)) continue;
+          await remove(key);
+        }
+        return removed;
+      });
+      tally.removedEventRules += removedRules;
     }
 
     // Dialect library: rewrite the custom list and the active ref, plus keep the
@@ -930,8 +1045,7 @@ class BackupService {
     // restore would stop half-applied.
     for (final entry in doc.settings.entries) {
       if (!isBackupEligibleSettingKey(entry.key)) continue;
-      if (jsonNestedDeeperThan(entry.value, kMaxBackupSettingDepth) ||
-          validateBackupSettingValue(entry.key, entry.value) == false) {
+      if (!_restoresSetting(entry.key, entry.value)) {
         await remove(entry.key);
         warnings.add(
           'Skipped an invalid value for "${entry.key}" from the backup; '
@@ -976,6 +1090,12 @@ class BackupService {
     }
     return result;
   }
+}
+
+/// What [BackupService._applyAppSettings] did that its outcome reports, kept
+/// in a holder so a failure part way still reports what was done before it.
+class _AppApplyTally {
+  int removedEventRules = 0;
 }
 
 /// When the backup in [doc] was made: its envelope's `createdAt`, or, for a

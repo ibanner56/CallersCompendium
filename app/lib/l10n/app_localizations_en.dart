@@ -756,6 +756,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Device Sync\'s settings couldn\'t be read, so the settings shown here may be out of date, and Device Sync may be off even if you turned it on. Restart the app to try again.';
 
   @override
+  String get syncRestoredCopyNotice =>
+      'Device Sync is off because this library was restored from a device backup. Turn it back on under Settings ▸ Experimental ▸ Device Sync and this device will sync as a new device, not the one the backup came from.';
+
+  @override
   String get settingsSyncFailureUnreachable =>
       'Couldn\'t reach the sync server.';
 
@@ -3804,6 +3808,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupRestored => 'Backup restored.';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count event rules were deleted, because the backup doesn\'t have their saved searches.',
+      one:
+          '1 event rule was deleted, because the backup doesn\'t have its saved search.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed => 'Couldn\'t restore the backup. Try again.';
 
   @override
@@ -5269,6 +5286,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String danceEditorHalfBarRefused(int beatsPerBar) {
     return 'Whole bars only, with $beatsPerBar beats to the bar';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar beats',
+      one: '1 beat',
+    );
+    return 'Figure counts changed so each figure keeps its bars, now with $_temp0 to the bar.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar beats',
+      one: '1 beat',
+    );
+    return 'Figure counts not changed: not every figure could keep its bars exactly, so they now read in bars of $_temp0. Check them.';
   }
 
   @override
@@ -9021,6 +9060,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseRowsRow(int number) {
+    return 'Row $number';
+  }
+
+  @override
   String danceEditorPhraseRowsInvalid(int max) {
     return 'Give each field a whole number from 1 to $max, in a structure that is not too long. Until then the last valid phrase structure is kept.';
   }
@@ -11907,6 +11951,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get danceReimportTargetChanged =>
       'This dance changed before it could be updated. Review it and try again.';
+
+  @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both':
+          'Importing changes this dance\'s form to $form, so its Barnes reference and its Starts improper mark will be removed.',
+      'barnes':
+          'Importing changes this dance\'s form to $form, so its Barnes reference will be removed.',
+      'improper':
+          'Importing changes this dance\'s form to $form, so its Starts improper mark will be removed.',
+      'other': 'Importing changes this dance\'s form to $form.',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get publishedCollectionsTitle => 'Published collections';
@@ -14950,6 +15008,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'That saved search was just deleted, so the rule wasn\'t saved. Choose another.';
 
   @override
+  String get eventRuleSaveFailed => 'Couldn\'t save the rule. Try again.';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'This device holds $max rules, the most it can. Delete one to add another.';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable =>
+      'Your saved searches can\'t be read right now, so none can be chosen here.';
+
+  @override
   String get eventRuleQuantifierLabel => 'How many';
 
   @override
@@ -15308,7 +15378,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programTemplateRuleRemovedUnknown =>
-      'Removed: a rule that isn\'t on this device';
+      'A rule that isn\'t on this device';
 
   @override
   String get programTemplateRulesPickerTitle => 'Rules for this template';
@@ -15332,6 +15402,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       'Added on another device and still on the way, or gone for good. Remove takes them off this program.';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      'Added on another device and still on the way, or gone for good. Remove takes them off this template.';
+
+  @override
+  String get programsRulesPickerUnreadable =>
+      'Your rules can\'t be read right now.';
 
   @override
   String get programsRulesChangeFailed =>

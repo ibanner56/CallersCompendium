@@ -762,6 +762,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Indstillingerne for enhedssynkronisering kunne ikke læses, så de indstillinger, der vises her, kan være forældede, og enhedssynkronisering kan være slået fra, selvom du har slået den til. Genstart appen for at prøve igen.';
 
   @override
+  String get syncRestoredCopyNotice =>
+      'Enhedssynkronisering er slået fra, fordi dette bibliotek er gendannet fra en sikkerhedskopi af enheden. Slå det til igen under Indstillinger ▸ Eksperimentelt ▸ Enhedssynkronisering, så synkroniserer denne enhed som en ny enhed og ikke som den enhed, sikkerhedskopien kom fra.';
+
+  @override
   String get settingsSyncFailureUnreachable =>
       'Synkroniseringsserveren kunne ikke nås.';
 
@@ -3836,6 +3840,19 @@ class AppLocalizationsDa extends AppLocalizations {
   String get backupRestored => 'Sikkerhedskopi gendannet.';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count aftenregler blev slettet, fordi sikkerhedskopien ikke har deres gemte søgninger.',
+      one:
+          '1 aftenregel blev slettet, fordi sikkerhedskopien ikke har dens gemte søgning.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed =>
       'Kunne ikke gendanne sikkerhedskopien. Prøv igen.';
 
@@ -5308,6 +5325,28 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String danceEditorHalfBarRefused(int beatsPerBar) {
     return 'Kun hele takter med $beatsPerBar slag pr. takt';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar slag',
+      one: '1 slag',
+    );
+    return 'Figurernes slagantal er ændret, så hver figur beholder sine takter, nu med $_temp0 pr. takt.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar slag',
+      one: '1 slag',
+    );
+    return 'Slagantallet er ikke ændret: ikke alle figurer kunne beholde deres takter præcist, så de læses nu i takter med $_temp0. Tjek dem.';
   }
 
   @override
@@ -9060,6 +9099,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseRowsRow(int number) {
+    return 'Række $number';
+  }
+
+  @override
   String danceEditorPhraseRowsInvalid(int max) {
     return 'Angiv et helt tal fra 1 til $max i hvert felt, i en struktur der ikke er for lang. Indtil da bevares den sidste gyldige frastruktur.';
   }
@@ -11954,6 +11998,20 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get danceReimportTargetChanged =>
       'Denne dans blev ændret, før den kunne opdateres. Gennemgå den, og prøv igen.';
+
+  @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both':
+          'Import ændrer dansens danseform til $form, så dens Barnes-henvisning og dens markering Starter improper fjernes.',
+      'barnes':
+          'Import ændrer dansens danseform til $form, så dens Barnes-henvisning fjernes.',
+      'improper':
+          'Import ændrer dansens danseform til $form, så dens markering Starter improper fjernes.',
+      'other': 'Import ændrer dansens danseform til $form.',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get publishedCollectionsTitle => 'Udgivne samlinger';
@@ -15009,6 +15067,18 @@ class AppLocalizationsDa extends AppLocalizations {
       'Den gemte søgning blev netop slettet, så reglen blev ikke gemt. Vælg en anden.';
 
   @override
+  String get eventRuleSaveFailed => 'Kunne ikke gemme reglen. Prøv igen.';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'Denne enhed har $max regler, det højeste antal. Slet en for at tilføje en anden.';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable =>
+      'Dine gemte søgninger kan ikke læses lige nu, så ingen kan vælges her.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Hvor mange';
 
   @override
@@ -15365,7 +15435,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programTemplateRuleRemovedUnknown =>
-      'Fjernet: en regel, der ikke er på denne enhed';
+      'En regel, der ikke er på denne enhed';
 
   @override
   String get programTemplateRulesPickerTitle => 'Regler for denne skabelon';
@@ -15389,6 +15459,14 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       'Tilføjet på en anden enhed og stadig på vej, eller væk for altid. Fjern tager dem af dette program.';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      'Tilføjet på en anden enhed og stadig på vej, eller væk for altid. Fjern tager dem af denne skabelon.';
+
+  @override
+  String get programsRulesPickerUnreadable =>
+      'Dine regler kan ikke læses lige nu.';
 
   @override
   String get programsRulesChangeFailed =>

@@ -538,7 +538,11 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   the list says how many, such as **1 rule not on this device**: added on
   another device and still on the way, or gone for good. **Remove** beside it
   takes them off this program. If a tick can't be saved, the box clears again
-  and the builder says so.
+  and the builder says so. A rule that isn't checked, because its saved search
+  is gone or can't be read or a newer version of the app made it, is marked
+  **Needs attention** in the list, and can still be ticked. If your saved
+  searches can't be read, the list still shows your rules; if your rules
+  can't be read, it says so.
   **New rule…** at the top opens the rule editor and, once you save the rule,
   adds it to this program. A copy of a program, a program you import (other
   than a calendar import's draft, which takes your Default template's rules),

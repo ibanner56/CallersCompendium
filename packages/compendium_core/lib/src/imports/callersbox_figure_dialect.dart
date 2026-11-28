@@ -304,8 +304,8 @@ final RegExp _amountAlternativeParenRe = RegExp(
 ///   every unapproved `form <formation>` label). Exact approved formation labels
 ///   use the note fallback, and `fall back` is consumed only after an approved
 ///   parent move. The note is the
-///   SCRUBBED clause, so it is canonical (`; women turn around` is stored as
-///   `role2s turn around`) and the renderer re-expresses it in the reader's
+///   SCRUBBED clause, so it is canonical (`; face women` is stored as
+///   `face role2s`) and the renderer re-expresses it in the reader's
 ///   dialect (#715/#717) — never a raw gendered term.
 /// - **A LEADING clause never note-ifies.** A note belongs *to* a figure, so
 ///   when the FIRST clause fails there is nothing to hang it on without
@@ -611,28 +611,11 @@ const int _maxNoteFallbackClauses = 8;
 ///   deliberately, the whole `cast up/down/back to place` family. A cast is a
 ///   move, never commentary: since taxonomy v40 (#770) such a clause reads as
 ///   a `cast` figure of its own, so it must not be swept into a note.
-/// - **`role2s turn around` — 132**, and **`role1s turn around` — 96.** Matched
-///   by [_turnAroundClause], a PREFIX rule mirroring [_facingClause], so the 17
-///   annotated variants (`… (cw)`, `… [with n2]`, `… (by left)`) come with them
-///   — 221 sole-blocker lines in total. The subject-less `turn around
-///   (by right)` and the differently-subjected `role2 one and role1 two turn
-///   around` are still excluded.
-///
-///   Read those carefully: the comparison is against the **post-scrub**
-///   role tokens, NOT the source words `women`/`men`. Eligibility is evaluated
-///   after [scrubFigureText] *deliberately*: it lets the rule be stated once in
-///   the canonical role vocabulary instead of enumerating every gendered
-///   spelling a source might use — the same reason the recognizers themselves
-///   match on `role1`/`role2` rather than on dialect words.
-///
-///   The consequence is what makes the note useful. The clause TCB writes as
-///   `Women turn around` (in any casing) arrives here as `role2s turn around`
-///   and is stored on the figure in exactly that form, so the renderer can
-///   re-express it per dialect (#715/#717) — "robins turn around" under
-///   larks/robins, "follows turn around" under leads/follows. Rewriting these
-///   to `women`/`men` would therefore break twice: it would match nothing, AND
-///   it would store a dialect-specific term the reader could never see
-///   re-expressed.
+/// - **`role2s turn around` (132) and `role1s turn around` (96) are NOT
+///   notes** since 2026-11-27: the maintainer ruled that `turn around` is
+///   turn alone, so such a clause is a `turn_alone` figure of its own, like a
+///   cast. Eligibility is still evaluated on the **post-scrub** text, so the
+///   rules here are stated once in the canonical role vocabulary.
 ///
 /// Length-bounded first (OWASP: untrusted import text), so a pathological
 /// clause cannot become an unbounded note. The longest eligible corpus clause is
@@ -641,7 +624,6 @@ bool _noteEligibleClause(String scrubbed) {
   if (scrubbed.isEmpty || scrubbed.length > kMaxClauseNote) return false;
   final normalized = scrubbed.toLowerCase();
   if (_facingClause.hasMatch(normalized)) return true;
-  if (_turnAroundClause.hasMatch(normalized)) return true;
   return _exactClauseNotes.contains(normalized);
 }
 
@@ -701,23 +683,6 @@ const int kMaxClauseNote = 120;
 /// A bare facing statement. `\b` is load-bearing: without it this would also
 /// claim `facing star …`, which is a structured move.
 final RegExp _facingClause = RegExp(r'^face\b', caseSensitive: false);
-
-/// A subject-bearing `turn around` statement, matched on the POST-SCRUB text
-/// (hence `role1s`/`role2s`, never `men`/`women` — see [_noteEligibleClause]).
-///
-/// A prefix rule, deliberately mirroring [_facingClause]: both families are
-/// verbatim prose in the note either way, so an annotated variant
-/// (`role2s turn around (cw)`, `role1s turn around [with n2]`) preserves
-/// exactly as much as the whole-custom line did. Accepting `face up [with n0]`
-/// while rejecting `role2s turn around (cw)` would be arbitrary.
-///
-/// `^` and `\b` are load-bearing — they keep out the two wordings that name no
-/// subject or a different one: `turn around (by right)` and
-/// `role2 one and role1 two turn around`.
-final RegExp _turnAroundClause = RegExp(
-  r'^role[12]s turn around\b',
-  caseSensitive: false,
-);
 
 /// Folds TCB's complementary `<who>` walk forward; form long wave ||
 /// `<other who>` fall back pair into the existing long-wave move. Every other
@@ -1312,11 +1277,15 @@ FigureMatch? _tcbCast(String scrubbed) {
 /// * Done **with a neighbour** — the rest of the line, read with the role as
 ///   its subject, has a counterpart param (`whom`, `who2`) naming the current
 ///   neighbours, as written or by default (`N2 Men roll away neighbor`, a
-///   bare `N2 Men cross trails`; an explicit `N`, `N1` or `neighbor 1` is
-///   left as written): the
-///   role stays `who` and that
-///   param becomes the numbered neighbours (`whom: nextNeighbors`). Any
-///   number `N0`–`N4` reads this way.
+///   bare `N2 Men cross trails`): the role stays `who` and that param
+///   becomes the numbered neighbours (`whom: nextNeighbors`). Any number
+///   `N0`–`N4` reads this way.
+/// * The counterpart **already names neighbours** — a numbered set (`N2 Men
+///   roll away prev neighbor`) or the current ones by number (`… N1`, `… N`,
+///   `… neighbor 1`): the same set as the number is read as written; another
+///   set makes the number name the role (`who: nextRole1s`), or, for `N3`
+///   and `N4`, which have no role token, the note `N3 role1s`. No note
+///   contradicts the counterpart.
 /// * **Only the two role1s or role2s take part** (`N2 Men allemande left
 ///   3/4`) — no dancer param besides `who` is set or given a default by its
 ///   move or alias, even `unspecified`: `who` is that
@@ -1328,7 +1297,7 @@ FigureMatch? _tcbCast(String scrubbed) {
 ///   part in, such as a bare `N2 Men roll away`, done with partners; or a
 ///   remainder whose re-read does not put the token in `who`) is read as
 ///   `Men allemande left 3/4 [with N3]`: `who: role1s`, with the number kept
-///   as the note (`with thirdNeighbors`).
+///   as the note in the source's words (`with N3`).
 ///
 /// Only a role pair (`role1s`, `role2s`) follows the number, and the number is
 /// one the notation resolves (`N0`–`N4`). `N2 same-role neighbor …` is not
@@ -1413,6 +1382,36 @@ FigureMatch? _readNumberedRolePair(
     final numberedNeighbor = _withNumberedNeighbors(withNeighbor, numbered);
     if (numberedNeighbor != null) return numberedNeighbor;
   }
+  // The rest already names the counterpart's neighbours (`N2 Men roll away
+  // next neighbor`, `… prev neighbor`, `… N1`). The same set says the number
+  // twice, so the line is read as written; another set cannot be the one the
+  // number names, so the number names the role (`who: nextRole1s`, `whom:
+  // prevNeighbors`), or, for a number with no role token, the note names the
+  // role in the source's own notation (`N3 role1s`). Either way no `with …`
+  // note contradicts the counterpart. *(Agent's call, on the maintainer's
+  // 2026-11-27 ask to fix the contradiction.)*
+  final named =
+      withNeighbor == null ||
+          withNeighbor.forceCustom ||
+          withNeighbor.params['who'] != pair
+      ? null
+      : _namedCounterpart(
+          withNeighbor,
+          explicitCurrent: _explicitN1Re.hasMatch(rest),
+        );
+  if (withNeighbor != null && named != null) {
+    if (named.value == numbered) return withNeighbor;
+    if (_numberedRoleToken(numbered, pair) case (final ordinal, final token)) {
+      final inner = read('$ordinal $pair $rest');
+      if (inner != null &&
+          !inner.forceCustom &&
+          inner.params['who'] == token &&
+          inner.params[named.key] == named.value) {
+        return inner;
+      }
+    }
+    return _withLeadingNote(withNeighbor, '$number $pair');
+  }
   if (_numberedRoleToken(numbered, pair) case (final ordinal, final token)) {
     final inner = read('$ordinal $pair $rest');
     if (inner != null &&
@@ -1424,14 +1423,34 @@ FigureMatch? _readNumberedRolePair(
   }
   final inner = read('$pair $rest [with $number]');
   if (inner == null || inner.forceCustom) return inner;
-  // The number must survive as the note, canonical (`with nextNeighbors`) or
-  // as written (`with N2`, which some readers keep verbatim).
+  // The number must survive as the note, as written (`with N2`, which the
+  // bracket notes keep) or canonical (`with nextNeighbors`).
   final note = inner.note?.toLowerCase() ?? '';
   if (!note.contains('with $numbered'.toLowerCase()) &&
       !note.contains('with ${number.toLowerCase()}')) {
     return null;
   }
   return inner;
+}
+
+/// The one counterpart param ([_counterpartParams]) of [match] that names a
+/// neighbour set the line wrote out, as (param, set), or `null`: a numbered
+/// set (`prevNeighbors`), or the current `neighbors` when [explicitCurrent]
+/// says the line named them by number (`N1`, `N`, `neighbor 1`).
+MapEntry<String, String>? _namedCounterpart(
+  FigureMatch match, {
+  required bool explicitCurrent,
+}) {
+  final named = {
+    ...?seriesDancerWords['neighbor']?.values,
+    if (explicitCurrent) 'neighbors',
+  };
+  final found = [
+    for (final key in _counterpartParams)
+      if (match.params[key] case final String value when named.contains(value))
+        MapEntry(key, value),
+  ];
+  return found.length == 1 ? found.single : null;
 }
 
 /// The params that name who a figure is done **with** (`roll away whom`,
@@ -2425,12 +2444,17 @@ final RegExp _bareLongWaveCodeField = RegExp(r'^[A-Za-z]{1,2}-?\d{0,2}[RL]$');
 ///
 /// The figure is `promenade{singleFile: true, where: along, direction,
 /// destination}`, the shape the ContraDB dialect gives its own whole-set
-/// single-file promenade: `along` because the single-file display always
-/// shows `where`, and the `across` default would state a direction the source
-/// never did. `direction` is the spin word as written (a promenade's
-/// `direction` is a rotation, unlike a circle's left/right). No `who` is
-/// written: TCB's promenade path never writes an unstated subject, and the
-/// single-file display drops it anyway. `around the major set` and any other
+/// single-file promenade except for `who`: `along` because the single-file
+/// display always shows `where`, and the `across` default would state a
+/// direction the source never did. `direction` is the spin word as written (a
+/// promenade's `direction` is a rotation, unlike a circle's left/right). No
+/// `who` is written: TCB's promenade path never writes an unstated subject,
+/// and the single-file display drops it anyway. So the two differ there:
+/// ContraDB's writes `who: everyone`, while this one's subject is assumed and
+/// its effective `who` is the promenade's default, `partners`, which the
+/// editor shows and a walkthrough snippet or an Advanced search by dancers
+/// matches on (pre-release audit finding C-11; the maintainer ruled to correct
+/// this sentence and leave the figure as it is). `around the major set` and any other
 /// annotation stay in the note; the destination's words do not, because
 /// `where: along` renders the destination clause (the rule
 /// [_promenadeAnnotation] applies).
@@ -3217,8 +3241,8 @@ final RegExp _weaveSlideRe = RegExp(
 /// assert a subject the source did not state.
 ///
 /// Clause-final brackets are commentary. In particular `with <dancer>` and
-/// `around <dancer>` use [resolveDancerSetPhrase] to emit the canonical token in
-/// the note. The classifier also processes adjacent parentheticals with the same
+/// `around <dancer>` must name a dancer [resolveDancerSetPhrase] resolves, and
+/// the note keeps the source's words (`with N2`). The classifier also processes adjacent parentheticals with the same
 /// synthesis and prose gates as [_perRoleChoreoAnnotation]/[_proseAnnotation],
 /// retaining source order without broadening either handler's no-bracket path.
 FigureMatch? _bracketAnnotation(String scrubbed) {
@@ -3345,14 +3369,35 @@ List<_TypedAnnotation> _typedAnnotations(String scrubbed) {
   return out;
 }
 
-/// Canonicalizes the dancer phrase in a clause-final `with`/`around` bracket
-/// when production's strict resolver can account for the whole phrase.
+/// The note for a clause-final `with`/`around` bracket: its relation word
+/// lower-cased and its dancer phrase in the source's own words (`with N2`).
+/// The note is shown as written, with only role words put in the reader's
+/// terms, so a dancer-set token (`nextNeighbors`) would reach the screen raw
+/// (the maintainer's ruling on pre-release audit finding C-07). A phrase the
+/// strict resolver cannot account for is kept as the whole bracket's text.
 String _canonicalSquareBracketNote(String body) {
   final m = _squareBracketRelationRe.firstMatch(body.trim());
   if (m == null) return body;
-  final who = resolveDancerSetPhrase(m.group(2)!);
-  return who == null ? body : '${m.group(1)!.toLowerCase()} $who';
+  final phrase = m.group(2)!;
+  final who = resolveDancerSetPhrase(phrase);
+  return who == null
+      ? body
+      : '${m.group(1)!.toLowerCase()} ${_bracketDancerWords(phrase)}';
 }
+
+/// A bracket's dancer phrase as the source writes it, for a note: trimmed,
+/// spaces collapsed, and a dancer code (`n2`, `m1`) in capitals as The
+/// Caller's Box prints it, since some readers see the line lower-cased. The
+/// adapter's balance-wave bracket note writes the same words.
+String _bracketDancerWords(String phrase) {
+  final words = phrase.trim().split(_bracketPhraseSpace).join(' ');
+  return _bracketDancerCode.hasMatch(words) ? words.toUpperCase() : words;
+}
+
+final RegExp _bracketPhraseSpace = RegExp(r'\s+');
+
+/// A dancer code alone: a letter and a digit (`N2`, `m1`).
+final RegExp _bracketDancerCode = RegExp(r'^[a-z][0-9]$', caseSensitive: false);
 
 final RegExp _squareBracketRelationRe = RegExp(
   r'^(with|around)\s+(.+)$',
@@ -4016,7 +4061,7 @@ String _otherShoulder(String s) => s == 'right' ? 'left' : 'right';
 /// another head, a second bracket, text after it) declines to custom, as the
 /// guards above do. The bracket is read as commentary, as
 /// [_bracketAnnotation] reads one (#744): the figure's `note` is then just its
-/// canonical text (`with nextNeighbors`), not the definition, which `who` and
+/// text in the source's words (`with N2`), not the definition, which `who` and
 /// `hand` already carry. A line with no bracket keeps the definition as its
 /// note.
 FigureMatch? _circulate(String scrubbed) {
@@ -4597,7 +4642,7 @@ FigureMatch? _hey(String scrubbed) {
   // One clause-final `[with …]` / `[around …]` bracket naming dancers the
   // notation resolves (`Hey 1/2 (WL;PR;ML) [with N1]`) is commentary on the
   // hey, read as [_bracketAnnotation] reads one on any other line: it becomes
-  // the figure's note (`with neighbors`) and the pass list still decodes. Any
+  // the figure's note (`with N1`) and the pass list still decodes. Any
   // other bracket, or one that does not resolve, leaves the line as it read
   // before (custom). *(User-ruled 2026-11-24.)*
   String? bracketNote;

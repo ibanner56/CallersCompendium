@@ -247,6 +247,19 @@ void main() {
     expect(_one('up a double').move, 'ecd_forward_and_back');
   });
 
+  group('turn around (user-ruled 2026-11-27)', () {
+    test('is turn alone, as in the contra grammar', () {
+      expect(_one('Turn around').move, 'ecd_turn_alone');
+      final men = _one('Men turn around');
+      expect(men.move, 'ecd_turn_alone');
+      expect(men.params['who'], ['role1s']);
+    });
+
+    test('a dancer after it is who is turned around, so it stays text', () {
+      expect(_one('Turn around partner').isCustom, isTrue);
+    });
+  });
+
   group('sequences (§5.4)', () {
     test('a subject is shared by the steps of its line (§8.1)', () {
       final f = _one('1st corners set forward and turn single back to place');
@@ -781,6 +794,62 @@ void main() {
       expect(_one('4 hands across').isCustom, isTrue);
       // Control: with a fraction, the size gives the places.
       expect(_one('circle six left half way').params['places'], 3);
+    });
+
+    test('a leading number of dancers is not read as beats', () {
+      for (final line in [
+        '3 couples circle left',
+        '2 couples right hands across',
+        '2 men turn single',
+        '3 men hey for three',
+        '1 man cast',
+        '2 ladies set',
+        '4 hands across',
+      ]) {
+        final f = _one(line);
+        expect(f.isCustom, isTrue, reason: line);
+        // The number counts dancers, so the line states no beats.
+        expect(f.beats, 0, reason: line);
+      }
+      // After a bar range, the bars count and the line is kept as typed.
+      final ranged = parseFreeTextFigureEntry(
+        '1-4 3 couples circle left',
+        taxonomy: _ecd,
+        meter: '3/2',
+      ).single;
+      expect(ranged.isCustom, isTrue);
+      expect(ranged.params['text'], '1-4 3 couples circle left');
+      expect(ranged.params['beats'], 12);
+      // A count stated elsewhere on the line is still its beats.
+      for (final (line, beats) in [
+        ('4 hands across (8)', 8),
+        ('2 men turn single (4)', 4),
+        ('3 couples circle left 8 beats', 8),
+      ]) {
+        final f = _one(line);
+        expect(f.isCustom, isTrue, reason: line);
+        expect(f.beats, beats, reason: line);
+      }
+      // In a `;` line too, the number of dancers is not a count.
+      for (final line in [
+        '3 couples circle left; turn single',
+        '2 men turn single; 2 women turn single',
+        'turn single; 1 man cast',
+      ]) {
+        final f = _one(line);
+        expect(f.isCustom, isTrue, reason: line);
+        expect(f.beats, 0, reason: line);
+      }
+      // Control: a bare count before a figure is still its beats, also before
+      // corners, and before a role when the number is too many of one role
+      // to be dancers.
+      expect(_one('8 circle left').params['beats'], 8);
+      for (final line in ['8 corners cross', '4 gentlemen cross']) {
+        final f = _one(line);
+        expect(f.isCustom, isFalse, reason: line);
+        expect(f.beats, line.startsWith('8') ? 8 : 4, reason: line);
+      }
+      expect(_typed('8 circle left; turn single').first.params['beats'], 8);
     });
 
     test('`to the right` is a way to travel, never a hand', () {

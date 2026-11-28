@@ -425,6 +425,34 @@ void main() {
       expect(figures.single.params['beats'], 8);
     });
 
+    test('keeps a line whose rest opens with a bare count whole, with the '
+        'bars', () {
+      // `8 circle left` alone is a circle of 8 beats; after a range, that
+      // count would be overwritten by the bars, so the line is kept as typed.
+      final figures = parseFreeTextFigureEntry(
+        '1-4 8 circle left',
+        taxonomy: ecd,
+        meter: '3/2',
+      );
+      expect(figures.single.isCustom, isTrue);
+      expect(figures.single.params['text'], '1-4 8 circle left');
+      expect(figures.single.params['beats'], 12);
+      // A number that is part of the figure is not a count, so the line is
+      // read and takes the bars.
+      for (final (line, move) in [
+        ('1-4 2 hand turn', 'ecd_two_hand_turn'),
+        ('1-4 2 changes of rights and lefts', 'ecd_rights_and_lefts'),
+      ]) {
+        final read = parseFreeTextFigureEntry(
+          line,
+          taxonomy: ecd,
+          meter: '3/2',
+        ).single;
+        expect(read.move, move, reason: line);
+        expect(read.params['beats'], 12, reason: line);
+      }
+    });
+
     test('keeps a line of two ranges whole, counted across both', () {
       for (final line in [
         '(5-8) circle left (9-12) circle right',
@@ -818,6 +846,64 @@ void main() {
         expect(
           dance.formation,
           const Formation(FormationShape.square, detail: 'Squares'),
+        );
+      });
+
+      test('takes no square set from a .USR description that only mentions '
+          'one past a shape of its own (pre-release audit finding B-06)', () {
+        Formation formationOf(String own) => mapped(
+          CcDanceRecord(
+            name: 'Set',
+            type: 'Contra',
+            formationOther: own,
+            fromUsrColumns: true,
+          ),
+        ).formation;
+        for (final (own, shapeFrom) in const [
+          ('Sicilian circle; square through to start', 'Sicilian circle'),
+          ('longways, not a square', 'longways'),
+        ]) {
+          final formation = formationOf(own);
+          expect(formation.shape, isNot(FormationShape.square), reason: own);
+          expect(formation.shape, formationOf(shapeFrom).shape, reason: own);
+          expect(formation.detail, contains(own), reason: own);
+        }
+        // A start word beside the shape does not hide it: no square set, and
+        // the words are kept. (Which shape `_mapFormation` reads a start and
+        // a shape together as is its own question.)
+        for (final own in const [
+          'Sicilian circle, improper; square through to start',
+          'Longways, proper; square through',
+        ]) {
+          final formation = formationOf(own);
+          expect(formation.shape, isNot(FormationShape.square), reason: own);
+          expect(formation.detail, contains(own), reason: own);
+        }
+        // A Becket's detail names the shape; the description's own words
+        // are kept beside it.
+        final becket = formationOf('Becket, square through to start');
+        expect(becket.shape, isNot(FormationShape.square));
+        expect(becket.detail, contains('Becket, square through to start'));
+        // A start word is not a shape: a square described with one is still
+        // a square set.
+        for (final own in const [
+          'Four couples in a square, improper',
+          'Four-couple square set, proper',
+        ]) {
+          expect(
+            formationOf(own),
+            Formation(FormationShape.square, detail: own),
+            reason: own,
+          );
+        }
+        // A description that starts by naming a square set is still one,
+        // whatever else it says.
+        expect(
+          formationOf('Square of four couples, proper'),
+          const Formation(
+            FormationShape.square,
+            detail: 'Square of four couples, proper',
+          ),
         );
       });
 

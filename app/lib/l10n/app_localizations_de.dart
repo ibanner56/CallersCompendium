@@ -766,6 +766,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Einstellungen der Gerätesynchronisierung konnten nicht gelesen werden, daher können die hier angezeigten Einstellungen veraltet sein, und die Gerätesynchronisierung kann ausgeschaltet sein, obwohl du sie eingeschaltet hast. Starte die App neu, um es erneut zu versuchen.';
 
   @override
+  String get syncRestoredCopyNotice =>
+      'Die Gerätesynchronisierung ist ausgeschaltet, weil diese Bibliothek aus einer Gerätesicherung wiederhergestellt wurde. Schalte sie unter Einstellungen ▸ Experimentell ▸ Gerätesynchronisierung wieder ein, dann synchronisiert dieses Gerät als neues Gerät und nicht als das Gerät, von dem die Sicherung stammt.';
+
+  @override
   String get settingsSyncFailureUnreachable =>
       'Der Synchronisierungsserver war nicht erreichbar.';
 
@@ -3871,6 +3875,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get backupRestored => 'Sicherung wiederhergestellt.';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Abendregeln wurden gelöscht, weil die Sicherung ihre gespeicherten Suchen nicht enthält.',
+      one:
+          '1 Abendregel wurde gelöscht, weil die Sicherung ihre gespeicherte Suche nicht enthält.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed =>
       'Die Sicherung konnte nicht wiederhergestellt werden. Versuche es erneut.';
 
@@ -5351,6 +5368,28 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String danceEditorHalfBarRefused(int beatsPerBar) {
     return 'Nur ganze Takte bei $beatsPerBar Schlägen pro Takt';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar Schlägen',
+      one: '1 Schlag',
+    );
+    return 'Die Schlagzahlen der Figuren wurden angepasst, damit jede Figur ihre Takte behält, jetzt mit $_temp0 pro Takt.';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar Schlägen',
+      one: '1 Schlag',
+    );
+    return 'Schlagzahlen nicht geändert: Nicht jede Figur konnte ihre Takte genau behalten, darum zählen sie jetzt in Takten zu $_temp0. Prüfe sie.';
   }
 
   @override
@@ -9140,6 +9179,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseRowsRow(int number) {
+    return 'Zeile $number';
+  }
+
+  @override
   String danceEditorPhraseRowsInvalid(int max) {
     return 'Gib in jedes Feld eine ganze Zahl von 1 bis $max ein, in einer Struktur, die nicht zu lang ist. Bis dahin bleibt die letzte gültige Phrasierungsstruktur erhalten.';
   }
@@ -12065,6 +12109,20 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get danceReimportTargetChanged =>
       'Dieser Tanz wurde geändert, bevor er aktualisiert werden konnte. Überprüfe ihn und versuche es erneut.';
+
+  @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both':
+          'Der Import ändert die Tanzform dieses Tanzes in $form, daher werden sein Barnes-Verweis und seine Markierung „Beginnt improper“ entfernt.',
+      'barnes':
+          'Der Import ändert die Tanzform dieses Tanzes in $form, daher wird sein Barnes-Verweis entfernt.',
+      'improper':
+          'Der Import ändert die Tanzform dieses Tanzes in $form, daher wird seine Markierung „Beginnt improper“ entfernt.',
+      'other': 'Der Import ändert die Tanzform dieses Tanzes in $form.',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get publishedCollectionsTitle => 'Veröffentlichte Sammlungen';
@@ -15131,6 +15189,19 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese gespeicherte Suche wurde gerade gelöscht, deshalb wurde die Regel nicht gespeichert. Wähle eine andere.';
 
   @override
+  String get eventRuleSaveFailed =>
+      'Die Regel konnte nicht gespeichert werden. Versuche es noch einmal.';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'Dieses Gerät hat $max Regeln, mehr geht nicht. Lösche eine, um eine andere hinzuzufügen.';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable =>
+      'Deine gespeicherten Suchen können gerade nicht gelesen werden, daher kann hier keine gewählt werden.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Wie viele';
 
   @override
@@ -15492,7 +15563,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programTemplateRuleRemovedUnknown =>
-      'Entfernt: eine Regel, die nicht auf diesem Gerät ist';
+      'Eine Regel, die nicht auf diesem Gerät ist';
 
   @override
   String get programTemplateRulesPickerTitle => 'Regeln für diese Vorlage';
@@ -15516,6 +15587,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       'Auf einem anderen Gerät hinzugefügt und noch unterwegs, oder endgültig weg. Entfernen nimmt sie aus diesem Programm.';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      'Auf einem anderen Gerät hinzugefügt und noch unterwegs, oder endgültig weg. Entfernen nimmt sie aus dieser Vorlage.';
+
+  @override
+  String get programsRulesPickerUnreadable =>
+      'Deine Regeln können gerade nicht gelesen werden.';
 
   @override
   String get programsRulesChangeFailed =>

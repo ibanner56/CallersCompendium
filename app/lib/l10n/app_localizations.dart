@@ -1184,6 +1184,12 @@ abstract class AppLocalizations {
   /// **'Device Sync\'s settings couldn\'t be read, so the settings shown here may be out of date, and Device Sync may be off even if you turned it on. Restart the app to try again.'**
   String get settingsSyncStatusSettingsUnreadable;
 
+  /// Message shown once at start-up when the app finds its library was restored from a device backup (Android Auto Backup or phone-to-phone transfer, an iCloud or computer backup, or iPhone-to-iPhone transfer) on a device where Device Sync was on. The app turned Device Sync off and dropped the old device's sync identity, so two devices never sync as one. 'Settings ▸ Experimental ▸ Device Sync' is where the toggle lives.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Sync is off because this library was restored from a device backup. Turn it back on under Settings ▸ Experimental ▸ Device Sync and this device will sync as a new device, not the one the backup came from.'**
+  String get syncRestoredCopyNotice;
+
   /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the transport could not connect at all: DNS failure, refused or dropped connection, or a failed secure (TLS) handshake.
   ///
   /// In en, this message translates to:
@@ -2810,7 +2816,7 @@ abstract class AppLocalizations {
   /// **'© The Caller\'s Compendium contributors. Licensed under AGPL-3.0-only.'**
   String get settingsAboutLegalese;
 
-  /// One-line tagline shown under the version on the About brand header, and used as the Linux launcher comment. 'Caller's box' is a colloquial term among dance callers for the bag or case of cards, notes and gear a caller carries; it is not a product name or trademark, so translate the idiom naturally rather than literally.
+  /// One-line tagline shown under the version on the About brand header, and used as the Linux launcher comment. 'Caller's box' is an everyday term among dance callers for the bag or case of cards, notes and gear a caller carries. The tagline uses that everyday phrase, which The Caller's Box (the community dance archive the app can import from) also plays on; translate the idiom naturally rather than literally.
   ///
   /// In en, this message translates to:
   /// **'Your caller\'s box, in the palm of your hand'**
@@ -5902,6 +5908,12 @@ abstract class AppLocalizations {
   /// **'Backup restored.'**
   String get backupRestored;
 
+  /// Second sentence of the snackbar after a backup restore (or its settings retry) that deleted event rules (Experimental): rules kept because the backup holds no rules, whose saved search the restore removed. Joined after backupRestored, backupRestoreSkippedProblems or backupRestoreSettingsRetried.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 event rule was deleted, because the backup doesn\'t have its saved search.} other{{count} event rules were deleted, because the backup doesn\'t have their saved searches.}}'**
+  String backupRestoreRemovedEventRules(int count);
+
   /// Snackbar shown when backup restore fails unexpectedly. The raw exception is logged separately, not shown in the UI.
   ///
   /// In en, this message translates to:
@@ -8137,6 +8149,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Whole bars only, with {beatsPerBar} beats to the bar'**
   String danceEditorHalfBarRefused(int beatsPerBar);
+
+  /// Message with an Undo button, shown when an English country dance's Meter is typed or changed after its figures: each figure's count in beats was changed so that it lasts as many bars as before, in bars of the new meter's beats.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure counts changed so each figure keeps its bars, now with {beatsPerBar, plural, =1{1 beat} other{{beatsPerBar} beats}} to the bar.'**
+  String danceEditorMeterFigureBarsKept(int beatsPerBar);
+
+  /// Message with an Undo button, shown when an English country dance's Meter is typed or changed after its figures and some figure's count cannot last the same number of bars in the new meter as a whole number of beats (such as a bar and a half moving into three beats to the bar): no count was changed, so the figures' lengths in bars now read differently.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure counts not changed: not every figure could keep its bars exactly, so they now read in bars of {beatsPerBar, plural, =1{1 beat} other{{beatsPerBar} beats}}. Check them.'**
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar);
 
   /// Label of the field giving the bars a whole sequence takes in an English country dance, as in 'A, B and C in bars 1–4'.
   ///
@@ -13420,6 +13444,12 @@ abstract class AppLocalizations {
   /// **'Remove row {number}'**
   String danceEditorPhraseRowsRemove(int number);
 
+  /// What a screen reader says before each field of one row of the phrase-structure rows of a contra or square dance (the fields are Phrases, Bars per phrase and Beats per bar), so the rows can be told apart. Not shown on screen. The number counts the rows from 1, as in danceEditorPhraseRowsRemove. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {number}'**
+  String danceEditorPhraseRowsRow(int number);
+
   /// Error under the phrase-structure rows of a contra or square dance when a number is empty, zero or above {max}, or the structure is too long. The phrase structure is kept as it was until it is fixed, and anything that saves it saves that kept structure. Also used for the default phrase structure in Settings.
   ///
   /// In en, this message translates to:
@@ -14797,13 +14827,13 @@ abstract class AppLocalizations {
   /// **'Add figures from text'**
   String get figureTextSheetTitle;
 
-  /// Help text at the top of the Add figures from text sheet, for an English dance or a square dance. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
+  /// Help text at the top of the Add figures from text sheet, for an English dance. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
   ///
   /// In en, this message translates to:
   /// **'Type or paste one figure per line, such as \"(8) neighbor balance & swing\". Each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.'**
   String get figureTextSheetHelp;
 
-  /// Help text at the top of the Add figures from text sheet, for a contra dance, where a leading phrase label (A1, A2, B1, B2, C1, C2) is dropped from each line. Keep A1 as it is. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
+  /// Help text at the top of the Add figures from text sheet, for a contra or square dance, where a leading phrase label (A1, A2, B1, B2, C1, C2) is dropped from each line. Keep A1 as it is. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
   ///
   /// In en, this message translates to:
   /// **'Type or paste one figure per line, such as \"A1 (8) neighbor balance & swing\". A phrase label such as A1 at the start of a line is left out, and each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.'**
@@ -17447,6 +17477,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This dance changed before it could be updated. Review it and try again.'**
   String get danceReimportTargetChanged;
+
+  /// Notice at the top of a dance's re-import preview (Re-import choreography on the dance page) when the incoming choreography changes the saved dance's form, such as an English dance refreshed from a contra-only source. {form} is a localized dance form name, such as 'Contra' (commonDanceFormContra). Only an English dance has a Barnes reference (where its tune is printed in the Barnes books; 'Barnes' is a name and stays as is) and a Starts improper mark (danceEditorImproperLabel), so a change to another form removes them. The select values are internal identifiers and must not be translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{dropped, select, both{Importing changes this dance\'s form to {form}, so its Barnes reference and its Starts improper mark will be removed.} barnes{Importing changes this dance\'s form to {form}, so its Barnes reference will be removed.} improper{Importing changes this dance\'s form to {form}, so its Starts improper mark will be removed.} other{Importing changes this dance\'s form to {form}.}}'**
+  String danceReimportFormChangeNotice(String dropped, String form);
 
   /// Title for the signed published-collection catalog.
   ///
@@ -21785,6 +21821,24 @@ abstract class AppLocalizations {
   /// **'That saved search was just deleted, so the rule wasn\'t saved. Choose another.'**
   String get eventRuleSavedSearchGone;
 
+  /// Snackbar in the rule editor when saving the rule failed for a reason other than its saved search being deleted or the rule limit, such as a database that can't be written. The editor stays open so Save can be tried again.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the rule. Try again.'**
+  String get eventRuleSaveFailed;
+
+  /// Snackbar in the rule editor when a new rule can't be saved because this device already holds the most event rules it can. The editor stays open.
+  ///
+  /// In en, this message translates to:
+  /// **'This device holds {max} rules, the most it can. Delete one to add another.'**
+  String eventRuleSaveLimit(int max);
+
+  /// In the rule editor, in place of the saved search choice, when the saved searches could not be read (a damaged or locked settings store). A rule being edited keeps its own saved search, so its other fields can still be changed and saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Your saved searches can\'t be read right now, so none can be chosen here.'**
+  String get eventRuleSearchesUnreadable;
+
   /// Label of the rule editor choice between At most, At least and None (#2340).
   ///
   /// In en, this message translates to:
@@ -22169,10 +22223,10 @@ abstract class AppLocalizations {
   /// **'Removed: {rule}'**
   String programTemplateRuleRemoved(String rule);
 
-  /// A rule on a program template that this device does not hold, deleted for good or not synced yet (#2342). It is not added to new programs.
+  /// A rule on a program template's Rules row that this device holds neither live nor deleted: still on its way from another device, or gone for good (#2342). Not called removed, since it may yet arrive. It is not added to new programs.
   ///
   /// In en, this message translates to:
-  /// **'Removed: a rule that isn\'t on this device'**
+  /// **'A rule that isn\'t on this device'**
   String get programTemplateRuleRemovedUnknown;
 
   /// Title of the rule picker opened from a program template's Rules row (#2342).
@@ -22198,6 +22252,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added on another device and still on the way, or gone for good. Remove takes them off this program.'**
   String get programsRulesPickerNotHereHelp;
+
+  /// Under programsRulesPickerNotHere in the rule picker opened from a program template's Rules row: what those rules are, and what Remove beside it does. The template form of programsRulesPickerNotHereHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Added on another device and still on the way, or gone for good. Remove takes them off this template.'**
+  String get programTemplateRulesPickerNotHereHelp;
+
+  /// Shown in the rule picker of a program or a program template, in place of the list, when the event rules could not be read (a damaged or locked database).
+  ///
+  /// In en, this message translates to:
+  /// **'Your rules can\'t be read right now.'**
+  String get programsRulesPickerUnreadable;
 
   /// Message at the bottom of the screen when ticking or unticking a rule in a program's Rules picker could not be saved (#2340).
   ///

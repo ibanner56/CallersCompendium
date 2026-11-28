@@ -518,6 +518,78 @@ device published before it detached, so the *Other devices* line for it counts
 as waiting only what changed since, and a record unchanged since that detach is
 not counted as waiting for it even when no live device has it.
 
+**A library restored from a device backup.** On Android, Auto Backup and
+device-to-device transfer copy the app's database, and so do an iCloud or
+computer backup and iPhone-to-iPhone transfer on iOS. The copy carries
+`sync_device_id`, `sync_id` and `sync_enabled`, so a phone set up that way
+would publish under the identifier of the device it was copied from, which may
+still be in use: two devices with one manifest, by a route no envelope check
+sees. The client therefore keeps, on Android and iOS, a marker file where device
+backup does not copy it (Android: `noBackupFilesDir`; iOS: Application Support,
+with `isExcludedFromBackup` set), and a settings flag in the library,
+`no_backup_marker_written`. The marker MUST NOT be kept anywhere the system
+clears on its own (a cache or temporary directory): one that vanished on a
+device that was never restored would read as a restore, and a false restore
+costs the user their sync, where a missed one costs only what this paragraph
+existed to prevent. At start-up, after migration and before anything reads the
+Device Sync settings (`restored_copy_check.dart`):
+
+1. **No flag:** the first start of a build that keeps the marker, on a fresh
+   install or after an update. Every install that updates has a library and no
+   marker yet, so the missing marker means nothing here. The client writes the
+   marker, then the flag, and changes nothing else. The flag is written only
+   once the marker is in place, because a flag beside a missing marker is what
+   a restored copy looks like.
+2. **Flag and marker:** an ordinary start.
+3. **Flag, no marker:** a restored copy. In one transaction the client erases
+   `sync_device_id`, sets `sync_enabled` to `false` and removes the flag; it
+   then writes the marker and the flag as in rule 1, and says why Device Sync
+   is off if it was on. A start interrupted before the transaction commits is
+   recognised again. If the marker cannot be written afterwards, the failure
+   is logged and the notice still shown; with the flag gone, the next start is
+   rule 1, so a sync the user has turned back on is not turned off again.
+
+Any other failure to read or write the marker or a setting is logged and
+changes nothing: the start goes on with Device Sync as it was. The notice is
+shown once, at that start; an app closed before it appears does not show it
+again, and Device Sync's own section still shows that sync is off. Desktop platforms
+keep no marker and run no check; a desktop library moves by copying files or by
+the app's own backup file, and no desktop folder is known to be skipped by its
+backup tools.
+
+When the user turns Device Sync on again, the next coordinator mints a new
+identifier, as it does whenever none is stored. The restored copy keeps its sync ID, endpoint and
+sync-local tables, so it resumes steady-state sync with the copied baseline
+rather than attaching afresh. Its first pass publishes in full, because the
+store does not list its new identifier and so its last publication is not
+current (§6.3 step 8). The identifier it gave up stays with the device the
+library came from. Nothing is sent on restore: the detach clean-up below does
+not run, and the store keeps the old device's manifest, which is that device's
+own as long as it is in use.
+
+The check cannot tell another device from the same one restored. A reinstall
+on Android, whose Auto Backup puts the database back, and a phone erased and
+restored from its own backup are treated as restored copies too, as is a new
+phone whose old one has been wiped. There the old identifier is no longer in
+use, and its manifest is the leftover the re-attach paragraph above
+describes: it occupies a device slot and counts as a peer until it is removed
+under *Other devices*, since manifests do not expire per device (rule 4's
+bound, below). That is the cost of not linking
+installations, the same one re-attaching already pays.
+
+**Known gap:** a backup taken by a build older than this one holds no flag, so
+restoring it reads as rule 1, an update, and the copy keeps the old identifier.
+So does any copy whose marker a backup carried despite its exclusion. Neither
+can be told apart from a genuine update or an ordinary start without the link
+between installations this check avoids.
+
+*Amended 2026-11-27 (pre-release audit finding PRIV-03): added. The maintainer
+chose a marker kept out of device backup, and that a restored copy gets a new
+identifier with Device Sync off until the user turns it on. The flag that keeps
+an update from reading as a restore, the marker's locations, erasing the
+identifier rather than minting at start-up, and saying nothing when sync was
+already off were the implementing change's calls, not the maintainer's.*
+
 **Detach clean-up.** After detach has committed its local clear, a client MAY
 make one attempt to `DELETE /v1/manifests/{self}` for the attachment it has just
 left. It MUST NOT delay or fail the detach, MUST NOT be retried later, MUST hold
@@ -1809,7 +1881,7 @@ sanitisation strips only characters NFC never produces, so applying the
 composition again is a no-op.
 
 **The transform is applied with line breaks permitted.** `allowLineBreaks`
-governs exactly three code points — tab, LF and CR (`text_sanitizer.dart:113`) —
+governs exactly three code points — tab, LF and CR (`_isDisallowed` in `text_sanitizer.dart`) —
 and every other class above is stripped unconditionally. Sanitising on write
 with the default therefore removes precisely the characters that threaten hash
 stability and touches no legitimate structure. Whether a *title* may contain a
@@ -5061,7 +5133,7 @@ A client MUST therefore show a **persistent hint** on a venue whose
 3. **It MUST name the fields that stay on the device, and MUST NOT promise that
    contact details do not travel.** `venues.notes` is `shareable` — ruled so
    deliberately, because it is the user's own words — and the classification it
-   carries (`_freeformNote`, `field_registry.dart:264`) records the interaction
+   carries (`_freeformNote` in `field_registry.dart`) records the interaction
    as knowingly accepted residual risk: *"a user who wrote 'ask for Bob,
    555-1234' into a venue note will have that text travel with the note."* A
    hint saying "contact details stay on this device" would be a false assurance
@@ -5621,8 +5693,8 @@ the server to parse arbitrary non-record JSON or binary opaque blobs.
 
 **Deployment ordering.** Because that mapping is generated from the client's
 registry and lives on the server, **the server MUST be deployed before any
-client emits a new `shareable` field or a new record kind.** Adding either does
-not bump `v` (§4.1 bumps only for a canonicalisation change), so nothing in the
+client emits a new `shareable` field, settings key or key prefix, or a new
+record kind** (§6.15, "Server"). Adding any of them does not bump `v` (§4.1 bumps only for a canonicalisation change), so nothing in the
 wire format signals the difference: a client shipping ahead of the server gets
 `422` on every affected blob, and `422` MUST be surfaced to the user and MUST
 NOT be retried (§5.3). This ordering constraint is load-bearing for every

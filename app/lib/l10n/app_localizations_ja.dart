@@ -728,6 +728,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'デバイス同期の設定を読み込めなかったため、ここに表示されている設定が最新でない可能性があり、オンにしていてもデバイス同期がオフになっている可能性があります。アプリを再起動してもう一度お試しください。';
 
   @override
+  String get syncRestoredCopyNotice =>
+      'このライブラリはデバイスのバックアップから復元されたため、デバイス同期はオフになっています。設定 ▸ 実験的 ▸ デバイス同期 でもう一度オンにすると、このデバイスはバックアップ元のデバイスとしてではなく、新しいデバイスとして同期します。';
+
+  @override
   String get settingsSyncFailureUnreachable => '同期サーバーに接続できませんでした。';
 
   @override
@@ -3646,6 +3650,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupRestored => 'バックアップを復元しました。';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'バックアップに保存した検索がないため、イベントルールを$count件削除しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed => 'バックアップを復元できませんでした。もう一度お試しください。';
 
   @override
@@ -5063,6 +5077,26 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String danceEditorHalfBarRefused(int beatsPerBar) {
     return '1小節$beatsPerBar拍では小節単位で入力してください';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar拍',
+    );
+    return '各フィギュアの小節数が変わらないよう拍数を変更しました（1小節$_temp0）。';
+  }
+
+  @override
+  String danceEditorMeterFigureBarsNotKept(int beatsPerBar) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beatsPerBar,
+      locale: localeName,
+      other: '$beatsPerBar拍',
+    );
+    return '拍数は変更していません。小節数をそのまま保てないフィギュアがあるため、1小節$_temp0で読み直されます。確認してください。';
   }
 
   @override
@@ -8693,6 +8727,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseRowsRow(int number) {
+    return '$number行目';
+  }
+
+  @override
   String danceEditorPhraseRowsInvalid(int max) {
     return '各欄に1から$maxまでの整数を入力してください。長すぎる構造にはできません。それまでは最後の有効なフレーズ構造が保たれます。';
   }
@@ -11482,6 +11521,17 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get danceReimportTargetChanged =>
       'このダンスは更新前に変更されました。内容を確認して、もう一度お試しください。';
+
+  @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both': 'インポートするとこのダンスの形式が$formに変わるため、Barnes 掲載箇所と「インプロパーで始まる」の印が削除されます。',
+      'barnes': 'インポートするとこのダンスの形式が$formに変わるため、Barnes 掲載箇所が削除されます。',
+      'improper': 'インポートするとこのダンスの形式が$formに変わるため、「インプロパーで始まる」の印が削除されます。',
+      'other': 'インポートするとこのダンスの形式が$formに変わります。',
+    });
+    return '$_temp0';
+  }
 
   @override
   String get publishedCollectionsTitle => '公開コレクション';
@@ -14420,6 +14470,17 @@ class AppLocalizationsJa extends AppLocalizations {
       'その保存済み検索は削除されたため、ルールは保存されませんでした。別の検索を選んでください。';
 
   @override
+  String get eventRuleSaveFailed => 'ルールを保存できませんでした。もう一度お試しください。';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'このデバイスにはルールが上限の$max件あります。別のルールを追加するには、どれかを削除してください。';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable => '保存した検索を今は読み込めないため、ここでは選べません。';
+
+  @override
   String get eventRuleQuantifierLabel => '数';
 
   @override
@@ -14752,7 +14813,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get programTemplateRuleRemovedUnknown => '削除済み: このデバイスにないルール';
+  String get programTemplateRuleRemovedUnknown => 'このデバイスにないルール';
 
   @override
   String get programTemplateRulesPickerTitle => 'このテンプレートのルール';
@@ -14775,6 +14836,13 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       '別のデバイスで追加されてまだ届いていないか、すでに存在しません。「削除」でこのプログラムから外します。';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      '別のデバイスで追加されてまだ届いていないか、すでに存在しません。「削除」でこのテンプレートから外します。';
+
+  @override
+  String get programsRulesPickerUnreadable => 'ルールを今は読み込めません。';
 
   @override
   String get programsRulesChangeFailed => 'このプログラムのルールを変更できませんでした。もう一度お試しください。';

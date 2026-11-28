@@ -308,6 +308,13 @@ final RegExp _comma = RegExp(r',');
 final RegExp _spaceRun = RegExp(r'\s+');
 final RegExp _edgeStops = RegExp(r'^[.!]+|[.!]+$');
 
+/// A bracket left after [_bracketGroup] lifted the asides out: an unbalanced
+/// one ([_lex]).
+final RegExp _strayBracket = RegExp(r'[()\[\]{}]');
+
+/// A word the grammar reads: letters, digits, `/`, `.` and `'` ([_lex]).
+final RegExp _lexWord = RegExp(r"^[a-z0-9/.']+$");
+
 /// [text] as lowercase tokens, with each bracketed aside lifted out as a note,
 /// or null when the text holds something the grammar never reads: an
 /// unbalanced bracket, or punctuation other than a comma and a closing stop.
@@ -318,7 +325,7 @@ final RegExp _edgeStops = RegExp(r'^[.!]+|[.!]+$');
     if (inner.isNotEmpty) notes.add(inner);
     return ' ';
   });
-  if (RegExp(r'[()\[\]{}]').hasMatch(body)) return null;
+  if (_strayBracket.hasMatch(body)) return null;
   body = body
       .toLowerCase()
       .replaceAll('½', ' 1/2 ')
@@ -336,7 +343,7 @@ final RegExp _edgeStops = RegExp(r'^[.!]+|[.!]+$');
     if (word.isEmpty) continue;
     // A word with punctuation the grammar does not read (a dash between
     // words, a colon, a quote) keeps the line out.
-    if (word != ',' && !RegExp(r"^[a-z0-9/.']+$").hasMatch(word)) return null;
+    if (word != ',' && !_lexWord.hasMatch(word)) return null;
     tokens.add(word);
   }
   // A comma at either end states nothing.
@@ -726,6 +733,8 @@ final List<_VerbPhrase> _verbPhrases = [
   _v('turn single', 'turn_single'),
   _v('cloverleaf turn single', 'turn_single', {'cloverleaf': true}),
   _v('turn alone', 'turn_alone'),
+  // User-ruled 2026-11-27: turn around is turn alone, in every grammar.
+  _v('turn around', 'turn_alone'),
   _v('hand turn', 'turn'),
   _v('turn', 'turn'),
   _v('two hand turn', 'turn', {'hand': 'two'}),

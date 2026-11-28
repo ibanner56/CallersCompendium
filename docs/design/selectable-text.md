@@ -126,7 +126,7 @@ sentence.
 **Options:**
 
 - **A. Desktop only** (Windows, macOS, Linux). Gate on
-  `defaultTargetPlatform`, the way `search_panel_bar.dart:108,125` already
+  `defaultTargetPlatform`, the way `search_panel_bar.dart` already
   branches. *Trade-off:* it keeps phone behaviour byte-for-byte and the change
   small. It leaves phone callers with **Copy dance** alone.
 - **B. All platforms.** *Trade-off:* long-press starts a selection on Android
