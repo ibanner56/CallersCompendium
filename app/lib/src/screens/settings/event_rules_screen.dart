@@ -60,6 +60,12 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
   /// needing attention for its search until a read succeeds.
   bool _searchNamesKnown = false;
 
+  /// Moves on with each failure of the rules' watch and each Try again. A
+  /// rules event still reading its search names when either happens is
+  /// dropped when the read ends, so it cannot clear the error view (or show
+  /// a failed watch's rules) after the fact.
+  int _watchGeneration = 0;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -71,6 +77,7 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
     final repos = RepositoriesScope.of(context);
     _subscription = repos.eventRules.watchAll().listen(
       (rules) async {
+        final generation = _watchGeneration;
         // A failed read of the saved search names still lists the rules,
         // named with the names last read (or none), rather than never
         // listing them; it flags no rule for its search.
@@ -84,7 +91,7 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
             source: 'event_rules_screen.search_names',
           );
         }
-        if (!mounted) return;
+        if (!mounted || generation != _watchGeneration) return;
         setState(() {
           _rules = rules;
           _loadFailed = false;
@@ -98,6 +105,7 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
           stackTrace,
           source: 'event_rules_screen.rules_watch',
         );
+        _watchGeneration++;
         if (mounted) setState(() => _loadFailed = true);
       },
     );
@@ -107,6 +115,7 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
   /// so it is opened afresh rather than waited on.
   void _retry() {
     unawaited(_subscription?.cancel());
+    _watchGeneration++;
     setState(() {
       _rules = null;
       _loadFailed = false;
