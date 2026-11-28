@@ -321,6 +321,32 @@ void main() {
       expect(survivor.deceased, isTrue);
       expect(await ftsColumn('d1', 'authors'), 'Gene Hubert');
     });
+
+    test('bumps a dance that credits the loser only as '
+        'interpreter', () async {
+      final _ = await repos.choreographers.upsert(
+        Choreographer(id: a, name: 'Gene Hubert'),
+        at: t0,
+      );
+      final _ = await repos.choreographers.upsert(
+        Choreographer(id: b, name: 'Gene Hurbert'),
+        at: t0,
+      );
+      await dance('d1', interpreters: [b]);
+      final before = await (db.select(
+        db.dances,
+      )..where((t) => t.id.equals('d1'))).getSingle();
+
+      await edits.merge(ReferenceKind.author, intoId: a, otherIds: [b]);
+
+      final after = await (db.select(
+        db.dances,
+      )..where((t) => t.id.equals('d1'))).getSingle();
+      // Its serialised content changed without its row being written, so it
+      // needs a fresh stamp for peers to take the change (§6.5 I1).
+      expect(after.updatedAt.isAfter(before.updatedAt), isTrue);
+      expect((await repos.dances.getById('d1'))!.interpreterIds, [a]);
+    });
   });
 
   group('Undo of a merge', () {
