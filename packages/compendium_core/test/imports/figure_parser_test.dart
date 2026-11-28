@@ -1809,7 +1809,7 @@ void main() {
       ('Twos arch, ones dive', 'twos', null),
       ('Ones arch, twos dive', 'ones', null),
       ('Ones arch, twos dive (all backwards)', 'ones', 'all backwards'),
-      ('Twos arch, ones dive [with N1]', 'twos', 'with neighbors'),
+      ('Twos arch, ones dive [with N1]', 'twos', 'with N1'),
     ]) {
       test('"$line" → arch_and_dive who=$who', () {
         final f = _parseLine(line, beats: 4)!;
@@ -1903,7 +1903,7 @@ void main() {
       final f = _parseLine('Star left 1 & 1/8 [with N2]');
       expect(f!.isCustom, isFalse);
       expect(f.params['places'], 5);
-      expect(f.note, '1 & 1/8; with nextNeighbors');
+      expect(f.note, '1 & 1/8; with N2');
     });
 
     // Rounding can push a compound past the 1..10 places range: still custom.

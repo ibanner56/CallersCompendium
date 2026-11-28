@@ -232,6 +232,7 @@ def test_real_tree() -> None:
     names = {f.name for f in files}
     check("checks dedupe.dart", "dedupe.dart" in names)
     check("checks figure_parser.dart", "figure_parser.dart" in names)
+    check("checks the English parser", {"ecd_figure_parser.dart", "ecd_bars.dart"} <= names)
     check("checks the dialect files", {"callersbox_figure_dialect.dart", "contradb_figure_dialect.dart"} <= names)
     found = {
         f.relative_to(REPO_ROOT).as_posix(): find_offenders(f.read_text(encoding="utf-8"))

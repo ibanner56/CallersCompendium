@@ -17,7 +17,11 @@ typedef FormationSetName = ({FormationShape shape, String? qualifier});
 /// The start word ("Proper", "Improper", "Indecent") is returned as
 /// [FormationSetName.qualifier] for the caller to keep as the formation's
 /// detail, the way the Caller's Companion `.USR` path keeps a triple minor's
-/// start. It is null when the name states none.
+/// start. An order the couples end in, in brackets after the name ("(231)"),
+/// is kept in it too ("Proper (231)", or "(231)" with no start word), since
+/// the stored formation does not otherwise say who ends where (the
+/// maintainer's ruling on pre-release audit finding C-08). It is null when the
+/// name states neither.
 FormationSetName? classifyFormationSetName(String lower) {
   final FormationShape shape;
   if (lower.contains('quadruplet')) {
@@ -41,8 +45,20 @@ FormationSetName? classifyFormationSetName(String lower) {
   } else {
     qualifier = null;
   }
-  return (shape: shape, qualifier: qualifier);
+  final order = _coupleOrder.firstMatch(lower)?.group(0);
+  return (
+    shape: shape,
+    qualifier: order == null
+        ? qualifier
+        : [?qualifier, order.replaceAll(_space, '')].join(' '),
+  );
 }
+
+/// The order the couples end in, as a set name writes it: two to four digits
+/// in brackets, `(231)` or `(2341)`.
+final RegExp _coupleOrder = RegExp(r'\(\s*\d{2,4}\s*\)');
+
+final RegExp _space = RegExp(r'\s+');
 
 /// [qualifier] and [detail] joined into one formation detail (`; `, as the
 /// Caller's Companion import joins details), or null when both are absent.

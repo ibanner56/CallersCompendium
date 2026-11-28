@@ -12000,6 +12000,20 @@ class AppLocalizationsDa extends AppLocalizations {
       'Denne dans blev ændret, før den kunne opdateres. Gennemgå den, og prøv igen.';
 
   @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both':
+          'Import ændrer dansens danseform til $form, så dens Barnes-henvisning og dens markering Starter improper fjernes.',
+      'barnes':
+          'Import ændrer dansens danseform til $form, så dens Barnes-henvisning fjernes.',
+      'improper':
+          'Import ændrer dansens danseform til $form, så dens markering Starter improper fjernes.',
+      'other': 'Import ændrer dansens danseform til $form.',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String get publishedCollectionsTitle => 'Udgivne samlinger';
 
   @override

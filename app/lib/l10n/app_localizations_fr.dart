@@ -12139,6 +12139,20 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cette danse a changé avant de pouvoir être mise à jour. Vérifiez-la et réessayez.';
 
   @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both':
+          'L’importation change la forme de cette danse en $form : sa référence Barnes et sa marque « Commence improper » seront supprimées.',
+      'barnes':
+          'L’importation change la forme de cette danse en $form : sa référence Barnes sera supprimée.',
+      'improper':
+          'L’importation change la forme de cette danse en $form : sa marque « Commence improper » sera supprimée.',
+      'other': 'L’importation change la forme de cette danse en $form.',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String get publishedCollectionsTitle => 'Collections publiées';
 
   @override
