@@ -251,19 +251,23 @@ void main() {
   testWidgets('the Rules strip tells a screen reader when it appears: its '
       'summary is a live region', (tester) async {
     final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
-    final seeded = await _seed();
-    final on = await _pump(tester, seeded.repos, enabled: false);
-    expect(_strip, findsNothing);
+    try {
+      final seeded = await _seed();
+      final on = await _pump(tester, seeded.repos, enabled: false);
+      expect(_strip, findsNothing);
 
-    // The program's rules start to be checked, and it breaks two: the strip
-    // arrives, and its summary is announced as it does.
-    on.value = true;
-    await pumpUntilFound(tester, _strip);
-    expect(
-      tester.getSemantics(find.text('2 rules not met')),
-      containsSemantics(label: '2 rules not met', isLiveRegion: true),
-    );
+      // The program's rules start to be checked, and it breaks two: the strip
+      // arrives, and its summary is announced as it does.
+      on.value = true;
+      await pumpUntilFound(tester, _strip);
+      expect(
+        tester.getSemantics(find.text('2 rules not met')),
+        containsSemantics(label: '2 rules not met', isLiveRegion: true),
+      );
+    } finally {
+      // Disposed in the body: the framework checks handles before teardowns.
+      semantics.dispose();
+    }
   });
 
   testWidgets('slot markers pair an icon with text and name the rules to a '
