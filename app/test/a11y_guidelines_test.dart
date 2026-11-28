@@ -18,13 +18,26 @@
 // scale change for the overflow passes, so each screen is a single test.
 // Screens are separate `testWidgets` so a failure names its screen and CI can
 // shard them.
+import 'dart:async';
+
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
+import 'package:compendium_app/src/data/display_defaults.dart' show ProgramTemplateEntry;
+import 'package:compendium_app/src/data/event_rules_scope.dart';
+import 'package:compendium_app/src/data/program_templates.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_log_store.dart';
 import 'package:compendium_app/src/screens/settings/diagnostics_section.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
+import 'package:compendium_app/src/screens/calendar_import_screen.dart';
+import 'package:compendium_app/src/screens/combined_programs_screen.dart';
+import 'package:compendium_app/src/screens/ecd_migration_screen.dart';
+import 'package:compendium_app/src/screens/repertoire_screen.dart';
+import 'package:compendium_app/src/screens/settings/event_rules_screen.dart';
+import 'package:compendium_app/src/screens/settings/perform_swap_defaults_screen.dart';
+import 'package:compendium_app/src/screens/settings/program_templates_screen.dart';
+import 'package:compendium_app/src/screens/settings/suggestion_settings_screen.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
@@ -47,8 +60,10 @@ const _phone = Size(360, 780);
 /// Every page Settings opens on a phone (`settings-nav-<name>`), except
 /// `diagnostics`, which reads an on-disk crash log that never completes under
 /// `pumpAndSettle`; it is swept by its own test below with an in-memory store.
+/// The test "the Settings sweep lists every section" holds this to the hub.
 const _settingsSections = [
   'general',
+  'collection',
   'program',
   'appearance',
   'dialect',
@@ -138,7 +153,70 @@ Future<AppData> _seed() async {
       updatedAt: stamp,
     ),
   );
+  // A second program, for the combined view.
+  await repos.programs.create(
+    Program(
+      id: 'p2',
+      title: 'Winter Ball',
+      slots: [
+        ProgramSlot(id: 'w1', position: 0, danceId: 'd2'),
+        ProgramSlot(id: 'w2', position: 1, danceId: 'd4'),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    ),
+  );
+  // Event rules (Experimental) on, with rules to list, and templates to list
+  // and edit.
+  await repos.settings.set(kEventRulesEnabledKey, true);
+  final facets = FacetSelections()..formations.add(FormationShape.becketCcw);
+  final search = await repos.savedSearches.create(
+    name: 'Becket dances from the long weekend list',
+    spec: SavedSearchSpec.fromPanelState(
+      CollectionPanelState(facets: facets),
+      today: DateTime.utc(2026, 1, 1),
+    ).value!,
+  );
+  for (final (quantifier, scope, nickname) in [
+    (EventRuleQuantifier.atMost, EventRuleScope.wholeProgram, null),
+    (EventRuleQuantifier.atLeast, EventRuleScope.afterFirstBreak, null),
+    (EventRuleQuantifier.none, EventRuleScope.beforeFirstBreak, 'Easy start'),
+    (EventRuleQuantifier.atMost, EventRuleScope.neighbouring, null),
+    (EventRuleQuantifier.atMost, EventRuleScope.beforeFirstBreak, null),
+    (EventRuleQuantifier.atLeast, EventRuleScope.wholeProgram, _longTitle),
+  ]) {
+    await repos.eventRules.create(
+      savedSearchId: search.id,
+      quantifier: quantifier,
+      count: quantifier == EventRuleQuantifier.none ? 0 : 1,
+      scope: scope,
+      nickname: nickname,
+    );
+  }
+  await saveProgramTemplate(repos.settings, _template);
   return appData;
+}
+
+/// A template with a dance, a text slot and a break, for its editor.
+const _template = ProgramTemplate(
+  id: 'tpl-autumn',
+  name: 'The Autumn Harvest Ball, long-weekend evening',
+  entries: [
+    ProgramTemplateEntry(danceId: 'd4'),
+    ProgramTemplateEntry(text: 'Waltz'),
+    ProgramTemplateEntry(text: Program.breakSlotText),
+    ProgramTemplateEntry(danceId: 'd1'),
+  ],
+);
+
+/// Pushes [screen] over the app, as the row that opens it does.
+Future<void> _push(WidgetTester tester, Widget screen) async {
+  unawaited(
+    Navigator.of(
+      tester.element(find.byType(AppShell)),
+    ).push(MaterialPageRoute<void>(builder: (_) => screen)),
+  );
+  await tester.pumpAndSettle();
 }
 
 Future<void> _setSize(WidgetTester tester, Size size) async {
@@ -463,6 +541,163 @@ void main() {
     tester.state<AppShellState>(find.byType(AppShell)).importDances();
     await tester.pumpAndSettle();
   }, landedOn: find.byType(ImportReviewScreen));
+
+  // Screens added since v0.10.0-beta (audit L10N-09). Each is pushed as the
+  // row or button that opens it does; the path to it is not what is swept.
+  _screen(
+    'Repertoire',
+    (tester) => _push(tester, const RepertoireScreen()),
+    landedOn: find.byType(RepertoireScreen),
+    atLargeText: (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      await tester.pumpAndSettle();
+      expect(
+        await _scrollThrough(tester, mustScroll: false),
+        isEmpty,
+        reason: 'Repertoire, scrolled to the end at 2.0x',
+      );
+    },
+  );
+
+  _screen(
+    'Combined view',
+    (tester) =>
+        _push(tester, const CombinedProgramsScreen(programIds: {'p1', 'p2'})),
+    landedOn: find.byType(CombinedProgramsScreen),
+  );
+
+  _screen(
+    'Calendar import',
+    (tester) => _push(tester, const CalendarImportScreen()),
+    landedOn: find.byType(CalendarImportScreen),
+  );
+
+  _screen(
+    'Manage rules',
+    (tester) => _push(tester, const EventRulesScreen()),
+    landedOn: find.text('Easy start'),
+    atLargeText: (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      await tester.pumpAndSettle();
+      expect(
+        await _scrollThrough(tester, mustScroll: false),
+        isEmpty,
+        reason: 'Manage rules, scrolled to the end at 2.0x',
+      );
+    },
+  );
+
+  _screen(
+    'Rule editor',
+    (tester) async {
+      await _push(tester, const EventRulesScreen());
+      await tester.tap(find.text('Easy start'));
+      await tester.pumpAndSettle();
+    },
+    landedOn: find.byType(EventRuleEditorScreen),
+    atLargeText: (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      await tester.pumpAndSettle();
+      expect(
+        await _scrollThrough(tester, mustScroll: false),
+        isEmpty,
+        reason: 'Rule editor, scrolled to the end at 2.0x',
+      );
+    },
+  );
+
+  _screen(
+    'Program templates',
+    (tester) => _push(tester, const ProgramTemplatesScreen()),
+    landedOn: find.byKey(const ValueKey('program-template-tile-tpl-autumn')),
+  );
+
+  _screen(
+    'Template editor',
+    (tester) async {
+      await _push(tester, const ProgramTemplatesScreen());
+      await _tapKey(tester, 'program-template-tile-tpl-autumn');
+    },
+    landedOn: find.byType(ProgramTemplateEditorScreen),
+    atLargeText: (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      await tester.pumpAndSettle();
+      expect(
+        await _scrollThrough(tester, mustScroll: false),
+        isEmpty,
+        reason: 'Template editor, scrolled to the end at 2.0x',
+      );
+    },
+  );
+
+  _screen(
+    'Suggestion settings',
+    (tester) => _push(tester, const SuggestionSettingsScreen()),
+    landedOn: find.byType(SuggestionSettingsScreen),
+    atLargeText: (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      await tester.pumpAndSettle();
+      expect(
+        await _scrollThrough(tester, mustScroll: false),
+        isEmpty,
+        reason: 'Suggestion settings, scrolled to the end at 2.0x',
+      );
+    },
+  );
+
+  _screen(
+    'Perform swap defaults',
+    (tester) => _push(tester, const PerformSwapDefaultsScreen()),
+    landedOn: find.byType(PerformSwapDefaultsScreen),
+  );
+
+  _screen(
+    'Convert English dances',
+    (tester) => _push(tester, const EcdMigrationScreen()),
+    landedOn: find.byType(EcdMigrationScreen),
+  );
+
+  // A ratchet on [_settingsSections]: a section added to the hub is swept, or
+  // named here as the exception.
+  testWidgets('the Settings sweep lists every section', (tester) async {
+    await loadBundledFonts();
+    installFakeWakelock();
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.view.resetPhysicalSize();
+    });
+    final appData = await _seed();
+    // Tall, so the hub's list is built to its end.
+    await _setSize(tester, const Size(360, 3000));
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        integrityCheck: () async => true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Settings').last);
+    await tester.pumpAndSettle();
+    final onHub = {
+      for (final element
+          in find
+              .byWidgetPredicate(
+                (w) =>
+                    w.key is ValueKey<String> &&
+                    (w.key! as ValueKey<String>).value.startsWith(
+                      'settings-nav-',
+                    ),
+              )
+              .evaluate())
+        (element.widget.key! as ValueKey<String>).value.substring(
+          'settings-nav-'.length,
+        ),
+    };
+    // Positive control: the hub was found at all.
+    expect(onHub, contains('general'));
+    expect(onHub, {..._settingsSections, 'diagnostics'});
+  });
 
   // Settings > Diagnostics, outside the full-app sweep (see `_settingsSections`).
   testWidgets('Settings, diagnostics', (tester) async {

@@ -34,10 +34,23 @@
 //
 // This supplements the manual gate; it does not replace it. It does not check
 // the activation keys (Enter, Space), contrast, or text fields' own editing.
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
+import 'package:compendium_app/src/data/display_defaults.dart' show ProgramTemplateEntry;
+import 'package:compendium_app/src/data/event_rules_scope.dart';
+import 'package:compendium_app/src/data/program_templates.dart';
+import 'package:compendium_app/src/screens/app_shell.dart';
+import 'package:compendium_app/src/screens/calendar_import_screen.dart';
+import 'package:compendium_app/src/screens/combined_programs_screen.dart';
+import 'package:compendium_app/src/screens/ecd_migration_screen.dart';
+import 'package:compendium_app/src/screens/repertoire_screen.dart';
+import 'package:compendium_app/src/screens/settings/event_rules_screen.dart';
+import 'package:compendium_app/src/screens/settings/perform_swap_defaults_screen.dart';
+import 'package:compendium_app/src/screens/settings/program_templates_screen.dart';
+import 'package:compendium_app/src/screens/settings/suggestion_settings_screen.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
@@ -140,7 +153,70 @@ Future<AppData> _seed() async {
       updatedAt: stamp,
     ),
   );
+  // A second program, for the combined view.
+  await repos.programs.create(
+    Program(
+      id: 'p2',
+      title: 'Winter Ball',
+      slots: [
+        ProgramSlot(id: 'w1', position: 0, danceId: 'd2'),
+        ProgramSlot(id: 'w2', position: 1, danceId: 'd1'),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    ),
+  );
+  // Event rules (Experimental) on, with six rules to list, and a template to
+  // list and edit.
+  await repos.settings.set(kEventRulesEnabledKey, true);
+  final facets = FacetSelections()..formations.add(FormationShape.becketCcw);
+  final search = await repos.savedSearches.create(
+    name: 'Becket',
+    spec: SavedSearchSpec.fromPanelState(
+      CollectionPanelState(facets: facets),
+      today: DateTime.utc(2026, 1, 1),
+    ).value!,
+  );
+  for (final (quantifier, scope, nickname) in [
+    (EventRuleQuantifier.atMost, EventRuleScope.wholeProgram, null),
+    (EventRuleQuantifier.atLeast, EventRuleScope.afterFirstBreak, null),
+    (EventRuleQuantifier.none, EventRuleScope.beforeFirstBreak, 'Easy start'),
+    (EventRuleQuantifier.atMost, EventRuleScope.neighbouring, null),
+    (EventRuleQuantifier.atMost, EventRuleScope.beforeFirstBreak, null),
+    (EventRuleQuantifier.atLeast, EventRuleScope.wholeProgram, 'Late lift'),
+  ]) {
+    await repos.eventRules.create(
+      savedSearchId: search.id,
+      quantifier: quantifier,
+      count: quantifier == EventRuleQuantifier.none ? 0 : 1,
+      scope: scope,
+      nickname: nickname,
+    );
+  }
+  await saveProgramTemplate(
+    repos.settings,
+    const ProgramTemplate(
+      id: 'tpl-autumn',
+      name: 'Autumn',
+      entries: [
+        ProgramTemplateEntry(danceId: 'd1'),
+        ProgramTemplateEntry(text: 'Waltz'),
+        ProgramTemplateEntry(text: Program.breakSlotText),
+        ProgramTemplateEntry(danceId: 'd2'),
+      ],
+    ),
+  );
   return appData;
+}
+
+/// Pushes [screen] over the app, as the row or button that opens it does.
+Future<void> _push(WidgetTester tester, Widget screen) async {
+  unawaited(
+    Navigator.of(
+      tester.element(find.byType(AppShell)),
+    ).push(MaterialPageRoute<void>(builder: (_) => screen)),
+  );
+  await tester.pumpAndSettle();
 }
 
 /// Whether [node]'s widget is still in the tree. A lazy list disposes an item
@@ -683,5 +759,79 @@ void main() {
     },
     landedOn: find.byKey(const ValueKey('settings-nav-general')),
     long: true,
+  );
+
+  // Settings > Collection, a section added since v0.10.0-beta.
+  _screen(
+    'Settings, collection',
+    (tester) async {
+      await tester.tap(find.text('Settings').last);
+      await tester.pumpAndSettle();
+      await _tapKey(tester, 'settings-nav-collection');
+    },
+    landedOn: find.byKey(const ValueKey('settings-nav-collection')),
+    long: true,
+  );
+
+  // Screens added since v0.10.0-beta (audit L10N-09). Each is pushed as the
+  // row or button that opens it does; the path to it is not what is walked.
+  _screen(
+    'Repertoire',
+    (tester) => _push(tester, const RepertoireScreen()),
+    landedOn: find.byType(RepertoireScreen),
+  );
+
+  _screen(
+    'Combined view',
+    (tester) =>
+        _push(tester, const CombinedProgramsScreen(programIds: {'p1', 'p2'})),
+    landedOn: find.byType(CombinedProgramsScreen),
+  );
+
+  _screen(
+    'Calendar import',
+    (tester) => _push(tester, const CalendarImportScreen()),
+    landedOn: find.byType(CalendarImportScreen),
+  );
+
+  _screen(
+    'Manage rules',
+    (tester) => _push(tester, const EventRulesScreen()),
+    landedOn: find.text('Easy start'),
+  );
+
+  _screen('Rule editor', (tester) async {
+    await _push(tester, const EventRulesScreen());
+    await tester.tap(find.text('Easy start'));
+    await tester.pumpAndSettle();
+  }, landedOn: find.byType(EventRuleEditorScreen));
+
+  _screen(
+    'Program templates',
+    (tester) => _push(tester, const ProgramTemplatesScreen()),
+    landedOn: find.byKey(const ValueKey('program-template-tile-tpl-autumn')),
+  );
+
+  _screen('Template editor', (tester) async {
+    await _push(tester, const ProgramTemplatesScreen());
+    await _tapKey(tester, 'program-template-tile-tpl-autumn');
+  }, landedOn: find.byType(ProgramTemplateEditorScreen));
+
+  _screen(
+    'Suggestion settings',
+    (tester) => _push(tester, const SuggestionSettingsScreen()),
+    landedOn: find.byType(SuggestionSettingsScreen),
+  );
+
+  _screen(
+    'Perform swap defaults',
+    (tester) => _push(tester, const PerformSwapDefaultsScreen()),
+    landedOn: find.byType(PerformSwapDefaultsScreen),
+  );
+
+  _screen(
+    'Convert English dances',
+    (tester) => _push(tester, const EcdMigrationScreen()),
+    landedOn: find.byType(EcdMigrationScreen),
   );
 }
