@@ -3650,6 +3650,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupRestored => 'バックアップを復元しました。';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'バックアップに保存した検索がないため、イベントルールを$count件削除しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed => 'バックアップを復元できませんでした。もう一度お試しください。';
 
   @override
@@ -14460,6 +14470,17 @@ class AppLocalizationsJa extends AppLocalizations {
       'その保存済み検索は削除されたため、ルールは保存されませんでした。別の検索を選んでください。';
 
   @override
+  String get eventRuleSaveFailed => 'ルールを保存できませんでした。もう一度お試しください。';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'このデバイスにはルールが上限の$max件あります。別のルールを追加するには、どれかを削除してください。';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable => '保存した検索を今は読み込めないため、ここでは選べません。';
+
+  @override
   String get eventRuleQuantifierLabel => '数';
 
   @override
@@ -14792,7 +14813,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get programTemplateRuleRemovedUnknown => '削除済み: このデバイスにないルール';
+  String get programTemplateRuleRemovedUnknown => 'このデバイスにないルール';
 
   @override
   String get programTemplateRulesPickerTitle => 'このテンプレートのルール';
@@ -14815,6 +14836,13 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       '別のデバイスで追加されてまだ届いていないか、すでに存在しません。「削除」でこのプログラムから外します。';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      '別のデバイスで追加されてまだ届いていないか、すでに存在しません。「削除」でこのテンプレートから外します。';
+
+  @override
+  String get programsRulesPickerUnreadable => 'ルールを今は読み込めません。';
 
   @override
   String get programsRulesChangeFailed => 'このプログラムのルールを変更できませんでした。もう一度お試しください。';
