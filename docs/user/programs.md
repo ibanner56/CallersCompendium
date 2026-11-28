@@ -96,8 +96,8 @@ direction the list opens with, see
   It leaves the list (an **Undo** option appears) but is not deleted: it never
   expires, it still counts in your
   [calling history](#track-what-you-have-called), and search still finds it,
-  marked **Archived** beside the word **Program** so you can tell it from a
-  live program with the same title. An archived program is not offered on the **Add to program** sheet. To see
+  marked **Archived** after the word **Program** (and the program's dance
+  types) so you can tell it from a live program with the same title. An archived program is not offered on the **Add to program** sheet. To see
   archived programs, choose **Show archived** in the **More actions** (⋮) menu
   in the **Programs** toolbar, just above **Recently deleted**. They are listed
   with the others, marked **Archived**, and their row menu offers **Unarchive**
