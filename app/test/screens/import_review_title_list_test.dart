@@ -352,6 +352,39 @@ void main() {
       expect(find.text('1 already in your collection'), findsWidgets);
     });
 
+    testWidgets('an owned title names people stored family name first '
+        'apart with semicolons', (tester) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'a1', name: 'Sharp, Cecil'),
+      );
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'a2', name: 'Shaw, Pat'),
+      );
+      await repos.dances.create(
+        _localDance(
+          id: 'd1',
+          title: 'Fiddleheads',
+          authorIds: const ['a1', 'a2'],
+        ),
+      );
+      final service = _FakeOnline(
+        rowsByTitle: {
+          'money musk': [_row('Money Musk', id: '10600')],
+        },
+      );
+      await _pump(tester, repos, service: service);
+
+      await _paste(tester, 'Fiddleheads\nMoney Musk');
+
+      expect(
+        find.text('You already have this, by Sharp, Cecil; Shaw, Pat.'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('T2: a title nothing was found for is shown with its reason '
         'rather than vanishing', (tester) async {
       final repos = openTestRepositories();

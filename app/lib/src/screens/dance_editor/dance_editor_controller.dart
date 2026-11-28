@@ -60,7 +60,7 @@ class DanceEditorController extends ChangeNotifier {
        meterController = _lingo(dialects),
        musicalKeyController = _lingo(dialects),
        alternateTitlesController = _lingo(dialects),
-       barnesReferenceController = _lingo(dialects),
+       barnesReferenceController = TextEditingController(),
        repeatOrderTextController = _lingo(dialects),
        newPartnerTextController = _lingo(dialects),
        tuneController = _lingo(dialects),
@@ -254,8 +254,11 @@ class DanceEditorController extends ChangeNotifier {
   final LingoTextEditingController alternateTitlesController;
 
   /// Editor for where the tune is printed in the Barnes books
-  /// ([Dance.barnesReference]), free text.
-  final LingoTextEditingController barnesReferenceController;
+  /// ([Dance.barnesReference]), free text kept and shown as typed. A plain
+  /// field, not a terminology one: it names a tune's printing, so a word the
+  /// dialect discourages in it ("Gypsy", "Ladies") is part of a name, not
+  /// the user's own wording (the maintainer's ruling, 2026-11-28).
+  final TextEditingController barnesReferenceController;
 
   /// Editors for what `other` means for a square's repeat order and new
   /// partner ([Dance.repeatOrderText], [Dance.newPartnerText]). Kept as typed
@@ -286,7 +289,6 @@ class DanceEditorController extends ChangeNotifier {
     meterController,
     musicalKeyController,
     alternateTitlesController,
-    barnesReferenceController,
     repeatOrderTextController,
     newPartnerTextController,
     tuneController,

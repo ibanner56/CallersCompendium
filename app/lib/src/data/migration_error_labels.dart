@@ -180,11 +180,18 @@ String databaseCopyLocationLabel(
 String databaseCopyDetails(
   AppLocalizations l10n,
   MaterialLocalizations material,
-  DatabaseCopy copy,
-) => l10n.migrationRelocationCopyDetails(
+  DatabaseCopy copy, {
+  required bool use24Hour,
+}) => l10n.migrationRelocationCopyDetails(
   databaseCopyLocationLabel(l10n, copy.location),
   (copy.bytes / 1024).ceil(),
   // The Regional setting is stored in the database that failed to open, so
   // this is the system default: the device's region.
-  formatEventDateTime(copy.modified, DateFormatSetting.system, material, l10n),
+  formatEventDateTime(
+    copy.modified,
+    DateFormatSetting.system,
+    material,
+    l10n,
+    use24Hour: use24Hour,
+  ),
 );

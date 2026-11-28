@@ -422,13 +422,70 @@ void main() {
       );
       await tester.enterText(find.byType(TextFormField).first, 'Guest caller');
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Move First dance down'));
+      await tester.tap(find.byTooltip('Slot 1, First dance: move down'));
       await tester.pumpAndSettle();
 
       final stored = (await _stored(repos)).byId('a')!;
       expect(stored.entries.map((entry) => entry.danceId), ['d2', 'd1']);
       expect(stored.entries.last.text, 'Guest caller');
       expect(await repos.settings.get(programTemplateKey('b')), otherBefore);
+    });
+
+    // Pre-release audit finding D1a-06: a failed save used to be logged
+    // only, so an edit that was not saved still looked saved.
+    testWidgets('a failed save says so, once until a save succeeds', (
+      tester,
+    ) async {
+      final sink = _RecordingCrashLogSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+      final db = openWidgetTestDatabase();
+      final settings = FailingSettingsRepository(db)..failWrites = false;
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      const template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [ProgramTemplateEntry(text: 'Raffle')],
+      );
+      await _seed(repos, const [template]);
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+      const failed = "Couldn't save that change to your templates. Try again.";
+      final name = find.byKey(const ValueKey('program-template-editor-name'));
+
+      settings.failWrites = true;
+      await tester.enterText(name, 'Family d');
+      await tester.pumpAndSettle();
+      await tester.enterText(name, 'Family da');
+      await tester.pumpAndSettle();
+      expect(find.text(failed), findsOneWidget);
+      expect(sink.sources, [
+        'program_templates_screen.save',
+        'program_templates_screen.save',
+      ]);
+      expect((await _stored(repos)).byId('a')!.name, 'Family');
+
+      // A save that works clears it, so the next failure is said again.
+      ScaffoldMessenger.of(
+        tester.element(find.byType(ProgramTemplateEditorScreen)),
+      ).removeCurrentSnackBar();
+      await tester.pumpAndSettle();
+      settings.failWrites = false;
+      await tester.enterText(name, 'Family dan');
+      await tester.pumpAndSettle();
+      expect(find.text(failed), findsNothing);
+      expect((await _stored(repos)).byId('a')!.name, 'Family dan');
+      settings.failWrites = true;
+      await tester.enterText(name, 'Family danc');
+      await tester.pumpAndSettle();
+      expect(find.text(failed), findsOneWidget);
     });
 
     // Pre-release audit finding D1a-06: every slot's buttons used to read
@@ -487,24 +544,28 @@ void main() {
         );
       }
 
-      expectButton('Move First dance up', enabled: false);
-      expectButton('Move First dance down');
-      expectButton('Delete First dance');
-      expectButton('Move Raffle up');
-      expectButton('Delete Raffle');
-      expectButton('Move Break down');
-      expectButton('Edit Opener');
-      expectButton('Move Opener down', enabled: false);
-      expectButton('Delete Opener');
+      // The maintainer's ruling, 2026-11-28: every slot's button names say
+      // its position too ("Slot 3, Break: move up").
+      expectButton('Slot 1, First dance: move up', enabled: false);
+      expectButton('Slot 1, First dance: move down');
+      expectButton('Slot 1, First dance: delete');
+      expectButton('Slot 2, Raffle: move up');
+      expectButton('Slot 2, Raffle: delete');
+      expectButton('Slot 3, Break: move up');
+      expectButton('Slot 3, Break: move down');
+      expectButton('Slot 4, Opener: edit');
+      expectButton('Slot 4, Opener: move down', enabled: false);
+      expectButton('Slot 4, Opener: delete');
       expect(find.byTooltip('Move up'), findsNothing);
       expect(find.byTooltip('Move down'), findsNothing);
       expect(find.byTooltip('Delete'), findsNothing);
       expect(find.byTooltip('Edit'), findsNothing);
 
-      await tester.tap(find.byTooltip('Move First dance down'));
+      await tester.tap(find.byTooltip('Slot 1, First dance: move down'));
       await tester.pumpAndSettle();
       expect(announcements, ['First dance moved to position 2 of 4']);
-      await tester.tap(find.byTooltip('Move Opener up'));
+      expectButton('Slot 2, First dance: move up');
+      await tester.tap(find.byTooltip('Slot 4, Opener: move up'));
       await tester.pumpAndSettle();
       expect(announcements.last, 'Opener moved to position 3 of 4');
       expect((await _stored(repos)).byId('a')!.entries.map((e) => e.text), [
@@ -514,6 +575,34 @@ void main() {
         Program.breakSlotText,
       ]);
       semantics.dispose();
+    });
+
+    testWidgets('two slots with the same label have different button names', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      const template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [
+          ProgramTemplateEntry(text: Program.breakSlotText),
+          ProgramTemplateEntry(text: Program.breakSlotText),
+        ],
+      );
+      await _seed(repos, [template]);
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+      for (final label in [
+        'Slot 1, Break: move down',
+        'Slot 1, Break: delete',
+        'Slot 2, Break: move up',
+        'Slot 2, Break: delete',
+      ]) {
+        expect(find.byTooltip(label), findsOneWidget, reason: label);
+      }
     });
 
     testWidgets('renaming in the editor saves; a blank name keeps the last '
