@@ -3899,6 +3899,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get backupRestored => 'Sauvegarde restaurée.';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count règles de soirée ont été supprimées, car la sauvegarde ne contient pas leurs recherches enregistrées.',
+      one:
+          '1 règle de soirée a été supprimée, car la sauvegarde ne contient pas sa recherche enregistrée.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed =>
       'Impossible de restaurer la sauvegarde. Réessayez.';
 
@@ -15199,6 +15212,19 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cette recherche enregistrée vient d’être supprimée : la règle n’a donc pas été enregistrée. Choisissez-en une autre.';
 
   @override
+  String get eventRuleSaveFailed =>
+      'Impossible d’enregistrer la règle. Réessayez.';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'Cet appareil contient $max règles, le maximum possible. Supprimez-en une pour en ajouter une autre.';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable =>
+      'Vos recherches enregistrées ne peuvent pas être lues pour le moment ; aucune ne peut donc être choisie ici.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Combien';
 
   @override
@@ -15567,7 +15593,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programTemplateRuleRemovedUnknown =>
-      'Supprimée : une règle absente de cet appareil';
+      'Une règle absente de cet appareil';
 
   @override
   String get programTemplateRulesPickerTitle => 'Règles de ce modèle';
@@ -15591,6 +15617,14 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       'Ajoutées sur un autre appareil et encore en chemin, ou disparues pour de bon. Supprimer les enlève de ce programme.';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      'Ajoutées sur un autre appareil et encore en chemin, ou disparues pour de bon. Supprimer les enlève de ce modèle.';
+
+  @override
+  String get programsRulesPickerUnreadable =>
+      'Vos règles ne peuvent pas être lues pour le moment.';
 
   @override
   String get programsRulesChangeFailed =>

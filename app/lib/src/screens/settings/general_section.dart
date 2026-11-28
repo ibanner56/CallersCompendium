@@ -37,6 +37,7 @@ import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../export/csv_export.dart';
 import '../../widgets/dances_csv_export_action.dart';
+import '../../utils/l10n_joins.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/settings_action_row.dart';
@@ -401,15 +402,20 @@ class _GeneralSectionState extends State<GeneralSection> {
           read,
           onRestored,
           runWrite,
+          removedEventRules: outcome.removedEventRules,
         );
         return;
       }
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            outcome.hasErrors
-                ? l10n.backupRestoreSkippedProblems(outcome.errors.length)
-                : l10n.backupRestored,
+            _withRemovedEventRules(
+              l10n,
+              outcome.removedEventRules,
+              outcome.hasErrors
+                  ? l10n.backupRestoreSkippedProblems(outcome.errors.length)
+                  : l10n.backupRestored,
+            ),
           ),
         ),
       );
@@ -426,6 +432,21 @@ class _GeneralSectionState extends State<GeneralSection> {
     }
   }
 
+  /// [message], then, when the restore deleted [removedEventRules] event
+  /// rules whose saved search it removed
+  /// ([BackupRestoreOutcome.removedEventRules]), how many: a Replace says
+  /// what it removed beyond what the backup replaces.
+  static String _withRemovedEventRules(
+    AppLocalizations l10n,
+    int removedEventRules,
+    String message,
+  ) => removedEventRules == 0
+      ? message
+      : joinSentences(l10n, [
+          message,
+          l10n.backupRestoreRemovedEventRules(removedEventRules),
+        ]);
+
   /// Serializes the database restore with any coordinator-backed sync pass.
   ///
   /// The post-hook intentionally lives in [finally]: an integrity refusal,
@@ -440,15 +461,19 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// indefinite snackbar carrying a "retry settings" action. Kept separate so
   /// the retry can re-show it on a repeat failure. [onRestored] is re-run after
   /// a successful retry so the live dialect/theme/preference notifiers pick up
-  /// the now-applied settings.
+  /// the now-applied settings. [removedEventRules] is how many event rules the
+  /// attempts so far deleted ([BackupRestoreOutcome.removedEventRules]): they
+  /// stay deleted though the settings failed, and a retry no longer finds
+  /// them, so the count is carried to the message the retry ends with.
   void _showSettingsRestoreFailed(
     ScaffoldMessengerState messenger,
     AppLocalizations l10n,
     CompendiumRepositories repos,
     BackupReadResult read,
     Future<void> Function()? onRestored,
-    SyncWriterCallback? runWrite,
-  ) {
+    SyncWriterCallback? runWrite, {
+    int removedEventRules = 0,
+  }) {
     messenger.clearSnackBars();
     messenger.showSnackBar(
       SnackBar(
@@ -465,6 +490,7 @@ class _GeneralSectionState extends State<GeneralSection> {
                 read,
                 onRestored,
                 runWrite,
+                removedEventRules: removedEventRules,
               ),
             );
           },
@@ -481,14 +507,19 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// (a now-fatal/altered envelope — defensive: the captured JSON already
   /// decoded once, so this is not normally reachable) surfaces the matching
   /// integrity/invalid-file error rather than a false "Settings applied."
+  ///
+  /// [removedEventRules] is how many event rules earlier attempts deleted
+  /// ([_showSettingsRestoreFailed]); this attempt's are added to it.
   Future<void> _retrySettingsRestore(
     ScaffoldMessengerState messenger,
     AppLocalizations l10n,
     CompendiumRepositories repos,
     BackupReadResult read,
     Future<void> Function()? onRestored,
-    SyncWriterCallback? runWrite,
-  ) async {
+    SyncWriterCallback? runWrite, {
+    required int removedEventRules,
+  }) async {
+    var removed = removedEventRules;
     try {
       // The restore this retries runs in the default mode, replace. The retry
       // drops the sync baseline, so it is serialized with Device Sync as the
@@ -499,6 +530,7 @@ class _GeneralSectionState extends State<GeneralSection> {
           repos,
         ).retryApplySettingsFrom(read, mode: RestoreMode.replace),
       );
+      removed += outcome.removedEventRules;
       // Only refresh when something was actually applied.
       if (outcome.applied && onRestored != null) await onRestored();
       if (!mounted) return;
@@ -511,6 +543,7 @@ class _GeneralSectionState extends State<GeneralSection> {
           read,
           onRestored,
           runWrite,
+          removedEventRules: removed,
         );
         return;
       }
@@ -536,9 +569,13 @@ class _GeneralSectionState extends State<GeneralSection> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            outcome.hasErrors
-                ? l10n.backupRestoreSkippedProblems(outcome.errors.length)
-                : l10n.backupRestoreSettingsRetried,
+            _withRemovedEventRules(
+              l10n,
+              removed,
+              outcome.hasErrors
+                  ? l10n.backupRestoreSkippedProblems(outcome.errors.length)
+                  : l10n.backupRestoreSettingsRetried,
+            ),
           ),
         ),
       );
@@ -553,6 +590,7 @@ class _GeneralSectionState extends State<GeneralSection> {
         read,
         onRestored,
         runWrite,
+        removedEventRules: removed,
       );
     }
   }

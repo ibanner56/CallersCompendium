@@ -1028,8 +1028,13 @@ file past v39 already ran that repair on the same open.)
   archive holding a program with rules is stamped core archive v8. Backups
   carry the rules under `app.eventRules` (envelope v3,
   `backupSchemaVersionEventRules`); a backup without the section leaves the
-  live rules alone; a rule the restore refuses is skipped and reported, and
-  its id stays on the programs (#2529). The table and the column are added by
+  live rules alone (none is written for no rules, keeping the v1 envelope),
+  except that a Replace deletes softly, at the backup's time, each live rule
+  the backup does not hold whose saved search the settings replace removes
+  (a `saved_search:` key stored before and not restored), and counts them in
+  `BackupRestoreOutcome.removedEventRules`; a rule whose search was already
+  gone is kept, and a Merge deletes none. A rule the restore refuses is
+  skipped and reported, and its id stays on the programs (#2529). The table and the column are added by
   `_ensureV42EventRules`, run from
   the `from < 42` step and from the on-open v42 ensure below, each time right
   after `_ensureV42Schema` (so after the placeholder column and the other v42
