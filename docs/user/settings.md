@@ -1147,7 +1147,10 @@ The Glossary lists them too, when it is shown. While it is on:
   bottom, the ends for the middles, the left file for the right file and the
   first diagonals for the second — where that has one. A choice
   that can't be used, because the kinds differ or no value would fit every
-  setting it fills, is shown grayed out with the reason.
+  setting it fills, is shown grayed out with the reason. In a combination made
+  for English, a figure's **Who** can't come from a parameter yet: it is a list
+  of dancers, which no parameter can hold, so choose who dances in the
+  combination itself.
 - If a parameter fills nothing, or a new figure's wording leaves it out, saving
   asks whether to go **Back to editor** or **Save anyway**; a parameter a
   condition tests counts as used. Wording that uses something the figure
