@@ -10544,7 +10544,7 @@ abstract class AppLocalizations {
   /// **'Progression'**
   String get performProgression;
 
-  /// Screen-reader label for one figure row on the perform-mode card: the figure text, an optional import-gap note, an optional progression marker, the beat count, and an optional caller note. {timing} is the count as the screen shows it, such as "16 beats", or "4 bars" for an English dance.
+  /// Screen-reader label for one figure row on the perform-mode card: the figure text, an optional import-gap note, an optional progression marker, the count, and an optional caller note. {timing} is the count as the screen shows it, such as "16 beats", or "4 bars" for an English dance.
   ///
   /// In en, this message translates to:
   /// **'{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}, {timing}{hasNote, select, yes{, note: {note}} other{}}'**
@@ -15043,7 +15043,7 @@ abstract class AppLocalizations {
   /// **'Not complete, so Save leaves it out.'**
   String get danceEditorIncompleteFigure;
 
-  /// Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position. {timing} is the count as the screen shows it, such as "16 beats", or "4 bars" for an English dance.
+  /// Composite screen-reader label for a figure row, including optional import-gap, progression, count, and note details plus row position. {timing} is the count as the screen shows it, such as "16 beats", or "4 bars" for an English dance.
   ///
   /// In en, this message translates to:
   /// **'{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {timing}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figure {position} of {total}.'**
@@ -15198,7 +15198,7 @@ abstract class AppLocalizations {
   /// **'{count, plural, other{Sequence ({count} figures)}}'**
   String danceEditorSequenceGroupLabel(int count);
 
-  /// Screen-reader label for a sequence group's expanded editor region. The beat count is the total of its figures' own counts. {timing} is the group's count as its row shows it, such as "16 beats", or "4 bars" for an English dance.
+  /// Screen-reader label for a sequence group's expanded editor region. The count is the total of its figures' own counts, or the span the sequence states. {timing} is the group's count as its row shows it, such as "16 beats", or "4 bars" for an English dance.
   ///
   /// In en, this message translates to:
   /// **'Sequence group, {count, plural, =1{1 figure} other{{count} figures}} in order, {timing} in total.'**
@@ -15258,7 +15258,7 @@ abstract class AppLocalizations {
   /// **'{count, plural, other{Modifier ({count} figures)}}'**
   String danceEditorModifierGroupLabel(num count);
 
-  /// Accessibility label for a modifier group. Placeholders stay declared beats, then count: that order is the generated method's parameter order, and its caller passes them positionally. {timing} is the group's count as its row shows it, such as "16 beats", or "4 bars" for an English dance.
+  /// Accessibility label for a modifier group. Placeholders stay declared timing, then count: that order is the generated method's parameter order, and its caller passes them positionally. {timing} is the group's count as its row shows it, such as "16 beats", or "4 bars" for an English dance.
   ///
   /// In en, this message translates to:
   /// **'Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {timing}.'**
@@ -15312,7 +15312,7 @@ abstract class AppLocalizations {
   /// **'{count, plural, other{Meanwhile ({count} sides)}}'**
   String danceEditorMeanwhileGroupLabel(int count);
 
-  /// Screen-reader label for a meanwhile group's expanded editor region, making explicit that the beat count is SHARED across all sides, not per side. {timing} is the group's count as its row shows it, such as "16 beats", or "4 bars" for an English dance.
+  /// Screen-reader label for a meanwhile group's expanded editor region, making explicit that the count is SHARED across all sides, not per side. {timing} is the group's count as its row shows it, such as "16 beats", or "4 bars" for an English dance.
   ///
   /// In en, this message translates to:
   /// **'Meanwhile group, {count, plural, =1{1 concurrent figure} other{{count} concurrent figures}}, sharing {timing}.'**

@@ -9254,7 +9254,7 @@
   },
   "performFigureSemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}, {timing}{hasNote, select, yes{, note: {note}} other{}}",
   "@performFigureSemantic": {
-    "description": "Screen-reader label for one figure row on the perform-mode card: the figure text, an optional import-gap note, an optional progression marker, the beat count, and an optional caller note. {timing} is the count as the screen shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
+    "description": "Screen-reader label for one figure row on the perform-mode card: the figure text, an optional import-gap note, an optional progression marker, the count, and an optional caller note. {timing} is the count as the screen shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
       "main": {
         "type": "String",
@@ -13466,7 +13466,7 @@
   },
   "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {timing}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figure {position} of {total}.",
   "@danceEditorFigureSummarySemantic": {
-    "description": "Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position. {timing} is the count as the screen shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
+    "description": "Composite screen-reader label for a figure row, including optional import-gap, progression, count, and note details plus row position. {timing} is the count as the screen shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
       "main": {
         "type": "String",
@@ -13648,7 +13648,7 @@
   },
   "danceEditorSequenceGroupSemantic": "Sequence group, {count, plural, =1{1 figure} other{{count} figures}} in order, {timing} in total.",
   "@danceEditorSequenceGroupSemantic": {
-    "description": "Screen-reader label for a sequence group's expanded editor region. The beat count is the total of its figures' own counts. {timing} is the group's count as its row shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
+    "description": "Screen-reader label for a sequence group's expanded editor region. The count is the total of its figures' own counts, or the span the sequence states. {timing} is the group's count as its row shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
       "count": {
         "type": "int",
@@ -13747,7 +13747,7 @@
   },
   "danceEditorModifierGroupSemantic": "Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {timing}.",
   "@danceEditorModifierGroupSemantic": {
-    "description": "Accessibility label for a modifier group. Placeholders stay declared beats, then count: that order is the generated method's parameter order, and its caller passes them positionally. {timing} is the group's count as its row shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
+    "description": "Accessibility label for a modifier group. Placeholders stay declared timing, then count: that order is the generated method's parameter order, and its caller passes them positionally. {timing} is the group's count as its row shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
       "timing": {
         "type": "String",
@@ -13808,7 +13808,7 @@
   },
   "danceEditorMeanwhileGroupSemantic": "Meanwhile group, {count, plural, =1{1 concurrent figure} other{{count} concurrent figures}}, sharing {timing}.",
   "@danceEditorMeanwhileGroupSemantic": {
-    "description": "Screen-reader label for a meanwhile group's expanded editor region, making explicit that the beat count is SHARED across all sides, not per side. {timing} is the group's count as its row shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
+    "description": "Screen-reader label for a meanwhile group's expanded editor region, making explicit that the count is SHARED across all sides, not per side. {timing} is the group's count as its row shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
       "count": {
         "type": "int",
