@@ -12133,6 +12133,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get compoundParamKindDancers => 'ダンサー';
 
   @override
+  String get compoundParamKindDancerList => 'ダンサーのリスト';
+
+  @override
   String get compoundParamKindDancerPair => 'ダンサーのペア';
 
   @override

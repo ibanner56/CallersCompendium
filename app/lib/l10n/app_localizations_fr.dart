@@ -12787,6 +12787,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get compoundParamKindDancers => 'danseurs';
 
   @override
+  String get compoundParamKindDancerList => 'liste de danseurs';
+
+  @override
   String get compoundParamKindDancerPair => 'paire de danseurs';
 
   @override

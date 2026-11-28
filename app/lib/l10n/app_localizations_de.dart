@@ -12750,6 +12750,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get compoundParamKindDancers => 'Tänzer';
 
   @override
+  String get compoundParamKindDancerList => 'Tänzerliste';
+
+  @override
   String get compoundParamKindDancerPair => 'Tänzerpaar';
 
   @override

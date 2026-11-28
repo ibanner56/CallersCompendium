@@ -12170,6 +12170,10 @@
   "@compoundParamKindDancers": {
     "x-sourceSha256": "569da09b053e462cb512b19d943f60ee1931a01ac41116aa6c41202aff74e842"
   },
+  "compoundParamKindDancerList": "ダンサーのリスト",
+  "@compoundParamKindDancerList": {
+    "x-sourceSha256": "85c5107a14b4841ce2374a88a17448a434c2f80094d0fa04df4b7d9628721ccc"
+  },
   "compoundParamKindDancerPair": "ダンサーのペア",
   "@compoundParamKindDancerPair": {
     "x-sourceSha256": "a42ddb306dcf7ed749e67e4a4e6479a1ca616d30c2c5c430942011ebd4550396"
