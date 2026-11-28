@@ -710,7 +710,10 @@ across as an English country dance. A dance typed Square, or with a Square
 formation, becomes an English dance in a square set, as Newcastle is,
 keeping what Caller's Companion said of its formation as the formation's
 description and the repeat order its SubType names; a square in a big circle
-stays a circle. A dance typed Circle Mixer becomes a circle marked as a mixer,
+stays a circle. A formation given only in Caller's Companion's own words is a
+square set when those words start with "Square", or name no other shape (a
+start such as "improper" is not a shape), so "Sicilian circle; square through
+to start" stays a Sicilian circle, its words kept as the description. A dance typed Circle Mixer becomes a circle marked as a mixer,
 and one typed Scatter Mixer a formation described as "Scatter mixer", marked
 as a mixer. A dance typed Longways becomes a longways set, and a Becket one a
 longways set described as "Becket" ("Becket CCW" for counterclockwise).
@@ -802,7 +805,10 @@ emptied in Caller's Companion since is not applied; change it in the app.
 Each dance's **formation** comes across as Caller's Companion recorded it: a
 Becket keeps its direction (clockwise or counterclockwise), four facing four,
 triplets, triple minors and longways keep their shape, squares come across as
-squares, circle and scatter mixers are marked as mixers, and your own
+square dances in a square set (one in a big circle keeps the circle, one in
+another formation, such as a hexagon, is described as that, and what Caller's
+Companion said of the formation past "Square" is kept as its detail),
+circle and scatter mixers are marked as mixers, and your own
 description of the starting position ("Long Waves, R-hand to Neighbor") is kept
 as the formation's detail. A square's repeat order comes across too, when
 Caller's Companion gives it as "H H S S" or "H S H S".

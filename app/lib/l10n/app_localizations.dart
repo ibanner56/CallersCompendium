@@ -13438,6 +13438,12 @@ abstract class AppLocalizations {
   /// **'Remove row {number}'**
   String danceEditorPhraseRowsRemove(int number);
 
+  /// What a screen reader says before each field of one row of the phrase-structure rows of a contra or square dance (the fields are Phrases, Bars per phrase and Beats per bar), so the rows can be told apart. Not shown on screen. The number counts the rows from 1, as in danceEditorPhraseRowsRemove. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {number}'**
+  String danceEditorPhraseRowsRow(int number);
+
   /// Error under the phrase-structure rows of a contra or square dance when a number is empty, zero or above {max}, or the structure is too long. The phrase structure is kept as it was until it is fixed, and anything that saves it saves that kept structure. Also used for the default phrase structure in Settings.
   ///
   /// In en, this message translates to:
@@ -14815,13 +14821,13 @@ abstract class AppLocalizations {
   /// **'Add figures from text'**
   String get figureTextSheetTitle;
 
-  /// Help text at the top of the Add figures from text sheet, for an English dance or a square dance. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
+  /// Help text at the top of the Add figures from text sheet, for an English dance. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
   ///
   /// In en, this message translates to:
   /// **'Type or paste one figure per line, such as \"(8) neighbor balance & swing\". Each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.'**
   String get figureTextSheetHelp;
 
-  /// Help text at the top of the Add figures from text sheet, for a contra dance, where a leading phrase label (A1, A2, B1, B2, C1, C2) is dropped from each line. Keep A1 as it is. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
+  /// Help text at the top of the Add figures from text sheet, for a contra or square dance, where a leading phrase label (A1, A2, B1, B2, C1, C2) is dropped from each line. Keep A1 as it is. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
   ///
   /// In en, this message translates to:
   /// **'Type or paste one figure per line, such as \"A1 (8) neighbor balance & swing\". A phrase label such as A1 at the start of a line is left out, and each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.'**

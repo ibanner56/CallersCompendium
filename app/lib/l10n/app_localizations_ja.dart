@@ -8717,6 +8717,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseRowsRow(int number) {
+    return '$number行目';
+  }
+
+  @override
   String danceEditorPhraseRowsInvalid(int max) {
     return '各欄に1から$maxまでの整数を入力してください。長すぎる構造にはできません。それまでは最後の有効なフレーズ構造が保たれます。';
   }
