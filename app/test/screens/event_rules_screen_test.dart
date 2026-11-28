@@ -385,11 +385,15 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(FloatingActionButton), findsNothing);
-      // Try again reads again (and fails again here), rather than doing
-      // nothing.
+      // Try again reads again: with the table back (empty), the list's empty
+      // state shows in place of the error.
+      await repos.db.createMigrator().createTable(repos.db.eventRules);
       await tester.tap(find.byKey(const ValueKey('load-error-retry')));
-      await tester.pumpAndSettle();
-      expect(find.byType(LoadErrorView), findsOneWidget);
+      await pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('event-rules-empty')),
+      );
+      expect(find.byType(LoadErrorView), findsNothing);
     });
 
     testWidgets('a failed delete says the rule was not deleted', (
