@@ -4081,14 +4081,16 @@ void main() {
       expect(find.text('BIII p. 92'), findsOneWidget);
     });
 
-    testWidgets('a discouraged term in the Barnes reference reads '
-        'canonically', (tester) async {
+    testWidgets('the Barnes reference is shown as typed, as the title is, '
+        'with discouraged terms converted elsewhere', (tester) async {
+      // The maintainer, decision sheet question 18: a tune's name in the
+      // reference is not reworded.
       final repos = openTestRepositories();
       await repos.dances.create(
-        _dance(
-          id: 'd1',
-          title: 'Gypsy Dance',
-        ).copyWith(form: DanceForm.ecd, barnesReference: 'Gypsy p. 4'),
+        _dance(id: 'd1', title: 'Ladies of London').copyWith(
+          form: DanceForm.ecd,
+          barnesReference: 'B2 p. 9, Ladies of London; Gypsy p. 4',
+        ),
       );
 
       await _pumpDetail(tester, repos, 'd1');
@@ -4097,7 +4099,7 @@ void main() {
         tester
             .widget<Text>(find.byKey(const ValueKey('dance-barnes-reference')))
             .data,
-        'Shoulder round p. 4',
+        'B2 p. 9, Ladies of London; Gypsy p. 4',
       );
     });
 

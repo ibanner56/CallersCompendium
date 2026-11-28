@@ -965,17 +965,24 @@ void main() {
       expect(barnesRow(tester), 'Barnes: BIII p. 92');
     });
 
-    testWidgets('renders a discouraged term in the value canonically', (
-      tester,
-    ) async {
-      await pumpCard(
-        tester,
-        _dance().copyWith(form: DanceForm.ecd, barnesReference: 'Gypsy p. 4'),
-        canonicalDiscouragedTerms: true,
-      );
-      expect(barnesRow(tester), 'Barnes: Shoulder round p. 4');
-      expect(find.textContaining('Gypsy'), findsNothing);
-    });
+    for (final canonical in [true, false]) {
+      testWidgets('shows the value as typed, with discouraged terms '
+          '${canonical ? '' : 'not '}converted elsewhere', (tester) async {
+        // The maintainer, decision sheet question 18.
+        await pumpCard(
+          tester,
+          _dance().copyWith(
+            form: DanceForm.ecd,
+            barnesReference: 'B2 p. 9, Ladies of London; Gypsy p. 4',
+          ),
+          canonicalDiscouragedTerms: canonical,
+        );
+        expect(
+          barnesRow(tester),
+          'Barnes: B2 p. 9, Ladies of London; Gypsy p. 4',
+        );
+      });
+    }
 
     testWidgets('has no row when the reference is blank', (tester) async {
       await pumpCard(
