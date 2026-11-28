@@ -5345,6 +5345,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String danceEditorBarsSpanRangeError(String min, int max) {
+    return 'Skriv fra $min til $max takter';
+  }
+
+  @override
   String danceEditorHalfBarRefused(int beatsPerBar) {
     return 'Kun hele takter med $beatsPerBar slag pr. takt';
   }
@@ -10327,20 +10332,14 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String danceEditorSequenceGroupSemantic(int count, int beats) {
+  String danceEditorSequenceGroupSemantic(int count, String timing) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count figurer',
       one: '1 figur',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats slag',
-      one: '1 slag',
-    );
-    return 'Sekvensgruppe, $_temp0 i rækkefølge, $_temp1 i alt.';
+    return 'Sekvensgruppe, $_temp0 i rækkefølge, $timing i alt.';
   }
 
   @override
@@ -10396,20 +10395,14 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String danceEditorModifierGroupSemantic(num beats, num count) {
+  String danceEditorModifierGroupSemantic(String timing, num count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count figurer',
       one: '1 figur',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats slag',
-      one: '1 slag',
-    );
-    return 'Modifikatorgruppe, $_temp0, $_temp1.';
+    return 'Modifikatorgruppe, $_temp0, $timing.';
   }
 
   @override
@@ -10446,20 +10439,14 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String danceEditorMeanwhileGroupSemantic(int count, int beats) {
+  String danceEditorMeanwhileGroupSemantic(int count, String timing) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count samtidige figurer',
       one: '1 samtidig figur',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats delte slag',
-      one: '1 delt slag',
-    );
-    return 'Samtidig gruppe, $_temp0, $_temp1.';
+    return 'Samtidig gruppe, $_temp0, deler $timing.';
   }
 
   @override
@@ -10557,11 +10544,6 @@ class AppLocalizationsDa extends AppLocalizations {
       one: 'takt',
     );
     return 'Total: $total / $expected $_temp0';
-  }
-
-  @override
-  String danceEditorBarTotalFreeForm(String count) {
-    return 'Total: $count';
   }
 
   @override

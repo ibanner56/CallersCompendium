@@ -5388,6 +5388,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String danceEditorBarsSpanRangeError(String min, int max) {
+    return 'Gib $min bis $max Takte ein';
+  }
+
+  @override
   String danceEditorHalfBarRefused(int beatsPerBar) {
     return 'Nur ganze Takte bei $beatsPerBar Schlägen pro Takt';
   }
@@ -10421,20 +10426,14 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String danceEditorSequenceGroupSemantic(int count, int beats) {
+  String danceEditorSequenceGroupSemantic(int count, String timing) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count Figuren',
       one: '1 Figur',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats Schläge',
-      one: '1 Schlag',
-    );
-    return 'Sequenz-Gruppe, $_temp0 nacheinander, insgesamt $_temp1.';
+    return 'Sequenz-Gruppe, $_temp0 nacheinander, insgesamt $timing.';
   }
 
   @override
@@ -10490,20 +10489,14 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String danceEditorModifierGroupSemantic(num beats, num count) {
+  String danceEditorModifierGroupSemantic(String timing, num count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count Figuren',
       one: '1 Figur',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats Schläge',
-      one: '1 Schlag',
-    );
-    return 'Modifier-Gruppe, $_temp0, $_temp1.';
+    return 'Modifier-Gruppe, $_temp0, $timing.';
   }
 
   @override
@@ -10541,20 +10534,14 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String danceEditorMeanwhileGroupSemantic(int count, int beats) {
+  String danceEditorMeanwhileGroupSemantic(int count, String timing) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count gleichzeitige Figuren',
       one: '1 gleichzeitige Figur',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats geteilte Schläge',
-      one: '1 geteilter Schlag',
-    );
-    return 'Gleichzeitig-Gruppe, $_temp0, $_temp1.';
+    return 'Gleichzeitig-Gruppe, $_temp0, gemeinsam $timing.';
   }
 
   @override
@@ -10653,11 +10640,6 @@ class AppLocalizationsDe extends AppLocalizations {
       one: 'Takt',
     );
     return 'Gesamt: $total / $expected $_temp0';
-  }
-
-  @override
-  String danceEditorBarTotalFreeForm(String count) {
-    return 'Gesamt: $count';
   }
 
   @override

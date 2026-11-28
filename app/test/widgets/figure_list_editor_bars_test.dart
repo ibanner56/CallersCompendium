@@ -604,7 +604,49 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(drafts.single.beats, 12);
-      expect(find.text('Enter whole or half bars, up to 21'), findsOneWidget);
+      // Half a bar is refused in triple time, so the least is a whole bar.
+      expect(find.text('Enter from 1 to 21 bars'), findsOneWidget);
+    });
+
+    testWidgets('in duple time a span takes half a bar but not 0', (
+      tester,
+    ) async {
+      final drafts = [
+        FigureDraft(
+          sequenceFigures: [_step('ecd_lead', 4), _step('ecd_set', 4)],
+        )..setSequenceSpan(8),
+      ];
+      await _pump(tester, drafts, beatsPerBar: 2);
+      await _open(tester, 0);
+      final span = find.byKey(const ValueKey('figure-0-sequence-span'));
+
+      await tester.enterText(span, '0');
+      await tester.pumpAndSettle();
+      expect(drafts.single.beats, 8);
+      expect(find.text('Enter from ½ to 32 bars'), findsOneWidget);
+
+      await tester.enterText(span, '½');
+      await tester.pumpAndSettle();
+      expect(drafts.single.beats, 1);
+      expect(find.textContaining('Enter from'), findsNothing);
+    });
+
+    testWidgets('an open group is announced in the bars its row shows', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _pump(tester, [
+        FigureDraft(
+          sequenceFigures: [_step('ecd_lead', 6), _step('ecd_set', 6)],
+        ),
+      ]);
+      await _open(tester, 0);
+      expect(
+        find.bySemanticsLabel(RegExp(r'^Sequence group, .*\b4 bars in total')),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel(RegExp(r'\b12 beats\b')), findsNothing);
+      handle.dispose();
     });
   });
 }

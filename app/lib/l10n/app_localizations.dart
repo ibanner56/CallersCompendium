@@ -8156,6 +8156,12 @@ abstract class AppLocalizations {
   /// **'Enter whole or half bars, up to {max}'**
   String danceEditorBarsRangeError(int max);
 
+  /// Error under the Bars for all field of an English sequence when the text is less than the smallest span it takes: {min} is half a bar (½), or 1 where the tune is in triple time and half a bar is refused, and {max} the most whole bars it takes.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter from {min} to {max} bars'**
+  String danceEditorBarsSpanRangeError(String min, int max);
+
   /// Error under a bars field when half a bar is entered in a tune whose bar has an odd number of beats, such as triple time.
   ///
   /// In en, this message translates to:
@@ -15031,7 +15037,7 @@ abstract class AppLocalizations {
   /// **'{summary}, your figure{unavailable, select, yes{, can\'t be expanded} other{}}'**
   String danceEditorCompoundSemantic(String summary, String unavailable);
 
-  /// Under a custom figure being edited in a dance: how many figures, and how many beats, it is replaced by when the dance is saved. {timing} is the count as the screen shows it, such as "16 beats", or "4 bars" for an English dance.
+  /// Under a custom figure being edited in a dance: how many figures it is replaced by, and how long they are when the dance is saved. {timing} is the count as the screen shows it, such as "16 beats", or "4 bars" for an English dance.
   ///
   /// In en, this message translates to:
   /// **'Becomes {count, plural, =1{1 figure} other{{count} figures}} ({timing}) when the dance is saved.'**
@@ -15204,11 +15210,11 @@ abstract class AppLocalizations {
   /// **'{count, plural, other{Sequence ({count} figures)}}'**
   String danceEditorSequenceGroupLabel(int count);
 
-  /// Screen-reader label for a sequence group's expanded editor region. The beat count is the total of its figures' own counts.
+  /// Screen-reader label for a sequence group's expanded editor region. The beat count is the total of its figures' own counts. {timing} is the group's count as its row shows it, such as "16 beats", or "4 bars" for an English dance.
   ///
   /// In en, this message translates to:
-  /// **'Sequence group, {count, plural, =1{1 figure} other{{count} figures}} in order, {beats, plural, =1{1 beat} other{{beats} beats}} in total.'**
-  String danceEditorSequenceGroupSemantic(int count, int beats);
+  /// **'Sequence group, {count, plural, =1{1 figure} other{{count} figures}} in order, {timing} in total.'**
+  String danceEditorSequenceGroupSemantic(int count, String timing);
 
   /// Read-only line in a sequence group's editor giving the sum of its figures' beats. Unlike a meanwhile or modifier, a sequence has no shared beats field: each figure edits its own.
   ///
@@ -15264,11 +15270,11 @@ abstract class AppLocalizations {
   /// **'{count, plural, other{Modifier ({count} figures)}}'**
   String danceEditorModifierGroupLabel(num count);
 
-  /// Accessibility label for a modifier group. Placeholders stay declared beats, then count: that order is the generated method's parameter order, and its caller passes them positionally.
+  /// Accessibility label for a modifier group. Placeholders stay declared beats, then count: that order is the generated method's parameter order, and its caller passes them positionally. {timing} is the group's count as its row shows it, such as "16 beats", or "4 bars" for an English dance.
   ///
   /// In en, this message translates to:
-  /// **'Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {beats, plural, =1{1 beat} other{{beats} beats}}.'**
-  String danceEditorModifierGroupSemantic(num beats, num count);
+  /// **'Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {timing}.'**
+  String danceEditorModifierGroupSemantic(String timing, num count);
 
   /// Button label for adding another figure to a modifier group.
   ///
@@ -15318,11 +15324,11 @@ abstract class AppLocalizations {
   /// **'{count, plural, other{Meanwhile ({count} sides)}}'**
   String danceEditorMeanwhileGroupLabel(int count);
 
-  /// Screen-reader label for a meanwhile group's expanded editor region, making explicit that the beat count is SHARED across all sides, not per side.
+  /// Screen-reader label for a meanwhile group's expanded editor region, making explicit that the beat count is SHARED across all sides, not per side. {timing} is the group's count as its row shows it, such as "16 beats", or "4 bars" for an English dance.
   ///
   /// In en, this message translates to:
-  /// **'Meanwhile group, {count, plural, =1{1 concurrent figure} other{{count} concurrent figures}}, {beats, plural, =1{1 shared beat} other{{beats} shared beats}}.'**
-  String danceEditorMeanwhileGroupSemantic(int count, int beats);
+  /// **'Meanwhile group, {count, plural, =1{1 concurrent figure} other{{count} concurrent figures}}, sharing {timing}.'**
+  String danceEditorMeanwhileGroupSemantic(int count, String timing);
 
   /// Compact heading for one concurrent side within a meanwhile group's editor.
   ///
@@ -15441,12 +15447,6 @@ abstract class AppLocalizations {
     String expected,
     int expectedHalfBars,
   );
-
-  /// Total length of an English dance's figures when it has no phrase structure: {count} is the count with its unit, such as "8 bars".
-  ///
-  /// In en, this message translates to:
-  /// **'Total: {count}'**
-  String danceEditorBarTotalFreeForm(String count);
 
   /// Under the total: an English dance's figures are longer than its phrase structure by {count}, a count of bars with its unit, such as "4 bars" or "½ bar".
   ///

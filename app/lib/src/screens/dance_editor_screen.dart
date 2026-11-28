@@ -531,8 +531,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     }
   }
 
-  /// Whether Title or the phrase structure, the fields of the form's first
-  /// list item, would refuse the draft as it stands.
+  /// Whether Title or the phrase structure, the fields of the list item that
+  /// holds Title and the setup panel, would refuse the draft as it stands.
   bool _firstItemInvalid() {
     if (_controller.titleController.text.trim().isEmpty) return true;
     if (_controller.isFreeForm) return false;
@@ -553,8 +553,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // so the dance saves with the figure the caller just typed. A line that
     // could not be added stays in the box and the save waits.
     if (!_controller.freeTextComposer.submitPendingLine()) return;
-    // Title and the setup panel are the form's first list item, which the
-    // lazy list lets go of once scrolled far enough away; `validate()` then
+    // Title and the setup panel share one item of the form's lazy list, near
+    // its top, which the list lets go of once scrolled far enough away; `validate()` then
     // cannot ask their fields, and the save would fail with no message. So
     // the draft is checked here, and on an error the form goes back to the
     // top to build them and validates there (pre-release audit GAPF-01).

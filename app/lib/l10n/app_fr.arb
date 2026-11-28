@@ -5356,6 +5356,10 @@
   "@danceEditorBarsRangeError": {
     "x-sourceSha256": "c1d6b8e804fee78f756507d4d4d8b7bc40c25df7ac2a78e4f5f4dfdf3f2209de"
   },
+  "danceEditorBarsSpanRangeError": "Saisissez de {min} à {max} mesures",
+  "@danceEditorBarsSpanRangeError": {
+    "x-sourceSha256": "b1113edfbb721f2eb58504de35ed93a267c45d02a223dd6b55595a96e7271be8"
+  },
   "danceEditorHalfBarRefused": "Mesures entières seulement, avec {beatsPerBar} temps par mesure",
   "@danceEditorHalfBarRefused": {
     "x-sourceSha256": "93140ef37e7658ae19604224df5f4f69822740dcf1121a0648c365663385774b"
@@ -10010,9 +10014,9 @@
   "@danceEditorSequenceGroupLabel": {
     "x-sourceSha256": "7e4967a5972cb2a9a45945a1f8f1df5edaa478ec05637dd024badf9f3001a4a5"
   },
-  "danceEditorSequenceGroupSemantic": "Groupe de séquence, {count, plural, =1{1 figure} other{{count} figures}} dans l’ordre, {beats, plural, =1{1 temps} other{{beats} temps}} au total.",
+  "danceEditorSequenceGroupSemantic": "Groupe de séquence, {count, plural, =1{1 figure} other{{count} figures}} dans l’ordre, {timing} au total.",
   "@danceEditorSequenceGroupSemantic": {
-    "x-sourceSha256": "6c9161a37b5d51850e47b10e53cd288ec44e7216c6b5ac18fdbb93a8520cad11"
+    "x-sourceSha256": "379574cf8af029a03f56b50e36c660416498bcb03690cfd6d86663c1eda2ffd0"
   },
   "danceEditorSequenceTotalBeats": "{beats, plural, =1{1 temps au total} other{{beats} temps au total}}",
   "@danceEditorSequenceTotalBeats": {
@@ -10050,9 +10054,9 @@
   "@danceEditorModifierGroupLabel": {
     "x-sourceSha256": "5fbaec7eb90bb422be9b4c33a4dc92db129cae61869384f857c3779a7d09d10b"
   },
-  "danceEditorModifierGroupSemantic": "Groupe de modificateurs, {count, plural, =1{1 figure} other{{count} figures}}, {beats, plural, =1{1 temps} other{{beats} temps}}.",
+  "danceEditorModifierGroupSemantic": "Groupe de modificateurs, {count, plural, =1{1 figure} other{{count} figures}}, {timing}.",
   "@danceEditorModifierGroupSemantic": {
-    "x-sourceSha256": "cd51d1dc40abb37be2cffa2a77bcd1e183374a5c89b26312f31a2223b03784f5"
+    "x-sourceSha256": "d79126e8fc54e0abbc294a089b0693e192bdfea17971172bc5cf2b47c33ed888"
   },
   "danceEditorAddModifierChild": "Ajouter un modificateur",
   "@danceEditorAddModifierChild": {
@@ -10086,9 +10090,9 @@
   "@danceEditorMeanwhileGroupLabel": {
     "x-sourceSha256": "182377025ac57fc5f2a7008a610a8c7a268dda54f8f347f02758ccdc58a73dc1"
   },
-  "danceEditorMeanwhileGroupSemantic": "Groupe simultané, {count, plural, =1{1 figure simultanée} other{{count} figures simultanées}}, {beats, plural, =1{1 temps partagé} other{{beats} temps partagés}}.",
+  "danceEditorMeanwhileGroupSemantic": "Groupe simultané, {count, plural, =1{1 figure simultanée} other{{count} figures simultanées}}, partageant {timing}.",
   "@danceEditorMeanwhileGroupSemantic": {
-    "x-sourceSha256": "1e8c980ae2f65dceccb93859c9320eee887f40cd63dbbaba3c4b0e2490491f28"
+    "x-sourceSha256": "5db458c33f2241131c95a9250d7a50aad649320be1da2abdbf4e8967ea43cdcd"
   },
   "danceEditorMeanwhileSideLabel": "Côté {number}",
   "@danceEditorMeanwhileSideLabel": {
@@ -10165,10 +10169,6 @@
   "danceEditorBarTotal": "Total : {total} / {expected} {expectedHalfBars, plural, =1{mesure} =2{mesure} other{mesures}}",
   "@danceEditorBarTotal": {
     "x-sourceSha256": "8d3acf824d9b296450f12d34ea96a84e1994e2f2f5b9d80a0539969339cebc76"
-  },
-  "danceEditorBarTotalFreeForm": "Total : {count}",
-  "@danceEditorBarTotalFreeForm": {
-    "x-sourceSha256": "a3869d811e41d19e6bfe501699c43c71f1f6ade0508fac28f041891f64a3a5af"
   },
   "danceEditorOverByBars": "Dépassement de {count}",
   "@danceEditorOverByBars": {

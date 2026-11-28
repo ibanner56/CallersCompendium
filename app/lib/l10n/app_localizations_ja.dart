@@ -5052,9 +5052,9 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       phrases,
       locale: localeName,
-      other: '$phrasesつ',
+      other: '$phrasesフレーズ',
     );
-    return '$barsのフレーズ$_temp0';
+    return '$barsの$_temp0';
   }
 
   @override
@@ -5092,6 +5092,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String danceEditorBarsRangeError(int max) {
     return '$maxまでの整数または半小節で入力してください';
+  }
+
+  @override
+  String danceEditorBarsSpanRangeError(String min, int max) {
+    return '$min〜$max小節で入力してください';
   }
 
   @override
@@ -9913,20 +9918,14 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String danceEditorSequenceGroupSemantic(int count, int beats) {
+  String danceEditorSequenceGroupSemantic(int count, String timing) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$countフィギュア',
       one: '1フィギュア',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats拍',
-      one: '1拍',
-    );
-    return 'シーケンスグループ、順に$_temp0、合計$_temp1。';
+    return 'シーケンスグループ、順に$_temp0、合計$timing。';
   }
 
   @override
@@ -9982,20 +9981,14 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String danceEditorModifierGroupSemantic(num beats, num count) {
+  String danceEditorModifierGroupSemantic(String timing, num count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$countフィギュア',
       one: '1フィギュア',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats拍',
-      one: '1拍',
-    );
-    return 'モディファイアグループ、$_temp0、$_temp1。';
+    return 'モディファイアグループ、$_temp0、$timing。';
   }
 
   @override
@@ -10032,18 +10025,13 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String danceEditorMeanwhileGroupSemantic(int count, int beats) {
+  String danceEditorMeanwhileGroupSemantic(int count, String timing) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count件の同時進行フィギュア',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '共有$beats拍',
-    );
-    return '同時進行グループ、$_temp0、$_temp1。';
+    return '同時進行グループ、$_temp0、共有$timing。';
   }
 
   @override
@@ -10138,11 +10126,6 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '小節',
     );
     return '合計: $total / $expected$_temp0';
-  }
-
-  @override
-  String danceEditorBarTotalFreeForm(String count) {
-    return '合計: $count';
   }
 
   @override

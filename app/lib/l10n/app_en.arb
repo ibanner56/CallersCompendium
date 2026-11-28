@@ -6862,6 +6862,20 @@
       }
     }
   },
+  "danceEditorBarsSpanRangeError": "Enter from {min} to {max} bars",
+  "@danceEditorBarsSpanRangeError": {
+    "description": "Error under the Bars for all field of an English sequence when the text is less than the smallest span it takes: {min} is half a bar (½), or 1 where the tune is in triple time and half a bar is refused, and {max} the most whole bars it takes.",
+    "placeholders": {
+      "min": {
+        "type": "String",
+        "example": "½"
+      },
+      "max": {
+        "type": "int",
+        "example": "32"
+      }
+    }
+  },
   "danceEditorHalfBarRefused": "Whole bars only, with {beatsPerBar} beats to the bar",
   "@danceEditorHalfBarRefused": {
     "description": "Error under a bars field when half a bar is entered in a tune whose bar has an odd number of beats, such as triple time.",
@@ -13438,7 +13452,7 @@
   },
   "danceEditorCompoundExpandsTo": "Becomes {count, plural, =1{1 figure} other{{count} figures}} ({timing}) when the dance is saved.",
   "@danceEditorCompoundExpandsTo": {
-    "description": "Under a custom figure being edited in a dance: how many figures, and how many beats, it is replaced by when the dance is saved. {timing} is the count as the screen shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
+    "description": "Under a custom figure being edited in a dance: how many figures it is replaced by, and how long they are when the dance is saved. {timing} is the count as the screen shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
       "count": {
         "type": "int",
@@ -13640,17 +13654,17 @@
       }
     }
   },
-  "danceEditorSequenceGroupSemantic": "Sequence group, {count, plural, =1{1 figure} other{{count} figures}} in order, {beats, plural, =1{1 beat} other{{beats} beats}} in total.",
+  "danceEditorSequenceGroupSemantic": "Sequence group, {count, plural, =1{1 figure} other{{count} figures}} in order, {timing} in total.",
   "@danceEditorSequenceGroupSemantic": {
-    "description": "Screen-reader label for a sequence group's expanded editor region. The beat count is the total of its figures' own counts.",
+    "description": "Screen-reader label for a sequence group's expanded editor region. The beat count is the total of its figures' own counts. {timing} is the group's count as its row shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
       "count": {
         "type": "int",
         "example": "3"
       },
-      "beats": {
-        "type": "int",
-        "example": "16"
+      "timing": {
+        "type": "String",
+        "example": "16 beats"
       }
     }
   },
@@ -13739,12 +13753,13 @@
       }
     }
   },
-  "danceEditorModifierGroupSemantic": "Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {beats, plural, =1{1 beat} other{{beats} beats}}.",
+  "danceEditorModifierGroupSemantic": "Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {timing}.",
   "@danceEditorModifierGroupSemantic": {
-    "description": "Accessibility label for a modifier group. Placeholders stay declared beats, then count: that order is the generated method's parameter order, and its caller passes them positionally.",
+    "description": "Accessibility label for a modifier group. Placeholders stay declared beats, then count: that order is the generated method's parameter order, and its caller passes them positionally. {timing} is the group's count as its row shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
-      "beats": {
-        "type": "num"
+      "timing": {
+        "type": "String",
+        "example": "16 beats"
       },
       "count": {
         "type": "num"
@@ -13799,17 +13814,17 @@
       }
     }
   },
-  "danceEditorMeanwhileGroupSemantic": "Meanwhile group, {count, plural, =1{1 concurrent figure} other{{count} concurrent figures}}, {beats, plural, =1{1 shared beat} other{{beats} shared beats}}.",
+  "danceEditorMeanwhileGroupSemantic": "Meanwhile group, {count, plural, =1{1 concurrent figure} other{{count} concurrent figures}}, sharing {timing}.",
   "@danceEditorMeanwhileGroupSemantic": {
-    "description": "Screen-reader label for a meanwhile group's expanded editor region, making explicit that the beat count is SHARED across all sides, not per side.",
+    "description": "Screen-reader label for a meanwhile group's expanded editor region, making explicit that the beat count is SHARED across all sides, not per side. {timing} is the group's count as its row shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
       "count": {
         "type": "int",
         "example": "2"
       },
-      "beats": {
-        "type": "int",
-        "example": "16"
+      "timing": {
+        "type": "String",
+        "example": "16 beats"
       }
     }
   },
@@ -13968,16 +13983,6 @@
       "expectedHalfBars": {
         "type": "int",
         "example": "64"
-      }
-    }
-  },
-  "danceEditorBarTotalFreeForm": "Total: {count}",
-  "@danceEditorBarTotalFreeForm": {
-    "description": "Total length of an English dance's figures when it has no phrase structure: {count} is the count with its unit, such as \"8 bars\".",
-    "placeholders": {
-      "count": {
-        "type": "String",
-        "example": "8 bars"
       }
     }
   },

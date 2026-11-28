@@ -3418,18 +3418,20 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
           padding: const EdgeInsets.all(AppSpacing.sm),
           child: Semantics(
             container: true,
+            // The count as the group's row shows it, in bars for an English
+            // dance (pre-release audit finding A2-04).
             label: switch (kind) {
               modifierMove => l10n.danceEditorModifierGroupSemantic(
-                draft.beats,
+                timingLabel(context, draft.beats),
                 sides.length,
               ),
               sequenceMove => l10n.danceEditorSequenceGroupSemantic(
                 sides.length,
-                draft.beats,
+                timingLabel(context, draft.beats),
               ),
               _ => l10n.danceEditorMeanwhileGroupSemantic(
                 sides.length,
-                draft.beats,
+                timingLabel(context, draft.beats),
               ),
             },
             child: Column(
@@ -5485,10 +5487,11 @@ class _BeatSummary extends StatelessWidget {
     final expectedBars = expectedBeats == null
         ? null
         : timing?.barsTextAt(0, expectedBeats);
-    final inBars =
-        totalBars != null && (expectedBeats == null || expectedBars != null);
+    // A dance with no phrase structure to count against is a free-form
+    // square, never timed in bars, so only a total with an expected one is.
+    final inBars = totalBars != null && expectedBars != null;
     String difference() {
-      if (inBars && expectedBars != null) {
+      if (totalBars != null && expectedBars != null) {
         final half = (totalBars.halfBars - expectedBars.halfBars).abs();
         final text = _halfBarsText(half);
         final count = l10n.danceFigureBars(text, half);
@@ -5508,10 +5511,7 @@ class _BeatSummary extends StatelessWidget {
         children: [
           Text(
             switch ((expectedBeats, inBars)) {
-              (null, true) => l10n.danceEditorBarTotalFreeForm(
-                l10n.danceFigureBars(totalBars!.text, totalBars.halfBars),
-              ),
-              (null, false) => l10n.danceEditorBeatTotalFreeForm(totalBeats),
+              (null, _) => l10n.danceEditorBeatTotalFreeForm(totalBeats),
               (_?, true) => l10n.danceEditorBarTotal(
                 totalBars!.text,
                 expectedBars!.text,

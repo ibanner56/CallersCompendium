@@ -5324,7 +5324,7 @@
   "@exportNamedPhrases": {
     "x-sourceSha256": "6e23f847cf631cba44e5527430ca33c1bbc4601a0baa3b666316ec7100121909"
   },
-  "exportPhrasesOfBars": "{bars}のフレーズ{phrases, plural, other{{phrases}つ}}",
+  "exportPhrasesOfBars": "{bars}の{phrases, plural, other{{phrases}フレーズ}}",
   "@exportPhrasesOfBars": {
     "x-sourceSha256": "a5fc6e852e22719b520ff09870833a509a26c2932c166d5be070e716834eab63"
   },
@@ -5355,6 +5355,10 @@
   "danceEditorBarsRangeError": "{max}までの整数または半小節で入力してください",
   "@danceEditorBarsRangeError": {
     "x-sourceSha256": "c1d6b8e804fee78f756507d4d4d8b7bc40c25df7ac2a78e4f5f4dfdf3f2209de"
+  },
+  "danceEditorBarsSpanRangeError": "{min}〜{max}小節で入力してください",
+  "@danceEditorBarsSpanRangeError": {
+    "x-sourceSha256": "b1113edfbb721f2eb58504de35ed93a267c45d02a223dd6b55595a96e7271be8"
   },
   "danceEditorHalfBarRefused": "1小節{beatsPerBar}拍では小節単位で入力してください",
   "@danceEditorHalfBarRefused": {
@@ -10010,9 +10014,9 @@
   "@danceEditorSequenceGroupLabel": {
     "x-sourceSha256": "7e4967a5972cb2a9a45945a1f8f1df5edaa478ec05637dd024badf9f3001a4a5"
   },
-  "danceEditorSequenceGroupSemantic": "シーケンスグループ、順に{count, plural, =1{1フィギュア} other{{count}フィギュア}}、合計{beats, plural, =1{1拍} other{{beats}拍}}。",
+  "danceEditorSequenceGroupSemantic": "シーケンスグループ、順に{count, plural, =1{1フィギュア} other{{count}フィギュア}}、合計{timing}。",
   "@danceEditorSequenceGroupSemantic": {
-    "x-sourceSha256": "6c9161a37b5d51850e47b10e53cd288ec44e7216c6b5ac18fdbb93a8520cad11"
+    "x-sourceSha256": "379574cf8af029a03f56b50e36c660416498bcb03690cfd6d86663c1eda2ffd0"
   },
   "danceEditorSequenceTotalBeats": "{beats, plural, =1{合計1拍} other{合計{beats}拍}}",
   "@danceEditorSequenceTotalBeats": {
@@ -10050,9 +10054,9 @@
   "@danceEditorModifierGroupLabel": {
     "x-sourceSha256": "5fbaec7eb90bb422be9b4c33a4dc92db129cae61869384f857c3779a7d09d10b"
   },
-  "danceEditorModifierGroupSemantic": "モディファイアグループ、{count, plural, =1{1フィギュア} other{{count}フィギュア}}、{beats, plural, =1{1拍} other{{beats}拍}}。",
+  "danceEditorModifierGroupSemantic": "モディファイアグループ、{count, plural, =1{1フィギュア} other{{count}フィギュア}}、{timing}。",
   "@danceEditorModifierGroupSemantic": {
-    "x-sourceSha256": "cd51d1dc40abb37be2cffa2a77bcd1e183374a5c89b26312f31a2223b03784f5"
+    "x-sourceSha256": "d79126e8fc54e0abbc294a089b0693e192bdfea17971172bc5cf2b47c33ed888"
   },
   "danceEditorAddModifierChild": "モディファイアを追加",
   "@danceEditorAddModifierChild": {
@@ -10086,9 +10090,9 @@
   "@danceEditorMeanwhileGroupLabel": {
     "x-sourceSha256": "182377025ac57fc5f2a7008a610a8c7a268dda54f8f347f02758ccdc58a73dc1"
   },
-  "danceEditorMeanwhileGroupSemantic": "同時進行グループ、{count, plural, other{{count}件の同時進行フィギュア}}、{beats, plural, other{共有{beats}拍}}。",
+  "danceEditorMeanwhileGroupSemantic": "同時進行グループ、{count, plural, other{{count}件の同時進行フィギュア}}、共有{timing}。",
   "@danceEditorMeanwhileGroupSemantic": {
-    "x-sourceSha256": "1e8c980ae2f65dceccb93859c9320eee887f40cd63dbbaba3c4b0e2490491f28"
+    "x-sourceSha256": "5db458c33f2241131c95a9250d7a50aad649320be1da2abdbf4e8967ea43cdcd"
   },
   "danceEditorMeanwhileSideLabel": "サイド{number}",
   "@danceEditorMeanwhileSideLabel": {
@@ -10165,10 +10169,6 @@
   "danceEditorBarTotal": "合計: {total} / {expected}{expectedHalfBars, plural, other{小節}}",
   "@danceEditorBarTotal": {
     "x-sourceSha256": "8d3acf824d9b296450f12d34ea96a84e1994e2f2f5b9d80a0539969339cebc76"
-  },
-  "danceEditorBarTotalFreeForm": "合計: {count}",
-  "@danceEditorBarTotalFreeForm": {
-    "x-sourceSha256": "a3869d811e41d19e6bfe501699c43c71f1f6ade0508fac28f041891f64a3a5af"
   },
   "danceEditorOverByBars": "{count}超過",
   "@danceEditorOverByBars": {
