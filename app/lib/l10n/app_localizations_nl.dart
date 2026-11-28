@@ -13975,10 +13975,14 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'De agenda heeft meer dan $count afspraken. Alleen de eerste $count zijn gelezen.',
+          'De agenda heeft meer dan $count komende of terugkerende afspraken. Alleen de eerste $count zijn gelezen.',
     );
     return '$_temp0';
   }
+
+  @override
+  String get calendarImportDeviceTimeZoneNote =>
+      'Tijden die je agenda in UTC bewaart, worden getoond in de tijdzone van dit apparaat. Importeer je terwijl je in een andere tijdzone bent, dan houden die afspraken de tijden van die tijdzone.';
 
   @override
   String get calendarSettingsHeader => 'Agenda';

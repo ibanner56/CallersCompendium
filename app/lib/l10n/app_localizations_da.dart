@@ -13899,10 +13899,14 @@ class AppLocalizationsDa extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Kalenderen har mere end $count begivenheder. Kun de første $count blev læst.',
+          'Kalenderen har mere end $count kommende eller gentagne begivenheder. Kun de første $count blev læst.',
     );
     return '$_temp0';
   }
+
+  @override
+  String get calendarImportDeviceTimeZoneNote =>
+      'Tidspunkter, som din kalender gemmer i UTC, vises i denne enheds tidszone. Importerer du, mens du er i en anden tidszone, beholder disse begivenheder den tidszones tidspunkter.';
 
   @override
   String get calendarSettingsHeader => 'Kalender';

@@ -63,7 +63,9 @@ void main() {
   }
 
   testWidgets('opening the screen fetches nothing; Fetch fetches once; '
-      'Import creates the drafts and Undo removes them', (tester) async {
+      'Import creates the drafts and Undo moves them to Recently deleted', (
+    tester,
+  ) async {
     await withClock(fixed, () async {
       final repos = openTestRepositories();
       await repos.settings.set(kCalendarFeedUrlKey, _secret);
@@ -110,7 +112,16 @@ void main() {
       expect(find.text('2 draft programs added from your calendar.'), findsOne);
       await tester.tap(find.text('Undo'));
       await tester.pumpAndSettle();
-      expect(await repos.programs.listAll(includeDeleted: true), isEmpty);
+      expect(await repos.programs.listAll(), isEmpty);
+      // Not erased: an import at the next start skips events whose programs
+      // are in Recently deleted, so it does not add them back (pre-release
+      // audit finding E1-05).
+      final left = await repos.programs.listAll(includeDeleted: true);
+      expect(
+        left.map((p) => p.title),
+        unorderedEquals(['Contra A', 'Contra B']),
+      );
+      expect(left.every((p) => p.isDeleted), isTrue);
       expect(fetched, hasLength(1));
     });
   });
@@ -182,6 +193,44 @@ void main() {
         findsOneWidget,
         reason: 'the all-day event has no time',
       );
+    });
+  });
+
+  testWidgets('the preview says a UTC time is shown in this device\'s time '
+      'zone, and says nothing for times kept in a zone (pre-release audit '
+      'finding E1-03)', (tester) async {
+    await withClock(fixed, () async {
+      for (final (start, said) in [
+        ('DTSTART:20300620T233000Z', true),
+        ('DTSTART;TZID=America/New_York:20300620T193000', false),
+        ('DTSTART;VALUE=DATE:20300620', false),
+      ]) {
+        final repos = openTestRepositories();
+        await repos.settings.set(kCalendarFeedUrlKey, _secret);
+        await pump(
+          tester,
+          repos,
+          CalendarImportScreen(
+            key: UniqueKey(),
+            fetcher: (_) async => _cal([
+              ['UID:u', start, 'SUMMARY:Contra'],
+            ]),
+            toLocal: (u) => u.subtract(const Duration(hours: 4)),
+          ),
+        );
+        await tester.tap(find.byKey(const ValueKey('calendar-import-fetch')));
+        await tester.pumpAndSettle();
+        expect(find.text('Contra'), findsOneWidget, reason: start);
+        expect(
+          find.text(
+            "Times your calendar keeps in UTC are shown in this device's "
+            'time zone. If you import while in another time zone, those '
+            "events keep that zone's times.",
+          ),
+          said ? findsOneWidget : findsNothing,
+          reason: start,
+        );
+      }
     });
   });
 

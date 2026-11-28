@@ -1,0 +1,20 @@
+{
+  "id": "audit-s32-calendar-import",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A calendar file built to be slow no longer freezes the app for minutes on each import, or at each start with Import calendar when the app starts on: a repeating event set to repeat a number of times from a start far back is counted without walking every day since (once counting those has taken too long across the whole calendar, which only centuries of dates between them can do, the rest are listed under Repeating events the app can't read), a start in year 0000 is not read, a file with old Mac line ends is read as fast as any other, and the changes to single dates of many events sharing one identifier are offered once, not once per event.",
+      "A long-lived calendar written oldest first no longer loses its upcoming gigs to the 5,000-event limit: events already over don't count toward it.",
+      "A calendar that arrives cut off part-way, as a dropped connection can leave it, no longer labels the programs whose events were in the lost part No longer in your calendar.",
+      "A moved or deleted date of a repeating event, or its end date, written in another form than the event's start (in UTC against a time zone, as some calendar programs do) is now read: the moved date is no longer offered twice, the deleted one is no longer offered, and an all-day series whose end is written as a UTC time no longer loses its last day.",
+      "Undo after importing from your calendar now moves the drafts you haven't touched to Recently deleted, as Undo at startup does, and keeps any you have started filling in. Before, it erased them, so an import at the next start added them again, and it erased a draft you had already edited.",
+      "The import's review now says when it shows a time your calendar keeps in UTC in this device's time zone, and the user guide says that an event imported while you are in another time zone keeps that zone's time."
+    ]
+  },
+  "core": {
+    "changed": [
+      "ICalRecurrence.datesThrough lists only from its from date, tries only the days the rule can fall on, takes maxTries and returns null past it, and reports the tries spent counting a COUNT series' earlier occurrences. planCalendarImport bounds them by iCalCountWorkLimit per feed, offers a UID's overrides once however many series share it, matches RECURRENCE-ID and EXDATE values written in another form than DTSTART by local date and time, and reads an all-day series' UTC UNTIL written at 00:00:00 or 23:59:59 as its written date, and at any other time as its local date.",
+      "parseICalFeed takes today and does not count one-off events already over toward maxEvents; ICalFeed.complete says whether the document closed, and canJudgeMissing requires it. ICalDateValue.tryParse refuses year 0000. Unfolding is linear in the line's length."
+    ]
+  }
+}

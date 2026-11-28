@@ -25,12 +25,17 @@ typedef CalendarFeedFetcher = Future<String> Function(String url);
 /// Imports gigs from the caller's online calendar as draft programs (#2352).
 ///
 /// The caller gives the address of an iCalendar feed (kept in Settings ▸
-/// Program ▸ Calendar too) and presses **Fetch**. The screen fetches only
-/// then: nothing runs on open, in the background, or on resume. The preview
-/// lists new events ticked, events whose program the caller deleted unticked,
-/// and events already imported or exported by this app for information.
-/// **Import** creates the ticked drafts and pops with their ids; the caller of
-/// this screen offers **Undo**.
+/// Program ▸ Calendar too) and presses **Fetch events**. This screen fetches
+/// only then: never on open, in the background, or on resume. Opened from the
+/// startup run's **Review** (#2353), it builds the preview on open from the
+/// body that run already fetched ([prefetchedBody]), still without fetching.
+/// The preview lists new events ticked, events whose program the caller
+/// deleted unticked, upstream changes to programs already imported and the
+/// flags Import will set or clear (#2354), and events already imported or
+/// exported by this app for information. **Import** creates the ticked
+/// drafts, applies the ticked changes and the flags, offers **Undo**
+/// ([undoCalendarImportDrafts], then [undoCalendarUpdates]), and pops with
+/// their ids.
 class CalendarImportScreen extends StatefulWidget {
   const CalendarImportScreen({
     super.key,
@@ -259,8 +264,9 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
       undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: accessible,
       onUndo: () async {
-        await repos.programs.hardDelete(ids);
-        await undoCalendarUpdates(repos, before, now: clock.now().toUtc());
+        final at = clock.now().toUtc();
+        await undoCalendarImportDrafts(repos, ids, now: at);
+        await undoCalendarUpdates(repos, before, now: at);
       },
     );
     if (mounted) navigator.pop(ids);
@@ -493,6 +499,15 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
             : l10n.calendarImportSummary(preview.freshCount),
         key: const ValueKey('calendar-import-summary'),
       ),
+      // A `Z` time is read in this device's zone (#2423), so an import made
+      // while away keeps that zone's times (pre-release audit finding E1-03).
+      if (preview.entries.any((e) => e.candidate.startsInUtc)) ...[
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          l10n.calendarImportDeviceTimeZoneNote,
+          key: const ValueKey('calendar-import-device-zone-note'),
+        ),
+      ],
       if (fresh.isNotEmpty) ...[
         header(l10n.calendarImportNewHeader),
         for (final e in fresh) tickable(e),

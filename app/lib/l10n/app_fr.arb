@@ -13314,9 +13314,13 @@
   "@calendarImportSkippedNoUid": {
     "x-sourceSha256": "957369e2925755b73b3b208a96574ba86511d5a84e9536ac01dd88d77eecff3c"
   },
-  "calendarImportTruncated": "{count, plural, other{Le calendrier contient plus de {count} événements. Seuls les {count} premiers ont été lus.}}",
+  "calendarImportTruncated": "{count, plural, other{Le calendrier contient plus de {count} événements à venir ou récurrents. Seuls les {count} premiers ont été lus.}}",
   "@calendarImportTruncated": {
-    "x-sourceSha256": "9d05f4e12d75a6e091de66518cbca2f6f8929efa055f5030b2bfb3da1a685554"
+    "x-sourceSha256": "e259d180e87099b5a90772abb86cd9a16f22460fd3e839f3402db947eb52f421"
+  },
+  "calendarImportDeviceTimeZoneNote": "Les heures que votre calendrier enregistre en UTC sont affichées dans le fuseau horaire de cet appareil. Si vous importez depuis un autre fuseau horaire, ces événements gardent les heures de ce fuseau.",
+  "@calendarImportDeviceTimeZoneNote": {
+    "x-sourceSha256": "e01a04f38d5b91bfa1de8ca5e7582144cdc8a0e657a3338977189b9c3ff8f71e"
   },
   "calendarSettingsHeader": "Calendrier",
   "@calendarSettingsHeader": {

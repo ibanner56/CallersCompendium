@@ -13314,9 +13314,13 @@
   "@calendarImportSkippedNoUid": {
     "x-sourceSha256": "957369e2925755b73b3b208a96574ba86511d5a84e9536ac01dd88d77eecff3c"
   },
-  "calendarImportTruncated": "{count, plural, other{Kalenderen har mere end {count} begivenheder. Kun de første {count} blev læst.}}",
+  "calendarImportTruncated": "{count, plural, other{Kalenderen har mere end {count} kommende eller gentagne begivenheder. Kun de første {count} blev læst.}}",
   "@calendarImportTruncated": {
-    "x-sourceSha256": "9d05f4e12d75a6e091de66518cbca2f6f8929efa055f5030b2bfb3da1a685554"
+    "x-sourceSha256": "e259d180e87099b5a90772abb86cd9a16f22460fd3e839f3402db947eb52f421"
+  },
+  "calendarImportDeviceTimeZoneNote": "Tidspunkter, som din kalender gemmer i UTC, vises i denne enheds tidszone. Importerer du, mens du er i en anden tidszone, beholder disse begivenheder den tidszones tidspunkter.",
+  "@calendarImportDeviceTimeZoneNote": {
+    "x-sourceSha256": "e01a04f38d5b91bfa1de8ca5e7582144cdc8a0e657a3338977189b9c3ff8f71e"
   },
   "calendarSettingsHeader": "Kalender",
   "@calendarSettingsHeader": {

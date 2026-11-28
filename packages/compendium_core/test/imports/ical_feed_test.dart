@@ -1070,6 +1070,22 @@ void main() {
       }
     });
 
+    test('a series is read 30 days ahead even when the window is shorter', () {
+      // One walk serves the offers and the known keys: it must reach the
+      // later of the window's end and day 30.
+      for (final months in [0, 1]) {
+        final p = plan(
+          _cal([
+            ['UID:d', 'DTSTART;VALUE=DATE:20300101', 'RRULE:FREQ=DAILY'],
+          ]),
+          windowMonths: months,
+          on: DateTime(2031, 2, 1),
+        );
+        expect(p.candidates, hasLength(31), reason: '$months months');
+        expect(dates(p).last, utcDay(2031, 3, 3), reason: '$months months');
+      }
+    });
+
     test('moving the clock forward a week offers the newly in-range '
         'occurrences', () {
       final body = _cal([
@@ -1082,6 +1098,357 @@ void main() {
           if (!first.contains(c.eventKey)) c.date,
       ];
       expect(fresh, [utcDay(2030, 7, 20)]);
+    });
+  });
+
+  // Pre-release audit findings SEC-03, E1-02, E1-07, E1-10 and E1-11: feeds
+  // that froze the import, the event cap, a cut-off feed, and dates written
+  // in another form than DTSTART.
+  group('slow and hostile feeds', () {
+    test('year 0000 is not a date, so a start in it is unreadable', () {
+      expect(ICalDateValue.tryParse('00000101'), isNull);
+      expect(ICalDateValue.tryParse('00000101T190000Z'), isNull);
+      expect(ICalDateValue.tryParse('00010101')?.year, 1);
+      final feed = parseICalFeed(
+        _cal([
+          ['UID:z', 'DTSTART:00000101', 'RRULE:FREQ=DAILY;COUNT=999999999'],
+        ]),
+      );
+      expect(feed.events, isEmpty);
+      expect(feed.skippedNoStart, 1);
+    });
+
+    test('guard: a line folded hundreds of thousands of times after old-Mac '
+        '(bare CR) line ends is unfolded in linear time', () {
+      // Unfixed, joining the lines one `+=` at a time took 2.8 s for 256,000
+      // folds; eight times as many took minutes.
+      const folds = 2048000;
+      final body = StringBuffer(
+        'BEGIN:VCALENDAR\rBEGIN:VEVENT\rUID:a\rDTSTART;VALUE=DATE:20300620\r'
+        'SUMMARY:x',
+      );
+      for (var i = 0; i < folds; i++) {
+        body.write('\r y');
+      }
+      body.write('\rEND:VEVENT\rEND:VCALENDAR\r');
+      final watch = Stopwatch()..start();
+      final feed = parseICalFeed(body.toString());
+      expect(watch.elapsed, lessThan(const Duration(seconds: 20)));
+      expect(feed.events.single.summary, 'x${'y' * folds}');
+    });
+
+    test('guard: COUNT series dated far back are counted within a fixed '
+        'amount of work, and one that would take longer is not read', () {
+      // Unfixed, each of these took about two seconds, walked one day at a
+      // time from year 1: minutes for the feed.
+      final body = _cal([
+        for (var i = 0; i < 200; i++)
+          [
+            'UID:z$i',
+            'DTSTART:00010101',
+            'RRULE:FREQ=DAILY;COUNT=999999999',
+            'SUMMARY:Daily $i',
+          ],
+      ]);
+      final watch = Stopwatch()..start();
+      final p = plan(body, windowMonths: 12);
+      expect(watch.elapsed, lessThan(const Duration(seconds: 20)));
+      expect(p.unreadableSeries, isNotEmpty);
+      expect(p.canJudgeMissing, isFalse);
+    });
+
+    test('an old COUNT series still running ends on its last occurrence', () {
+      // Weekly on Saturdays from 6 Jan 1990: the 2,113th is 29 June 2030.
+      List<DateTime> weekly(int count) => dates(
+        plan(
+          _cal([
+            [
+              'UID:w',
+              'DTSTART;VALUE=DATE:19900106',
+              'RRULE:FREQ=WEEKLY;COUNT=$count',
+            ],
+          ]),
+        ),
+      );
+      expect(weekly(2113), [
+        utcDay(2030, 6, 15),
+        utcDay(2030, 6, 22),
+        utcDay(2030, 6, 29),
+      ]);
+      expect(weekly(2112), [utcDay(2030, 6, 15), utcDay(2030, 6, 22)]);
+      // DTSTART counts even off the rule's days: from Friday 5 January 1990,
+      // the first of 2,113 is that Friday, so the last Saturday is the 22nd.
+      expect(
+        dates(
+          plan(
+            _cal([
+              [
+                'UID:f',
+                'DTSTART;VALUE=DATE:19900105',
+                'RRULE:FREQ=WEEKLY;BYDAY=SA;COUNT=2113',
+              ],
+            ]),
+          ),
+        ),
+        [utcDay(2030, 6, 15), utcDay(2030, 6, 22)],
+      );
+      // The second Saturday of each month from January 1980: the 607th is
+      // 13 July 2030, and the 606th is 8 June, before today.
+      List<DateTime> monthly(int count) => dates(
+        plan(
+          _cal([
+            [
+              'UID:m',
+              'DTSTART;VALUE=DATE:19800112',
+              'RRULE:FREQ=MONTHLY;BYDAY=2SA;COUNT=$count',
+            ],
+          ]),
+        ),
+      );
+      expect(monthly(607), [utcDay(2030, 7, 13)]);
+      expect(monthly(606), isEmpty);
+    });
+
+    test('guard: many series sharing one UID offer its overrides once', () {
+      // Unfixed, 2,500 series and 2,500 overrides with one UID gave
+      // 1,682,500 candidates: every series offered every override.
+      const n = 2500;
+      final body = _cal([
+        for (var i = 0; i < n; i++)
+          ['UID:same', 'DTSTART:20300601T190000', 'RRULE:FREQ=YEARLY'],
+        for (var i = 0; i < n; i++)
+          [
+            'UID:same',
+            // Each names a different instant.
+            'RECURRENCE-ID:2031'
+                '${(i ~/ 28 % 12 + 1).toString().padLeft(2, '0')}'
+                '${(i % 28 + 1).toString().padLeft(2, '0')}T'
+                '${(i ~/ 336).toString().padLeft(2, '0')}0000',
+            'DTSTART:20300620T190000',
+            'SUMMARY:o$i',
+          ],
+      ]);
+      final p = plan(body);
+      // One per override; the series' own next occurrence is a year away.
+      expect(p.candidates, hasLength(n));
+    });
+
+    test('every series sharing a UID offers its own dates, even after a '
+        'cancelled one, and their overrides once', () {
+      final p = plan(
+        _cal([
+          [
+            'UID:s',
+            'DTSTART;VALUE=DATE:20300601',
+            'RRULE:FREQ=WEEKLY',
+            'STATUS:CANCELLED',
+            'SUMMARY:Cancelled',
+          ],
+          [
+            'UID:s',
+            'DTSTART;VALUE=DATE:20300602',
+            'RRULE:FREQ=WEEKLY',
+            'SUMMARY:Sunday',
+          ],
+          [
+            'UID:s',
+            'DTSTART;VALUE=DATE:20300604',
+            'RRULE:FREQ=WEEKLY',
+            'SUMMARY:Tuesday',
+          ],
+          [
+            'UID:s',
+            'RECURRENCE-ID;VALUE=DATE:20300618',
+            'DTSTART;VALUE=DATE:20300619',
+            'SUMMARY:Moved',
+          ],
+        ]),
+      );
+      final titles = [for (final c in p.candidates) c.title];
+      expect(titles.where((t) => t == 'Sunday'), hasLength(5));
+      // 18, 25 June, 2 and 9 July, less the 18th, which the override moves.
+      expect(titles.where((t) => t == 'Tuesday'), hasLength(3));
+      expect(titles.where((t) => t == 'Moved'), hasLength(1));
+      expect(titles, isNot(contains('Cancelled')));
+      expect(
+        p.knownKeys,
+        contains(calendarEventKey('s', '20300625')),
+        reason: "a later series' dates are known, so never a false \"gone\"",
+      );
+      expect(
+        [for (final c in p.candidates) c.date],
+        isNot(contains(utcDay(2030, 6, 18))),
+        reason: 'the moved occurrence is not offered as well',
+      );
+    });
+  });
+
+  group('the event cap', () {
+    String feedOf(int past, {int upcoming = 1}) => _cal([
+      for (var i = 0; i < past; i++)
+        ['UID:p$i', 'DTSTART;VALUE=DATE:20200101', 'SUMMARY:Past $i'],
+      for (var i = 0; i < upcoming; i++)
+        ['UID:u$i', 'DTSTART;VALUE=DATE:20300620', 'SUMMARY:Upcoming $i'],
+    ]);
+
+    test('past one-off events do not count toward it', () {
+      // Oldest first, as a long-lived calendar can be written: unfixed, the
+      // cap was spent on the past and the upcoming gig was never read.
+      final feed = parseICalFeed(feedOf(6), maxEvents: 3, today: today);
+      expect(feed.truncated, isFalse);
+      final p = planCalendarImport(
+        feed,
+        today: today,
+        windowMonths: 6,
+        toLocal: (u) => u,
+      );
+      expect(p.candidates.map((c) => c.title), ['Upcoming 0']);
+      expect(p.canJudgeMissing, isTrue);
+      expect(
+        p.knownKeys,
+        contains(calendarEventKey('p5', '')),
+        reason: 'a past event is still in the calendar',
+      );
+    });
+
+    test('upcoming events, series and overrides still count', () {
+      final feed = parseICalFeed(
+        feedOf(2, upcoming: 4),
+        maxEvents: 3,
+        today: today,
+      );
+      expect(feed.truncated, isTrue);
+      expect(
+        feed.events.where((e) => e.summary!.startsWith('Upcoming')),
+        hasLength(3),
+      );
+      final series = parseICalFeed(
+        _cal([
+          for (var i = 0; i < 4; i++)
+            ['UID:s$i', 'DTSTART;VALUE=DATE:20200101', 'RRULE:FREQ=YEARLY'],
+        ]),
+        maxEvents: 3,
+        today: today,
+      );
+      expect(series.truncated, isTrue);
+    });
+  });
+
+  group('a feed cut off', () {
+    test('a body that ends inside an event, or before END:VCALENDAR, cannot '
+        'say what is gone', () {
+      final whole = _cal([
+        ['UID:a', 'DTSTART;VALUE=DATE:20300620', 'SUMMARY:A'],
+        ['UID:b', 'DTSTART;VALUE=DATE:20300625', 'SUMMARY:B'],
+      ]);
+      expect(parseICalFeed(whole).complete, isTrue);
+      expect(plan(whole).canJudgeMissing, isTrue);
+      for (final cut in [
+        whole.substring(0, whole.indexOf('UID:b') + 4),
+        whole.substring(0, whole.indexOf('END:VCALENDAR')),
+        // An event never closed, then the calendar closed.
+        whole.replaceFirst('SUMMARY:B\r\nEND:VEVENT\r\n', 'SUMMARY:B\r\n'),
+      ]) {
+        expect(parseICalFeed(cut).complete, isFalse);
+        final p = plan(cut);
+        expect(p.candidates.map((c) => c.title), contains('A'));
+        expect(p.canJudgeMissing, isFalse);
+      }
+    });
+  });
+
+  group('dates written in another form than DTSTART', () {
+    DateTime newYork(DateTime u) => u.subtract(const Duration(hours: 4));
+    const series = [
+      'UID:r',
+      'DTSTART;TZID=America/New_York:20300606T190000',
+      'DTEND;TZID=America/New_York:20300606T220000',
+      'RRULE:FREQ=WEEKLY',
+      'SUMMARY:Thursday contra',
+    ];
+
+    test('a RECURRENCE-ID in UTC replaces the occurrence it names', () {
+      final p = plan(
+        _cal([
+          series,
+          [
+            'UID:r',
+            'RECURRENCE-ID:20300620T230000Z',
+            'DTSTART;TZID=America/New_York:20300621T190000',
+            'SUMMARY:Moved to Friday',
+          ],
+        ]),
+        toLocal: newYork,
+      );
+      expect(
+        [for (final c in p.candidates) (c.date.day, c.title)],
+        [
+          (21, 'Moved to Friday'),
+          (27, 'Thursday contra'),
+          (4, 'Thursday contra'),
+          (11, 'Thursday contra'),
+        ],
+      );
+      expect(
+        p.candidates.first.eventKey,
+        calendarEventKey('r', '20300620T230000Z'),
+        reason: 'keyed as the override writes it, as its known key is',
+      );
+      expect(p.knownKeys, contains(p.candidates.first.eventKey));
+    });
+
+    test('an EXDATE in UTC removes the occurrence it names', () {
+      final p = plan(
+        _cal([
+          [...series, 'EXDATE:20300620T230000Z'],
+        ]),
+        toLocal: newYork,
+      );
+      expect([for (final c in p.candidates) c.date.day], [27, 4, 11]);
+      expect(
+        p.knownKeys,
+        isNot(contains(calendarEventKey('r', '20300620T190000'))),
+        reason: 'a deleted occurrence is gone',
+      );
+    });
+
+    test('a UTC UNTIL on an all-day series ends on its own date, in any '
+        'zone', () {
+      final body = _cal([
+        [
+          'UID:a',
+          'DTSTART;VALUE=DATE:20300616',
+          'RRULE:FREQ=DAILY;UNTIL=20300618T000000Z',
+        ],
+      ]);
+      for (final hours in [-5, 0, 9]) {
+        expect(
+          dates(plan(body, toLocal: (u) => u.add(Duration(hours: hours)))),
+          [utcDay(2030, 6, 16), utcDay(2030, 6, 17), utcDay(2030, 6, 18)],
+          reason: 'UTC$hours',
+        );
+      }
+      // The last day's local midnight in a calendar two hours east of
+      // Greenwich, read there.
+      expect(
+        dates(
+          plan(
+            body.replaceFirst('20300618T000000Z', '20300617T220000Z'),
+            toLocal: (u) => u.add(const Duration(hours: 2)),
+          ),
+        ),
+        [utcDay(2030, 6, 16), utcDay(2030, 6, 17), utcDay(2030, 6, 18)],
+      );
+      // The last day's end in UTC gains no day east of Greenwich.
+      expect(
+        dates(
+          plan(
+            body.replaceFirst('20300618T000000Z', '20300618T235959Z'),
+            toLocal: (u) => u.add(const Duration(hours: 9)),
+          ),
+        ),
+        [utcDay(2030, 6, 16), utcDay(2030, 6, 17), utcDay(2030, 6, 18)],
+      );
     });
   });
 }

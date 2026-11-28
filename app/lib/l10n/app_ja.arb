@@ -13314,9 +13314,13 @@
   "@calendarImportSkippedNoUid": {
     "x-sourceSha256": "957369e2925755b73b3b208a96574ba86511d5a84e9536ac01dd88d77eecff3c"
   },
-  "calendarImportTruncated": "{count, plural, other{カレンダーに{count}件を超える予定があります。最初の{count}件だけを読み取りました。}}",
+  "calendarImportTruncated": "{count, plural, other{カレンダーに今後の予定または繰り返しの予定が{count}件を超えてあります。最初の{count}件だけを読み取りました。}}",
   "@calendarImportTruncated": {
-    "x-sourceSha256": "9d05f4e12d75a6e091de66518cbca2f6f8929efa055f5030b2bfb3da1a685554"
+    "x-sourceSha256": "e259d180e87099b5a90772abb86cd9a16f22460fd3e839f3402db947eb52f421"
+  },
+  "calendarImportDeviceTimeZoneNote": "カレンダーがUTCで保存している時刻は、このデバイスのタイムゾーンで表示されます。別のタイムゾーンにいるときにインポートすると、その予定にはそのタイムゾーンの時刻が使われます。",
+  "@calendarImportDeviceTimeZoneNote": {
+    "x-sourceSha256": "e01a04f38d5b91bfa1de8ca5e7582144cdc8a0e657a3338977189b9c3ff8f71e"
   },
   "calendarSettingsHeader": "カレンダー",
   "@calendarSettingsHeader": {
