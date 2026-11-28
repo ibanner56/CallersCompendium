@@ -131,6 +131,28 @@ void main() {
     expect(latest.keys.toSet(), (await dances.search(filter)).toSet());
   });
 
+  test('a program in Recently deleted does not count as called here', () async {
+    await seed();
+    await dance('trashed-only');
+    await program(
+      'trashed',
+      venue: 'Grange',
+      eventDate: DateTime.utc(2026, 11, 1),
+      slots: [slot('t1', 'trashed-only'), slot('t2', 'recent', position: 1)],
+    );
+    await programs.softDelete('trashed', at: now);
+    final filter = CalledFilter(
+      called: true,
+      venue: grange,
+      currentProgramId: 'being-built',
+    );
+    final latest = await programs.latestCallByDance(filter);
+    expect(latest.containsKey('trashed-only'), isFalse);
+    // Nor does its later date move a dance called elsewhere at the venue.
+    expect(latest['recent'], DateTime.utc(2026, 10, 3));
+    expect(latest.keys.toSet(), (await dances.search(filter)).toSet());
+  });
+
   test('the Last called sort leaves out currentProgramId, as the Called '
       'filter does', () async {
     await seed();
