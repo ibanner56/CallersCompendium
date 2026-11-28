@@ -303,13 +303,14 @@ That copy is the app's stored data, so it includes what an
 exported backup leaves out: your [calendar address](./settings.md#calendar),
 everything about [Device Sync](./settings.md#device-sync), half-finished edits
 you hadn't saved, and the [diagnostics log](./settings.md#diagnostics). A phone
-set up from it already has your calendar address. If Device Sync was on, the
-app notices the copy the first time it opens there, turns Device Sync off with
-a message, and forgets the old device's identity, so that when you turn it back
-on, the phone connects as a device of its own (see
-[Device Sync](./settings.md#device-sync)). A backup made by an earlier version
-of the app isn't recognised: from one of those, Device Sync stays as it was in
-the copy, under the old device's identity.
+set up from it already has your calendar address. When the app can tell the
+copy was restored, it forgets the old device's identity the first time it opens
+there and, if Device Sync was on, turns it off with a message; when you turn it
+back on, the phone connects as a device of its own (see
+[Device Sync](./settings.md#device-sync)). It can't tell for a backup made
+before the app had been opened on a version later than 0.10.0: from one of
+those, Device Sync stays as it was in the copy, under the old device's identity.
+Device Sync isn't built for two devices sharing one identity.
 
 Whether your device makes these copies is set in your device's own backup
 settings; the app has no setting for it. Uninstalling the app doesn't delete a

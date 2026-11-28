@@ -235,10 +235,10 @@ const String kSyncLastUsedFingerprintKey = 'sync_last_used_fingerprint';
 
 /// Whether the user has turned Device Sync on. Absent means off. This is
 /// per-installation consent: it never syncs and never travels in a backup
-/// file, so restoring one leaves sync off (spec §6.1). A device backup copies
-/// it with the database; on Android and iOS start-up turns it off in a library
-/// restored from a backup this build or a later one took
-/// (`restored_copy_check.dart`, spec §3.3).
+/// file, so restoring one never turns sync on (spec §6.1). A device backup
+/// copies it with the database; on Android and iOS start-up turns it off in a
+/// library it recognises as restored from one (`restored_copy_check.dart`,
+/// spec §3.3).
 const String kSyncEnabledKey = 'sync_enabled';
 
 /// `true` once this library has started on an Android or iOS build that keeps

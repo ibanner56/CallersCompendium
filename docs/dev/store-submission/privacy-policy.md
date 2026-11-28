@@ -117,10 +117,11 @@ These copies hold the app's stored data, including what the app's own backup
 file leaves out: your calendar address, your Device Sync settings (whether sync
 is on, and which store and server it uses), edits you have not saved yet, and
 the app's diagnostics log. Restoring one, or setting up a new phone from one,
-puts all of it back. On a phone or tablet, the app then turns Device Sync off
-and forgets the identifier of the device the copy came from, unless the backup
-was made by an earlier version of the app; on a computer, and from such an
-earlier backup, the restored copy keeps that identifier. These copies are
+puts all of it back. On a phone or tablet, when the app can tell the copy was
+restored, it forgets the identifier of the device the copy came from and turns
+Device Sync off. It can't tell for a backup made before the app had been opened
+on a version later than 0.10.0; from such a backup, and on a Windows, macOS or
+Linux computer, the restored copy keeps that identifier. These copies are
 made and kept by your device's system and your Google or Apple account, under
 their settings, not by us; we never receive them.
 

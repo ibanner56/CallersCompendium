@@ -149,16 +149,20 @@ enum DataSubject {
 /// deliberately about the *route*, not about sensitivity: two fields can both
 /// be personal data and still differ here.
 ///
-/// These classes govern the routes the app itself takes. The operating
-/// system's own device backup (Android's backup to the user's Google account
-/// and its phone-to-phone transfer, an iCloud or computer backup) is not one of
-/// them: the app does not opt out of it, so it copies the whole database, every
-/// class included (pre-release audit finding PRIV-03; the privacy policy says
-/// so in section 2). Where a note says a value is never backed up or never
-/// restored from a backup, it means the app's own backup file. Of what a device
-/// backup copies, the app undoes only the Device Sync identity: on Android and
-/// iOS, start-up erases `sync_device_id` and turns Device Sync off in a library
-/// restored from a device backup that this build or a later one took
+/// **A known gap: the device's own backup.** The operating system's backup
+/// (Android's backup to the user's Google account and its phone-to-phone
+/// transfer, an iCloud or computer backup) is not a route the app takes, and
+/// today the app does not opt out of it. So it copies the whole database,
+/// [deviceScoped] values included, and the pre-migration safety copies in
+/// `db_backups` beside it (pre-release audit finding PRIV-03; the privacy
+/// policy says so in section 2). This is a gap against [deviceScoped]'s
+/// absolute rule, recorded here, not a narrowing of it. Where a note says a
+/// value is never backed up or never restored from a backup, it means the
+/// app's own backup file. Of what a device backup copies, the app undoes only
+/// the Device Sync identity: on Android and iOS, start-up erases
+/// `sync_device_id`, and turns Device Sync off if it was on, in a library it
+/// recognises as restored from a device backup. That needs the library to have
+/// started on such a build before the backup was taken
 /// (`app/lib/src/sync/restored_copy_check.dart`, sync-spec §3.3).
 enum EgressClass {
   /// May travel by any route the user chooses, including infrastructure the
@@ -197,9 +201,7 @@ enum EgressClass {
 
   /// Never transmitted by any route, because the value is meaningless or
   /// actively wrong on another device — a window position, a per-device marker,
-  /// a per-installation key. "Any route" means any route the app takes; the
-  /// operating system's device backup, which copies the whole database, is
-  /// described on [EgressClass].
+  /// a per-installation key.
   ///
   /// Distinct from [deviceLocal]: that is withheld because of what it
   /// *contains*, this because of what it *means*. The difference is

@@ -297,9 +297,10 @@ final Map<String, DataClassification> settingsClassifications = {
         'identifier as a link. It must travel in protocol metadata but must '
         'never be adopted from another device or restored from a backup file. '
         'A device backup copies it with the rest of the database; on Android '
-        'and iOS, start-up erases a copy restored from a device backup that '
-        'this build or a later one took (restored_copy_check.dart, sync-spec '
-        '§3.3), but not one an earlier build took, nor on a desktop.',
+        'and iOS, start-up erases it in a library it recognises as restored '
+        'from a device backup, which needs the library to have started on '
+        'such a build before the backup was taken (restored_copy_check.dart, '
+        'sync-spec §3.3). Not on a desktop.',
   ),
   'sync_last_used_fingerprint': const DataClassification(
     term: DpvTerm.unclassifiedPersonal,
@@ -319,7 +320,7 @@ final Map<String, DataClassification> settingsClassifications = {
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
     note:
-        'Per-installation Device Sync consent. Never synced and never restored from a backup file: consent given on one device is not consent on another. A device backup copies it with the rest of the database; on Android and iOS, start-up turns it off in a library restored from a device backup that this build or a later one took (restored_copy_check.dart, sync-spec §3.3), but not in one an earlier build took, nor on a desktop.',
+        'Per-installation Device Sync consent. Never synced and never restored from a backup file: consent given on one device is not consent on another. A device backup copies it with the rest of the database; on Android and iOS, start-up turns it off in a library it recognises as restored from a device backup, which needs the library to have started on such a build before the backup was taken (restored_copy_check.dart, sync-spec §3.3). Not on a desktop.',
   ),
   'no_backup_marker_written': const DataClassification(
     term: DpvTerm.nonPersonal,
@@ -648,10 +649,10 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
         'Transient dance-editor autosave draft, keyed per dance '
         '(editor_draft:<id>, or editor_draft:new:<editor id> for a dance not '
         'yet saved). Unsaved user-authored choreography text that '
-        'must never leave this device by any route the app takes, including '
-        'a local backup file — see backup_service.dart. The operating '
-        'system\'s device backup copies it with the rest of the database '
-        '(see EgressClass).',
+        'must never leave this device by any route, including a local '
+        'backup file — see backup_service.dart. The device\'s own backup '
+        'copies it with the rest of the database, a known gap recorded on '
+        'EgressClass.',
   ),
   'program_editor_draft:': const DataClassification(
     term: DpvTerm.nonPersonal,
