@@ -69,8 +69,12 @@ void main() {
     expect(unbundledWeightLines('s: TextStyle(fontWeight: FontWeight.w500)'), [
       1,
     ]);
-    // By index into the list of weights: 4 is w500.
+    // By index into the list of weights: 4 is w500; 3 and 6 are the bundled
+    // w400 and w700; an index that is not a literal cannot be checked.
     expect(unbundledWeightLines('x\nfontWeight: FontWeight.values[4],'), [2]);
+    expect(unbundledWeightLines('a: FontWeight.values[ 3 ],'), isEmpty);
+    expect(unbundledWeightLines('a: FontWeight.values[6],'), isEmpty);
+    expect(unbundledWeightLines('a: FontWeight.values[i],'), [1]);
     // A variable-font axis, by tag or by the named constructor.
     expect(unbundledWeightLines("v: [FontVariation(\n  'wght',\n  500,\n)]"), [
       1,
@@ -92,7 +96,12 @@ void main() {
 }
 
 final RegExp _unbundled = RegExp(r'(?<![\w.])FontWeight\s*\.\s*w[1235689]00\b');
-final RegExp _byIndex = RegExp(r'(?<![\w.])FontWeight\s*\.\s*values\s*\[');
+final RegExp _byIndex = RegExp(
+  r'(?<![\w.])FontWeight\s*\.\s*values\s*\[([^\]]*)\]',
+);
+
+/// `FontWeight.values` indices of the bundled weights: 3 is w400, 6 is w700.
+const _bundledIndices = {'3', '6'};
 final RegExp _variation = RegExp(
   r'(?<![\w.])FontVariation\s*(?:\.\s*(\w+)\s*)?\(',
 );
@@ -100,14 +109,18 @@ final RegExp _weightTag = RegExp('^r?([\'"])wght\\1\$');
 final RegExp _bundledValue = RegExp(r'^(?:400|700)(?:\.0+)?$');
 
 /// The 1-based lines of [source] that ask for a font weight other than 400 or
-/// 700: by name (`FontWeight.w500`), by index (`FontWeight.values[4]`), or on
+/// 700: by name (`FontWeight.w500`), by index (`FontWeight.values[4]`; an
+/// index that is not a literal 3 or 6, such as a variable, counts, since the
+/// weight it picks cannot be read from the source), or on
 /// a variable font's weight axis (`FontVariation('wght', 500)`,
 /// `FontVariation.weight(500)`). Comments and strings are not code.
 List<int> unbundledWeightLines(String source) {
   final code = codeOnly(source);
   final lines = <int>{
     for (final m in _unbundled.allMatches(code)) lineAt(source, m.start),
-    for (final m in _byIndex.allMatches(code)) lineAt(source, m.start),
+    for (final m in _byIndex.allMatches(code))
+      if (!_bundledIndices.contains(m.group(1)!.trim()))
+        lineAt(source, m.start),
   };
   for (final m in _variation.allMatches(code)) {
     final args = [
