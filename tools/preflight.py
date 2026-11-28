@@ -677,19 +677,29 @@ def _failure_excerpt(step: Step, output: str) -> str:
     Keeping only the end hid causes printed first: a stack trace's end is the
     least informative part of it. When the output is longer than both
     excerpts together, it is written whole to a log file (named after the step,
-    in the system temp directory) and the excerpt ends with its path.
+    in the system temp directory), and a marker line between the two excerpts
+    gives its path. If the log cannot be written, the marker says so and the
+    excerpts are still returned: the step's own failure must not be lost.
     """
     lines = [line for line in output.splitlines() if line.strip()]
     if len(lines) <= FAIL_HEAD_LINES + FAIL_TAIL_LINES:
         return "\n".join(lines)
-    fd, path = tempfile.mkstemp(prefix=f"preflight-{step.name}-", suffix=".log")
-    with os.fdopen(fd, "w", encoding="utf-8") as log:
-        log.write(output)
     omitted = len(lines) - FAIL_HEAD_LINES - FAIL_TAIL_LINES
+    try:
+        fd, path = tempfile.mkstemp(prefix=f"preflight-{step.name}-", suffix=".log")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as log:
+                log.write(output)
+        except OSError:
+            Path(path).unlink(missing_ok=True)
+            raise
+        where = f"full output: {path}"
+    except OSError as error:
+        where = f"full output could not be written: {error}"
     return "\n".join(
         [
             *lines[:FAIL_HEAD_LINES],
-            f"... {omitted} line(s) omitted; full output: {path}",
+            f"... {omitted} line(s) omitted; {where}",
             *lines[-FAIL_TAIL_LINES:],
         ]
     )
