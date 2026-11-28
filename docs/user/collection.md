@@ -484,7 +484,7 @@ it once and choose it from then on.
   tapping elsewhere just searches for what you typed, as the box always has.
   Choose a saved search to fill in the search box and the panels as they were
   saved and run it against your collection as it is now: a dance you tag later
-  shows up in it. The settings under Settings ▸ Calling history are the ones in
+  shows up in it. The settings under Settings ▸ Program ▸ Calling history are the ones in
   force when you use it. Choosing one doesn't change the sort the Collection
   opens in. With a keyboard, the arrow keys move through the list and
   **Enter** chooses the highlighted row; **Escape** closes the list. With the
