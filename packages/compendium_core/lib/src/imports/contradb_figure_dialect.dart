@@ -554,7 +554,8 @@ FigureMatch? _slideAlongSet(String text) {
   return FigureMatch('slide_along_set', params: {'slide': dir}, note: s.note());
 }
 
-/// chainWords: `[<left|right> diagonal]`, `<role1s|role2s>`,
+/// chainWords: `[<left|right> diagonal]`, `<role1s|role2s>` (or, v40, a
+/// numbered role such as `next role2s`),
 /// `[<left|right>-hand]`, `chain`. The leading diagonal qualifier renders only
 /// for non-default values (real render: The Judge — `left diagonal ladles
 /// chain to shadow`) and maps to the `where` param; the ubiquitous form is a
@@ -587,7 +588,9 @@ FigureMatch? _chain(String text) {
     }
   }
   final who = _subject(s);
-  if (who == null || (who != 'role1s' && who != 'role2s')) return null;
+  // A role, or (v40) a role among the previous or next neighbours: exactly
+  // the subjects [chainHandForWho] gives a hand.
+  if (who == null || chainHandForWho(who) == null) return null;
   final handToken = s.peek();
   if (handToken == '*-hand') return null;
   String? statedHand;

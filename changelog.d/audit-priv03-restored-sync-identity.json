@@ -1,0 +1,9 @@
+{
+  "id": "audit-priv03-restored-sync-identity",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On Android, iPhone and iPad, a new phone or tablet set up from a device backup of another one (Android backup or phone-to-phone transfer, an iCloud or computer backup, or iPhone-to-iPhone transfer) no longer syncs as the device it was copied from. The app now notices the restored copy, turns Device Sync off and says why; turn it back on under Settings ▸ Experimental ▸ Device Sync and the new device syncs as a device of its own. This works for backups made by this version or later."
+    ]
+  }
+}

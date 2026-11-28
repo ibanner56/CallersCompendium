@@ -220,7 +220,10 @@ const String kSyncEndpointKey = 'sync_endpoint';
 
 /// Key used to persist the current attachment's Device Sync routing
 /// identifier. It is minted locally for each attachment, erased when the device
-/// detaches, and never adopted from a peer or included in backups.
+/// detaches, and never adopted from a peer or included in backup files. A
+/// device backup copies it with the database; on Android and iOS start-up
+/// erases a copy restored from a backup this build or a later one took
+/// (`restored_copy_check.dart`, spec §3.3).
 const String kSyncDeviceIdKey = 'sync_device_id';
 
 /// Device-local set of salted, slow verifiers for every store address this
@@ -233,6 +236,16 @@ const String kSyncLastUsedFingerprintKey = 'sync_last_used_fingerprint';
 /// per-installation consent: it never syncs and never travels in a backup, so
 /// a restore on any device leaves sync off (spec §6.1).
 const String kSyncEnabledKey = 'sync_enabled';
+
+/// `true` once this library has started on an Android or iOS build that keeps
+/// a marker file outside device backup (`restored_copy_check.dart`, spec §3.3).
+/// Absent means no such build has started with this library yet: a fresh
+/// install, or the first start after updating to one. The flag present and the
+/// marker missing is how a library restored from a device backup is told
+/// apart, so it is written only after the marker. Device-scoped: never synced
+/// and never in a backup file. A device backup copies it with the database,
+/// which is the point.
+const String kNoBackupMarkerWrittenKey = 'no_backup_marker_written';
 
 /// *Sync only on WiFi*. Absent means on (spec §6.12). Device-local, never
 /// synced and never backed up.

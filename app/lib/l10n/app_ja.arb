@@ -716,6 +716,10 @@
   "@settingsSyncStatusSettingsUnreadable": {
     "x-sourceSha256": "ca37e41b6ed2d11c6b10cc81f386b054608b46b292f35d4b47ef8a395e84576b"
   },
+  "syncRestoredCopyNotice": "このライブラリはデバイスのバックアップから復元されたため、デバイス同期はオフになっています。設定 ▸ 実験的 ▸ デバイス同期 でもう一度オンにすると、このデバイスはバックアップ元のデバイスとしてではなく、新しいデバイスとして同期します。",
+  "@syncRestoredCopyNotice": {
+    "x-sourceSha256": "68688d2f85a4cbb6308d0663cefe4c30f1b62a53f59d3488138e9cc6aba02df6"
+  },
   "settingsSyncFailureUnreachable": "同期サーバーに接続できませんでした。",
   "@settingsSyncFailureUnreachable": {
     "x-sourceSha256": "1fec844573d970b89ddae666fddb4c01cf8065fb587bcb5fa4de0e8f4fcce1c7"

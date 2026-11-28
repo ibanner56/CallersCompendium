@@ -779,6 +779,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les réglages de la synchronisation des appareils n’ont pas pu être lus ; les réglages affichés ici peuvent donc être obsolètes, et la synchronisation peut être désactivée même si vous l’avez activée. Redémarrez l’application pour réessayer.';
 
   @override
+  String get syncRestoredCopyNotice =>
+      'La synchronisation des appareils est désactivée, car cette bibliothèque a été restaurée à partir d’une sauvegarde de l’appareil. Réactivez-la dans Paramètres ▸ Expérimental ▸ Synchronisation des appareils : cet appareil se synchronisera alors comme un nouvel appareil, et non comme celui dont provient la sauvegarde.';
+
+  @override
   String get settingsSyncFailureUnreachable =>
       'Impossible de joindre le serveur de synchronisation.';
 

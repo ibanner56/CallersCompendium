@@ -89,20 +89,21 @@ void main() {
       );
     });
 
-    test('`women/men turn around` (221 lines) are eligible and CANONICAL', () {
-      // The allowlist matches the POST-SCRUB role tokens, so the note is stored
-      // canonically and the reader never sees a raw gendered term.
+    test('`women/men turn around` is a turn alone, not a note', () {
+      // User-ruled 2026-11-27: turn around is turn alone, so the clause is a
+      // figure of its own (0 beats: the line's count rides on the first).
       const cases = {
-        'Partner swing; women turn around': 'role2s turn around',
-        'Partner swing; men turn around': 'role1s turn around',
+        'Partner swing; women turn around': 'role2s',
+        'Partner swing; men turn around': 'role1s',
       };
-      for (final entry in cases.entries) {
-        final only = _one(entry.key);
-        expect(only.move, 'swing', reason: entry.key);
-        expect(only.note, entry.value, reason: entry.key);
-        // The source word itself must appear NOWHERE in the stored note.
-        expect(only.note, isNot(contains('women')), reason: entry.key);
-        expect(only.note, isNot(contains('men')), reason: entry.key);
+      for (final MapEntry(key: line, value: who) in cases.entries) {
+        final [swing, turn] = _lines(line);
+        expect(swing.move, 'swing', reason: line);
+        expect(swing.note, isNull, reason: line);
+        expect(swing.beats, 8, reason: line);
+        expect(turn.move, 'turn_alone', reason: line);
+        expect(turn.params['who'], who, reason: line);
+        expect(turn.beats, 0, reason: line);
       }
     });
 
@@ -148,63 +149,68 @@ void main() {
       }
     });
 
-    test('the stored note is independent of the SOURCE casing', () {
+    test('a turn around reads the same in any SOURCE casing', () {
       for (final source in [
         'women turn around',
         'Women turn around',
         'WOMEN turn around',
       ]) {
-        expect(
-          _one('Partner swing; $source').note,
-          'role2s turn around',
-          reason: source,
-        );
+        final turn = _lines('Partner swing; $source').last;
+        expect(turn.move, 'turn_alone', reason: source);
+        expect(turn.params['who'], 'role2s', reason: source);
       }
     });
 
-    test('the annotated `turn around` variants ARE swept in', () {
-      // A PREFIX rule, mirroring `^face\b`: the note is verbatim prose either
-      // way, so `role2s turn around (cw)` preserves exactly as much as the
-      // whole-custom line did. Accepting `face up [with n0]` while rejecting
-      // this would be arbitrary.
-      // Note the annotation's own casing is preserved verbatim (`[with N2]`):
-      // only the role vocabulary is canonicalized.
+    test('an annotated turn around keeps its annotation as the note', () {
       const cases = {
-        'Partner swing; women turn around (cw)': 'role2s turn around (cw)',
-        'Partner swing; men turn around [with N2]':
-            'role1s turn around [with N2]',
-        'Partner swing; women turn around (by left)':
-            'role2s turn around (by left)',
+        'Partner swing; women turn around (cw)': (who: 'role2s', note: 'cw'),
+        'Partner swing; women turn around (by left)': (
+          who: 'role2s',
+          note: 'by left',
+        ),
+        // The neighbour number names the next larks (#2569's rules).
+        'Partner swing; men turn around [with N2]': (
+          who: 'nextRole1s',
+          note: null,
+        ),
       };
-      for (final entry in cases.entries) {
-        final figures = _lines(entry.key);
-        expect(figures, hasLength(1), reason: entry.key);
-        expect(figures.single.isCustom, isFalse, reason: entry.key);
-        expect(figures.single.note, entry.value, reason: entry.key);
+      for (final MapEntry(key: line, value: want) in cases.entries) {
+        final figures = _lines(line);
+        expect(figures, hasLength(2), reason: line);
+        expect(figures.last.move, 'turn_alone', reason: line);
+        expect(figures.last.params['who'], want.who, reason: line);
+        expect(figures.last.note, want.note, reason: line);
       }
     });
 
-    test('the prefix rule still excludes the wrong-subject wordings', () {
-      // `^` and `\b` are the whole guard. A prefix is far easier to
-      // over-widen later than an exact match, so this pins the boundary in
-      // all three directions it can slip:
-      //  * the subject must be STATED — a bare `turn around (by right)` names
-      //    nobody, so a note would preserve a statement we cannot attribute;
-      //  * the subject must be a ROLE PAIR — an individual/mixed subject
-      //    (`role2 one and role1 two`) or a couple-set subject (`ones`,
-      //    `everyone`) is not what the ruling scoped;
-      //  * the phrase must LEAD the clause, so a turn-around buried mid-clause
-      //    can never drag an unrelated statement into the note with it.
-      for (final line in [
-        'Partner swing; turn around (by right)',
-        'Partner swing; woman one and man two turn around',
-        'Partner swing; ones turn around',
-        'Partner swing; everyone turn around',
-        'Partner swing; walk forward then women turn around',
-      ]) {
-        _staysWholeCustom(line);
-      }
-    });
+    test(
+      'any subject turns around, but a turn around inside prose does not',
+      () {
+        expect(
+          _lines('Partner swing; ones turn around').last.params['who'],
+          'ones',
+        );
+        expect(
+          _lines('Partner swing; everyone turn around').last.params['who'],
+          'everyone',
+        );
+        final bare = _lines('Partner swing; turn around (by right)').last;
+        expect(bare.move, 'turn_alone');
+        expect(bare.params.containsKey('who'), isFalse);
+        expect(bare.note, 'by right');
+        // Wordings no recognizer reads keep the whole line as text, and so
+        // does a dancer AFTER the phrase: that is who is turned around.
+        for (final line in [
+          'Partner swing; turn around your partner',
+          'Partner swing; turn around the corner',
+          'Partner swing; turn around N2',
+          'Partner swing; woman one and man two turn around',
+          'Partner swing; walk forward then women turn around',
+        ]) {
+          _staysWholeCustom(line);
+        }
+      },
+    );
 
     test('the line KEEPS its source beats — nothing is redistributed', () {
       // The compound's whole budget already rides on the first clause and a
@@ -279,14 +285,14 @@ void main() {
     test('a note after a fold and a later figure no longer throws', () {
       final figures = _lines(
         'Women walk forward; form long wave in center; '
-        '(8) Star right 3/4 [with N2]; men turn around',
+        '(8) Star right 3/4 [with N2]; face up',
         beats: 2,
       );
       expect(figures.map((f) => f.move), ['form_a_long_wave', 'star']);
       // The note hangs on the star, the last figure before it, after the star's
       // own recognizer note.
       expect(figures[0].note, isNull);
-      expect(figures[1].note, endsWith('turn around'));
+      expect(figures[1].note, endsWith('face up'));
     });
 
     test('a note between a fold and the next figure stays on the fold', () {
@@ -756,15 +762,15 @@ void main() {
         'dialect (#715/#717)', () {
       final renderer = FigureRenderer(contraTaxonomy);
       const expected = {
-        '(8) Partner swing; women turn around': [
-          'role2s turn around',
-          'robins turn around',
-          'follows turn around',
+        '(8) Partner swing; face women': [
+          'face role2s',
+          'face robins',
+          'face follows',
         ],
-        '(8) Partner swing; men turn around': [
-          'role1s turn around',
-          'larks turn around',
-          'leads turn around',
+        '(8) Partner swing; face men': [
+          'face role1s',
+          'face larks',
+          'face leads',
         ],
       };
       for (final entry in expected.entries) {
