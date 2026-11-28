@@ -966,8 +966,8 @@ void main() {
     });
 
     for (final canonical in [true, false]) {
-      testWidgets('shows the value as typed, with discouraged terms '
-          '${canonical ? '' : 'not '}converted elsewhere', (tester) async {
+      testWidgets('shows the value as typed, with discouraged-term '
+          'conversion ${canonical ? 'on' : 'off'}', (tester) async {
         // The maintainer, decision sheet question 18.
         await pumpCard(
           tester,

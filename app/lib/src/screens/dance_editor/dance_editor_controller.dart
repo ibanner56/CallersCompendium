@@ -2012,7 +2012,10 @@ class DanceEditorController extends ChangeNotifier {
   /// the same shapes back ([_contraFormationFromEcd]). Any other shape is
   /// kept, as Convert English dances keeps it, even where the new form's
   /// list does not have it: the field then shows it beside that list
-  /// ([offeredFormationShapes]).
+  /// ([offeredFormationShapes]). So an English dance still on a contra shape
+  /// (converted or imported before ECD's shapes) keeps it when changed back
+  /// to contra; changed to English again, a Becket among them becomes a
+  /// longways "Becket" as above.
   ///
   /// A new dance, and any change to or from a square, starts the formation
   /// over when the new form does not offer its shape: the shape becomes that
@@ -2021,10 +2024,8 @@ class DanceEditorController extends ChangeNotifier {
   /// default "Improper" does not become an improper duple minor. A shape the
   /// new form offers is kept: triple minor, Sicilian circle, longways and
   /// other are in both the contra and ECD lists, circle, square and other in
-  /// both the ECD and square lists, and an English dance still on a contra
-  /// shape (converted or imported before ECD's shapes) keeps it when changed
-  /// back to contra. Choosing the form the dance already has changes
-  /// nothing. Where the shape is not mapped, [improper] is left as it is: a
+  /// both the ECD and square lists. Choosing the form the dance already has
+  /// changes nothing. Where the shape is not mapped, [improper] is left as it is: a
   /// new dance starts proper, and an English dance changed to contra and back
   /// keeps its checkbox. Undo restores the old shape, detail and checkbox.
   void _fitFormationToForm({required DanceForm from, required DanceForm to}) {

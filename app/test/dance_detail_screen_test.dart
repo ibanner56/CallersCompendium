@@ -4082,7 +4082,7 @@ void main() {
     });
 
     testWidgets('the Barnes reference is shown as typed, as the title is, '
-        'with discouraged terms converted elsewhere', (tester) async {
+        'with discouraged-term conversion on by default', (tester) async {
       // The maintainer, decision sheet question 18: a tune's name in the
       // reference is not reworded.
       final repos = openTestRepositories();
