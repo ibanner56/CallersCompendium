@@ -1046,6 +1046,54 @@ void main() {
       expect(counts(controller), [16, 6]);
     });
 
+    test('a Meter edit over phrases that differ in beats to the bar changes '
+        'no count and says nothing', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        phraseStructure: 'A:1*4*2 + B:1*4*2',
+        figures: [
+          testFigure(move: 'ecd_set', params: {'beats': 3}),
+          testFigure(move: 'ecd_set', params: {'beats': 8}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      // A in three beats to the bar: a bar and a half cannot follow it.
+      controller.setPhraseStructureText('A:1*4*3 + B:1*4*2');
+      final left = controller.figureBarsChange!;
+      expect(left.outcome, FigureBarsRescale.notExact);
+      // Its bars only, then a Meter the phrases do not follow.
+      controller.setPhraseStructureText('A:1*1*3 + B:1*4*2');
+      typeMeter(controller, '3/4');
+      typeMeter(controller, '2/4');
+      expect(counts(controller), [3, 8]);
+      expect(controller.figureBarsChange, same(left));
+    });
+
+    test('typing a phrase\'s beats to the bar a digit at a time counts from '
+        'where the edit started', () async {
+      final repos = openTestRepositories();
+      // 8 bars of two beats.
+      final controller = await openDance(
+        repos,
+        figures: [
+          testFigure(move: 'ecd_set', params: {'beats': 16}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      // "12" passes through 1 beat to the bar, which 8 bars would fit.
+      typePhrases(controller, '4*8*1');
+      typePhrases(controller, '4*8*12');
+      // 8 bars of twelve would pass 64 beats: no count changes.
+      expect(counts(controller), [16]);
+      expect(controller.figureBarsChange?.outcome, FigureBarsRescale.notExact);
+      // Typed back within the same step: as the step started, and nothing
+      // to say.
+      typePhrases(controller, '4*8*1');
+      typePhrases(controller, '4*8*2');
+      expect(counts(controller), [16]);
+    });
+
     for (final form in [DanceForm.contra, DanceForm.square]) {
       test('a ${form.name} dance, timed in beats, keeps its counts', () async {
         final repos = openTestRepositories();
