@@ -91,14 +91,17 @@ settings markers. `test/storage/real_release_fixture_test.dart` copies it,
 migrates it to head and reads the data back, and fails if the file for the
 current floor is missing. Its file name is derived from
 `kMinSupportedSchemaVersion`, so **raising the floor fails that test until a
-fixture for the new floor is captured** from the new floor release's tag; the
-recipe and generator are `tool/fixture_generators/generate_release_fixture.dart`.
+fixture for the new floor is captured** from the new floor release's tag, with a
+generator under `tool/fixture_generators/` written for that release (recipe in
+its header).
 Retiring the old floor deletes the old fixture, as for any below-floor artefact.
 A second fixture, `v41.sqlite` from `v0.10.0-beta` (generator
-`tool/fixture_generators/generate_release_fixture_v41.dart`), holds the figures
+`tool/fixture_generators/generate_v41_fixture.dart`), holds the figures
 and data only v0.9 and v0.10 could write; see "Floor fixtures" in
-`docs/design/storage.md`. (An earlier second fixture, `v38.sqlite` from `v0.6.0-beta`, covered the release the
-below-floor bridge sent older collections through until the floor passed v38.)
+`docs/design/storage.md`; at a floor of 41 it is the floor fixture. (An
+earlier second fixture, `v38.sqlite` from `v0.6.0-beta`, covered the release
+the below-floor bridge sent older collections through until the floor passed
+v38.)
 
 ## Adding a version
 

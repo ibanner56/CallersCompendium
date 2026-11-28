@@ -1,6 +1,6 @@
 // Generates `test/storage/fixtures/v41.sqlite`: a database written by the REAL
 // `v0.10.0-beta` release (commit 311eca4e, schema 41, contra taxonomy v39), the
-// release nearly every upgrading user is on. Read by
+// latest release tag when it was captured. Read by
 // `test/storage/real_release_fixture_test.dart`.
 //
 // A second generator rather than a branch of `generate_release_fixture.dart`:
@@ -17,8 +17,8 @@
 // starburst, trade the wave, the third and fourth couples' dancers, third
 // corners and opposites, an unstated circle distance, container titles), pass
 // by and pass through as the separate moves they were before today's taxonomy
-// v40 merged them, English and square dances, program pay, and glossary
-// entries and a figure note holding figures.
+// v40 merged them, English and square dances, program pay, a glossary
+// compound whose template holds figures, and a figure note keyed by a move.
 //
 // THIS FILE IS NOT BUILT OR ANALYSED WITH THE REPOSITORY. It is written against
 // the public API of v0.10.0-beta, which is not the API at head;
@@ -31,8 +31,8 @@
 //   # dev-only dependencies that need the workspace to resolve)
 //   sed -i '/^resolution: workspace/d; /^  analyzer:/d; /^  build_runner:/d; /^  drift_dev:/d' pubspec.yaml
 //   dart pub get
-//   cp <repo>/packages/compendium_core/tool/fixture_generators/generate_release_fixture_v41.dart tool/
-//   dart run tool/generate_release_fixture_v41.dart <out>/v41.sqlite
+//   cp <repo>/packages/compendium_core/tool/fixture_generators/generate_v41_fixture.dart tool/
+//   dart run tool/generate_v41_fixture.dart <out>/v41.sqlite
 //
 // The output is byte-reproducible: every timestamp the script writes is fixed,
 // and the ones the release's own startup takes from the wall clock (the default

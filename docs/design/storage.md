@@ -250,17 +250,22 @@ Retiring versions below a new floor means deleting, together:
 - the `if (from < N)` steps that can no longer fire (note the off-by-one:
   retiring versions up to and including vX kills steps through `if (from < X+1)`,
   because that step only ever applies to a vX-or-below database),
-- the fixtures and generators under `test/storage/fixtures/` for the retired
-  versions (the **new floor keeps its own**: see the next list),
+- the fixtures under `test/storage/fixtures/` and their generators under
+  `tool/fixture_generators/` for the retired versions (the **new floor keeps
+  its own**: see the next list),
 - the dumps under `drift_schemas/generated/` and their generated classes, and
 - the corresponding `migration_test.dart` groups.
 
 And adding, together, a fixture for the new floor:
 
 - **capture `test/storage/fixtures/v<new floor>.sqlite` from the new floor
-  release's tag** with `tool/fixture_generators/generate_release_fixture.dart`
-  (the recipe, including making the package resolve standalone at the tag, is in
-  its header), and record its sha256 under "Floor fixtures" below. The
+  release's tag** with a generator written against that release's API (the
+  recipe, including making the package resolve standalone at the tag, is in
+  each generator's header), record its sha256 under "Floor fixtures" below,
+  and give `_floorMigratesAndKeepsItsData` in `real_release_fixture_test.dart`
+  the assertions for its rows. **At a floor of 41 this is already done:**
+  `v41.sqlite` and its assertions become the floor's; do not re-capture it with
+  the v40 generator, which would drop its v0.9 and v0.10 data. The
   existence test in `real_release_fixture_test.dart` derives the file name from
   `kMinSupportedSchemaVersion`, so a floor raise without the new fixture is a
   red test, not a silent loss of coverage.
@@ -292,8 +297,8 @@ A drift schema snapshot has the tables but no rows, so the tests built on
 that destroys, truncates or reinterprets existing data (an
 `UPDATE dances SET figures_json = '[]'` at the top of `onUpgrade` leaves every
 one of them green). The fixtures below are databases written by the real
-release code. The floor fixture holds four dances (a fully populated one with figures including
-a `meanwhile`, tags, an author, tunes, links, a source citation, a custom field
+release code. The floor fixture holds four dances (a fully populated one with
+figures including a `meanwhile`, tags, an author, tunes, links, a source citation, a custom field
 and provenance; a plain one; a soft-deleted one; a diacritic-titled one), a
 program with three slots, a venue, choreographers, and the settings markers that
 release's startup wrote. The `v41.sqlite` fixture, from `v0.10.0-beta`, holds
@@ -337,8 +342,8 @@ indistinguishable from, because startup re-creates them.
 The floor fixture's name is derived from the constant, so raising the floor
 without a new fixture fails the existence test, and a test fails if any
 `v*.sqlite` below the floor is left in the fixtures directory. `v41.sqlite` is
-opened by name; raising the floor past v41 retires it with the other
-below-floor artefacts, and that guard then fails until it is deleted. (Until the
+opened by name; at a floor of 41 it is the floor fixture, and raising the floor
+past v41 retires it with its generator and the other below-floor artefacts. (Until the
 floor reached v39 a second fixture, `v38.sqlite` from `v0.6.0-beta`, covered
 the release the below-floor bridge then sent v20–v34 collections through. It
 was retired with the versions below v39. The v39 fixture, from `v0.7.0-beta`,
@@ -353,8 +358,9 @@ circle, robins chain and one meanwhile, so nothing else showed that what v0.9
 and v0.10 could write — the figures and params of contra taxonomy v38 and v39,
 pass by and pass through before taxonomy v40 merged them, English and square
 dances, program pay — still reads with today's taxonomy and migrations. Its
-test checks each seeded figure both as stored and as today's taxonomy resolves
-it (move and effective params), and decodes the glossary compound with today's
+test reads every seeded figure back as stored, checks the ones whose meaning a
+later taxonomy changed (pass by, pass through, long lines, the new params) as
+today's taxonomy resolves them, and decodes the glossary compound with today's
 taxonomy.
 
 Neither guard stops someone deleting the test itself or editing both the
@@ -363,7 +369,7 @@ constant and the expectations in the same PR: review still has to notice that.
 Regenerate by running the fixture's generator from a checkout of its release
 tag (recipe in each header): `tool/fixture_generators/generate_release_fixture.dart`
 for `v40.sqlite` at `v0.8.0-beta`, and
-`tool/fixture_generators/generate_release_fixture_v41.dart` for `v41.sqlite` at
+`tool/fixture_generators/generate_v41_fixture.dart` for `v41.sqlite` at
 `v0.10.0-beta`. They are separate files because each is written against its own
 release's API, which the other's does not compile against. The output is
 byte-reproducible on the same sqlite3 build, so the digests above can be
