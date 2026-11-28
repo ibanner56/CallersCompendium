@@ -1160,6 +1160,22 @@ void main() {
         utcDay(2030, 6, 29),
       ]);
       expect(weekly(2112), [utcDay(2030, 6, 15), utcDay(2030, 6, 22)]);
+      // DTSTART counts even off the rule's days: from Friday 5 January 1990,
+      // the first of 2,113 is that Friday, so the last Saturday is the 22nd.
+      expect(
+        dates(
+          plan(
+            _cal([
+              [
+                'UID:f',
+                'DTSTART;VALUE=DATE:19900105',
+                'RRULE:FREQ=WEEKLY;BYDAY=SA;COUNT=2113',
+              ],
+            ]),
+          ),
+        ),
+        [utcDay(2030, 6, 15), utcDay(2030, 6, 22)],
+      );
       // The second Saturday of each month from January 1980: the 607th is
       // 13 July 2030, and the 606th is 8 June, before today.
       List<DateTime> monthly(int count) => dates(
