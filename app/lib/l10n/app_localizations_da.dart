@@ -120,6 +120,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get appBootstrapReleasesLink => 'Åbn Releases-siden';
 
   @override
+  String get appBootstrapBugReportLink => 'Rapportér en fejl';
+
+  @override
+  String appBootstrapEmailLink(String address) {
+    return 'Send e-mail til $address';
+  }
+
+  @override
   String migrationDowngradeVersions(int fileVersion, int appVersion) {
     final intl.NumberFormat fileVersionNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -8783,6 +8791,19 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String importReviewReimportRemovesWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count af dem får en anden danseform og mister deres Barnes-henvisning eller markering Starter improper, som deres rækker viser.',
+      one:
+          '1 af dem får en anden danseform og mister sin Barnes-henvisning eller markering Starter improper, som dens række viser.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String importReviewWarningPrefix(String message) {
     return 'Advarsel: $message';
   }
@@ -15540,13 +15561,23 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programTemplateSlotRuleBadge => 'Slotregel';
 
   @override
-  String programTemplateSlotEditTooltip(String name) {
-    return 'Rediger $name';
+  String programTemplateSlotEditTooltip(int position, String name) {
+    return 'Slot $position, $name: rediger';
   }
 
   @override
-  String programTemplateSlotDeleteTooltip(String name) {
-    return 'Slet $name';
+  String programTemplateSlotDeleteTooltip(int position, String name) {
+    return 'Slot $position, $name: slet';
+  }
+
+  @override
+  String programTemplateSlotMoveUpTooltip(int position, String name) {
+    return 'Slot $position, $name: flyt op';
+  }
+
+  @override
+  String programTemplateSlotMoveDownTooltip(int position, String name) {
+    return 'Slot $position, $name: flyt ned';
   }
 
   @override

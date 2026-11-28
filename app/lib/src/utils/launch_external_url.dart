@@ -28,10 +28,27 @@ Uri? tryParseHttpUrl(String? url) {
 /// is swallowed and surfaced as a "Couldn't open link" [SnackBar] rather than
 /// crashing. Callers should only expose a launchable control when
 /// [tryParseHttpUrl] returns non-null, but this re-checks defensively.
-Future<void> launchExternalUrl(BuildContext context, String url) async {
+Future<void> launchExternalUrl(BuildContext context, String url) =>
+    _launch(context, tryParseHttpUrl(url), 'launchExternalUrl');
+
+/// Opens a new email to [address] in the user's mail app (a `mailto:` link),
+/// with the same failure handling as [launchExternalUrl]: a device with no
+/// mail app, or a refused launch, shows "Couldn't open link". Callers show
+/// [address] itself on the control, so it can still be copied by hand.
+Future<void> launchEmail(BuildContext context, String address) {
+  final trimmed = address.trim();
+  final valid = RegExp(r'^[^@\s:/?#]+@[^@\s:/?#]+$').hasMatch(trimmed);
+  return _launch(
+    context,
+    valid ? Uri(scheme: 'mailto', path: trimmed) : null,
+    'launchEmail',
+  );
+}
+
+Future<void> _launch(BuildContext context, Uri? uri, String caller) async {
   final messenger = ScaffoldMessenger.maybeOf(context);
   final l10n = AppLocalizations.of(context);
-  final uri = tryParseHttpUrl(url);
+  final source = 'launch_external_url.$caller';
 
   void reportFailure() {
     messenger?.showSnackBar(
@@ -55,19 +72,11 @@ Future<void> launchExternalUrl(BuildContext context, String url) async {
     // export could otherwise leak whatever URL/query string the user tapped
     // (issue #963's redaction concern — same treatment as the online-import
     // transport errors in `dance_list_screen.dart`/`import_review_screen.dart`).
-    logCaughtErrorTypeOnly(
-      e,
-      s,
-      source: 'launch_external_url.launchExternalUrl',
-    );
+    logCaughtErrorTypeOnly(e, s, source: source);
     reportFailure();
   } on Exception catch (e, s) {
     // Same URL-leak concern as the PlatformException branch above.
-    logCaughtErrorTypeOnly(
-      e,
-      s,
-      source: 'launch_external_url.launchExternalUrl',
-    );
+    logCaughtErrorTypeOnly(e, s, source: source);
     reportFailure();
   }
 }

@@ -657,7 +657,8 @@ are shown.
   The same choice formats the dates the app stamps itself, such as when an
   unsaved draft was saved, when Device Sync last ran and when a version on a
   sync conflict was changed. The time of day after the date stays in the app
-  language.
+  language, in the 24-hour clock (15:04) when your device is set to it,
+  otherwise your language's usual form (3:04 PM in English).
 
   A custom pattern is built from these tokens:
 

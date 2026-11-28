@@ -118,6 +118,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appBootstrapReleasesLink => 'Open the Releases page';
 
   @override
+  String get appBootstrapBugReportLink => 'Report a bug';
+
+  @override
+  String appBootstrapEmailLink(String address) {
+    return 'Email $address';
+  }
+
+  @override
   String migrationDowngradeVersions(int fileVersion, int appVersion) {
     final intl.NumberFormat fileVersionNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -8743,6 +8751,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String importReviewReimportRemovesWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count of them become another dance form and lose their Barnes reference or Starts improper mark, as their rows say.',
+      one:
+          '1 of them becomes another dance form and loses its Barnes reference or Starts improper mark, as its row says.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String importReviewWarningPrefix(String message) {
     return 'Warning: $message';
   }
@@ -15483,13 +15504,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programTemplateSlotRuleBadge => 'Slot rule';
 
   @override
-  String programTemplateSlotEditTooltip(String name) {
-    return 'Edit $name';
+  String programTemplateSlotEditTooltip(int position, String name) {
+    return 'Slot $position, $name: edit';
   }
 
   @override
-  String programTemplateSlotDeleteTooltip(String name) {
-    return 'Delete $name';
+  String programTemplateSlotDeleteTooltip(int position, String name) {
+    return 'Slot $position, $name: delete';
+  }
+
+  @override
+  String programTemplateSlotMoveUpTooltip(int position, String name) {
+    return 'Slot $position, $name: move up';
+  }
+
+  @override
+  String programTemplateSlotMoveDownTooltip(int position, String name) {
+    return 'Slot $position, $name: move down';
   }
 
   @override

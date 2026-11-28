@@ -955,7 +955,7 @@ class DanceEditorForm extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     Widget field({
       required String key,
-      required LingoTextEditingController textController,
+      required TextEditingController textController,
       required String label,
       required String hint,
       int? maxLength = kMaxMusicLabelLength,
@@ -979,11 +979,13 @@ class DanceEditorForm extends StatelessWidget {
               ? controller.onMeterChanged()
               : controller.onTextEdited(),
         ),
-        LingoDiscouragedHint(
-          controller: textController,
-          dialect: dialect,
-          fieldKey: key,
-        ),
+        // The Barnes reference is a plain field, with no terminology hint.
+        if (textController is LingoTextEditingController)
+          LingoDiscouragedHint(
+            controller: textController,
+            dialect: dialect,
+            fieldKey: key,
+          ),
       ],
     );
     // Side by side where they fit: all three on a wide form, meter and key

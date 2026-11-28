@@ -3973,6 +3973,35 @@ void main() {
       expect(saved.barnesReference, 'BIII p. 92');
     });
 
+    // The maintainer's ruling, 2026-11-28: the Barnes reference is a plain
+    // text field, so a tune's name in it is not struck as a discouraged term.
+    testWidgets('the Barnes reference is a plain field: a discouraged word '
+        'in a tune name is neither struck nor hinted', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Money Musk').copyWith(form: DanceForm.ecd),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      final barnes = find.byKey(const ValueKey('barnes-reference-field'));
+      await tester.enterText(barnes, 'Ladies of London, BIII p. 92');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('barnes-reference-lingo-hint')),
+        findsNothing,
+      );
+      final controller = tester.widget<TextFormField>(barnes).controller!;
+      expect(controller, isNot(isA<LingoTextEditingController>()));
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      expect(
+        (await repos.dances.getById('d1'))!.barnesReference,
+        'Ladies of London, BIII p. 92',
+      );
+    });
+
     testWidgets('other titles stop at the bounds a saved dance keeps, so '
         'nothing typed is cut on save', (tester) async {
       final repos = openTestRepositories();

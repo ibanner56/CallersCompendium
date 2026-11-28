@@ -12,6 +12,7 @@ import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_app/src/widgets/figure_diff_view.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart' show testFigure;
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
@@ -682,6 +683,140 @@ void main() {
     expect(figuresOf(dance), hasLength(1));
     expect(dance.rating, 4);
     expect(dance.callingNotes, 'My notes');
+  });
+
+  // The maintainer's ruling, 2026-11-28: when Re-import onto makes an English
+  // dance contra, the warning names what that removes, on the rows it
+  // applies to.
+  testWidgets('a re-import that makes an English dance contra names what it '
+      'removes, on its row and in the count above Import', (tester) async {
+    final repos = openTestRepositories();
+    Provenance prov(String ext, int month) => Provenance(
+      source: ProvenanceSource.json,
+      externalId: ext,
+      importedAt: DateTime.utc(2026, month, 1),
+    );
+    final figure = [
+      testFigure(move: customMove, params: {'text': 'x'}),
+    ];
+    await repos.dances.create(
+      Dance(
+        id: 'english',
+        title: 'Old English',
+        form: DanceForm.ecd,
+        formation: const Formation(FormationShape.dupleMinor, improper: true),
+        barnesReference: 'BIII p. 92',
+        figures: figure,
+        provenance: prov('ext1', 1),
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+    await repos.dances.create(
+      _dance(
+        'contra',
+        'Old Contra',
+        figures: figure,
+        provenance: prov('ext2', 1),
+      ),
+    );
+
+    await _pump(
+      tester,
+      repos,
+      payload: _archivePayload(
+        [
+          _dance(
+            'in1',
+            'English Refreshed',
+            figures: figure,
+            provenance: prov('ext1', 6),
+          ),
+          _dance(
+            'in2',
+            'Contra Refreshed',
+            figures: figure,
+            provenance: prov('ext2', 6),
+          ).copyWith(authorIds: ['c1', 'c2']),
+          // No provenance: matched by title only, so it can be linked.
+          _dance('in3', 'Old English', figures: figure),
+        ],
+        choreographers: [
+          Choreographer(id: 'c1', name: 'Sharp, Cecil'),
+          Choreographer(id: 'c2', name: 'Shaw, Pat'),
+        ],
+      ),
+    );
+    await _toReview(tester);
+    await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
+    await tester.tap(find.byKey(const ValueKey('import-row-1-reimport')));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('import-row-0-form-change')))
+          .data,
+      "Importing changes this dance's form to Contra, so its Barnes "
+      'reference and its Starts improper mark will be removed.',
+    );
+    // A contra dance refreshed from a contra dance keeps its form: no notice.
+    expect(
+      find.byKey(const ValueKey('import-row-1-form-change')),
+      findsNothing,
+    );
+    const removes =
+        '1 of them becomes another dance form and loses its Barnes reference '
+        'or Starts improper mark, as its row says.';
+    expect(find.textContaining(removes), findsOneWidget);
+    // A name stored family name first keeps its comma, so the row's credit
+    // sets the names apart with a semicolon.
+    expect(
+      find.textContaining('By Sharp, Cecil; Shaw, Pat · '),
+      findsOneWidget,
+    );
+
+    // Import and edit asks first, and its question names the same removal.
+    await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('import-edit-overwrite-confirm')),
+        matching: find.textContaining(
+          'so its Barnes reference and its Starts improper mark will be '
+          'removed.',
+        ),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    // A link onto the same dance replaces it outright, so the overwrite
+    // warning counts it and the re-import count leaves it out, as it leaves
+    // out a retitle (the dance is counted once, as replaced).
+    await tester.tap(find.byKey(const ValueKey('import-row-2-link-english')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('import-overwrite-warning')),
+      findsOneWidget,
+    );
+    expect(find.textContaining(removes), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('import-row-2-skip')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(removes), findsOneWidget);
+
+    // Skipping the English row takes both away.
+    await tester.tap(find.byKey(const ValueKey('import-row-0-skip')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('import-row-0-form-change')),
+      findsNothing,
+    );
+    expect(find.textContaining(removes), findsNothing);
+    expect(
+      find.byKey(const ValueKey('import-reimport-warning')),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
