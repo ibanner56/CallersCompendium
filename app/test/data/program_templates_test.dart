@@ -298,6 +298,71 @@ void main() {
       expect(templates.defaultId, 'fam');
     });
 
+    // Pre-release audit finding D1a-01: a default naming a deleted template
+    // used to read as Blank program, so with one template left New program
+    // (which asks nothing then) and a calendar import's drafts started blank.
+    test('deleting the default leaves the first template left as the '
+        'default, for New program and the calendar import', () async {
+      final repos = openTestRepositories();
+      for (final id in ['a', 'b', 'c']) {
+        await saveProgramTemplate(
+          repos.settings,
+          ProgramTemplate(
+            id: id,
+            name: id.toUpperCase(),
+            entries: [ProgramTemplateEntry(text: 'From $id')],
+          ),
+        );
+      }
+      await saveProgramTemplateOrder(repos.settings, ['a', 'c', 'b']);
+      await saveProgramTemplateDefault(repos.settings, 'a');
+
+      await deleteProgramTemplate(repos.settings, 'a');
+      final templates = await loadProgramTemplates(repos.settings);
+      expect(templates.defaultId, 'c');
+      expect((await defaultProgramTemplate(repos.settings))?.id, 'c');
+      expect(await defaultProgramTemplateEntries(repos.settings), [
+        const ProgramTemplateEntry(text: 'From c'),
+      ]);
+    });
+
+    test('an explicit Blank program stays Blank whatever is deleted', () async {
+      final repos = openTestRepositories();
+      for (final id in ['a', 'b']) {
+        await saveProgramTemplate(
+          repos.settings,
+          ProgramTemplate(id: id, name: id),
+        );
+      }
+      await saveProgramTemplateDefault(repos.settings, null);
+      await deleteProgramTemplate(repos.settings, 'a');
+      expect((await loadProgramTemplates(repos.settings)).defaultId, isNull);
+    });
+
+    test('a template created after deleting the default keeps the one '
+        'standing in as the default', () async {
+      final repos = openTestRepositories();
+      for (final id in ['a', 'b']) {
+        await saveProgramTemplate(
+          repos.settings,
+          ProgramTemplate(id: id, name: id),
+        );
+      }
+      await saveProgramTemplateOrder(repos.settings, ['a', 'b']);
+      await saveProgramTemplateDefault(repos.settings, 'a');
+      await deleteProgramTemplate(repos.settings, 'a');
+
+      // As the manager's New template writes it.
+      await saveProgramTemplate(
+        repos.settings,
+        const ProgramTemplate(id: 'n', name: 'New'),
+      );
+      await saveProgramTemplateOrder(repos.settings, ['b', 'n']);
+      await saveProgramTemplateDefaultIfUnset(repos.settings, 'n');
+      expect((await loadProgramTemplates(repos.settings)).defaultId, 'b');
+      expect(await repos.settings.get(kProgramTemplateDefaultKey), 'b');
+    });
+
     test('a live default is kept', () async {
       final repos = openTestRepositories();
       await saveProgramTemplate(
@@ -458,7 +523,14 @@ void main() {
         await deleteProgramTemplate(repos.settings, 'a');
         var templates = await loadProgramTemplates(repos.settings);
         expect([for (final t in templates.templates) t.id], ['b']);
-        expect(templates.defaultId, isNull);
+        // The template left stands in as the default (pre-release audit
+        // finding D1a-01), without a write, so Undo still gives 'a' back.
+        expect(templates.defaultId, 'b');
+        expect(
+          await repos.settings.get(kProgramTemplateDefaultKey),
+          'a',
+          reason: 'the stored default is left alone',
+        );
         expect(await repos.settings.contains(programTemplateKey('a')), isFalse);
 
         await saveProgramTemplate(repos.settings, a);

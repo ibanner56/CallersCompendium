@@ -48,6 +48,7 @@ Future<void> _pumpSummary(
   WidgetTester tester,
   CompendiumRepositories repos, {
   Locale locale = const Locale('en', 'US'),
+  bool use24Hour = false,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1000, 1600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -58,9 +59,14 @@ Future<void> _pumpSummary(
       locale: locale,
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: ActiveDialectScope(notifier: dialect, child: child!),
+      // The device's 24-hour setting, set explicitly so the test does not
+      // read the host's.
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: use24Hour),
+        child: RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: dialect, child: child!),
+        ),
       ),
       home: const ProgramSummaryScreen(programId: 'p1'),
     ),
@@ -187,6 +193,16 @@ void main() {
       expect(saved.endMinute, 22 * 60 + 30);
       expect(saved.lessonMinute, isNull);
       expect(saved.arrivalMinute, 18 * 60 + 45);
+    });
+
+    testWidgets('on a device set to the 24-hour clock the field shows the '
+        'time as the picker did (D1a-02)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program());
+      await _pumpEditor(tester, repos, use24Hour: true);
+
+      await _typeTime(tester, 'start', 19, 30);
+      expect(_fieldValue(tester, 'start'), '19:30');
     });
 
     testWidgets('an end earlier than the start is marked as the next day', (
@@ -474,6 +490,39 @@ void main() {
       await _pumpSummary(tester, repos, locale: const Locale('de', 'DE'));
 
       expect(_summaryTimes(tester), 'Tanz 19:30–22:30 · Ankunft bis 18:00');
+    });
+
+    // The maintainer's ruling on pre-release audit finding D1a-02: program
+    // times follow the device's 24-hour setting, as the time picker does,
+    // not the app language's clock.
+    testWidgets('an English device set to the 24-hour clock shows 24-hour '
+        'times', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(
+        _program(
+          start: 19 * 60 + 30,
+          end: 22 * 60 + 30,
+          lesson: 19 * 60,
+          arrival: 7 * 60 + 5,
+        ),
+      );
+      await _pumpSummary(tester, repos, use24Hour: true);
+
+      expect(
+        _summaryTimes(tester),
+        'Lesson 19:00 · Dance 19:30–22:30 · Arrive by 07:05',
+      );
+    });
+
+    testWidgets('a German device not set to the 24-hour clock keeps its '
+        "language's own 24-hour form", (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(
+        _program(start: 19 * 60 + 30, end: 22 * 60 + 30),
+      );
+      await _pumpSummary(tester, repos, locale: const Locale('de', 'DE'));
+
+      expect(_summaryTimes(tester), 'Tanz 19:30–22:30');
     });
 
     testWidgets('leaves out empty times, and shows times with no date', (

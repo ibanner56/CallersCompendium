@@ -16,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/l10n_harness.dart';
 import 'support/pump_until.dart';
+import 'support/saved_searches.dart';
 import 'support/test_repositories.dart';
 
 /// Counts and optionally fails the two dance reads the template editor
@@ -421,13 +422,96 @@ void main() {
       );
       await tester.enterText(find.byType(TextFormField).first, 'Guest caller');
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Move down').first);
+      await tester.tap(find.byTooltip('Move First dance down'));
       await tester.pumpAndSettle();
 
       final stored = (await _stored(repos)).byId('a')!;
       expect(stored.entries.map((entry) => entry.danceId), ['d2', 'd1']);
       expect(stored.entries.last.text, 'Guest caller');
       expect(await repos.settings.get(programTemplateKey('b')), otherBefore);
+    });
+
+    // Pre-release audit finding D1a-06: every slot's buttons used to read
+    // "Edit", "Move up", "Move down" and "Delete" alike, and a move said
+    // nothing.
+    testWidgets("each slot's buttons name the slot to a screen reader, and a "
+        'move says where the slot landed', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      final announcements = <String>[];
+      messenger.setMockMessageHandler(SystemChannels.accessibility.name, (
+        message,
+      ) async {
+        final decoded = SystemChannels.accessibility.codec.decodeMessage(
+          message,
+        );
+        if (decoded is Map && decoded['type'] == 'announce') {
+          announcements.add((decoded['data'] as Map)['message'] as String);
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMessageHandler(
+          SystemChannels.accessibility.name,
+          null,
+        ),
+      );
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('d1', 'First dance'));
+      await storeSavedSearches(repos.settings, ['s1']);
+      const template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [
+          ProgramTemplateEntry(danceId: 'd1'),
+          ProgramTemplateEntry(text: 'Raffle'),
+          ProgramTemplateEntry(text: Program.breakSlotText),
+          ProgramTemplateEntry.rule(savedSearchId: 's1', label: 'Opener'),
+        ],
+      );
+      await _seed(repos, [template]);
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+
+      void expectButton(String label, {bool enabled = true}) {
+        final button = find.byTooltip(label);
+        expect(button, findsOneWidget, reason: label);
+        expect(
+          tester.getSemantics(button),
+          isSemantics(label: label, isButton: true, isEnabled: enabled),
+          reason: label,
+        );
+      }
+
+      expectButton('Move First dance up', enabled: false);
+      expectButton('Move First dance down');
+      expectButton('Delete First dance');
+      expectButton('Move Raffle up');
+      expectButton('Delete Raffle');
+      expectButton('Move Break down');
+      expectButton('Edit Opener');
+      expectButton('Move Opener down', enabled: false);
+      expectButton('Delete Opener');
+      expect(find.byTooltip('Move up'), findsNothing);
+      expect(find.byTooltip('Move down'), findsNothing);
+      expect(find.byTooltip('Delete'), findsNothing);
+      expect(find.byTooltip('Edit'), findsNothing);
+
+      await tester.tap(find.byTooltip('Move First dance down'));
+      await tester.pumpAndSettle();
+      expect(announcements, ['First dance moved to position 2 of 4']);
+      await tester.tap(find.byTooltip('Move Opener up'));
+      await tester.pumpAndSettle();
+      expect(announcements.last, 'Opener moved to position 3 of 4');
+      expect(
+        (await _stored(repos)).byId('a')!.entries.map((e) => e.text),
+        ['Raffle', null, 'Opener', Program.breakSlotText],
+      );
+      semantics.dispose();
     });
 
     testWidgets('renaming in the editor saves; a blank name keeps the last '
