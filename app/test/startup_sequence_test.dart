@@ -38,6 +38,10 @@ import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart'
     show kCustomDialectsKey;
 import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
+import 'package:compendium_app/src/export/share_file.dart'
+    show
+        leftoverSharedFilesClearedForTesting,
+        resetLeftoverSharedFilesClearedForTesting;
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionKey, kSoftDeleteRetentionNever;
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
@@ -907,6 +911,42 @@ void main() {
 
     expect(find.textContaining('failed its safety check'), findsNothing);
     expect(find.byType(AppShell), findsOneWidget);
+  });
+
+  // The recovery screen a failed bootstrap shows can share a recovery copy;
+  // the Reset or Retry after it bootstraps again, maybe while that copy is
+  // still being read. So the leftover-share sweep is claimed at the first
+  // attempt, failed or not, and the later successful bootstrap sweeps nothing.
+  testWidgets('the leftover-share sweep runs at the first bootstrap attempt, '
+      'even a failed one', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    resetLeftoverSharedFilesClearedForTesting();
+    addTearDown(resetLeftoverSharedFilesClearedForTesting);
+    installCaughtErrorLog(_RecordingCrashLogSink());
+    addTearDown(resetCaughtErrorLogForTesting);
+
+    final failingAppData = AppData(
+      CompendiumDatabase(
+        LazyDatabase(() async => throw StateError('open failed')),
+      ),
+    );
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: failingAppData,
+        appDataFactory: openTestAppData,
+        windowService: NoopWindowService(failingAppData.repositories.settings),
+        windowServiceFactory: (settings) => NoopWindowService(settings),
+        integrityCheck: () async => true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining("Couldn't prepare your library"),
+      findsOneWidget,
+    );
+    expect(leftoverSharedFilesClearedForTesting, isTrue);
   });
 
   testWidgets('startup sweeps stale update-download directories from the '

@@ -1,11 +1,22 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:compendium_app/src/data/dance_link_intake.dart';
 import 'package:compendium_app/src/export/dance_code.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// Dance links for tests of the receiving side (#2335): one that opens, and
 /// one of each kind the issue says must be refused.
+
+/// Makes [validateDanceLink] read links in place, on the test's own isolate,
+/// until the current test ends. For widget tests: they run under fake time,
+/// where the reply from the worker isolate the app uses would never arrive.
+/// Call it from a test's set-up or at its start.
+void readDanceLinksInPlace() {
+  danceLinkWorkRunner = (work) => work();
+  addTearDown(() => danceLinkWorkRunner = runDanceLinkWorkOnWorker);
+}
 
 /// The title of the dance [goodDanceLink] carries.
 const String danceLinkTitle = 'Code Contra';

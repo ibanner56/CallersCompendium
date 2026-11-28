@@ -27,6 +27,10 @@ the [update check](./settings.md#updates), or the
 [calendar import at startup](./settings.md#calendar) set to add drafts — is
 saying so: it runs only once you switch it on.
 
+When you choose a file to import on iPhone, iPad or Android, the system's file
+picker gives the app a copy of it. The app deletes that copy once it has read
+the file; your own file is left as it is.
+
 ## Nothing gets lost when a dance comes in
 
 Every import follows one promise: **bringing a dance in never loses the dance.**
@@ -554,7 +558,10 @@ If your camera app shows the link but won't open it, copy the link, open
 **Import…**, and paste it into the URL field (then choose **Fetch**) or into the
 text field (then choose **Review import**). That works on a computer too, if
 someone sends you the link as text. The link is read on your device; nothing
-is fetched.
+is fetched. A scanned code corrects its own small errors, but a pasted link
+can't: if a character of it was changed on the way, it's usually refused as
+damaged, and sometimes opens as a slightly different dance. Look over the
+review before you import it.
 
 If the app can't read a code, it says why and nothing is imported: a code made
 by a **newer version** of Caller's Compendium asks you to update the app, and a
