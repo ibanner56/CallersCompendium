@@ -355,6 +355,23 @@ void main() {
         greaterThanOrEqualTo(Wcag.aaNonText),
         reason: 'ring ${painter.color} on ${scheme.inverseSurface}',
       );
+      // And the ring is drawn on the snackbar, not partly over the page
+      // behind it, where the inverse accent is not tuned to show.
+      final outer = painter.rect.inflate(FocusRingLayer.gap + painter.width);
+      final card = tester.getRect(
+        find
+            .ancestor(
+              of: find.text('Deleted.'),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      expect(
+        card.inflate(0.5).contains(outer.topLeft) &&
+            card.inflate(0.5).contains(outer.bottomRight),
+        isTrue,
+        reason: 'ring $outer, snackbar $card',
+      );
     });
   }
 

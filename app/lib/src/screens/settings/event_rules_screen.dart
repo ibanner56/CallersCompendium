@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -135,6 +136,7 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
       await repos.eventRules.delete(rule.id);
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'event_rules_screen._delete');
+      if (mounted) _announceFailure(l10n.eventRuleDeleteFailed);
       if (!messenger.mounted) return;
       messenger.showSnackBar(
         SnackBar(
@@ -227,6 +229,18 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
     );
   }
 
+  /// Says a failure aloud as well as in its snackbar. The snackbar waits
+  /// behind an Undo prompt still up, which never times out with a screen
+  /// reader on, so the screen-reader user would otherwise hear nothing. It is
+  /// queued, not shown at once, so that prompt's Undo is not lost.
+  void _announceFailure(String message) {
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      message,
+      Directionality.of(context),
+    );
+  }
+
   /// Moves the rule at [from] in [rules] to [to]: on screen at once, then
   /// stored ([EventRuleRepository.reorder]), which the list's watch shows.
   /// With [announce], a screen reader hears where it landed (Move up / Move
@@ -250,7 +264,10 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
       await repos.eventRules.reorder([for (final r in order) r.id]);
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'event_rules_screen._move');
-      if (mounted) setState(() => _rules = rules);
+      if (mounted) {
+        setState(() => _rules = rules);
+        _announceFailure(l10n.eventRuleMoveFailed);
+      }
       if (messenger.mounted) {
         messenger.showSnackBar(
           SnackBar(
