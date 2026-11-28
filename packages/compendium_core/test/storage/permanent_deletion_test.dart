@@ -49,6 +49,11 @@ void main() {
       at: created,
     );
     // ignore: unused_result
+    await repos.choreographers.upsert(
+      Choreographer(id: 'i-$id', name: 'Private Interpreter $id'),
+      at: created,
+    );
+    // ignore: unused_result
     await repos.tags.upsert(
       Tag(id: 't-$id', name: 'tag $id'),
       at: created,
@@ -91,6 +96,9 @@ void main() {
         updatedAt: created,
       ).copyWith(
         walkthrough: 'Walk it through',
+        interpreterIds: ['i-$id'],
+        alternateTitles: ['Secret Other Title $id'],
+        barnesReference: 'Barnes II p. 7',
         rating: 4,
         tunes: ['Tune'],
         difficultyLevelId: DifficultyLevel.beginnerId,
@@ -125,6 +133,8 @@ void main() {
       expect(row.hook, isEmpty);
       expect(row.callingNotes, isEmpty);
       expect(row.walkthrough, isEmpty);
+      expect(row.alternateTitles, isEmpty);
+      expect(row.barnesReference, isEmpty);
       expect(row.figuresJson, '[]');
       expect(row.tunesJson, '[]');
       expect(row.levelId, isNull);
@@ -136,6 +146,7 @@ void main() {
       expect(row.existenceAt!.isAfter(before.existenceAt!), isTrue);
       for (final table in const [
         'dance_authors',
+        'dance_interpreters',
         'dance_tags',
         'dance_links',
         'dance_sources',
@@ -150,6 +161,15 @@ void main() {
       // The unpublished choreographer only this dance cited is collected, as
       // a purge collects it.
       expect(await count('choreographers', 'id', 'c-d1'), 0);
+      expect(await count('choreographers', 'id', 'i-d1'), 0);
+      // The blank is complete: the startup sweep finds nothing left to clear,
+      // so it neither restamps nor republishes the row on every launch.
+      expect(
+        await repos.dances.removePermanentlyDeleted(
+          now: now.add(const Duration(days: 1)),
+        ),
+        0,
+      );
       // The dance model still loads.
       final dance = await repos.dances.getById('d1', includeDeleted: true);
       expect(dance!.title, blankedRecordTitle);
@@ -351,6 +371,11 @@ void main() {
           endMinute: 1350,
           lessonMinute: 1140,
           arrivalMinute: 1110,
+          calendarEventKey: 'calendar-key-$id',
+          calendarEventFingerprint: 'fingerprint-$id',
+          calendarWrittenAt: created,
+          calendarFlag: calendarFlagMissing,
+          calendarFeedDigest: 'feed-digest-$id',
           slots: [ProgramSlot(id: 'slot-$id', position: 0, danceId: 'd-$id')],
           provenance: Provenance(
             source: ProvenanceSource.callersCompanion,
@@ -406,12 +431,31 @@ void main() {
         expect(row.endMinute, isNull);
         expect(row.lessonMinute, isNull);
         expect(row.arrivalMinute, isNull);
+        expect(row.calendarEventKey, isNull);
+        expect(row.calendarEventFingerprint, isNull);
+        expect(row.calendarWrittenAt, isNull);
+        expect(row.calendarFlag, isNull);
+        expect(row.calendarFeedDigest, isNull);
         expect(row.updatedAt.toUtc(), now);
         expect(row.existenceAt!.isAfter(before.existenceAt!), isTrue);
         expect(await count('program_slots', 'program_id', 'p1'), 0);
         expect(await count('program_provenance', 'program_id', 'p1'), 0);
         // The dance it called is untouched.
         expect(await repos.dances.getById('d-p1'), isNotNull);
+        // A calendar import neither matches it by its old key nor counts it as
+        // a program that could come back from Recently deleted.
+        expect(
+          await repos.programs.calendarEventKeyStates(['calendar-key-p1']),
+          isEmpty,
+        );
+        expect(await repos.programs.programDeletedStates(['p1']), isEmpty);
+        // The blank is complete: the startup sweep finds nothing left to clear.
+        expect(
+          await repos.programs.removePermanentlyDeleted(
+            now: now.add(const Duration(days: 1)),
+          ),
+          0,
+        );
       },
     );
 
