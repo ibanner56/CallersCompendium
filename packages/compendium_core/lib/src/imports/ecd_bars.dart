@@ -201,13 +201,16 @@ int ecdStatedBeats(String line, int beatsPerBar) {
       final last = int.parse(match.group(3)!);
       if (last >= first) beats += (last - first + 1) * beatsPerBar;
     } else {
-      for (final part in match.group(1)!.split(RegExp(r'[,+]'))) {
+      for (final part in match.group(1)!.split(_countParts)) {
         beats += int.parse(part.trim());
       }
     }
   }
   return beats;
 }
+
+/// What separates the parts of a compound count (`(4,4)`, `(4+4)`).
+final RegExp _countParts = RegExp('[,+]');
 
 /// A bracketed count in beats, or a bar range alone or in brackets, not part
 /// of a longer number, a meter or a word ([ecdStatedBeats]). A range's space

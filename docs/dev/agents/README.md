@@ -12,7 +12,7 @@ to load it.
 | Chapter | Load it when |
 | --- | --- |
 | [code-review.md](code-review.md) | Requesting or reading a review (Copilot or Claude), or answering review findings |
-| [merging.md](merging.md) | About to merge: review/CI freshness, unresolved threads, what the PR will close |
+| [merging.md](merging.md) | About to merge: review/CI freshness, unresolved threads, what the PR will close, whether to sync with `main` |
 | [verification.md](verification.md) | Proving a guard test can fail; any red-run that mutates the working tree |
 | [triage.md](triage.md) | Triaging or scoping an issue |
 | [releasing.md](releasing.md) | Cutting a release (hazards; the step-by-step is [../releasing.md](../releasing.md)) |

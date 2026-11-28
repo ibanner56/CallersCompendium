@@ -265,6 +265,7 @@ class _CollectionShellState extends State<CollectionShell> {
   String? _reimportTargetId;
   DateTime? _reimportTargetUpdatedAt;
   DanceDetailData? _reimportPreview;
+  ReimportFormChange? _reimportFormChange;
 
   void _onSelectDance(String danceId) {
     if (_importCommitInFlight) return;
@@ -342,6 +343,7 @@ class _CollectionShellState extends State<CollectionShell> {
     _reimportTargetId = null;
     _reimportTargetUpdatedAt = null;
     _reimportPreview = null;
+    _reimportFormChange = null;
   }
 
   Future<void> _beginReimport(DanceDetailData detail) async {
@@ -360,6 +362,7 @@ class _CollectionShellState extends State<CollectionShell> {
         _reimportTargetId = detail.dance.id;
         _reimportTargetUpdatedAt = detail.dance.updatedAt;
         _reimportPreview = preview;
+        _reimportFormChange = reimportFormChange(detail.dance, preview.dance);
         _onlinePreview = null;
         _onlinePreviewLoading = false;
         _onlinePreviewError = null;
@@ -446,6 +449,7 @@ class _CollectionShellState extends State<CollectionShell> {
           _reimportTargetId = null;
           _reimportTargetUpdatedAt = null;
           _reimportPreview = null;
+          _reimportFormChange = null;
         });
         _detailMessengerKey.currentState?.showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context).danceReimported)),
@@ -743,6 +747,10 @@ class _CollectionShellState extends State<CollectionShell> {
             return DanceDetailScreen.preview(
               key: ValueKey('reimport-preview-${_reimportTargetId!}'),
               data: reimportPreview,
+              importNotice: danceReimportNotice(
+                AppLocalizations.of(context),
+                _reimportFormChange,
+              ),
               onImport: () => _commitReimport(reimportPreview),
             );
           }
