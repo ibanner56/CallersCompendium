@@ -179,6 +179,17 @@ class FakeSourceAdapter implements SourceAdapter {
       repeatOrder:
           SquareRepeatOrder.fromWireName(decoded['repeatOrder'] as String?) ??
           SquareRepeatOrder.unstated,
+      // A record may name other titles, a Barnes reference and a square's
+      // new partner (by wire name, with its text).
+      alternateTitles: [
+        for (final t in (decoded['alternateTitles'] as List?) ?? const [])
+          t as String,
+      ],
+      barnesReference: decoded['barnesReference'] as String? ?? '',
+      newPartner:
+          SquareNewPartner.fromWireName(decoded['newPartner'] as String?) ??
+          SquareNewPartner.unstated,
+      newPartnerText: decoded['newPartnerText'] as String? ?? '',
       freeForm: decoded['freeForm'] as bool?,
       rating: decoded['rating'] as int?,
       authorIds: authorIds,
