@@ -258,8 +258,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// The edit [_figureBarsNotice] was shown for, so that each is shown once.
   FigureBarsChange? _figureBarsNoticeFor;
 
-  /// The notice of what the latest Meter edit, or a phrase's beats to the
-  /// bar, did to an English dance's figure counts, while it is showing or
+  /// The notice of what the latest Meter edit, or a phrase edit that changed
+  /// how the figures are counted in bars, did to an English dance's figure
+  /// counts, while it is showing or
   /// waiting to (pre-release audit finding A2-02; decision sheet questions 14
   /// and 48).
   _FigureBarsNotice? _figureBarsNotice;

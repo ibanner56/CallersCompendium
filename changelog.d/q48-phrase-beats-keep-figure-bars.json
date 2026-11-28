@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Changing a named phrase's Beats per bar in an English dance, or typing a phrase structure such as 4*8*3 on one with no Meter, no longer changes how many bars each figure lasts: each figure keeps its bars, counted in the bars of the phrase it falls in, and a message says so with Undo, as a Meter edit does. When a count can't keep its bars exactly, no count changes and the message says the figures now read in the new bars. Changing only a phrase's bars, or whether it plays once or twice, changes no count."
+      "Changing a named phrase's Beats per bar in an English dance, or typing a phrase structure such as 4*8*3 on one with no Meter, no longer changes how many bars each figure lasts: each figure keeps its bars, counted in the bars of the phrase it falls in, and a message says so with Undo, as a Meter edit does. When a count can't keep its bars exactly, no count changes and the message says the figures now read in the new bars. Changing only a phrase's bars, or whether it plays once or twice, changes no count while every phrase has the same beats to the bar."
     ]
   }
 }

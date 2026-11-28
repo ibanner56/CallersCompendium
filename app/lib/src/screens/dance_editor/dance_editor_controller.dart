@@ -3026,7 +3026,13 @@ class DanceEditorController extends ChangeNotifier {
   /// Sets the phrase structure text, as the named phrases (English dances) or
   /// the phrase rows (other forms) write it. A
   /// [typed] change (a bar count, or the meter) is debounced into one undo
-  /// step with the typing around it; any other is its own undo step.
+  /// step with the typing around it; any other (a phrase added or removed,
+  /// Once or Twice, Name the phrases) is its own undo step.
+  ///
+  /// Either way, in an English dance, an edit that changes how the figures
+  /// are counted in bars keeps each figure's length in bars, or says it
+  /// could not, as [onPhraseChanged] does; an untyped edit's own undo step
+  /// holds the edit and the counts, so the notice's Undo takes back both.
   void setPhraseStructureText(String raw, {bool typed = true}) {
     if (phraseController.text == raw) return;
     phraseController.text = raw;
@@ -3034,11 +3040,26 @@ class DanceEditorController extends ChangeNotifier {
       onPhraseChanged();
       return;
     }
+    final before = _phraseStructure;
+    final stepBefore = _undoStack.current;
     recomputeWarnings();
-    pushUndoNow();
+    final change = _keepFigureBarsAcrossPhrases(before, stepBefore);
+    // The step pushed now is this edit's own, so it holds the change.
+    _figureBarsChangeOwnsPush = change != null;
+    try {
+      pushUndoNow();
+    } finally {
+      _figureBarsChangeOwnsPush = false;
+    }
     _notify();
     scheduleAutosave();
   }
+
+  /// Set while an untyped phrase edit that changed the figures' counts pushes
+  /// its own undo step ([setPhraseStructureText]), so that step is recorded
+  /// as the change's ([_noteFigureBarsStep]) rather than as an edit of
+  /// another kind.
+  bool _figureBarsChangeOwnsPush = false;
 
   /// The beats in a bar the Meter stated when it last counted the dance's bars
   /// (loaded, restored or edited while the dance was English), so that
@@ -3191,12 +3212,24 @@ class DanceEditorController extends ChangeNotifier {
   /// How an English dance set to [structure] counts its figures in bars when
   /// the Meter states [stated] beats to the bar (or none): the rule
   /// [barTimingFor] reads from the Meter's text, by phrase where the phrases
-  /// differ in beats to the bar.
+  /// differ in beats to the bar. The phrases' names are left out: they count
+  /// no bars, so renaming a phrase is not a change of timing.
   static BarTiming _timingFor(PhraseStructure structure, int? stated) {
     final perBar = danceBeatsPerBar(DanceForm.ecd, structure);
     return perBar == null
-        ? BarTiming.byPhrase(structure)
+        ? BarTiming.byPhrase(_unnamed(structure))
         : BarTiming.fixed(stated ?? perBar);
+  }
+
+  /// [structure] with the same parts, phrases, bars and beats to the bar, and
+  /// no names.
+  static PhraseStructure _unnamed(PhraseStructure structure) {
+    if (!structure.isNamed) return structure;
+    return PhraseStructure.parse(
+      structure.components
+          .map((c) => '${c.phraseCount}*${c.bars}*${c.beatsPerBar}')
+          .join(' + '),
+    );
   }
 
   /// How the figures' counts were read when they were entered, and the
@@ -3225,9 +3258,10 @@ class DanceEditorController extends ChangeNotifier {
   _stepBars;
 
   /// What the latest edit that keeps the figures' bars did to their counts
-  /// (a Meter edit, [onMeterChanged], or a phrase's beats to the bar,
-  /// [onPhraseChanged]), for the notice the editor shows, or null when none
-  /// has changed them.
+  /// (a Meter edit, [onMeterChanged], or a phrase edit that changes how the
+  /// figures are counted in bars, [onPhraseChanged] and
+  /// [setPhraseStructureText]), for the notice the editor shows, or null when
+  /// none has changed them.
   FigureBarsChange? get figureBarsChange => _figureBarsChange;
   FigureBarsChange? _figureBarsChange;
 
@@ -3250,13 +3284,14 @@ class DanceEditorController extends ChangeNotifier {
   }
 
   /// Records which step holds the latest change, as one is pushed: the one
-  /// its debounce, or an undo's flush of it, pushes. Any other push while it
-  /// waits takes it into an edit of another kind.
+  /// its debounce, or an undo's flush of it, pushes, or the untyped phrase
+  /// edit's own ([_figureBarsChangeOwnsPush]). Any other push while it waits
+  /// takes it into an edit of another kind.
   void _noteFigureBarsStep({required bool debounced}) {
     final change = _figureBarsChange;
     if (change == null || change._step != null || change._stale) return;
     if (!identical(_undoStack.previous, change._stepBefore)) return;
-    if (debounced) {
+    if (debounced || _figureBarsChangeOwnsPush) {
       change._step = _undoStack.current;
     } else {
       change._stale = true;
@@ -3339,35 +3374,43 @@ class DanceEditorController extends ChangeNotifier {
   /// The phrase-structure field changed, or a phrase row as typed
   /// ([setPhraseStructureText]).
   ///
-  /// In an English dance, an edit that changes a phrase's beats to the bar
-  /// keeps each figure's length in bars as a Meter edit does
-  /// ([onMeterChanged]; decision sheet question 48, the maintainer's,
-  /// building on question 14): a named phrase's Beats per bar, or a
-  /// structure typed with no Meter, such as `4*8*3`. An edit that changes
-  /// only a phrase's bars or plays changes no count.
+  /// In an English dance, any edit that changes how the figures are counted
+  /// in bars keeps each figure's length in bars as a Meter edit does
+  /// ([onMeterChanged]): rescaled when every count can keep it exactly,
+  /// otherwise the notice, in one undo step (the maintainer's ruling,
+  /// 2026-11-28, which extends the earlier one on a phrase's beats to the
+  /// bar to every edit that changes bar timing). That is a named phrase's
+  /// Beats per bar, or a
+  /// structure typed with no Meter, such as `4*8*3`; and, where the phrases
+  /// differ in beats to the bar, a phrase's Bars or plays, which move the
+  /// bars later figures fall in. An edit that leaves the timing as it was
+  /// changes no count.
   void onPhraseChanged() {
     final before = _phraseStructure;
     final stepBefore = _undoStack.current;
     recomputeWarnings();
-    final after = _phraseStructure;
-    if (offersNamedPhrases &&
-        !listEquals(_beatsPerBarOf(before), _beatsPerBarOf(after))) {
-      final stated = statedBeatsPerBar;
-      final timingBefore = _timingFor(before, stated);
-      final timingAfter = _timingFor(after, stated);
-      if (timingBefore != timingAfter) {
-        _keepFigureBars(timingBefore, timingAfter, stepBefore);
-      }
-    }
+    _keepFigureBarsAcrossPhrases(before, stepBefore);
     _notify();
     scheduleUndoPush();
     scheduleAutosave();
   }
 
-  /// Each part's beats to the bar, in order.
-  static List<int> _beatsPerBarOf(PhraseStructure structure) => [
-    for (final component in structure.components) component.beatsPerBar,
-  ];
+  /// Keeps the figures' bars ([_keepFigureBars]) across a phrase edit from
+  /// [before] to the phrases as they now read, when the dance is English and
+  /// the edit changed how its figures are counted in bars ([_timingFor]).
+  /// Callers read the phrases ([recomputeWarnings]) before. Returns the
+  /// change, or null when no count changed.
+  FigureBarsChange? _keepFigureBarsAcrossPhrases(
+    PhraseStructure before,
+    EditorSnapshot? stepBefore,
+  ) {
+    if (!offersNamedPhrases) return null;
+    final stated = statedBeatsPerBar;
+    final timingBefore = _timingFor(before, stated);
+    final timingAfter = _timingFor(_phraseStructure, stated);
+    if (timingBefore == timingAfter) return null;
+    return _keepFigureBars(timingBefore, timingAfter, stepBefore);
+  }
 
   /// A prose / custom text or number field changed (title, hook, notes,
   /// formation detail, tune, or a custom text/number field).
@@ -3414,9 +3457,12 @@ class DanceEditorController extends ChangeNotifier {
   }
 }
 
-/// What an English dance's Meter edit, or a phrase's beats to the bar, did to
-/// its figures' counts ([DanceEditorController.onMeterChanged],
-/// [DanceEditorController.onPhraseChanged]), for the notice the editor shows.
+/// What an English dance's Meter edit, or a phrase edit that changes how its
+/// figures are counted in bars, did to its figures' counts
+/// ([DanceEditorController.onMeterChanged],
+/// [DanceEditorController.onPhraseChanged],
+/// [DanceEditorController.setPhraseStructureText]), for the notice the editor
+/// shows.
 final class FigureBarsChange {
   FigureBarsChange._(this.outcome, this._timing, this._stepBefore);
 

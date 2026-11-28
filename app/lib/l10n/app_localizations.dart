@@ -8168,7 +8168,7 @@ abstract class AppLocalizations {
   /// **'Whole bars only, with {beatsPerBar} beats to the bar'**
   String danceEditorHalfBarRefused(int beatsPerBar);
 
-  /// Message with an Undo button, shown when an English country dance's Meter is typed or changed after its figures, or a change to its phrases (a phrase's beats to the bar) leaves them all with the same beats to the bar: each figure's count in beats was changed so that it lasts as many bars as before, in bars of the new beats.
+  /// Message with an Undo button, shown when an English country dance's Meter is typed or changed after its figures, or a change to its phrases (a phrase's beats to the bar, the last named phrase removed, or Name the phrases on a structure whose parts don't group) leaves them all with the same beats to the bar: each figure's count in beats was changed so that it lasts as many bars as before, in bars of the new beats.
   ///
   /// In en, this message translates to:
   /// **'Figure counts changed so each figure keeps its bars, now with {beatsPerBar, plural, =1{1 beat} other{{beatsPerBar} beats}} to the bar.'**
@@ -8180,7 +8180,7 @@ abstract class AppLocalizations {
   /// **'Figure counts not changed: not every figure could keep its bars exactly, so they now read in bars of {beatsPerBar, plural, =1{1 beat} other{{beatsPerBar} beats}}. Check them.'**
   String danceEditorMeterFigureBarsNotKept(int beatsPerBar);
 
-  /// Message with an Undo button, shown when a change to an English country dance's phrases (a phrase's beats to the bar) leaves its phrases with different beats to the bar: each figure's count in beats was changed so that it lasts as many bars as before, in the bars of the phrase it falls in.
+  /// Message with an Undo button, shown when a change to an English country dance's phrases (a phrase's beats to the bar, bars or plays) leaves its phrases with different beats to the bar: each figure's count in beats was changed so that it lasts as many bars as before, in the bars of the phrase it falls in.
   ///
   /// In en, this message translates to:
   /// **'Figure counts changed so each figure keeps its bars.'**
