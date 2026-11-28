@@ -622,15 +622,28 @@ void main() {
       await tester.pump();
     }
 
-    for (final meta in [false, true]) {
+    // The platform's own undo key: Cmd-Z on a Mac, Ctrl-Z elsewhere, as a
+    // text field's undo is. The other one is a text field's to ignore, and
+    // the prompt's too.
+    for (final (platform, meta) in [
+      (TargetPlatform.android, false),
+      (TargetPlatform.linux, false),
+      (TargetPlatform.windows, false),
+      (TargetPlatform.macOS, true),
+    ]) {
       final key = meta ? 'Cmd-Z' : 'Ctrl-Z';
-      testWidgets('$key presses Undo on the showing prompt, once', (
-        tester,
-      ) async {
+      final other = meta ? 'Ctrl-Z' : 'Cmd-Z';
+      testWidgets('on ${platform.name}, $key presses Undo on the showing '
+          'prompt, once; $other does not', (tester) async {
         final undone = ValueNotifier(0);
         addTearDown(undone.dispose);
         await tester.pumpWidget(listHarness(undone: undone));
         await deleteFromKeyboard(tester);
+
+        await pressUndoKey(tester, meta: !meta);
+        await tester.pumpAndSettle();
+        expect(undone.value, 0, reason: other);
+        expect(find.text('Row deleted.'), findsOneWidget);
 
         await pressUndoKey(tester, meta: meta);
         await tester.pumpAndSettle();
@@ -641,8 +654,103 @@ void main() {
         await pressUndoKey(tester, meta: meta);
         await tester.pumpAndSettle();
         expect(undone.value, 1);
-      });
+      }, variant: TargetPlatformVariant.only(platform));
     }
+
+    testWidgets('a prompt on a tab that is not showing answers no key, and '
+        'keys pressed elsewhere do not keep it', (tester) async {
+      final undone = ValueNotifier(0);
+      addTearDown(undone.dispose);
+      final tab = ValueNotifier(0);
+      addTearDown(tab.dispose);
+      // As the app's shell keeps its tabs: built, ticking, one of them shown,
+      // each pane with a messenger of its own.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ValueListenableBuilder<int>(
+            valueListenable: tab,
+            builder: (_, index, _) => IndexedStack(
+              index: index,
+              children: [
+                ScaffoldMessenger(
+                  child: Scaffold(
+                    body: Builder(
+                      builder: (context) => TextButton(
+                        key: const ValueKey('delete-1'),
+                        onPressed: () => showUndoSnackBar(
+                          ScaffoldMessenger.of(context),
+                          message: 'Row deleted.',
+                          undoLabel: 'Undo',
+                          undoFailedMessage: 'Undo failed.',
+                          accessibleNavigation: false,
+                          duration: const Duration(seconds: 3),
+                          onUndo: () => undone.value++,
+                        ),
+                        child: const Text('Delete'),
+                      ),
+                    ),
+                  ),
+                ),
+                ScaffoldMessenger(
+                  child: Scaffold(
+                    body: TextButton(
+                      key: const ValueKey('other'),
+                      onPressed: () {},
+                      child: const Text('Other tab'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Delete'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Row deleted.'), findsOneWidget);
+
+      tab.value = 1;
+      await tester.pump();
+      Focus.of(tester.element(find.text('Other tab'))).requestFocus();
+      await tester.pump();
+      await pressUndoKey(tester);
+      await tester.pump();
+      expect(undone.value, 0, reason: 'the prompt is on a tab not showing');
+
+      // Keys pressed for four seconds on the other tab: the hidden prompt's
+      // three still run out.
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(seconds: 1));
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      }
+      await tester.pumpAndSettle();
+      tab.value = 0;
+      await tester.pumpAndSettle();
+      expect(find.text('Row deleted.'), findsNothing);
+      expect(undone.value, 0);
+    });
+
+    testWidgets('the key pressed while a new prompt is still coming in, '
+        'behind the last one leaving, undoes neither', (tester) async {
+      final undone = ValueNotifier(0);
+      addTearDown(undone.dispose);
+      await tester.pumpWidget(listHarness(undone: undone));
+      await deleteFromKeyboard(tester);
+      // A second delete: the first prompt starts to leave, the second waits.
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await pressUndoKey(tester);
+      await tester.pumpAndSettle();
+      expect(undone.value, 0);
+      // The second prompt came in, and its Undo works once, by key.
+      expect(find.text('Row deleted.'), findsOneWidget);
+      await pressUndoKey(tester);
+      await tester.pumpAndSettle();
+      expect(undone.value, 1);
+      expect(find.text('Row deleted.'), findsNothing);
+    });
 
     testWidgets('the key works on a prompt that waits to be closed', (
       tester,
