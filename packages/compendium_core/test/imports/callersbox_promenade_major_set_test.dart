@@ -287,15 +287,16 @@ void main() {
       });
 
       test(
-        '"; women turn around" stays a note on the promenade (dance 3266)',
+        '"; women turn around" is a turn alone after the promenade (3266)',
         () {
+          // User-ruled 2026-11-27: turn around is turn alone.
           final figures = _parse(
             'Single file promenade clockwise around the major set; women turn '
             'around',
           );
-          expect(figures, hasLength(1));
-          expect(figures.single.move, 'promenade');
-          expect(figures.single.note, contains('role2s turn around'));
+          expect(figures.map((f) => f.move), ['promenade', 'turn_alone']);
+          expect(figures.first.note, isNot(contains('turn around')));
+          expect(figures.last.params['who'], 'role2s');
         },
       );
 

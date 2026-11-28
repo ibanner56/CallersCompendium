@@ -728,6 +728,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'デバイス同期の設定を読み込めなかったため、ここに表示されている設定が最新でない可能性があり、オンにしていてもデバイス同期がオフになっている可能性があります。アプリを再起動してもう一度お試しください。';
 
   @override
+  String get syncRestoredCopyNotice =>
+      'このライブラリはデバイスのバックアップから復元されたため、デバイス同期はオフになっています。設定 ▸ 実験的 ▸ デバイス同期 でもう一度オンにすると、このデバイスはバックアップ元のデバイスとしてではなく、新しいデバイスとして同期します。';
+
+  @override
   String get settingsSyncFailureUnreachable => '同期サーバーに接続できませんでした。';
 
   @override

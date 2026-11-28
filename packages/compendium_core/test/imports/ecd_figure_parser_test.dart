@@ -247,6 +247,19 @@ void main() {
     expect(_one('up a double').move, 'ecd_forward_and_back');
   });
 
+  group('turn around (user-ruled 2026-11-27)', () {
+    test('is turn alone, as in the contra grammar', () {
+      expect(_one('Turn around').move, 'ecd_turn_alone');
+      final men = _one('Men turn around');
+      expect(men.move, 'ecd_turn_alone');
+      expect(men.params['who'], ['role1s']);
+    });
+
+    test('a dancer after it is who is turned around, so it stays text', () {
+      expect(_one('Turn around partner').isCustom, isTrue);
+    });
+  });
+
   group('sequences (§5.4)', () {
     test('a subject is shared by the steps of its line (§8.1)', () {
       final f = _one('1st corners set forward and turn single back to place');

@@ -770,6 +770,8 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   fixed by ContraDB's `chainChange` (`figure.js:256-263`): `role1s` (gents)
   implies `left`, `role2s` (ladies) implies `right` — one small named
   helper, `chainHandForWho`, shared by every write site so they cannot drift.
+  Since v40 a role among the previous or next neighbours takes its role's
+  side (`nextRole2s` right).
 
   `renderTemplate` is `'{who} {hand} {move} {dir}'` — hand **before** the move
   name, matching ContraDB's `chainWords` order and the live render ("ladles
@@ -2631,12 +2633,15 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       dialect.
     - **Scope.** Offered wherever `pairDancerSets` is the domain (most
       `who` and `whom` params, and hey's `pass2`), and not added to hey's
-      `meetTarget`, which lists its own pairs. ContraDB does not write
-      them. The Caller's Box importer produces them from a neighbour number
-      before a role when only that role takes part (`N2 Men allemande left`
-      is `nextRole1s`), so an imported dance can hold one as well as a typed
-      figure; the figure
-      readers do read the display's own words (`next larks`, `prev robins`)
+      `meetTarget`, which lists its own pairs. `chain.who`, which lists its
+      own choices, takes all four too (2026-11-27, so the Caller's Box's
+      `N2 Women chain` is the next robins chaining), each with its role's
+      hand from `chainHandForWho` (`nextRole2s` right, `prevRole1s` left).
+      ContraDB does not write them. The Caller's Box importer produces them
+      from a neighbour number before a role when only that role takes part
+      (`N2 Men allemande left` is `nextRole1s`), so an imported dance can
+      hold one as well as a typed figure; the figure readers do read the
+      display's own words (`next larks`, `prev robins`)
       back, through `role1s` and `role2s` in `seriesDancerWords`, so a
       displayed figure reads back to its token (`figure_round_trip_test.dart`
       caught that gap). **Plural only**: the display writes a role in the
@@ -2661,7 +2666,11 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       default when the figure is opened (the correcting branch of
       `figure_param_editors.dart`, read in the current code, not run on a v39
       build), so editing such a figure there loses it, as with v38's corners
-      and v24's partner series. That reaches imported dances too: a Caller's
+      and v24's partner series. A chain is worse off there: v39 does not
+      know the hand its role implies, so it also shows the stored hand ("next
+      role2s right-hand chain"), and its editor resets `who` to `role2s` but
+      keeps that hand, so a `prevRole1s` chain (left hand) becomes a ladies'
+      left-hand chain. That reaches imported dances too: a Caller's
       Box dance with an `N2 Men …` or `N0 Women …` line, imported on a v40
       device, can hold one.
 

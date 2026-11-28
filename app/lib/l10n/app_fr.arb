@@ -716,6 +716,10 @@
   "@settingsSyncStatusSettingsUnreadable": {
     "x-sourceSha256": "ca37e41b6ed2d11c6b10cc81f386b054608b46b292f35d4b47ef8a395e84576b"
   },
+  "syncRestoredCopyNotice": "La synchronisation des appareils est désactivée, car cette bibliothèque a été restaurée à partir d’une sauvegarde de l’appareil. Réactivez-la dans Paramètres ▸ Expérimental ▸ Synchronisation des appareils : cet appareil se synchronisera alors comme un nouvel appareil, et non comme celui dont provient la sauvegarde.",
+  "@syncRestoredCopyNotice": {
+    "x-sourceSha256": "68688d2f85a4cbb6308d0663cefe4c30f1b62a53f59d3488138e9cc6aba02df6"
+  },
   "settingsSyncFailureUnreachable": "Impossible de joindre le serveur de synchronisation.",
   "@settingsSyncFailureUnreachable": {
     "x-sourceSha256": "1fec844573d970b89ddae666fddb4c01cf8065fb587bcb5fa4de0e8f4fcce1c7"
