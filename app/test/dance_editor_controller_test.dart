@@ -4413,7 +4413,10 @@ void main() {
           addTearDown(controller.dispose);
 
           controller.setForm(DanceForm.ecd);
-          expect(controller.buildDance().formation, ecdFormationFromContra(source));
+          expect(
+            controller.buildDance().formation,
+            ecdFormationFromContra(source),
+          );
         });
       }
 
@@ -4423,10 +4426,7 @@ void main() {
           Formation(FormationShape.dupleMinor, improper: true),
           FormationShape.dupleImproper,
         ),
-        (
-          Formation(FormationShape.threeCoupleLongways),
-          FormationShape.triplet,
-        ),
+        (Formation(FormationShape.threeCoupleLongways), FormationShape.triplet),
         (
           Formation(FormationShape.fourCoupleLongways),
           FormationShape.quadruplet,
