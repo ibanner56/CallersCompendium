@@ -5,14 +5,14 @@
     "changed": [
       "\"Turn around\" is read as turn alone wherever you type or import a figure: \"Women turn around\" is the robins turning alone. In dances you import from The Caller's Box, a \"; women turn around\" after another figure is now a figure of its own instead of a note on that figure. A dancer after the words (\"turn around your partner\") is who is turned around, so that line stays as text.",
       "Dances you import from The Caller's Box read \"N2 Women chain\" as the next robins chaining, and \"N2 Men chain\" as the next larks, instead of keeping the number as a note. A contra chain can now be by the previous or next neighbors' larks or robins.",
-      "Dances you import from The Caller's Box no longer give a figure such as \"N2 Men roll away prev neighbor\" a note that contradicts it: the next neighbors' larks roll away their previous neighbors. A dance's program grid also counts the next or previous neighbors' larks or robins in the larks' or robins' column."
+      "Dances you import from The Caller's Box no longer give a figure such as \"N2 Men roll away prev neighbor\" a note that contradicts it: the larks roll away their previous neighbors, noted \"N2 larks\". A dance's program grid also counts the next or previous neighbors' larks or robins in the larks' or robins' column."
     ]
   },
   "core": {
     "changed": [
       "The shared figure grammar and the ECD grammar read a clause-final `turn around` as `turn_alone` (a dancer before the phrase is `who`; one after it declines), and The Caller's Box dialect no longer keeps a `role1s/role2s turn around` clause as a note.",
       "`chain.who` takes `prevRole1s`, `prevRole2s`, `nextRole1s` and `nextRole2s` (taxonomy v40, unreleased), and `chainHandForWho` gives each its role's hand; both chain readers accept them.",
-      "The Caller's Box dialect reads a neighbour number before a role whose figure already names numbered neighbours as its counterpart without a contradicting note: the same set is read as written, another set makes the number name the role (or, for N3 and N4, the note names it as `N3 role1s`); an explicit `N1` counts as a named set. The program matrix's role split puts the numbered roles in their role's column."
+      "The Caller's Box dialect reads a neighbour number before a role whose figure already names numbered neighbours as its counterpart without a contradicting note: the same set is read as written, another set makes the number name the role, as the role token only when the pair does the figure together and otherwise as the note `N2 role1s`; an explicit `N1` counts as a named set. The program matrix's role split puts the numbered roles in their role's column."
     ]
   }
 }

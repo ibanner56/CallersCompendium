@@ -69,6 +69,7 @@ class PerformSwapSheet extends StatefulWidget {
     required this.title,
     required this.data,
     required this.dialect,
+    this.dialectForColumn,
     required this.enrichment,
     required this.seed,
     required this.initialChoices,
@@ -91,6 +92,11 @@ class PerformSwapSheet extends StatefulWidget {
 
   final CollectionData data;
   final Dialect dialect;
+
+  /// The dialect a suggestion reason names a figure's column in:
+  /// [CollectionPicker.suggestionDialectForColumn]. Null reads every column
+  /// in [dialect].
+  final Dialect Function(MatrixColumn column)? dialectForColumn;
   final SearchEnrichment enrichment;
 
   /// What the dance being swapped offers to keep.
@@ -305,6 +311,7 @@ class _PerformSwapSheetState extends State<PerformSwapSheet> {
             key: const ValueKey('swap-picker'),
             data: widget.data,
             dialect: widget.dialect,
+            suggestionDialectForColumn: widget.dialectForColumn,
             enrichment: widget.enrichment,
             danceOverrides: widget.danceOverrides,
             choreographerNamesOverride: widget.authorNameOverrides,

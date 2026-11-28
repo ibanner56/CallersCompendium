@@ -2710,12 +2710,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Note du caller (facultatif)';
 
   @override
-  String get settingsDefaultsStartingProgramMoveUp => 'Monter';
-
-  @override
-  String get settingsDefaultsStartingProgramMoveDown => 'Descendre';
-
-  @override
   String get settingsDefaultsStartingProgramUnavailableDance =>
       'Cette danse n’est plus disponible';
 
@@ -12814,6 +12808,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get compoundParamKindDancers => 'danseurs';
 
   @override
+  String get compoundParamKindDancerList => 'liste de danseurs';
+
+  @override
   String get compoundParamKindDancerPair => 'paire de danseurs';
 
   @override
@@ -15675,6 +15672,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleBadge => 'Règle de créneau';
+
+  @override
+  String programTemplateSlotEditTooltip(String name) {
+    return 'Modifier $name';
+  }
+
+  @override
+  String programTemplateSlotDeleteTooltip(String name) {
+    return 'Supprimer $name';
+  }
 
   @override
   String programTemplateSlotRuleSubtitle(String name) {

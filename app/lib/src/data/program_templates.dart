@@ -287,7 +287,11 @@ class ProgramTemplates {
 
   /// The default template's id, or `null` for Blank program. Never names a
   /// template missing from [templates]: a default whose template is gone
-  /// reads as Blank program.
+  /// (the Default template was deleted) reads as the first template, so New
+  /// program, which asks nothing with one template, and the calendar import
+  /// still start from one (pre-release audit finding D1a-01). Only with no
+  /// template left, an explicit Blank program or no default ever stored is
+  /// it Blank program.
   final String? defaultId;
 
   ProgramTemplate? get defaultTemplate {
@@ -394,8 +398,10 @@ Future<void> materializeProgramTemplates(SettingsRepository settings) async {
 
 /// Loads every program template. Writes nothing: a Starting program not yet
 /// copied ([materializeProgramTemplates]) is shown as the first template and,
-/// unless another default is stored, the default. Unreadable template values
-/// are skipped.
+/// unless another default is stored, the default; a stored default whose
+/// template is gone reads as the first template ([ProgramTemplates.defaultId])
+/// while the key keeps naming the deleted one, so Undo of the delete gives it
+/// back. Unreadable template values are skipped.
 Future<ProgramTemplates> loadProgramTemplates(
   SettingsRepository settings,
 ) async {
@@ -419,11 +425,14 @@ Future<ProgramTemplates> loadProgramTemplates(
     order = [pending.id];
     storedDefault ??= pending.id;
   }
+  final templates = orderProgramTemplates(byId, order);
   return ProgramTemplates(
-    templates: orderProgramTemplates(byId, order),
-    defaultId: storedDefault != null && byId.containsKey(storedDefault)
-        ? storedDefault
-        : null,
+    templates: templates,
+    defaultId: switch (storedDefault) {
+      null || kProgramTemplateBlankDefault => null,
+      final id when byId.containsKey(id) => id,
+      _ => templates.firstOrNull?.id,
+    },
   );
 }
 
@@ -573,11 +582,26 @@ List<ProgramTemplateEntry>? undoSlotRulesNaming(
 /// Writes the templates' order, keeping at most
 /// [kMaxProgramTemplateOrderLength] ids (more can exist after two devices
 /// add templates at once; the rest then sort after these by name).
+///
+/// While a deleted template's id is still the stored default, the template
+/// standing in for it ([ProgramTemplates.defaultId], the first in the old
+/// order) is written as the default first, so a reorder does not move the
+/// default without saying so. Undo of that delete then no longer makes the
+/// deleted template the default again.
 Future<void> saveProgramTemplateOrder(
   SettingsRepository settings,
   List<String> ids,
 ) async {
   await materializeProgramTemplates(settings);
+  final stored = tryDecodeProgramTemplateDefault(
+    await settings.get(kProgramTemplateDefaultKey),
+  );
+  if (stored != null &&
+      stored != kProgramTemplateBlankDefault &&
+      !await settings.contains(programTemplateKey(stored))) {
+    final standIn = (await loadProgramTemplates(settings)).defaultId;
+    if (standIn != null) await saveProgramTemplateDefault(settings, standIn);
+  }
   await settings.set(
     kProgramTemplateOrderKey,
     ids.length > kMaxProgramTemplateOrderLength
@@ -600,9 +624,11 @@ Future<void> saveProgramTemplateDefault(
 
 /// Makes template [id] the default when there is none: no default stored, or
 /// one naming a template that no longer exists. So the first template a user
-/// creates, or the first after deleting the default, is the one New program
-/// starts from (with one template there is no chooser). An explicit Blank
-/// program is left alone.
+/// creates is the one New program starts from (with one template there is no
+/// chooser). After the default was deleted, the template already standing in
+/// for it ([ProgramTemplates.defaultId], the first in the list) is written
+/// instead, so creating a template does not move the default; [id] is written
+/// only when it is the one template. An explicit Blank program is left alone.
 ///
 /// The check is local: a device that has not yet synced a peer's newer
 /// explicit choice writes this one now, and last-writer-wins keeps whichever
@@ -619,7 +645,10 @@ Future<void> saveProgramTemplateDefaultIfUnset(
   if (stored != null && await settings.contains(programTemplateKey(stored))) {
     return;
   }
-  await saveProgramTemplateDefault(settings, id);
+  final standIn = stored == null
+      ? null
+      : (await loadProgramTemplates(settings)).defaultId;
+  await saveProgramTemplateDefault(settings, standIn ?? id);
 }
 
 /// Removes template [id]'s key (a tombstone a peer learns from). The order and
@@ -628,7 +657,10 @@ Future<void> saveProgramTemplateDefaultIfUnset(
 /// template has taken that place since ([saveProgramTemplateDefaultIfUnset]),
 /// and in its old place unless the order was rewritten in between (a later
 /// reorder, create or duplicate drops it, and it then sorts after the listed
-/// ones by name). Until then a missing id in either reads as absent.
+/// ones by name). Until then a missing id in the order reads as absent, and
+/// a default naming it reads as the first template left
+/// ([ProgramTemplates.defaultId]); a create, duplicate or reorder writes that
+/// stand-in as the default ([saveProgramTemplateOrder]).
 Future<void> deleteProgramTemplate(
   SettingsRepository settings,
   String id,

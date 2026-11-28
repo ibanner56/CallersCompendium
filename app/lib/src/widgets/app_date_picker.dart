@@ -45,7 +45,8 @@ Future<DateTime?> showAppDatePicker({
 /// [showDialog] with [AppMotion.styleFor], so it respects the in-app Reduce
 /// motion switch, and with [uncappedDialogBuilder] so it can grow with the
 /// text scale. Its 12- or 24-hour dial follows the platform setting, as the
-/// helper's does. Used for a program's times (#2350).
+/// helper's does, and so does the program time it sets wherever it is shown
+/// (`formatTimeOfDay`). Used for a program's times (#2350).
 Future<TimeOfDay?> showAppTimePicker({
   required BuildContext context,
   required TimeOfDay initialTime,

@@ -9,8 +9,11 @@ import '../theme/app_motion.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/collection_facets_scope.dart';
+import '../data/matrix_column_dialect.dart';
 import '../data/repositories_scope.dart';
 import '../data/settings_keys.dart' show kPerformSwapDefaultsKey;
+import '../data/user_figures_scope.dart';
+import '../data/venue_label.dart';
 import '../theme/app_spacing.dart';
 import '../utils/slot_dance_title.dart';
 import '../widgets/collection_picker.dart';
@@ -375,6 +378,21 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       // diagnostics: silent — a failed read opens with every Keep item on,
       // the shipped defaults; the swap itself does not depend on it.
     }
+    // The linked venue, so a suggestion reason names the venue its history
+    // is counted for, as the builder's pickers do (pre-release audit finding
+    // D1b-01), not the program's typed venue text.
+    final venueId = _working.venueId;
+    Venue? linkedVenue;
+    if (venueId != null) {
+      try {
+        linkedVenue = await repos.venues.getById(venueId);
+      } catch (_) {
+        // diagnostics: silent — a failed read names the venue by the typed
+        // venue text, as a link that no longer resolves does; the swap and
+        // its order do not depend on it.
+      }
+    }
+    final venuesById = <String, Venue>{?venueId: ?linkedVenue};
     if (!mounted) return;
     final group = _working.grouped.firstWhere(
       (g) => [g.primary, ...g.alternates].any((s) => s.id == slotId),
@@ -398,6 +416,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       showDragHandle: true,
       builder: (sheetContext) {
         final maxHeight = MediaQuery.of(sheetContext).size.height * 0.9;
+        final userFigures = UserFiguresScope.shownCatalogOf(sheetContext);
         return SafeArea(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxHeight: maxHeight),
@@ -410,6 +429,14 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
               dialect: dance == null
                   ? widget.dialect
                   : widget.dialectForForm?.call(dance.form) ?? widget.dialect,
+              // A suggestion reason names a figure as the program matrix
+              // names its column (#2451), as in the builder (pre-release
+              // audit finding D1b-04).
+              dialectForColumn: (column) => _dialectForColumn(
+                column,
+                programForms: forms,
+                userFigures: userFigures,
+              ),
               enrichment: widget.enrichment,
               danceOverrides: widget.danceOverrides,
               authorNameOverrides: widget.authorNameOverrides,
@@ -448,7 +475,11 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
                 programId: program.id,
                 venueId: program.venueId,
                 venue: program.venue,
-                venueLabel: program.venue,
+                venueLabel: resolveVenueLabelParts(
+                  program.venueId,
+                  program.venue,
+                  venuesById,
+                ),
                 position: flatIndex < 0
                     ? null
                     : SuggestionPosition.replacing(program.slots, flatIndex),
@@ -469,6 +500,30 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
         );
       },
       sheetAnimationStyle: AppMotion.styleFor(context),
+    );
+  }
+
+  /// [matrixColumnDialect] for [column], in the dialect each form is shown
+  /// in here ([PerformAdjustSheet.dialectForForm]) and with the program's
+  /// dances' forms ([programForms]), as the builder reads a suggestion
+  /// reason's column: there is no matrix, so no dances "use" it.
+  Dialect _dialectForColumn(
+    MatrixColumn column, {
+    required Set<DanceForm> programForms,
+    required UserFigureCatalog userFigures,
+  }) {
+    final forForm = widget.dialectForForm;
+    return matrixColumnDialect(
+      column,
+      dialects: forForm == null
+          ? DialectsByForm.all(widget.dialect)
+          : DialectsByForm({
+              for (final form in DanceForm.values) form: forForm(form),
+            }),
+      fallback: forForm?.call(DanceForm.contra) ?? widget.dialect,
+      userFigure: (id) => userFigures[id],
+      usedBy: () => const {},
+      program: () => programForms,
     );
   }
 

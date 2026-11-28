@@ -385,11 +385,23 @@ void main() {
       );
     });
 
-    test('tune details go through the discouraged-term rendering', () {
-      final d = english(meter: '', musicalKey: '', barnes: 'see Gypsy');
-      expect(card(d).musicLines, ['Barnes: see Gypsy']);
+    test('the meter and key go through the discouraged-term rendering; the '
+        'Barnes reference is printed as typed', () {
+      // The maintainer, decision sheet question 18: a Barnes reference
+      // names a book and often a tune, so it is shown as typed, as the
+      // title is.
+      final d = english(
+        meter: 'Gypsy time',
+        musicalKey: '',
+        barnes: 'B2 p. 9, Ladies of London; Gypsy Round',
+      );
+      expect(card(d).musicLines, [
+        'Meter: Gypsy time',
+        'Barnes: B2 p. 9, Ladies of London; Gypsy Round',
+      ]);
       expect(card(d, canonicalize: true).musicLines, [
-        'Barnes: see Shoulder round',
+        'Meter: Shoulder round time',
+        'Barnes: B2 p. 9, Ladies of London; Gypsy Round',
       ]);
     });
 

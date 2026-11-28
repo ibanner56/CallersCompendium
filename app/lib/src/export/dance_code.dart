@@ -23,8 +23,10 @@
 ///   DEFLATE stream is *not* an error to `dart:io`: it returns whatever it
 ///   has, possibly nothing. What turns that into a refusal is the JSON-object
 ///   check, since no proper prefix of a JSON object is itself one. Bytes after
-///   the end of the DEFLATE stream are ignored. Whether the JSON is a
-///   well-formed archive is the importer's question, not this file's.
+///   the end of the DEFLATE stream are ignored. There is no checksum, so a
+///   link changed in one character can still read, as a different dance;
+///   a scanned code has the QR code's own error correction. Whether the JSON
+///   is a well-formed archive is the importer's question, not this file's.
 ///
 /// No network is involved in either half.
 library;
@@ -226,10 +228,11 @@ enum DanceLinkFailure {
   /// Longer than the length limit, which is checked before anything else.
   tooLong,
 
-  /// Not `ccdance://<version>/<payload>`.
+  /// Not `ccdance://<version>/<payload>`, or a version no build would write.
   notADanceLink,
 
-  /// A dance link, but not a version this build reads.
+  /// A dance link of a later format version than this build reads. A version
+  /// no later build would write (0, 01, +2, letters) is [notADanceLink].
   unknownVersion,
 
   /// The payload is not unpadded Base64url.
@@ -278,8 +281,16 @@ bool _isBase64Url(String text) {
   return true;
 }
 
-/// Reads the share bundle JSON out of [link]: byte for byte what
-/// [encodeDanceLink] was given. Throws [DanceLinkException] for anything else.
+/// Reads the share bundle JSON out of [link]. Throws [DanceLinkException] when
+/// the link cannot be read as one.
+///
+/// What is checked is the shape, not integrity: the link must be a version-1
+/// dance link whose payload inflates to a JSON object. A link cut short is
+/// refused, since no proper prefix of a JSON object is one. A link changed in
+/// a character or two is often not: the format carries no checksum (raw
+/// DEFLATE has none), and such a change can inflate to a different JSON
+/// object, which is returned. A scanned code is covered by the QR code's own
+/// error correction; a pasted or typed link is not.
 ///
 /// A link longer than [maxLinkLength] is refused before it is looked at. The
 /// payload may inflate to at most [maxInflatedBytes]; the stream is read in
@@ -305,8 +316,13 @@ String decodeDanceLink(
   if (slash <= 0) {
     throw const DanceLinkException(DanceLinkFailure.notADanceLink);
   }
-  if (rest.substring(0, slash) != '$danceLinkVersion') {
-    throw const DanceLinkException(DanceLinkFailure.unknownVersion);
+  final version = rest.substring(0, slash);
+  if (version != '$danceLinkVersion') {
+    throw DanceLinkException(
+      _isLaterVersion(version)
+          ? DanceLinkFailure.unknownVersion
+          : DanceLinkFailure.notADanceLink,
+    );
   }
   final payload = rest.substring(slash + 1);
   if (payload.isEmpty) {
@@ -365,6 +381,21 @@ String decodeDanceLink(
     throw const DanceLinkException(DanceLinkFailure.notAJsonObject);
   }
   return text;
+}
+
+/// Whether [version] is a whole number later than [danceLinkVersion], written
+/// as a later build would write it: ASCII digits, no sign, no leading zero.
+/// Anything else is damage, not a link from a newer app.
+bool _isLaterVersion(String version) {
+  if (version.isEmpty || version.codeUnitAt(0) == 0x30) return false;
+  for (var i = 0; i < version.length; i++) {
+    final c = version.codeUnitAt(i);
+    if (c < 0x30 || c > 0x39) return false;
+  }
+  // Longer than the current version's digits, or as long and larger.
+  const current = '$danceLinkVersion';
+  return version.length > current.length ||
+      (version.length == current.length && version.compareTo(current) > 0);
 }
 
 class _InflateCapExceeded implements Exception {
