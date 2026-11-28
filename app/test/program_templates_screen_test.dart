@@ -482,7 +482,7 @@ void main() {
         expect(button, findsOneWidget, reason: label);
         expect(
           tester.getSemantics(button),
-          isSemantics(label: label, isButton: true, isEnabled: enabled),
+          isSemantics(tooltip: label, isButton: true, isEnabled: enabled),
           reason: label,
         );
       }
@@ -507,10 +507,12 @@ void main() {
       await tester.tap(find.byTooltip('Move Opener up'));
       await tester.pumpAndSettle();
       expect(announcements.last, 'Opener moved to position 3 of 4');
-      expect(
-        (await _stored(repos)).byId('a')!.entries.map((e) => e.text),
-        ['Raffle', null, 'Opener', Program.breakSlotText],
-      );
+      expect((await _stored(repos)).byId('a')!.entries.map((e) => e.text), [
+        'Raffle',
+        null,
+        'Opener',
+        Program.breakSlotText,
+      ]);
       semantics.dispose();
     });
 

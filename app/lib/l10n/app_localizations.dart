@@ -4032,18 +4032,6 @@ abstract class AppLocalizations {
   /// **'Caller note (optional)'**
   String get settingsDefaultsStartingProgramNoteLabel;
 
-  /// Tooltip for moving a starting-program entry up.
-  ///
-  /// In en, this message translates to:
-  /// **'Move up'**
-  String get settingsDefaultsStartingProgramMoveUp;
-
-  /// Tooltip for moving a starting-program entry down.
-  ///
-  /// In en, this message translates to:
-  /// **'Move down'**
-  String get settingsDefaultsStartingProgramMoveDown;
-
   /// Fallback label for a starting-program dance reference that is no longer in the collection.
   ///
   /// In en, this message translates to:
@@ -22306,6 +22294,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Slot rule'**
   String get programTemplateSlotRuleBadge;
+
+  /// Tooltip and screen-reader label of the Edit button on a slot rule's row in the program template editor; {name} is the row's own label, so the buttons of one row can be told from the next (pre-release audit finding D1a-06).
+  ///
+  /// In en, this message translates to:
+  /// **'Edit {name}'**
+  String programTemplateSlotEditTooltip(String name);
+
+  /// Tooltip and screen-reader label of the Delete button on a slot's row in the program template editor (a dance, note, break or slot rule); {name} is the row's own label, such as the dance's title, so the buttons of one row can be told from the next (pre-release audit finding D1a-06).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}'**
+  String programTemplateSlotDeleteTooltip(String name);
 
   /// Subtitle of a slot rule in the program template editor: the saved search that says which dances it means (#2338).
   ///

@@ -174,14 +174,15 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
-      expect(_fieldValue(tester, 'start'), '7:30 PM');
+      // In the 24-hour clock the picker used (D1a-02).
+      expect(_fieldValue(tester, 'start'), '19:30');
 
       await _typeTime(tester, 'end', 22, 30);
       await _typeTime(tester, 'lesson', 19, 0);
       await _typeTime(tester, 'arrival', 18, 15);
       // Change.
       await _typeTime(tester, 'arrival', 18, 45);
-      expect(_fieldValue(tester, 'arrival'), '6:45 PM');
+      expect(_fieldValue(tester, 'arrival'), '18:45');
       // Clear.
       await tester.tap(find.byKey(const ValueKey('clear-program-time-lesson')));
       await tester.pumpAndSettle();
@@ -311,7 +312,7 @@ void main() {
     await tester.tap(find.byType(SnackBarAction));
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pumpAndSettle();
-    expect(_fieldValue(tester, 'start'), '8:00 PM');
+    expect(_fieldValue(tester, 'start'), '20:00');
 
     await _save(tester);
     final saved = (await repos.programs.getById('p1'))!;

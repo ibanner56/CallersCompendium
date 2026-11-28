@@ -1391,6 +1391,20 @@ class ProgramRepository {
     ];
   }
 
+  /// The ids of the live (not soft-deleted) programs that are archived.
+  /// Reads only the two columns it filters on, for a caller that lists
+  /// programs through [listIdsAndTitles] and marks the archived ones, as the
+  /// command palette does.
+  Future<Set<String>> archivedIds() async {
+    final query = _db.selectOnly(_db.programs)
+      ..addColumns([_db.programs.id])
+      ..where(
+        _db.programs.deletedAt.isNull() & _db.programs.archivedAt.isNotNull(),
+      );
+    final rows = await query.get();
+    return {for (final row in rows) row.read(_db.programs.id)!};
+  }
+
   /// The forms of the live dances in each program, keyed by program id
   /// (ADR-006: a program shows whether it is contra, English or both). Every
   /// slot with a dance counts, alternates included, as the builder's,
