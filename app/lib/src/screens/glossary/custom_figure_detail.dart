@@ -28,8 +28,11 @@ final FigureRenderer _renderer = FigureRenderer(shippedTaxonomies.anyForm);
 /// The name a parameter kind is offered and shown under in a custom figure.
 String compoundParamKindLabel(AppLocalizations l10n, ParamKind kind) =>
     switch (kind) {
-      ParamKind.dancerSet ||
-      ParamKind.dancerList => l10n.compoundParamKindDancers,
+      ParamKind.dancerSet => l10n.compoundParamKindDancers,
+      // Apart from a group, so a combination's reason for a parameter that
+      // can't fill an English figure's Who names two kinds, not one twice
+      // (the maintainer, decision sheet question 20).
+      ParamKind.dancerList => l10n.compoundParamKindDancerList,
       ParamKind.dancerPair => l10n.compoundParamKindDancerPair,
       ParamKind.handedness => l10n.compoundParamKindHand,
       ParamKind.shoulder => l10n.compoundParamKindShoulder,

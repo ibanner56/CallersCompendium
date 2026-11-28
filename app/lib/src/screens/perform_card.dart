@@ -1047,14 +1047,9 @@ class _Header extends StatelessWidget {
           _MetaRow(
             key: const ValueKey('perform-barnes-reference'),
             icon: barnesReferenceIcon,
-            text: l10n.danceBarnesValue(
-              canonicalizeDiscouragedTerms
-                  ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                      barnes,
-                      dialect,
-                    )
-                  : renderer.renderFreeText(barnes, dialect),
-            ),
+            // As typed, as the title is (the maintainer, decision sheet
+            // question 18): see the dance page's Barnes books section.
+            text: l10n.danceBarnesValue(barnes),
           ),
         ],
         if (dance.status != DanceStatus.active) ...[
