@@ -1850,7 +1850,10 @@ class CallersBoxAdapter implements SourceAdapter {
   /// centre-wave fold then decides the pair. The one exception is a balance
   /// that names a role (`Men balance long wave in center`): that role forms
   /// the centre wave, so it is the result's `who` and the fold then balances
-  /// it (maintainer ruling 2026-11-24).
+  /// it (maintainer ruling 2026-11-24). A role's balance with more on its line
+  /// (`Men balance long wave in center and slide left`), which the fold
+  /// refuses, leaves [wave] unchanged too, so the wave states no role or
+  /// balance the source did not.
   static Figure _inCenterFollower(Figure wave, Figure balance) {
     if (!_isBareLongWave(wave) || !_isBalanceWaveLine(balance)) return wave;
     // `for all … in center` is not the centre wave some dancers form; the wave
@@ -1868,10 +1871,17 @@ class CallersBoxAdapter implements SourceAdapter {
     // that forms the centre wave and balances it (maintainer ruling
     // 2026-11-24: the bare `form long wave` before it is the same wave). Only
     // a line with nothing else on it names the role here: one with more words
-    // or an annotation would lose them in the fold, so it is refused as before.
-    final roleMatch = balance.isCustom
-        ? _roleCentreWaveBalanceRe.firstMatch(_customText(balance))
-        : null;
+    // or an annotation would lose them in the fold, so it is refused.
+    final text = balance.isCustom ? _customText(balance) : '';
+    // A role's in-centre balance with more on its line (`Men balance long
+    // wave in center and slide left`) is refused by the fold and stays text.
+    // The centre wave's defaults would state a role (the robins) and a balance
+    // the source does not, ahead of the larks' own balance line, so the bare
+    // wave stays the long waves it was, stating neither.
+    final roleMatch = _roleCentreWaveBalanceRe.firstMatch(text);
+    if (roleMatch == null && _roleCentreWaveBalanceLeadRe.hasMatch(text)) {
+      return wave;
+    }
     final role = roleMatch?.group(1)?.toLowerCase();
     return Figure(
       move: 'form_a_long_wave',
@@ -1888,6 +1898,13 @@ class CallersBoxAdapter implements SourceAdapter {
   /// group 1 is the role.
   static final RegExp _roleCentreWaveBalanceRe = RegExp(
     r'^(role1s|role2s)\s+balance\s+(?:the\s+)?long\s+waves?\s+in\s+(?:the\s+)?center[.]?$',
+    caseSensitive: false,
+  );
+
+  /// The start of [_roleCentreWaveBalanceRe], a comma after the role allowed,
+  /// with anything after it: a role's in-centre balance that says more.
+  static final RegExp _roleCentreWaveBalanceLeadRe = RegExp(
+    r'^(?:role1s|role2s),?\s+balance\s+(?:the\s+)?long\s+waves?\s+in\s+(?:the\s+)?center\b',
     caseSensitive: false,
   );
 

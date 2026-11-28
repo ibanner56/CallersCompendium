@@ -1548,7 +1548,7 @@ class ImportPipeline {
   /// resolved ids, never [src]'s. [keepFrom] is the dance being linked over:
   /// its custom-field values for fields [src] does not carry survive, and so
   /// do its rating, interpreters, interpretation date, other titles, Barnes
-  /// reference and square fields when [src] carries none.
+  /// reference, meter, key and square fields when [src] carries none.
   Dance _rebuildWithIdentity(
     Dance src, {
     required String id,
@@ -1578,8 +1578,13 @@ class ImportPipeline {
     hook: src.hook,
     callingNotes: src.callingNotes,
     walkthrough: src.walkthrough,
-    meter: src.meter,
-    musicalKey: src.musicalKey,
+    // A meter or key too: most sources carry none (the native archive, the
+    // Caller's Companion mapping and a CSV with those columns do), and a
+    // linked-over English dance counts its typed bar ranges by its meter.
+    meter: src.meter.isNotEmpty ? src.meter : keepFrom?.meter ?? '',
+    musicalKey: src.musicalKey.isNotEmpty
+        ? src.musicalKey
+        : keepFrom?.musicalKey ?? '',
     barnesReference: src.barnesReference.isNotEmpty
         ? src.barnesReference
         : keepFrom?.barnesReference ?? '',

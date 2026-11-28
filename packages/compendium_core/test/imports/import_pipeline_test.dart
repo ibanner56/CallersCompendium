@@ -808,15 +808,18 @@ void main() {
       expect(linked.interpretedOn, PartialDate.parse('1985'));
     });
 
-    // Likewise a source that names no other title or Barnes reference.
-    test('resolution link keeps the existing other titles and Barnes '
-        'reference when the incoming record has none', () async {
+    // Likewise a source that names no other title, Barnes reference, meter
+    // or key (pre-release audit finding A1-04 for the meter and key).
+    test('resolution link keeps the existing other titles, Barnes '
+        'reference, meter and key when the incoming record has none', () async {
       final existingId = await seedExisting();
       await dances.update(
         (await dances.getById(existingId))!.copyWith(
           form: DanceForm.ecd,
           alternateTitles: ['Monymusk'],
           barnesReference: 'BIII p. 92',
+          meter: '3/2',
+          musicalKey: 'G minor',
         ),
       );
       final session = await pipeline.commit(
@@ -835,6 +838,8 @@ void main() {
       expect(linked.title, 'Nice Combination');
       expect(linked.alternateTitles, ['Monymusk']);
       expect(linked.barnesReference, 'BIII p. 92');
+      expect(linked.meter, '3/2');
+      expect(linked.musicalKey, 'G minor');
     });
 
     // A link takes the record's form, and only an English dance keeps a
