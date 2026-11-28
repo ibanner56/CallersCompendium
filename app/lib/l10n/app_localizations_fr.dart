@@ -15242,8 +15242,23 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher, ajouter, modifier, réordonner et supprimer vos règles.';
 
   @override
-  String get eventRulesEmpty =>
-      'Aucune règle pour l’instant. Une règle utilise l’une de vos recherches enregistrées pour dire de quelles danses elle parle.';
+  String get eventRulesEmptyTitle => 'Aucune règle pour l’instant';
+
+  @override
+  String get eventRulesEmptyBody =>
+      'Une règle utilise l’une de vos recherches enregistrées pour dire de quelles danses elle parle. Choisissez Nouvelle règle… pour en ajouter une.';
+
+  @override
+  String get eventRulesLoadError =>
+      'Impossible de charger vos règles. Rien n’a été modifié. Réessayez.';
+
+  @override
+  String get eventRuleDeleteFailed =>
+      'Impossible de supprimer la règle. Réessayez.';
+
+  @override
+  String get eventRuleMoveFailed =>
+      'Impossible de déplacer la règle. Réessayez.';
 
   @override
   String get eventRulesNewRule => 'Nouvelle règle…';

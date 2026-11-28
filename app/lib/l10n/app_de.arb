@@ -14394,9 +14394,25 @@
   "@eventRulesManageSubtitle": {
     "x-sourceSha256": "e3201fa38d2cc62d010cbcd6d873777c0e5034d2c8c0a7c95b31fe0ab26ebe57"
   },
-  "eventRulesEmpty": "Noch keine Regeln. Eine Regel verwendet eine deiner gespeicherten Suchen, um zu sagen, welche Tänze sie meint.",
-  "@eventRulesEmpty": {
-    "x-sourceSha256": "3e6f22b9afd7db701d5f8741327bb290a4c1d0153bb03d774729b4ec697b75ab"
+  "eventRulesEmptyTitle": "Noch keine Regeln",
+  "@eventRulesEmptyTitle": {
+    "x-sourceSha256": "d29cf782366d138c1caa5421be061a9bd8a9d6607c3a6b8ca9f0d5ea986e5db8"
+  },
+  "eventRulesEmptyBody": "Eine Regel verwendet eine deiner gespeicherten Suchen, um zu sagen, welche Tänze sie meint. Wähle Neue Regel…, um eine hinzuzufügen.",
+  "@eventRulesEmptyBody": {
+    "x-sourceSha256": "c8c922348a950f211fff1f9082d6c080d9a9177e9b4aafdba21b09fdf4025650"
+  },
+  "eventRulesLoadError": "Deine Regeln konnten nicht geladen werden. Es wurde nichts geändert. Versuche es erneut.",
+  "@eventRulesLoadError": {
+    "x-sourceSha256": "de39c42c3186347986451402e7e3204f779611f5962ca734c73b3e1a18a390c2"
+  },
+  "eventRuleDeleteFailed": "Die Regel konnte nicht gelöscht werden. Versuche es erneut.",
+  "@eventRuleDeleteFailed": {
+    "x-sourceSha256": "38f5cce45721fdc140146228b8afba21fce0bdfd9aef46e9337a211d1525f361"
+  },
+  "eventRuleMoveFailed": "Die Regel konnte nicht verschoben werden. Versuche es erneut.",
+  "@eventRuleMoveFailed": {
+    "x-sourceSha256": "838a24e89e0977cacbe775caba43859768ee91bccc3b3353131320dd2ef44232"
   },
   "eventRulesNewRule": "Neue Regel…",
   "@eventRulesNewRule": {

@@ -195,6 +195,18 @@ void main() {
           expect(ext.focusRingWidth, greaterThanOrEqualTo(2));
         });
 
+        test('the inverse accent clears 3:1 on the inverse surface', () {
+          // A snackbar is drawn on inverseSurface; FocusRingLayer rings a
+          // control inside one in inversePrimary.
+          final theme = _themeFor(name, scheme);
+          expectRatio(
+            'inversePrimary/inverseSurface',
+            theme.colorScheme.inversePrimary,
+            theme.colorScheme.inverseSurface,
+            aaNonText,
+          );
+        });
+
         test('status chips: label and icon on tint, full-alpha border', () {
           final ext = _themeFor(name, scheme).extension<AppThemeExtension>()!;
           for (final (role, token) in [

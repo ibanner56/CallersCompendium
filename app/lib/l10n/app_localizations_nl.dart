@@ -15165,8 +15165,23 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je regels bekijken, toevoegen, bewerken, herschikken en verwijderen.';
 
   @override
-  String get eventRulesEmpty =>
-      'Nog geen regels. Een regel gebruikt een van je opgeslagen zoekopdrachten om te zeggen welke dansen hij bedoelt.';
+  String get eventRulesEmptyTitle => 'Nog geen regels';
+
+  @override
+  String get eventRulesEmptyBody =>
+      'Een regel gebruikt een van je opgeslagen zoekopdrachten om te zeggen welke dansen hij bedoelt. Kies Nieuwe regel… om er een toe te voegen.';
+
+  @override
+  String get eventRulesLoadError =>
+      'Je regels konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get eventRuleDeleteFailed =>
+      'De regel kon niet worden verwijderd. Probeer het opnieuw.';
+
+  @override
+  String get eventRuleMoveFailed =>
+      'De regel kon niet worden verplaatst. Probeer het opnieuw.';
 
   @override
   String get eventRulesNewRule => 'Nieuwe regel…';
