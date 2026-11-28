@@ -109,10 +109,10 @@ bool _isLarksRobinsChoreographer(String name) {
 }
 
 /// The people one author name credits: [name] split at `&`, `+`, `/`, `;`
-/// and the words "and" and "with", then at commas when every part names a
-/// person in two or more words ("Rachel Smith, Bob Fifer"), but not when a
-/// comma puts a family name first ("Fifer, Rachel") or adds a year ("Rae
-/// Fifer, 2019").
+/// and the words "and" and "with", then at commas when the first part names a
+/// person in two or more words ("Rachel Smith, Bob Fifer", "Bob Fifer,
+/// Rachel"), but not when a comma puts a family name first ("Fifer, Rachel")
+/// or adds a year ("Rae Fifer, 2019").
 List<String> _credits(String name) {
   final credits = <String>[];
   for (final part in name.split(_creditSeparator)) {
@@ -122,8 +122,7 @@ List<String> _credits(String name) {
         if (_words(p).any(_isNameWord)) p,
     ];
     final eachAPerson =
-        named.length > 1 &&
-        named.every((p) => _words(p).where(_isNameWord).length >= 2);
+        named.length > 1 && _words(named.first).where(_isNameWord).length >= 2;
     credits.addAll(eachAPerson ? named : [part]);
   }
   return credits;

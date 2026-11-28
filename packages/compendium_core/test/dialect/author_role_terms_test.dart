@@ -54,6 +54,7 @@ void main() {
         'Rachel Smith and Bob Fifer',
         'Rachel Smith, Bob Fifer',
         'Bob Fifer, Rachel Smith, 2019',
+        'Bob Fifer, Rachel',
       ]) {
         expect(requires('Any Dance At All', [name]), isFalse, reason: name);
       }
