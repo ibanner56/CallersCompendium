@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -348,7 +347,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Tänze werden gelöscht, davon $notShown durch deine Suche ausgeblendet. Du kannst dies rückgängig machen.',
-      one: '1 Tanz wird gelöscht. Deine Suche blendet ihn aus. Du kannst dies rückgängig machen.',
+      one:
+          '1 Tanz wird gelöscht. Deine Suche blendet ihn aus. Du kannst dies rückgängig machen.',
     );
     return '$_temp0';
   }
@@ -534,7 +534,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Begriffe konnten nicht hinzugefügt werden: Sie sind zu lang, oder dein Glossar ist voll.',
-      one: '1 Begriff konnte nicht hinzugefügt werden: Er ist zu lang, oder dein Glossar ist voll.',
+      one:
+          '1 Begriff konnte nicht hinzugefügt werden: Er ist zu lang, oder dein Glossar ist voll.',
     );
     return '$_temp0';
   }
@@ -602,7 +603,8 @@ class AppLocalizationsDe extends AppLocalizations {
           '$count Tänze verwenden deine Figur und werden stattdessen $name verwenden. Deine wird aus deinem Glossar entfernt.',
       one:
           '1 Tanz verwendet deine Figur und wird stattdessen $name verwenden. Deine wird aus deinem Glossar entfernt.',
-      zero: 'Kein Tanz in deiner Sammlung verwendet deine Figur. Sie wird aus deinem Glossar entfernt.',
+      zero:
+          'Kein Tanz in deiner Sammlung verwendet deine Figur. Sie wird aus deinem Glossar entfernt.',
     );
     return '$_temp0';
   }
@@ -1414,7 +1416,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Einträge wurden auf zwei Geräten geändert und warten auf deine Wahl.',
-      one: '1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.',
+      one:
+          '1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.',
     );
     return '$_temp0';
   }
@@ -8831,7 +8834,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Neu importieren ersetzt Figuren, Formation und Progression von $count vorhandenen Tänzen und kann ihre Tanzform ändern. Ihre Bewertungen, Tags und Notizen bleiben.',
-      one: 'Neu importieren ersetzt Figuren, Formation und Progression von 1 vorhandenen Tanz und kann seine Tanzform ändern. Seine Bewertung, Tags und Notizen bleiben.',
+      one:
+          'Neu importieren ersetzt Figuren, Formation und Progression von 1 vorhandenen Tanz und kann seine Tanzform ändern. Seine Bewertung, Tags und Notizen bleiben.',
     );
     return '$_temp0';
   }
@@ -8843,7 +8847,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Bei $count davon werden auch Titel und Autorenangabe aus der Datei übernommen.',
-      one: 'Bei 1 davon werden auch Titel und Autorenangabe aus der Datei übernommen.',
+      one:
+          'Bei 1 davon werden auch Titel und Autorenangabe aus der Datei übernommen.',
     );
     return '$_temp0';
   }
@@ -8863,7 +8868,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Dieser Import enthält $count Elemente — mehr als für eine normale Freigabe erwartet.',
-      one: 'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
+      one:
+          'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
     );
     return '$_temp0';
   }
@@ -10001,7 +10007,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Figuren hinzugefügt. Gib eine weitere ein oder drücke Escape, um zu beenden.',
-      one: '1 Figur hinzugefügt. Gib eine weitere ein oder drücke Escape, um zu beenden.',
+      one:
+          '1 Figur hinzugefügt. Gib eine weitere ein oder drücke Escape, um zu beenden.',
     );
     return '$_temp0';
   }
@@ -10013,7 +10020,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Figuren hinzugefügt. Gib eine weitere ein oder wähle „Hinzufügen beenden“, wenn du fertig bist.',
-      one: '1 Figur hinzugefügt. Gib eine weitere ein oder wähle „Hinzufügen beenden“, wenn du fertig bist.',
+      one:
+          '1 Figur hinzugefügt. Gib eine weitere ein oder wähle „Hinzufügen beenden“, wenn du fertig bist.',
     );
     return '$_temp0';
   }
@@ -10126,7 +10134,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$countString Zeilen werden nicht erkannt. Sie werden als nicht erkannte Figuren mit ihrem Text hinzugefügt, damit du sie korrigieren kannst.',
-      one: '1 Zeile wird nicht erkannt. Sie wird als nicht erkannte Figur mit ihrem Text hinzugefügt, damit du sie korrigieren kannst.',
+      one:
+          '1 Zeile wird nicht erkannt. Sie wird als nicht erkannte Figur mit ihrem Text hinzugefügt, damit du sie korrigieren kannst.',
     );
     return '$_temp0';
   }
@@ -10836,7 +10845,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other: '$count Tänze wurden zurückgesetzt.',
       one: '1 Tanz wurde zurückgesetzt.',
-      zero: 'Kein Tanz wurde zurückgesetzt: Bei jedem wurden seitdem Typ oder Tags geändert.',
+      zero:
+          'Kein Tanz wurde zurückgesetzt: Bei jedem wurden seitdem Typ oder Tags geändert.',
     );
     return '$_temp0';
   }
@@ -11267,7 +11277,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Call-Schaltflächen wurden ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.',
-      one: '1 Call-Schaltfläche wurde ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.',
+      one:
+          '1 Call-Schaltfläche wurde ausgelassen, weil ihr Text nicht als Figuren gelesen werden kann.',
     );
     return '$_temp0';
   }
@@ -11317,7 +11328,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Kontrastpaare unterhalb von WCAG AA. Du kannst trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
-      one: '1 Kontrastpaar unterhalb von WCAG AA. Du kannst trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
+      one:
+          '1 Kontrastpaar unterhalb von WCAG AA. Du kannst trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
     );
     return '$_temp0';
   }
@@ -12731,7 +12743,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Tänze unter „Zuletzt gelöscht“ verwenden sie und behalten die zuletzt gespeicherten Zeilen.',
-      one: '1 Tanz unter „Zuletzt gelöscht“ verwendet sie und behält die zuletzt gespeicherte Zeile.',
+      one:
+          '1 Tanz unter „Zuletzt gelöscht“ verwendet sie und behält die zuletzt gespeicherte Zeile.',
     );
     return '$_temp0';
   }
@@ -12747,7 +12760,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Deine $count Abkürzungen dafür bleiben, und wenn du sie eingibst, werden sie als gewöhnliche Zeilen gelesen.',
-      one: 'Deine Abkürzung dafür bleibt, und wenn du sie eingibst, wird sie als gewöhnliche Zeile gelesen.',
+      one:
+          'Deine Abkürzung dafür bleibt, und wenn du sie eingibst, wird sie als gewöhnliche Zeile gelesen.',
     );
     return '$_temp0';
   }
@@ -12759,8 +12773,10 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Tänze verwenden sie. Sie wird aus deinem Glossar entfernt, und diese Tänze behalten ihren aktuellen Wortlaut als einfachen Text.',
-      one: '1 Tanz verwendet sie. Sie wird aus deinem Glossar entfernt, und dieser Tanz behält seinen aktuellen Wortlaut als einfachen Text.',
-      zero: 'Kein Tanz in deiner Sammlung verwendet sie. Sie wird aus deinem Glossar entfernt.',
+      one:
+          '1 Tanz verwendet sie. Sie wird aus deinem Glossar entfernt, und dieser Tanz behält seinen aktuellen Wortlaut als einfachen Text.',
+      zero:
+          'Kein Tanz in deiner Sammlung verwendet sie. Sie wird aus deinem Glossar entfernt.',
     );
     return '$_temp0';
   }
@@ -14971,7 +14987,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Du kannst bis zu $count gespeicherte Suchen behalten. Lösche eine, um eine weitere zu speichern.',
-      one: 'Du kannst 1 gespeicherte Suche behalten. Lösche sie, um eine weitere zu speichern.',
+      one:
+          'Du kannst 1 gespeicherte Suche behalten. Lösche sie, um eine weitere zu speichern.',
     );
     return '$_temp0';
   }

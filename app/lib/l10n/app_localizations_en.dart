@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -528,7 +527,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count terms couldn\'t be added: they\'re too long, or your Glossary is full.',
-      one: '1 term couldn\'t be added: it\'s too long, or your Glossary is full.',
+      one:
+          '1 term couldn\'t be added: it\'s too long, or your Glossary is full.',
     );
     return '$_temp0';
   }
@@ -596,7 +596,8 @@ class AppLocalizationsEn extends AppLocalizations {
           '$count dances use your figure, and will use $name instead. Yours is removed from your Glossary.',
       one:
           '1 dance uses your figure, and will use $name instead. Yours is removed from your Glossary.',
-      zero: 'No dance in your collection uses your figure. It\'s removed from your Glossary.',
+      zero:
+          'No dance in your collection uses your figure. It\'s removed from your Glossary.',
     );
     return '$_temp0';
   }
@@ -7317,7 +7318,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count free-text slots (breaks, notes) omitted — the matrix shows dances only.',
-      one: '1 free-text slot (breaks, notes) omitted — the matrix shows dances only.',
+      one:
+          '1 free-text slot (breaks, notes) omitted — the matrix shows dances only.',
     );
     return '$_temp0';
   }
@@ -8716,7 +8718,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'Re-import replaces the figures, formation and progression of $count existing dances, and can change their dance form. Their ratings, tags and notes stay.',
-      one: 'Re-import replaces the figures, formation and progression of 1 existing dance, and can change its dance form. Its rating, tags and notes stay.',
+      one:
+          'Re-import replaces the figures, formation and progression of 1 existing dance, and can change its dance form. Its rating, tags and notes stay.',
     );
     return '$_temp0';
   }
@@ -8747,7 +8750,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'This import contains $count items — more than expected for a normal share.',
-      one: 'This import contains 1 item — more than expected for a normal share.',
+      one:
+          'This import contains 1 item — more than expected for a normal share.',
     );
     return '$_temp0';
   }
@@ -9884,7 +9888,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'Added $count figures. Type another, or choose Finish adding when you\'re done.',
-      one: 'Added 1 figure. Type another, or choose Finish adding when you\'re done.',
+      one:
+          'Added 1 figure. Type another, or choose Finish adding when you\'re done.',
     );
     return '$_temp0';
   }
@@ -9996,7 +10001,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$countString lines aren\'t recognized. They will be added as unrecognized figures with their text, for you to fix.',
-      one: '1 line isn\'t recognized. It will be added as an unrecognized figure with its text, for you to fix.',
+      one:
+          '1 line isn\'t recognized. It will be added as an unrecognized figure with its text, for you to fix.',
     );
     return '$_temp0';
   }
@@ -10700,7 +10706,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: 'Changed $count dances back.',
       one: 'Changed 1 dance back.',
-      zero: 'No dances were changed back: each one\'s type or tags have changed since.',
+      zero:
+          'No dances were changed back: each one\'s type or tags have changed since.',
     );
     return '$_temp0';
   }
@@ -11125,7 +11132,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count call buttons were left out because their text does not read as figures.',
-      one: '1 call button was left out because its text does not read as figures.',
+      one:
+          '1 call button was left out because its text does not read as figures.',
     );
     return '$_temp0';
   }
@@ -11175,7 +11183,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count contrast pairs below WCAG AA. You can still save, but some text may be hard to read.',
-      one: '1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.',
+      one:
+          '1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.',
     );
     return '$_temp0';
   }
@@ -12576,7 +12585,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count dances in Recently deleted use it, and keep the lines they last stored.',
-      one: '1 dance in Recently deleted uses it, and keeps the line it last stored.',
+      one:
+          '1 dance in Recently deleted uses it, and keeps the line it last stored.',
     );
     return '$_temp0';
   }
@@ -12592,7 +12602,8 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'Your $count shorthands for it stay, and typing them will be read as ordinary lines.',
-      one: 'Your shorthand for it stays, and typing it will be read as an ordinary line.',
+      one:
+          'Your shorthand for it stays, and typing it will be read as an ordinary line.',
     );
     return '$_temp0';
   }
@@ -12604,8 +12615,10 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count dances use it. It\'s removed from your Glossary, and those dances keep their current wording as plain text.',
-      one: '1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.',
-      zero: 'No dance in your collection uses it. It\'s removed from your Glossary.',
+      one:
+          '1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.',
+      zero:
+          'No dance in your collection uses it. It\'s removed from your Glossary.',
     );
     return '$_temp0';
   }

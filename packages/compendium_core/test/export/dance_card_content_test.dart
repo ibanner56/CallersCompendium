@@ -427,14 +427,12 @@ void main() {
           'Interpreted by Karpeles, Maud; Sharp, Cecil',
         ],
       );
-      expect(card(english(), authors: const ['Pat Shaw', 'Tom Cook']).creditLines, [
-        'Pat Shaw, Tom Cook',
-      ]);
-      expect(joinPersonNames(const ['Ito, Ken'], separator: '、'), 'Ito, Ken');
       expect(
-        joinPersonNames(const ['伊藤、健', '佐藤'], separator: '、'),
-        '伊藤、健; 佐藤',
+        card(english(), authors: const ['Pat Shaw', 'Tom Cook']).creditLines,
+        ['Pat Shaw, Tom Cook'],
       );
+      expect(joinPersonNames(const ['Ito, Ken'], separator: '、'), 'Ito, Ken');
+      expect(joinPersonNames(const ['伊藤、健', '佐藤'], separator: '、'), '伊藤、健; 佐藤');
     });
 
     test('credits are gated on the authors field', () {

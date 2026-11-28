@@ -79,7 +79,12 @@ String phraseStructureText(
   if (named == null) {
     if (!english) return structure.raw.trim();
     return structure.components
-        .map((c) => labels.phrasesOfBars(c.phraseCount, barsOf(c.bars, c.beatsPerBar)))
+        .map(
+          (c) => labels.phrasesOfBars(
+            c.phraseCount,
+            barsOf(c.bars, c.beatsPerBar),
+          ),
+        )
         .join(labels.namedPhraseSeparator);
   }
   final order = named.map((p) => p.name * p.plays).join();

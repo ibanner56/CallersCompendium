@@ -206,9 +206,7 @@ void main() {
       // A focused field would keep its list item alive.
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
-      final list = tester.state<ScrollableState>(
-        find.byType(Scrollable).first,
-      );
+      final list = tester.state<ScrollableState>(find.byType(Scrollable).first);
       list.position.jumpTo(list.position.maxScrollExtent);
       await tester.pumpAndSettle();
       expect(titleField, findsNothing, reason: 'the list let go of Title');
