@@ -450,8 +450,9 @@ def test_release_tag_required() -> None:
         f"exit={result.returncode}: {result.stdout + result.stderr}",
     )
     check(
-        "the failure says to fetch tags",
-        "fetch" in (result.stdout + result.stderr).lower(),
+        "the failure says no release tag was found, and to fetch tags",
+        "no v* release tag" in result.stdout
+        and "fetch" in (result.stdout + result.stderr).lower(),
         result.stdout + result.stderr,
     )
 
