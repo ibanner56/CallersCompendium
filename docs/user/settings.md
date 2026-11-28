@@ -602,7 +602,8 @@ role names and wording the app uses when it describes dances.
 - **Auto-convert all discouraged terms** (on by default) — show supported
   discouraged terms in canonical wording across read-only dance details,
   shorthands, notes, Perform mode, and exports. Saved text and entry fields are
-  unchanged.
+  unchanged, and a dance's title, other titles and Barnes reference always show
+  as you typed them.
 - **Open dance details in canonical terms** — when this and **Canonical figure
   text** are both on, dance details open in canonical wording. While
   **Canonical figure text** is off, this preference is kept but has no effect.
@@ -758,7 +759,9 @@ Select **Program defaults** to open this group.
   program](./programs.md#fill-a-placeholder)). A template without a slot rule
   makes exactly the slots it always did. A rule's **Edit** button (the pencil)
   changes its label or saved search; its label can't be "Break", which marks a
-  break. While a template has a rule that uses a saved search, that search
+  break. A rule whose saved search is gone, or can't be opened, says so in
+  **Edit** too, and keeps that search until you choose another, so you can
+  still change its label and save it. While a template has a rule that uses a saved search, that search
   can't be deleted; the message names the template and the rule. If the
   saved search you choose for a rule is deleted before the rule is saved, the
   template says so and undoes just that rule: a new rule is removed, and an
@@ -784,7 +787,10 @@ Select **Program defaults** to open this group.
   template](./programs.md#check-your-program-against-your-rules)); changing
   them later changes no program already made. A rule you delete stays on the
   template, shown as **Removed**, and isn't added to new programs; **Undo** of
-  the delete brings it back on the template too. A template can carry up to 64
+  the delete brings it back on the template too. A rule this device doesn't
+  have, still on its way from another device or gone for good, is shown as
+  **A rule that isn't on this device**; the picker says how many there are,
+  and **Remove** there takes them off the template. A template can carry up to 64
   rules; once it does, only the rules you deleted are let go to make room for
   another.
 - **Default template** — the template a new program starts from when you are
@@ -1152,7 +1158,10 @@ The Glossary lists them too, when it is shown. While it is on:
   bottom, the ends for the middles, the left file for the right file and the
   first diagonals for the second — where that has one. A choice
   that can't be used, because the kinds differ or no value would fit every
-  setting it fills, is shown grayed out with the reason.
+  setting it fills, is shown grayed out with the reason. In a combination made
+  for English, a figure's **Who** can't come from a parameter yet: it is a list
+  of dancers, which no parameter can hold, so choose who dances in the
+  combination itself.
 - If a parameter fills nothing, or a new figure's wording leaves it out, saving
   asks whether to go **Back to editor** or **Save anyway**; a parameter a
   condition tests counts as used. Wording that uses something the figure
@@ -1350,7 +1359,12 @@ A rule has:
   [saved searches](./collection.md#save-a-search-and-use-it-again). Save a
   search in the Collection first. If you choose a search and it is deleted
   before you save (in the Collection, or on another device), **Save** says so
-  and doesn't save the rule, and you choose another.
+  and doesn't save the rule, and you choose another. If a rule's own saved
+  search is gone or can't be read, the editor marks it **Needs attention**
+  and keeps that search until you choose another, so you can still rename the
+  rule, or change **How many** or **Where**, and save it. If your saved
+  searches can't be read at all, the editor says so and offers none to
+  choose.
 - **How many** — **At most** or **At least** a number of dances from 1 to 99,
   or **None**. For **Any two neighboring dances**, which holds two dances,
   it is **At most** 1 or **At least** 1 or 2: a larger number could never
@@ -1369,7 +1383,9 @@ A rule has:
   it to show the sentence alone again.
 
 If you close the rule editor with changes you haven't saved, it asks
-**Discard changes?** first.
+**Discard changes?** first. If a rule can't be saved, the editor says why and
+stays open: this device already holds 500 rules, the most it can, or the save
+failed, and you can try again.
 
 Also shown while it is on, **Rule order** chooses how a program's rule picker
 lists your rules:
@@ -1395,10 +1411,16 @@ Your rules are in your [backup](#backup--restore), with the rules each program
 uses and **Check Perform's Swap this dance**, and sync with [Device Sync](#device-sync) once every device connected to
 your store has a version of the app that knows them (see
 [New kinds of data wait for every device](#new-kinds-of-data-wait-for-every-device)).
-They are never in a program you share, print or export. A rule made by a newer
-version of the app, or whose saved search is gone, is marked **Needs
-attention** and is never checked. A rule from a newer version can't be edited
-here, but you can delete it.
+They are never in a program you share, print or export. Restoring a backup
+made while you had no rules, or by a version without event rules, keeps your
+rules, except those whose saved search was on this device and isn't in the
+backup: restoring removes those searches, so it deletes those rules too, and
+says how many (see
+[What's inside a backup](./backup-portability.md#whats-inside-a-backup)). A
+rule made by a newer version of the app, or whose saved search is gone, is
+marked **Needs attention**, in Manage rules, a template's **Rules** row and
+a program's rule picker, and is never checked. A rule from a newer version
+can't be edited here, but you can delete it.
 
 ### Weekends and series
 

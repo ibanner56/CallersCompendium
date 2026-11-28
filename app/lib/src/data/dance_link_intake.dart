@@ -11,12 +11,20 @@
 ///    [ArchiveIntakeService.validateBytes]. Like a file, an archive from a
 ///    newer schema is not refused there.
 ///
+/// Both steps run on a short-lived worker isolate, not the UI isolate: a link
+/// of a few hundred characters can inflate to the full cap of tiny JSON values,
+/// and validating those took about a second on a desktop, during which the
+/// interface would not respond.
+///
 /// Nothing is written: a validated link opens the normal import review, which
 /// writes only when the user commits. No network is involved.
 library;
 
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../../l10n/app_localizations.dart';
 import '../export/dance_code.dart';
@@ -33,10 +41,30 @@ bool looksLikeDanceLink(String text) {
       trimmed.substring(0, scheme.length).toLowerCase() == scheme;
 }
 
+/// Runs [work] somewhere and completes with its result, or its error.
+typedef DanceLinkWorkRunner =
+    Future<ArchiveIntakeValidation> Function(
+      Future<ArchiveIntakeValidation> Function() work,
+    );
+
+/// Where [validateDanceLink] does its work: a worker isolate ([Isolate.run]),
+/// which exits with its result. A widget test runs under fake time, where a
+/// worker's reply never arrives, so it sets this to a runner that calls the
+/// work in place, and puts it back when done.
+@visibleForTesting
+DanceLinkWorkRunner danceLinkWorkRunner = runDanceLinkWorkOnWorker;
+
+/// The production [danceLinkWorkRunner].
+Future<ArchiveIntakeValidation> runDanceLinkWorkOnWorker(
+  Future<ArchiveIntakeValidation> Function() work,
+) => Isolate.run(work);
+
 /// Reads [link] and checks the archive it carries. Completes with a
-/// [DanceLinkException] error when the link itself cannot be read; otherwise returns the intake result,
-/// which may still be a rejection (for example, an archive with no dances).
+/// [DanceLinkException] error when the link itself cannot be read; otherwise
+/// returns the intake result, which may still be a rejection (for example, an
+/// archive with no dances).
 ///
+/// The reading and checking run off the UI isolate ([danceLinkWorkRunner]).
 /// Surrounding whitespace is ignored, as a pasted or shared link often has
 /// some. [maxLinkLength] and [maxInflatedBytes] are for tests.
 Future<ArchiveIntakeValidation> validateDanceLink(
@@ -45,14 +73,28 @@ Future<ArchiveIntakeValidation> validateDanceLink(
   int maxLinkLength = kMaxDanceLinkLength,
   int maxInflatedBytes = kMaxDanceInflatedBytes,
 }) async {
-  final json = decodeDanceLink(
-    link.trim(),
-    maxLinkLength: maxLinkLength,
-    maxInflatedBytes: maxInflatedBytes,
-  );
-  return (intake ?? ArchiveIntakeService()).validateBytes(
-    Uint8List.fromList(utf8.encode(json)),
-  );
+  final trimmed = link.trim();
+  final service = intake ?? ArchiveIntakeService();
+  try {
+    return await danceLinkWorkRunner(() async {
+      final json = decodeDanceLink(
+        trimmed,
+        maxLinkLength: maxLinkLength,
+        maxInflatedBytes: maxInflatedBytes,
+      );
+      return service.validateBytes(Uint8List.fromList(utf8.encode(json)));
+    });
+  } on DanceLinkException {
+    // diagnostics: silent — rethrown as is; the caller logs it and says why
+    rethrow;
+  } on Object {
+    // diagnostics: silent — the worker could not run or reply (it cannot
+    // throw anything else: validateBytes catches everything); surfaced as a
+    // rejection, which the caller shows as a damaged code.
+    return ArchiveIntakeValidation.rejected(
+      ArchiveIntakeRejectionReason.unreadable,
+    );
+  }
 }
 
 /// What to tell the user about a link [decodeDanceLink] refused. A link from a

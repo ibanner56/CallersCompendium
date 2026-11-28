@@ -16,8 +16,8 @@ final RegExp _leadingPhraseLabel = RegExp(
 /// A label must stand as its own word: `A12 …` and `B1s …` are not labelled.
 /// Shared by the Caller's Companion text adapter, which reads its sections
 /// from these labels, and the dance editor's **Add figures from text** sheet
-/// (#2326), which drops them from contra lines before parsing, except a
-/// corner code (`C2 corner …`, [splitFigureTextLines]).
+/// (#2326), which drops them from contra and square lines before parsing,
+/// except a corner code (`C2 corner …`, [splitFigureTextLines]).
 (String?, String) splitPhraseLabel(String line) {
   final match = _leadingPhraseLabel.firstMatch(line);
   if (match == null) return (null, line);
@@ -85,12 +85,12 @@ class FigureTextLines {
 /// Splits [text] typed or pasted into the **Add figures from text** sheet
 /// (#2326) into figure lines: one per non-empty line, trimmed. A line that is
 /// only a phrase label (`A1`) is skipped. With [dropPhraseLabels] (contra
-/// dances), a leading `A1`…`C2` label is dropped so the parser sees the line
-/// without it. English dances keep the label, because the parser reads one in
-/// front of a bar range (`A1 1-8 lead up`). A `C1` or `C2` followed by
-/// `corner` or `corners` is a corner dancer, as The Caller's Box writes one
-/// (`C2 corner allemande left 1`), not a label, so it is kept and the line is
-/// read as the Move box reads it.
+/// and square dances), a leading `A1`…`C2` label is dropped so the parser
+/// sees the line without it. English dances keep the label, because the
+/// parser reads one in front of a bar range (`A1 1-8 lead up`). A `C1` or
+/// `C2` followed by `corner` or `corners` is a corner dancer, as The Caller's
+/// Box writes one (`C2 corner allemande left 1`), not a label, so it is kept
+/// and the line is read as the Move box reads it.
 ///
 /// The text is untrusted input, as an import is: text over
 /// [maxFigureTextLength] characters, with more than [maxFigureTextLines]

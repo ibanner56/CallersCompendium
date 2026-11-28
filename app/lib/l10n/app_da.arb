@@ -2612,14 +2612,6 @@
   "@settingsDefaultsStartingProgramNoteLabel": {
     "x-sourceSha256": "72124dc9dd25c16e0c8da9a2e6c5c2866e09fd6de4519906f4193cb4bfe2e013"
   },
-  "settingsDefaultsStartingProgramMoveUp": "Flyt op",
-  "@settingsDefaultsStartingProgramMoveUp": {
-    "x-sourceSha256": "c66feb5eb8f217c76bfb0f1b41e3ee73ab41cb9959fae8284911bd3ad3816086"
-  },
-  "settingsDefaultsStartingProgramMoveDown": "Flyt ned",
-  "@settingsDefaultsStartingProgramMoveDown": {
-    "x-sourceSha256": "40bb50da160cdc21d6029a927b68f92b07fd450688e609826cbc70d202db96da"
-  },
   "settingsDefaultsStartingProgramUnavailableDance": "Denne dans er ikke længere tilgængelig",
   "@settingsDefaultsStartingProgramUnavailableDance": {
     "x-sourceSha256": "0a7b13854c4e1a687cedd04599934273238c5f9a799fc1749fa1f709495c64f8"
@@ -3859,6 +3851,10 @@
   "backupRestored": "Sikkerhedskopi gendannet.",
   "@backupRestored": {
     "x-sourceSha256": "40383528e1b1ee32fcfe833921c4fe7e010762a1628901658710f272a0b15e7e"
+  },
+  "backupRestoreRemovedEventRules": "{count, plural, =1{1 aftenregel blev slettet, fordi sikkerhedskopien ikke har dens gemte søgning.} other{{count} aftenregler blev slettet, fordi sikkerhedskopien ikke har deres gemte søgninger.}}",
+  "@backupRestoreRemovedEventRules": {
+    "x-sourceSha256": "57482705cc04a138371124f81fb2de69bc1b1aa2ae3970a69b43451f810fa927"
   },
   "backupRestoreFailed": "Kunne ikke gendanne sikkerhedskopien. Prøv igen.",
   "@backupRestoreFailed": {
@@ -8854,6 +8850,10 @@
   "@danceEditorPhraseRowsRemove": {
     "x-sourceSha256": "5d1e14b6c4353c8b98e78ebd9904ec2da1cfd0312165096b4e426a686372bba8"
   },
+  "danceEditorPhraseRowsRow": "Række {number}",
+  "@danceEditorPhraseRowsRow": {
+    "x-sourceSha256": "f8c78edd52580dd65b891749165d17c30000da973e4777a05c3fe6cd9021d07b"
+  },
   "danceEditorPhraseRowsInvalid": "Angiv et helt tal fra 1 til {max} i hvert felt, i en struktur der ikke er for lang. Indtil da bevares den sidste gyldige frastruktur.",
   "@danceEditorPhraseRowsInvalid": {
     "x-sourceSha256": "136099aeff18e01fd168bc79ef22b4d6f416ab4f52bacc44c997852a7e31de66"
@@ -11518,6 +11518,10 @@
   "@danceReimportTargetChanged": {
     "x-sourceSha256": "7213bdad9aa2abba7fd089889171b48ce5c3d80ecc5a5760c1881cf8c4a6125a"
   },
+  "danceReimportFormChangeNotice": "{dropped, select, both{Import ændrer dansens danseform til {form}, så dens Barnes-henvisning og dens markering Starter improper fjernes.} barnes{Import ændrer dansens danseform til {form}, så dens Barnes-henvisning fjernes.} improper{Import ændrer dansens danseform til {form}, så dens markering Starter improper fjernes.} other{Import ændrer dansens danseform til {form}.}}",
+  "@danceReimportFormChangeNotice": {
+    "x-sourceSha256": "d425b2974ae4956d338dc9f6899e1d2c1234daeb4b70842515997292eb6d3e8b"
+  },
   "publishedCollectionsTitle": "Udgivne samlinger",
   "@publishedCollectionsTitle": {
     "x-sourceSha256": "950ff774d5f3db217773cf01ce4ae60c38f9bfed26f61dd9fc93d95418ba25c0"
@@ -12165,6 +12169,10 @@
   "compoundParamKindDancers": "dansere",
   "@compoundParamKindDancers": {
     "x-sourceSha256": "569da09b053e462cb512b19d943f60ee1931a01ac41116aa6c41202aff74e842"
+  },
+  "compoundParamKindDancerList": "liste af dansere",
+  "@compoundParamKindDancerList": {
+    "x-sourceSha256": "85c5107a14b4841ce2374a88a17448a434c2f80094d0fa04df4b7d9628721ccc"
   },
   "compoundParamKindDancerPair": "par af dansere",
   "@compoundParamKindDancerPair": {
@@ -14374,6 +14382,18 @@
   "@eventRuleSavedSearchGone": {
     "x-sourceSha256": "feec3c2b76bd8ac9a0924b28c9bae1e77a2eb88f8fe4ceeeafff4337baff3d5b"
   },
+  "eventRuleSaveFailed": "Kunne ikke gemme reglen. Prøv igen.",
+  "@eventRuleSaveFailed": {
+    "x-sourceSha256": "8a574e43f69bcc8cbf1c9e1c07a031561df7828e1cb97d0f89696b1f8f285807"
+  },
+  "eventRuleSaveLimit": "Denne enhed har {max} regler, det højeste antal. Slet en for at tilføje en anden.",
+  "@eventRuleSaveLimit": {
+    "x-sourceSha256": "90d039f15588eb30cef22ed24a6a6f18b7db7fb9a5255cc523d079d48287cde9"
+  },
+  "eventRuleSearchesUnreadable": "Dine gemte søgninger kan ikke læses lige nu, så ingen kan vælges her.",
+  "@eventRuleSearchesUnreadable": {
+    "x-sourceSha256": "8feb7b13d1cf2b52930b22b8f0ed5e48fd65978b0155e6161d90dca0c7ca9baf"
+  },
   "eventRuleQuantifierLabel": "Hvor mange",
   "@eventRuleQuantifierLabel": {
     "x-sourceSha256": "e2a6ff2c78fdb163d02c7b5c66431cab9b1b418470219eb4e342b0324dfab14f"
@@ -14630,9 +14650,9 @@
   "@programTemplateRuleRemoved": {
     "x-sourceSha256": "9d5df0a088d8b8460775e6b44026d42f231f247934827c011a7ef143ae12ea1e"
   },
-  "programTemplateRuleRemovedUnknown": "Fjernet: en regel, der ikke er på denne enhed",
+  "programTemplateRuleRemovedUnknown": "En regel, der ikke er på denne enhed",
   "@programTemplateRuleRemovedUnknown": {
-    "x-sourceSha256": "c1c09c9abcef4143bb960f232a083639dd0de19bf45eb0542206522fabadee1c"
+    "x-sourceSha256": "b5f15fcea141a41c4b1fc76f7ba8639805b2c939e3cdc6391c79e90872b57421"
   },
   "programTemplateRulesPickerTitle": "Regler for denne skabelon",
   "@programTemplateRulesPickerTitle": {
@@ -14649,6 +14669,14 @@
   "programsRulesPickerNotHereHelp": "Tilføjet på en anden enhed og stadig på vej, eller væk for altid. Fjern tager dem af dette program.",
   "@programsRulesPickerNotHereHelp": {
     "x-sourceSha256": "d712197bddacd3cb51a680b3db35e0f4eb3804b7975780c6faa3eeb40d6c5cd0"
+  },
+  "programTemplateRulesPickerNotHereHelp": "Tilføjet på en anden enhed og stadig på vej, eller væk for altid. Fjern tager dem af denne skabelon.",
+  "@programTemplateRulesPickerNotHereHelp": {
+    "x-sourceSha256": "82acc6e74c26a3aa39171937f4021563afffba4cbe73fcdea53c7b48b1da5dcd"
+  },
+  "programsRulesPickerUnreadable": "Dine regler kan ikke læses lige nu.",
+  "@programsRulesPickerUnreadable": {
+    "x-sourceSha256": "d077f46371174d7678bb7663d4738aba68552c07fb9bd0c6eefc6063cb5733ce"
   },
   "programsRulesChangeFailed": "Kunne ikke ændre dette programs regler. Prøv igen.",
   "@programsRulesChangeFailed": {
@@ -14681,6 +14709,14 @@
   "programTemplateSlotRuleBadge": "Slotregel",
   "@programTemplateSlotRuleBadge": {
     "x-sourceSha256": "d3c802c982976b306a8676af4f5bc4811ecfbe9275f29e1ec1bab7a826d2f751"
+  },
+  "programTemplateSlotEditTooltip": "Rediger {name}",
+  "@programTemplateSlotEditTooltip": {
+    "x-sourceSha256": "2313fe21ea84567f451e913cae39bd4ef9775a83458b23f3f440c2108e5363a1"
+  },
+  "programTemplateSlotDeleteTooltip": "Slet {name}",
+  "@programTemplateSlotDeleteTooltip": {
+    "x-sourceSha256": "3cf8146e529f1e4296d40d7ea32ffc63bc2647d416851ed43921bfedf3097cb3"
   },
   "programTemplateSlotRuleSubtitle": "Udfyldes fra den gemte søgning \"{name}\"",
   "@programTemplateSlotRuleSubtitle": {

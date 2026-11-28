@@ -4536,6 +4536,17 @@ class $ProgramsTable extends Programs
     requiredDuringInsert: false,
     defaultValue: const Constant('[]'),
   );
+  static const VerificationMeta _calendarFeedDigestMeta =
+      const VerificationMeta('calendarFeedDigest');
+  @override
+  late final GeneratedColumn<String> calendarFeedDigest =
+      GeneratedColumn<String>(
+        'calendar_feed_digest',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4566,6 +4577,7 @@ class $ProgramsTable extends Programs
     calendarWrittenAt,
     calendarFlag,
     eventRuleIds,
+    calendarFeedDigest,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4788,6 +4800,15 @@ class $ProgramsTable extends Programs
         ),
       );
     }
+    if (data.containsKey('calendar_feed_digest')) {
+      context.handle(
+        _calendarFeedDigestMeta,
+        calendarFeedDigest.isAcceptableOrUnknown(
+          data['calendar_feed_digest']!,
+          _calendarFeedDigestMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4911,6 +4932,10 @@ class $ProgramsTable extends Programs
         DriftSqlType.string,
         data['${effectivePrefix}event_rule_ids'],
       )!,
+      calendarFeedDigest: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}calendar_feed_digest'],
+      ),
     );
   }
 
@@ -5038,6 +5063,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   /// importing a program leaves it empty. Declared last for the same
   /// column-order reason as [archivedAt].
   final String eventRuleIds;
+
+  /// Which calendar the program was imported from (pre-release audit finding
+  /// E1-01, schema v42): a salted digest of the calendar's address, never the
+  /// address. A calendar import compares the program only with a calendar
+  /// whose address matches it. `null` for every program not imported from a
+  /// calendar, or imported before it was recorded: such a program is never
+  /// labelled cancelled or missing. Declared last for the same column-order
+  /// reason as [archivedAt].
+  final String? calendarFeedDigest;
   const ProgramRow({
     required this.id,
     required this.title,
@@ -5067,6 +5101,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     this.calendarWrittenAt,
     this.calendarFlag,
     required this.eventRuleIds,
+    this.calendarFeedDigest,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5145,6 +5180,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       map['calendar_flag'] = Variable<String>(calendarFlag);
     }
     map['event_rule_ids'] = Variable<String>(eventRuleIds);
+    if (!nullToAbsent || calendarFeedDigest != null) {
+      map['calendar_feed_digest'] = Variable<String>(calendarFeedDigest);
+    }
     return map;
   }
 
@@ -5216,6 +5254,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           ? const Value.absent()
           : Value(calendarFlag),
       eventRuleIds: Value(eventRuleIds),
+      calendarFeedDigest: calendarFeedDigest == null && nullToAbsent
+          ? const Value.absent()
+          : Value(calendarFeedDigest),
     );
   }
 
@@ -5259,6 +5300,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       ),
       calendarFlag: serializer.fromJson<String?>(json['calendarFlag']),
       eventRuleIds: serializer.fromJson<String>(json['eventRuleIds']),
+      calendarFeedDigest: serializer.fromJson<String?>(
+        json['calendarFeedDigest'],
+      ),
     );
   }
   @override
@@ -5297,6 +5341,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       'calendarWrittenAt': serializer.toJson<DateTime?>(calendarWrittenAt),
       'calendarFlag': serializer.toJson<String?>(calendarFlag),
       'eventRuleIds': serializer.toJson<String>(eventRuleIds),
+      'calendarFeedDigest': serializer.toJson<String?>(calendarFeedDigest),
     };
   }
 
@@ -5329,6 +5374,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     Value<DateTime?> calendarWrittenAt = const Value.absent(),
     Value<String?> calendarFlag = const Value.absent(),
     String? eventRuleIds,
+    Value<String?> calendarFeedDigest = const Value.absent(),
   }) => ProgramRow(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -5368,6 +5414,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
         : this.calendarWrittenAt,
     calendarFlag: calendarFlag.present ? calendarFlag.value : this.calendarFlag,
     eventRuleIds: eventRuleIds ?? this.eventRuleIds,
+    calendarFeedDigest: calendarFeedDigest.present
+        ? calendarFeedDigest.value
+        : this.calendarFeedDigest,
   );
   ProgramRow copyWithCompanion(ProgramsCompanion data) {
     return ProgramRow(
@@ -5429,6 +5478,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       eventRuleIds: data.eventRuleIds.present
           ? data.eventRuleIds.value
           : this.eventRuleIds,
+      calendarFeedDigest: data.calendarFeedDigest.present
+          ? data.calendarFeedDigest.value
+          : this.calendarFeedDigest,
     );
   }
 
@@ -5462,7 +5514,8 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           ..write('calendarEventFingerprint: $calendarEventFingerprint, ')
           ..write('calendarWrittenAt: $calendarWrittenAt, ')
           ..write('calendarFlag: $calendarFlag, ')
-          ..write('eventRuleIds: $eventRuleIds')
+          ..write('eventRuleIds: $eventRuleIds, ')
+          ..write('calendarFeedDigest: $calendarFeedDigest')
           ..write(')'))
         .toString();
   }
@@ -5497,6 +5550,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     calendarWrittenAt,
     calendarFlag,
     eventRuleIds,
+    calendarFeedDigest,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -5529,7 +5583,8 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           other.calendarEventFingerprint == this.calendarEventFingerprint &&
           other.calendarWrittenAt == this.calendarWrittenAt &&
           other.calendarFlag == this.calendarFlag &&
-          other.eventRuleIds == this.eventRuleIds);
+          other.eventRuleIds == this.eventRuleIds &&
+          other.calendarFeedDigest == this.calendarFeedDigest);
 }
 
 class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
@@ -5561,6 +5616,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
   final Value<DateTime?> calendarWrittenAt;
   final Value<String?> calendarFlag;
   final Value<String> eventRuleIds;
+  final Value<String?> calendarFeedDigest;
   final Value<int> rowid;
   const ProgramsCompanion({
     this.id = const Value.absent(),
@@ -5591,6 +5647,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.calendarWrittenAt = const Value.absent(),
     this.calendarFlag = const Value.absent(),
     this.eventRuleIds = const Value.absent(),
+    this.calendarFeedDigest = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProgramsCompanion.insert({
@@ -5622,6 +5679,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.calendarWrittenAt = const Value.absent(),
     this.calendarFlag = const Value.absent(),
     this.eventRuleIds = const Value.absent(),
+    this.calendarFeedDigest = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        title = Value(title),
@@ -5657,6 +5715,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Expression<DateTime>? calendarWrittenAt,
     Expression<String>? calendarFlag,
     Expression<String>? eventRuleIds,
+    Expression<String>? calendarFeedDigest,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5689,6 +5748,8 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       if (calendarWrittenAt != null) 'calendar_written_at': calendarWrittenAt,
       if (calendarFlag != null) 'calendar_flag': calendarFlag,
       if (eventRuleIds != null) 'event_rule_ids': eventRuleIds,
+      if (calendarFeedDigest != null)
+        'calendar_feed_digest': calendarFeedDigest,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5722,6 +5783,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Value<DateTime?>? calendarWrittenAt,
     Value<String?>? calendarFlag,
     Value<String>? eventRuleIds,
+    Value<String?>? calendarFeedDigest,
     Value<int>? rowid,
   }) {
     return ProgramsCompanion(
@@ -5754,6 +5816,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       calendarWrittenAt: calendarWrittenAt ?? this.calendarWrittenAt,
       calendarFlag: calendarFlag ?? this.calendarFlag,
       eventRuleIds: eventRuleIds ?? this.eventRuleIds,
+      calendarFeedDigest: calendarFeedDigest ?? this.calendarFeedDigest,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5849,6 +5912,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     if (eventRuleIds.present) {
       map['event_rule_ids'] = Variable<String>(eventRuleIds.value);
     }
+    if (calendarFeedDigest.present) {
+      map['calendar_feed_digest'] = Variable<String>(calendarFeedDigest.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5886,6 +5952,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
           ..write('calendarWrittenAt: $calendarWrittenAt, ')
           ..write('calendarFlag: $calendarFlag, ')
           ..write('eventRuleIds: $eventRuleIds, ')
+          ..write('calendarFeedDigest: $calendarFeedDigest, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -22281,6 +22348,7 @@ typedef $$ProgramsTableCreateCompanionBuilder =
       Value<DateTime?> calendarWrittenAt,
       Value<String?> calendarFlag,
       Value<String> eventRuleIds,
+      Value<String?> calendarFeedDigest,
       Value<int> rowid,
     });
 typedef $$ProgramsTableUpdateCompanionBuilder =
@@ -22313,6 +22381,7 @@ typedef $$ProgramsTableUpdateCompanionBuilder =
       Value<DateTime?> calendarWrittenAt,
       Value<String?> calendarFlag,
       Value<String> eventRuleIds,
+      Value<String?> calendarFeedDigest,
       Value<int> rowid,
     });
 
@@ -22511,6 +22580,11 @@ class $$ProgramsTableFilterComposer
 
   ColumnFilters<String> get eventRuleIds => $composableBuilder(
     column: $table.eventRuleIds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get calendarFeedDigest => $composableBuilder(
+    column: $table.calendarFeedDigest,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -22713,6 +22787,11 @@ class $$ProgramsTableOrderingComposer
     column: $table.eventRuleIds,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get calendarFeedDigest => $composableBuilder(
+    column: $table.calendarFeedDigest,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProgramsTableAnnotationComposer
@@ -22838,6 +22917,11 @@ class $$ProgramsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get calendarFeedDigest => $composableBuilder(
+    column: $table.calendarFeedDigest,
+    builder: (column) => column,
+  );
+
   Expression<T> programSlotsRefs<T extends Object>(
     Expression<T> Function($$ProgramSlotsTableAnnotationComposer a) f,
   ) {
@@ -22949,6 +23033,7 @@ class $$ProgramsTableTableManager
                 Value<DateTime?> calendarWrittenAt = const Value.absent(),
                 Value<String?> calendarFlag = const Value.absent(),
                 Value<String> eventRuleIds = const Value.absent(),
+                Value<String?> calendarFeedDigest = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramsCompanion(
                 id: id,
@@ -22979,6 +23064,7 @@ class $$ProgramsTableTableManager
                 calendarWrittenAt: calendarWrittenAt,
                 calendarFlag: calendarFlag,
                 eventRuleIds: eventRuleIds,
+                calendarFeedDigest: calendarFeedDigest,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -23011,6 +23097,7 @@ class $$ProgramsTableTableManager
                 Value<DateTime?> calendarWrittenAt = const Value.absent(),
                 Value<String?> calendarFlag = const Value.absent(),
                 Value<String> eventRuleIds = const Value.absent(),
+                Value<String?> calendarFeedDigest = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramsCompanion.insert(
                 id: id,
@@ -23041,6 +23128,7 @@ class $$ProgramsTableTableManager
                 calendarWrittenAt: calendarWrittenAt,
                 calendarFlag: calendarFlag,
                 eventRuleIds: eventRuleIds,
+                calendarFeedDigest: calendarFeedDigest,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

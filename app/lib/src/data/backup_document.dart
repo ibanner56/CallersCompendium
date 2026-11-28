@@ -66,7 +66,8 @@ const int backupSchemaVersionArchivedPrograms = 3;
 /// The envelope version a backup is written under when a program in it was
 /// imported from a calendar (`calendarEventKey`, schema v42, #2352), or
 /// carries the import's change tracking (`calendarEventFingerprint`,
-/// `calendarWrittenAt`, `calendarFlag`, #2354).
+/// `calendarWrittenAt`, `calendarFlag`, #2354) or the digest of the calendar
+/// it came from (`calendarFeedDigest`, pre-release audit finding E1-01).
 ///
 /// No build up to 0.10.0 reads `calendarEventKey`, so one would restore such a
 /// backup and drop the keys, and the next calendar import would offer every
@@ -116,7 +117,8 @@ int requiredBackupVersion(BackupDocument doc) {
         p.calendarEventKey != null ||
         p.calendarEventFingerprint != null ||
         p.calendarWrittenAt != null ||
-        p.calendarFlag != null,
+        p.calendarFlag != null ||
+        p.calendarFeedDigest != null,
   )) {
     return backupSchemaVersionCalendarEventKeys;
   }
@@ -343,8 +345,10 @@ class BackupReadResult {
   final bool glossaryComplete;
 
   /// Whether `app.eventRules` was a list (#2340). When false the restore
-  /// leaves the live rules untouched: absent is not "empty", so restoring a
-  /// backup made before them, or where there were none, never clears them.
+  /// keeps the live rules: absent is not "empty", so restoring a backup made
+  /// before them, or where there were none, never clears them. A Replace
+  /// still deletes a kept rule whose saved search it removes
+  /// (`BackupRestoreOutcome.removedEventRules`).
   final bool hasEventRulesSection;
 
   /// Whether every rule in `app.eventRules` was read (#2340). When one could

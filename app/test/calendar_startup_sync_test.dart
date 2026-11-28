@@ -63,6 +63,7 @@ void main() {
     final preview = await buildCalendarImportPreview(
       repos,
       body: feed(),
+      feedUrl: url,
       settings: const CalendarImportSettings(),
       today: DateTime(today.year, today.month, today.day),
     );

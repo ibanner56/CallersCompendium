@@ -388,12 +388,39 @@ void main() {
       }
     });
 
-    test('a version this build does not read', () {
+    test('a later version is one this build does not read', () {
       final payload = good.substring(danceLinkPrefix.length);
-      for (final version in ['0', '2', '10', 'v1', '01']) {
+      for (final version in ['2', '10', '99999999999999999999']) {
         expect(
           _failureOf('ccdance://$version/$payload'),
           DanceLinkFailure.unknownVersion,
+          reason: version,
+        );
+      }
+    });
+
+    // No later app would write these, so "update the app" would send the
+    // user looking for an update that does not exist.
+    test('a version that is not a later whole number is damage', () {
+      final payload = good.substring(danceLinkPrefix.length);
+      for (final version in [
+        '0',
+        '00',
+        '01',
+        '02',
+        '+1',
+        '-1',
+        '+2',
+        '1.0',
+        '2.0',
+        '１',
+        ' 2',
+        'v1',
+        'zz',
+      ]) {
+        expect(
+          _failureOf('ccdance://$version/$payload'),
+          DanceLinkFailure.notADanceLink,
           reason: version,
         );
       }

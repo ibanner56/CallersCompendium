@@ -130,6 +130,7 @@ void main() {
         final preview = await buildCalendarImportPreview(
           repos,
           body: _feed,
+          feedUrl: _url,
           settings: const CalendarImportSettings(),
           today: _today,
           toLocal: (u) => u,
@@ -398,6 +399,7 @@ void main() {
         title: 'Contra A',
         eventDate: DateTime.utc(2030, 6, 20),
         calendarEventKey: calendarEventKey('a', ''),
+        calendarFeedDigest: CalendarFeedSource(_url).newDigest(),
         calendarFlag: calendarFlagMissing,
         createdAt: at,
         updatedAt: at,
@@ -412,6 +414,7 @@ void main() {
         title: 'Contra B',
         eventDate: DateTime.utc(2030, 6, 27),
         calendarEventKey: calendarEventKey('b', ''),
+        calendarFeedDigest: CalendarFeedSource(_url).newDigest(),
         calendarEventFingerprint: 'v2:0:0:0:0:0',
         createdAt: at,
         updatedAt: at,
@@ -421,6 +424,7 @@ void main() {
     final preview = await buildCalendarImportPreview(
       repos,
       body: _feed,
+      feedUrl: _url,
       settings: const CalendarImportSettings(),
       today: _today,
       toLocal: (u) => u,

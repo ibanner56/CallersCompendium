@@ -1076,6 +1076,9 @@ class ProgramRepository {
               calendarFlag: Value(
                 normalizeShareableTextOrNull(program.calendarFlag),
               ),
+              calendarFeedDigest: Value(
+                normalizeShareableTextOrNull(program.calendarFeedDigest),
+              ),
               eventRuleIds: Value(encodeEventRuleIds(program.eventRuleIds)),
             ),
           );
@@ -1389,6 +1392,20 @@ class ProgramRepository {
       for (final row in rows)
         (id: row.read(_db.programs.id)!, title: row.read(_db.programs.title)!),
     ];
+  }
+
+  /// The ids of the live (not soft-deleted) programs that are archived.
+  /// Selects only `id`, filtering on `deleted_at` and `archived_at`, for a
+  /// caller that lists programs through [listIdsAndTitles] and marks the
+  /// archived ones, as the command palette does.
+  Future<Set<String>> archivedIds() async {
+    final query = _db.selectOnly(_db.programs)
+      ..addColumns([_db.programs.id])
+      ..where(
+        _db.programs.deletedAt.isNull() & _db.programs.archivedAt.isNotNull(),
+      );
+    final rows = await query.get();
+    return {for (final row in rows) row.read(_db.programs.id)!};
   }
 
   /// The forms of the live dances in each program, keyed by program id
@@ -2587,6 +2604,7 @@ class ProgramRepository {
       row.calendarEventFingerprint == null &&
       row.calendarWrittenAt == null &&
       row.calendarFlag == null &&
+      row.calendarFeedDigest == null &&
       decodeEventRuleIds(row.eventRuleIds).isEmpty &&
       await (_db.selectOnly(_db.programSlots)
                 ..addColumns([_db.programSlots.id])
@@ -2647,6 +2665,7 @@ class ProgramRepository {
         calendarEventFingerprint: Value(normalizeShareableTextOrNull(null)),
         calendarWrittenAt: const Value(null),
         calendarFlag: Value(normalizeShareableTextOrNull(null)),
+        calendarFeedDigest: Value(normalizeShareableTextOrNull(null)),
         eventRuleIds: Value(encodeEventRuleIds(const [])),
         updatedAt: Value(
           nextStoredTimestamp(
@@ -2691,6 +2710,7 @@ class ProgramRepository {
     calendarEventFingerprint: row.calendarEventFingerprint,
     calendarWrittenAt: asUtcOrNull(row.calendarWrittenAt),
     calendarFlag: row.calendarFlag,
+    calendarFeedDigest: row.calendarFeedDigest,
     eventRuleIds: decodeEventRuleIds(row.eventRuleIds),
     provenance: provenance,
   );

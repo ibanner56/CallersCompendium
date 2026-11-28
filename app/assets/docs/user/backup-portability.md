@@ -115,6 +115,15 @@ A backup holds **everything** you've built, including:
   for what you add yourself; a backup made before the limit existed restores
   whole even if it is over the limit, and you can then shorten or delete
   figures and notes, but not add more until it is under.
+- Your [saved searches](./collection.md#save-a-search-and-use-it-again), and
+  your [event rules](./settings.md#event-rules) (*Experimental*) with the
+  rules each program uses. Restoring a backup replaces your saved searches. A
+  backup made while you had no rules, or by a version without event rules,
+  leaves the rules on this device as they are, except a rule whose saved
+  search was on this device and isn't in the backup (or is there in a form
+  this version can't read): the restore removes that search, so it deletes
+  that rule too, and the message at the end says how many. A rule whose
+  saved search was already gone is kept.
 
 A few device-specific things are left out on purpose, so a restored device
 doesn't inherit the old one's quirks: window size and position, any

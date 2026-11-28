@@ -2681,12 +2681,6 @@ class AppLocalizationsNl extends AppLocalizations {
       'Notitie van caller (optioneel)';
 
   @override
-  String get settingsDefaultsStartingProgramMoveUp => 'Omhoog';
-
-  @override
-  String get settingsDefaultsStartingProgramMoveDown => 'Omlaag';
-
-  @override
   String get settingsDefaultsStartingProgramUnavailableDance =>
       'Deze dans is niet meer beschikbaar';
 
@@ -3864,6 +3858,19 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get backupRestored => 'Back-up hersteld.';
+
+  @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count avondregels zijn verwijderd, omdat de back-up hun opgeslagen zoekopdrachten niet bevat.',
+      one:
+          '1 avondregel is verwijderd, omdat de back-up de opgeslagen zoekopdracht ervan niet bevat.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get backupRestoreFailed =>
@@ -9138,6 +9145,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseRowsRow(int number) {
+    return 'Rij $number';
+  }
+
+  @override
   String danceEditorPhraseRowsInvalid(int max) {
     return 'Vul in elk veld een geheel getal van 1 tot $max in, in een structuur die niet te lang is. Tot dan blijft de laatste geldige fraseopbouw behouden.';
   }
@@ -12052,6 +12064,20 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze dans is gewijzigd voordat deze kon worden bijgewerkt. Controleer de dans en probeer het opnieuw.';
 
   @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both':
+          'Importeren wijzigt de dansvorm van deze dans in $form, dus de Barnes-verwijzing en de markering Begint improper worden verwijderd.',
+      'barnes':
+          'Importeren wijzigt de dansvorm van deze dans in $form, dus de Barnes-verwijzing wordt verwijderd.',
+      'improper':
+          'Importeren wijzigt de dansvorm van deze dans in $form, dus de markering Begint improper wordt verwijderd.',
+      'other': 'Importeren wijzigt de dansvorm van deze dans in $form.',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String get publishedCollectionsTitle => 'Gepubliceerde collecties';
 
   @override
@@ -12709,6 +12735,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get compoundParamKindDancers => 'dansers';
+
+  @override
+  String get compoundParamKindDancerList => 'lijst van dansers';
 
   @override
   String get compoundParamKindDancerPair => 'paar dansers';
@@ -15117,6 +15146,19 @@ class AppLocalizationsNl extends AppLocalizations {
       'Die opgeslagen zoekopdracht is net verwijderd, dus de regel is niet opgeslagen. Kies een andere.';
 
   @override
+  String get eventRuleSaveFailed =>
+      'Kan de regel niet opslaan. Probeer het opnieuw.';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'Dit apparaat heeft $max regels, het maximum. Verwijder er een om een andere toe te voegen.';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable =>
+      'Je opgeslagen zoekopdrachten kunnen nu niet worden gelezen, dus hier kan er geen worden gekozen.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Hoeveel';
 
   @override
@@ -15481,7 +15523,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programTemplateRuleRemovedUnknown =>
-      'Verwijderd: een regel die niet op dit apparaat staat';
+      'Een regel die niet op dit apparaat staat';
 
   @override
   String get programTemplateRulesPickerTitle => 'Regels voor dit sjabloon';
@@ -15505,6 +15547,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       'Toegevoegd op een ander apparaat en nog onderweg, of voorgoed weg. Verwijderen haalt ze van dit programma.';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      'Toegevoegd op een ander apparaat en nog onderweg, of voorgoed weg. Verwijderen haalt ze van dit sjabloon.';
+
+  @override
+  String get programsRulesPickerUnreadable =>
+      'Je regels kunnen nu niet worden gelezen.';
 
   @override
   String get programsRulesChangeFailed =>
@@ -15541,6 +15591,16 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleBadge => 'Slotregel';
+
+  @override
+  String programTemplateSlotEditTooltip(String name) {
+    return '$name bewerken';
+  }
+
+  @override
+  String programTemplateSlotDeleteTooltip(String name) {
+    return '$name verwijderen';
+  }
 
   @override
   String programTemplateSlotRuleSubtitle(String name) {

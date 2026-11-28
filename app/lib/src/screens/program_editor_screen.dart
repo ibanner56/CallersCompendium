@@ -2027,6 +2027,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     calendarEventFingerprint: live.calendarEventFingerprint,
     calendarWrittenAt: live.calendarWrittenAt,
     calendarFlag: live.calendarFlag,
+    calendarFeedDigest: live.calendarFeedDigest,
     provenance: live.provenance,
   );
 
@@ -3489,6 +3490,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       calendarFlag: before != null
           ? before.calendarFlag
           : existing?.calendarFlag,
+      // Which calendar it came from (pre-release audit finding E1-01),
+      // likewise not edited here: dropping it would stop the import ever
+      // comparing the program with its calendar again.
+      calendarFeedDigest: before != null
+          ? before.calendarFeedDigest
+          : existing?.calendarFeedDigest,
       // The Rules picker writes a stored program's rules directly (#2340), so
       // the stored list stands, read inside the write's transaction
       // (`keepStoredEventRuleIds` below); a program not yet stored takes the
@@ -4554,7 +4561,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final times = danceTimesText(
       startMinute: _times.start,
       endMinute: _times.end,
-      formatTime: (m) => formatTimeOfDay(m, l10n),
+      formatTime: (m) =>
+          formatTimeOfDay(m, l10n, use24Hour: use24HourClockOf(context)),
       labels: programExportLabels(l10n),
     );
     final title = _titleController.text.trim();
@@ -5452,7 +5460,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             child: Text(
               minute == null
                   ? l10n.programsNoTimeSet
-                  : formatTimeOfDay(minute, l10n),
+                  : formatTimeOfDay(
+                      minute,
+                      l10n,
+                      use24Hour: use24HourClockOf(context),
+                    ),
               key: ValueKey('program-time-${field.name}-value'),
             ),
           ),

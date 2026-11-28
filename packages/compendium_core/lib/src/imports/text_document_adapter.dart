@@ -412,10 +412,12 @@ List<TextDocumentDance> _read(List<String> lines, int danceLevel) {
     // paragraph of prose after it (a note: more than one line, or one ending
     // like a sentence) is that dance's note, not a dance. A title alone, or
     // a heading, still starts a dance.
+    // One pass into a new list: a `removeAt` per folded paragraph made a file
+    // of many paragraphs quadratic.
     if (blocks.where((b) => b.level == 1).length == 1) {
-      for (var i = 1; i < blocks.length; i++) {
-        final dance = blocks[i - 1];
-        final b = blocks[i];
+      final folded = <_Block>[blocks.first];
+      for (final b in blocks.skip(1)) {
+        final dance = folded.last;
         if (dance.level == 1 &&
             (dance.labels.isNotEmpty || dance.figureLines.isNotEmpty) &&
             !b.fromHeading &&
@@ -425,9 +427,13 @@ List<TextDocumentDance> _read(List<String> lines, int danceLevel) {
           dance.notes
             ..add(b.title)
             ..addAll(b.notes);
-          blocks.removeAt(i--);
+        } else {
+          folded.add(b);
         }
       }
+      blocks
+        ..clear()
+        ..addAll(folded);
     }
     leaveOut((b) => b.level == 1 && b.figureLines.isEmpty && b.labels.isEmpty);
   }

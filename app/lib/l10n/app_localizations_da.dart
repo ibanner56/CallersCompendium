@@ -2668,12 +2668,6 @@ class AppLocalizationsDa extends AppLocalizations {
       'Caller-note (valgfri)';
 
   @override
-  String get settingsDefaultsStartingProgramMoveUp => 'Flyt op';
-
-  @override
-  String get settingsDefaultsStartingProgramMoveDown => 'Flyt ned';
-
-  @override
   String get settingsDefaultsStartingProgramUnavailableDance =>
       'Denne dans er ikke længere tilgængelig';
 
@@ -3838,6 +3832,19 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get backupRestored => 'Sikkerhedskopi gendannet.';
+
+  @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count aftenregler blev slettet, fordi sikkerhedskopien ikke har deres gemte søgninger.',
+      one:
+          '1 aftenregel blev slettet, fordi sikkerhedskopien ikke har dens gemte søgning.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get backupRestoreFailed =>
@@ -9086,6 +9093,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseRowsRow(int number) {
+    return 'Række $number';
+  }
+
+  @override
   String danceEditorPhraseRowsInvalid(int max) {
     return 'Angiv et helt tal fra 1 til $max i hvert felt, i en struktur der ikke er for lang. Indtil da bevares den sidste gyldige frastruktur.';
   }
@@ -11982,6 +11994,20 @@ class AppLocalizationsDa extends AppLocalizations {
       'Denne dans blev ændret, før den kunne opdateres. Gennemgå den, og prøv igen.';
 
   @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both':
+          'Import ændrer dansens danseform til $form, så dens Barnes-henvisning og dens markering Starter improper fjernes.',
+      'barnes':
+          'Import ændrer dansens danseform til $form, så dens Barnes-henvisning fjernes.',
+      'improper':
+          'Import ændrer dansens danseform til $form, så dens markering Starter improper fjernes.',
+      'other': 'Import ændrer dansens danseform til $form.',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String get publishedCollectionsTitle => 'Udgivne samlinger';
 
   @override
@@ -12635,6 +12661,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get compoundParamKindDancers => 'dansere';
+
+  @override
+  String get compoundParamKindDancerList => 'liste af dansere';
 
   @override
   String get compoundParamKindDancerPair => 'par af dansere';
@@ -15035,6 +15064,18 @@ class AppLocalizationsDa extends AppLocalizations {
       'Den gemte søgning blev netop slettet, så reglen blev ikke gemt. Vælg en anden.';
 
   @override
+  String get eventRuleSaveFailed => 'Kunne ikke gemme reglen. Prøv igen.';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'Denne enhed har $max regler, det højeste antal. Slet en for at tilføje en anden.';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable =>
+      'Dine gemte søgninger kan ikke læses lige nu, så ingen kan vælges her.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Hvor mange';
 
   @override
@@ -15391,7 +15432,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programTemplateRuleRemovedUnknown =>
-      'Fjernet: en regel, der ikke er på denne enhed';
+      'En regel, der ikke er på denne enhed';
 
   @override
   String get programTemplateRulesPickerTitle => 'Regler for denne skabelon';
@@ -15415,6 +15456,14 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       'Tilføjet på en anden enhed og stadig på vej, eller væk for altid. Fjern tager dem af dette program.';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      'Tilføjet på en anden enhed og stadig på vej, eller væk for altid. Fjern tager dem af denne skabelon.';
+
+  @override
+  String get programsRulesPickerUnreadable =>
+      'Dine regler kan ikke læses lige nu.';
 
   @override
   String get programsRulesChangeFailed =>
@@ -15451,6 +15500,16 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleBadge => 'Slotregel';
+
+  @override
+  String programTemplateSlotEditTooltip(String name) {
+    return 'Rediger $name';
+  }
+
+  @override
+  String programTemplateSlotDeleteTooltip(String name) {
+    return 'Slet $name';
+  }
 
   @override
   String programTemplateSlotRuleSubtitle(String name) {

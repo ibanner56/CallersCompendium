@@ -16,9 +16,11 @@ Usage:
     python3 tools/preflight.py --only format fixtures
     python3 tools/preflight.py --require-available
 
-Output is one line per step. On failure the last few lines of that step's output
-are shown and the rest is discarded: a red run should tell you what to fix, not
-hand you the whole log.
+Output is one line per step. On failure the first and last few lines of that
+step's output are shown, so both the cause at the start and the error at the
+end are on screen. When there is more than that, the whole output (stderr
+merged in the order it was written) goes to a log file whose path is printed
+with them. Nothing is retried: a red step is reported as it failed.
 
 Missing toolchains are visibly skipped by default, so cloud and local sessions
 without FVM still run every applicable Python gate. Pass --require-available
@@ -56,6 +58,7 @@ from pathlib import Path, PurePath
 from typing import IO, Sequence
 
 ROOT = Path(__file__).resolve().parent.parent
+FAIL_HEAD_LINES = 12
 FAIL_TAIL_LINES = 12
 
 # One lock per machine, not per checkout: the constraint is the host's memory,
@@ -668,9 +671,38 @@ def _unavailable(step: Step) -> str | None:
     return None
 
 
-def _tail(text: str) -> list[str]:
-    lines = [line for line in text.splitlines() if line.strip()]
-    return lines[-FAIL_TAIL_LINES:]
+def _failure_excerpt(step: Step, output: str) -> str:
+    """The first and last lines of a failed step's output, and where the rest is.
+
+    Keeping only the end hid causes printed first: a stack trace's end is the
+    least informative part of it. When the output is longer than both
+    excerpts together, it is written whole to a log file (named after the step,
+    in the system temp directory), and a marker line between the two excerpts
+    gives its path. If the log cannot be written, the marker says so and the
+    excerpts are still returned: the step's own failure must not be lost.
+    """
+    lines = [line for line in output.splitlines() if line.strip()]
+    if len(lines) <= FAIL_HEAD_LINES + FAIL_TAIL_LINES:
+        return "\n".join(lines)
+    omitted = len(lines) - FAIL_HEAD_LINES - FAIL_TAIL_LINES
+    try:
+        fd, path = tempfile.mkstemp(prefix=f"preflight-{step.name}-", suffix=".log")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as log:
+                log.write(output)
+        except OSError:
+            Path(path).unlink(missing_ok=True)
+            raise
+        where = f"full output: {path}"
+    except OSError as error:
+        where = f"full output could not be written: {error}"
+    return "\n".join(
+        [
+            *lines[:FAIL_HEAD_LINES],
+            f"... {omitted} line(s) omitted; {where}",
+            *lines[-FAIL_TAIL_LINES:],
+        ]
+    )
 
 
 def run_step(step: Step) -> tuple[str, str]:
@@ -685,12 +717,13 @@ def run_step(step: Step) -> tuple[str, str]:
             command,
             cwd=step.cwd,
             check=False,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             encoding="utf-8",
             errors="replace",
         )
         if result.returncode != 0:
-            detail = "\n".join(_tail(result.stdout + result.stderr))
+            detail = _failure_excerpt(step, result.stdout)
             return "FAIL", f"{' '.join(command)}\n{detail}"
     return "ok", f"{time.monotonic() - started:.1f}s"
 

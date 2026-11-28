@@ -4032,18 +4032,6 @@ abstract class AppLocalizations {
   /// **'Caller note (optional)'**
   String get settingsDefaultsStartingProgramNoteLabel;
 
-  /// Tooltip for moving a starting-program entry up.
-  ///
-  /// In en, this message translates to:
-  /// **'Move up'**
-  String get settingsDefaultsStartingProgramMoveUp;
-
-  /// Tooltip for moving a starting-program entry down.
-  ///
-  /// In en, this message translates to:
-  /// **'Move down'**
-  String get settingsDefaultsStartingProgramMoveDown;
-
   /// Fallback label for a starting-program dance reference that is no longer in the collection.
   ///
   /// In en, this message translates to:
@@ -5907,6 +5895,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Backup restored.'**
   String get backupRestored;
+
+  /// Second sentence of the snackbar after a backup restore (or its settings retry) that deleted event rules (Experimental): rules kept because the backup holds no rules, whose saved search the restore removed. Joined after backupRestored, backupRestoreSkippedProblems or backupRestoreSettingsRetried.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 event rule was deleted, because the backup doesn\'t have its saved search.} other{{count} event rules were deleted, because the backup doesn\'t have their saved searches.}}'**
+  String backupRestoreRemovedEventRules(int count);
 
   /// Snackbar shown when backup restore fails unexpectedly. The raw exception is logged separately, not shown in the UI.
   ///
@@ -13438,6 +13432,12 @@ abstract class AppLocalizations {
   /// **'Remove row {number}'**
   String danceEditorPhraseRowsRemove(int number);
 
+  /// What a screen reader says before each field of one row of the phrase-structure rows of a contra or square dance (the fields are Phrases, Bars per phrase and Beats per bar), so the rows can be told apart. Not shown on screen. The number counts the rows from 1, as in danceEditorPhraseRowsRemove. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {number}'**
+  String danceEditorPhraseRowsRow(int number);
+
   /// Error under the phrase-structure rows of a contra or square dance when a number is empty, zero or above {max}, or the structure is too long. The phrase structure is kept as it was until it is fixed, and anything that saves it saves that kept structure. Also used for the default phrase structure in Settings.
   ///
   /// In en, this message translates to:
@@ -14815,13 +14815,13 @@ abstract class AppLocalizations {
   /// **'Add figures from text'**
   String get figureTextSheetTitle;
 
-  /// Help text at the top of the Add figures from text sheet, for an English dance or a square dance. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
+  /// Help text at the top of the Add figures from text sheet, for an English dance. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
   ///
   /// In en, this message translates to:
   /// **'Type or paste one figure per line, such as \"(8) neighbor balance & swing\". Each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.'**
   String get figureTextSheetHelp;
 
-  /// Help text at the top of the Add figures from text sheet, for a contra dance, where a leading phrase label (A1, A2, B1, B2, C1, C2) is dropped from each line. Keep A1 as it is. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
+  /// Help text at the top of the Add figures from text sheet, for a contra or square dance, where a leading phrase label (A1, A2, B1, B2, C1, C2) is dropped from each line. Keep A1 as it is. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
   ///
   /// In en, this message translates to:
   /// **'Type or paste one figure per line, such as \"A1 (8) neighbor balance & swing\". A phrase label such as A1 at the start of a line is left out, and each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.'**
@@ -17466,6 +17466,12 @@ abstract class AppLocalizations {
   /// **'This dance changed before it could be updated. Review it and try again.'**
   String get danceReimportTargetChanged;
 
+  /// Notice at the top of a dance's re-import preview (Re-import choreography on the dance page) when the incoming choreography changes the saved dance's form, such as an English dance refreshed from a contra-only source. {form} is a localized dance form name, such as 'Contra' (commonDanceFormContra). Only an English dance has a Barnes reference (where its tune is printed in the Barnes books; 'Barnes' is a name and stays as is) and a Starts improper mark (danceEditorImproperLabel), so a change to another form removes them. The select values are internal identifiers and must not be translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{dropped, select, both{Importing changes this dance\'s form to {form}, so its Barnes reference and its Starts improper mark will be removed.} barnes{Importing changes this dance\'s form to {form}, so its Barnes reference will be removed.} improper{Importing changes this dance\'s form to {form}, so its Starts improper mark will be removed.} other{Importing changes this dance\'s form to {form}.}}'**
+  String danceReimportFormChangeNotice(String dropped, String form);
+
   /// Title for the signed published-collection catalog.
   ///
   /// In en, this message translates to:
@@ -18441,6 +18447,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'dancers'**
   String get compoundParamKindDancers;
+
+  /// The kind of an English figure's Who setting: a list of dancers, which no parameter of a combination can fill. Lowercase; also used inside sentences, such as "its kind is dancers; this setting's is list of dancers".
+  ///
+  /// In en, this message translates to:
+  /// **'list of dancers'**
+  String get compoundParamKindDancerList;
 
   /// The kind of a custom figure's parameter: pair of dancers. Lowercase; also used inside sentences.
   ///
@@ -21803,6 +21815,24 @@ abstract class AppLocalizations {
   /// **'That saved search was just deleted, so the rule wasn\'t saved. Choose another.'**
   String get eventRuleSavedSearchGone;
 
+  /// Snackbar in the rule editor when saving the rule failed for a reason other than its saved search being deleted or the rule limit, such as a database that can't be written. The editor stays open so Save can be tried again.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the rule. Try again.'**
+  String get eventRuleSaveFailed;
+
+  /// Snackbar in the rule editor when a new rule can't be saved because this device already holds the most event rules it can. The editor stays open.
+  ///
+  /// In en, this message translates to:
+  /// **'This device holds {max} rules, the most it can. Delete one to add another.'**
+  String eventRuleSaveLimit(int max);
+
+  /// In the rule editor, in place of the saved search choice, when the saved searches could not be read (a damaged or locked settings store). A rule being edited keeps its own saved search, so its other fields can still be changed and saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Your saved searches can\'t be read right now, so none can be chosen here.'**
+  String get eventRuleSearchesUnreadable;
+
   /// Label of the rule editor choice between At most, At least and None (#2340).
   ///
   /// In en, this message translates to:
@@ -22187,10 +22217,10 @@ abstract class AppLocalizations {
   /// **'Removed: {rule}'**
   String programTemplateRuleRemoved(String rule);
 
-  /// A rule on a program template that this device does not hold, deleted for good or not synced yet (#2342). It is not added to new programs.
+  /// A rule on a program template's Rules row that this device holds neither live nor deleted: still on its way from another device, or gone for good (#2342). Not called removed, since it may yet arrive. It is not added to new programs.
   ///
   /// In en, this message translates to:
-  /// **'Removed: a rule that isn\'t on this device'**
+  /// **'A rule that isn\'t on this device'**
   String get programTemplateRuleRemovedUnknown;
 
   /// Title of the rule picker opened from a program template's Rules row (#2342).
@@ -22216,6 +22246,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added on another device and still on the way, or gone for good. Remove takes them off this program.'**
   String get programsRulesPickerNotHereHelp;
+
+  /// Under programsRulesPickerNotHere in the rule picker opened from a program template's Rules row: what those rules are, and what Remove beside it does. The template form of programsRulesPickerNotHereHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Added on another device and still on the way, or gone for good. Remove takes them off this template.'**
+  String get programTemplateRulesPickerNotHereHelp;
+
+  /// Shown in the rule picker of a program or a program template, in place of the list, when the event rules could not be read (a damaged or locked database).
+  ///
+  /// In en, this message translates to:
+  /// **'Your rules can\'t be read right now.'**
+  String get programsRulesPickerUnreadable;
 
   /// Message at the bottom of the screen when ticking or unticking a rule in a program's Rules picker could not be saved (#2340).
   ///
@@ -22264,6 +22306,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Slot rule'**
   String get programTemplateSlotRuleBadge;
+
+  /// Tooltip and screen-reader label of the Edit button on a slot rule's row in the program template editor; {name} is the row's own label, so the buttons of one row can be told from the next (pre-release audit finding D1a-06).
+  ///
+  /// In en, this message translates to:
+  /// **'Edit {name}'**
+  String programTemplateSlotEditTooltip(String name);
+
+  /// Tooltip and screen-reader label of the Delete button on a slot's row in the program template editor (a dance, note, break or slot rule); {name} is the row's own label, such as the dance's title, so the buttons of one row can be told from the next (pre-release audit finding D1a-06).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}'**
+  String programTemplateSlotDeleteTooltip(String name);
 
   /// Subtitle of a slot rule in the program template editor: the saved search that says which dances it means (#2338).
   ///

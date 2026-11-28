@@ -311,7 +311,13 @@ way, so a dance in 3/2 re-imported as English counts its phrases in 3-beat bars
 in the pre-release audit, finding C-01; the alternative, leaving the structure
 for the person to set on each dance, kept the broken labels).
 A re-import from a contra-only source (The Caller's Box, ContraDB) onto an
-English dance makes it contra by the same rule.
+English dance makes it contra by the same rule, which drops its Barnes
+reference and Starts-improper mark (only an English dance holds either). The
+dance page's re-import preview says so when the form will change, naming
+those two fields when the dance has them (`reimportFormChange` in the app's
+`dance_reimport.dart`, read off `withReimportedChoreography`); the maintainer
+chose the notice over keeping the reference (pre-release audit, finding
+GAPC-02).
 
 This applies to every source that reaches the pipeline: `.ccshare` and other
 Compendium archives, published collections, Caller's Companion `.USR`, ContraDB
@@ -645,7 +651,13 @@ declines the collapse.
   one. `Type` "Circle Mixer"/"Scatter Mixer"/"Longways" gives that shape (the
   two mixers with `mixer: true`). Otherwise the `Formation` family decides: Four
   Facing Four, Triplet, Triple Minor (its `ContraForm` start as the detail),
-  Square (`other`, detail "Square"; the dance form comes from `Type`), Other
+  Square (`other`, detail "Square"; the dance form comes from `Type`; a
+  square dance's formation is then one of a square's shapes,
+  `_mapSquareDanceFormation`: `square`, read as an English square set is,
+  when the source names a square or no shape (blank, a start alone, a duple
+  minor), `circle` for a big circle, else `other`, such as a hexagon, always
+  with the source's other words as the detail and no improper flag; ADR-007
+  §8.1, pre-release audit finding B-02), Other
   (`other`). A blank family and start with only `FormationOther` is read as the
   text export's single string would be. A Duple Minor, or a blank family, is
   refined by `ContraForm` and `Direction`: Becket with `CCW` is `becketCcw`
@@ -661,8 +673,9 @@ declines the collapse.
   leaves it unstated. A formation
   type read this way adds no "Type:" line to the calling notes. The CC text
   export, which gives one formation string, keeps the single-string mapping (a set
-  shape such as "Proper Triplet" is read as that shape, with the start word as
-  detail, before the Proper / Improper words are tried), its
+  shape such as "Proper Triplet" is read as that shape, with the start word,
+  and an ending order in brackets ("Proper (231)"), as detail, before the
+  Proper / Improper words are tried), its
   "Type:" note for these types, and `mixer: false`. `SetItem.AlternateDance`
   marks an alternate "ALT" in a real file, which is read as true.
 - **A date padded onto the Name.** Some libraries pad a date, and sometimes
@@ -1019,7 +1032,8 @@ declines the collapse.
   is stored as shape only unless the page's optional
   `div.dance-show-preamble` supplies normalized `Formation.detail`, or the name
   is a set shape (triplet, quadruplet, triple minor), which keeps its Proper /
-  Improper / Indecent start word as detail, ahead of any preamble and joined
+  Improper / Indecent start word, and an ending order in brackets ("(231)"),
+  as detail, ahead of any preamble and joined
   with `; `; unclassified
   formation text is retained as detail, after any preamble and with a warning.
 - A second, **deprecated** adapter (`ContraDbAdapter`) maps ContraDB's internal
@@ -1028,8 +1042,8 @@ declines the collapse.
   **`@Deprecated` and wired into no live path** — that JSON input is unobtainable
   from the site — and is retained only as reference prior art plus its unit tests.
   Its recognized `start_type` is shape-only, except that a set shape (triplet,
-  quadruplet, triple minor) keeps its Proper / Improper / Indecent start word as
-  detail, ahead of any preamble; normalized `preamble` is stored in
+  quadruplet, triple minor) keeps its Proper / Improper / Indecent start word,
+  and an ending order in brackets ("(231)"), as detail, ahead of any preamble; normalized `preamble` is stored in
   `Formation.detail`, and only `notes` is stored in `callingNotes`. If an
   unclassified `start_type` and preamble coexist, both are retained in detail
   with the preamble first.
@@ -1882,8 +1896,10 @@ Which is which, derived from the code rather than from memory:
   (`_tcbDeclineToCustom`): a single-file circle amount that is not a
   fraction, and a per-role amount (`(M 1 & 1/2, W 2)`). `_tcbNumberedRolePair`
   (`N2 Men allemande …`, read as `next role1s allemande …` since taxonomy
-  v40 when only that role takes part; `N2 Men roll away neighbor`, done with
-  a neighbour, as `role1s roll away` with `whom: nextNeighbors`; otherwise as
+  v40 when the two larks (or robins) do the figure together; a turn alone
+  or shift by the role alone keeps the number as a note; `N2 Men roll away
+  neighbor`, done with a neighbour, as `role1s roll away` with `whom:
+  nextNeighbors`; otherwise as
   `Men allemande … [with N3]`) is the falls-through kind too, and so is
   `_tcbBracketedRolePair` (`Men allemande … [with N2]`, read as `N2 Men
   allemande …` would be read, clause by clause): the two share one reading,
@@ -1973,11 +1989,14 @@ has to be judged in its own context.
   with `splitFigureTextLines` (`imports/figure_text_lines.dart`), which refuses
   text over `maxFigureTextLines` lines, `maxFigureTextLength` characters, or a
   line over `maxFreeTextEntryLength` (which the parser would read as nothing),
-  skips a line that is only a phrase label, and, in a contra dance, drops a
-  leading `A1`…`C2` label with `splitPhraseLabel`, the splitter the Caller's
-  Companion text adapter reads its sections with. English and square dances
-  keep the label: the ECD bar reader drops one only in front of a bar range
-  (`A1 1-8 lead up`), and other labelled lines stay custom.
+  skips a line that is only a phrase label, and, in a contra or square dance
+  (the forms whose phrases are unnamed), drops a leading `A1`…`C2` label with
+  `splitPhraseLabel`, the splitter the Caller's Companion text adapter reads
+  its sections with, but keeps a `C1` or `C2` followed by `corner(s)`, a
+  corner dancer as The Caller's Box writes one (`C2 corner allemande left
+  1`). English dances keep the label: the ECD bar reader drops
+  one only in front of a bar range (`A1 1-8 lead up`), and other labelled
+  lines stay custom.
 - **Only the dance's own form's calls.** Free-text entry and the re-read of
   import-gap lines (`reparseImportGapFigures`) keep a figure only when it
   and every figure inside it belong to the dance's form (`figureFitsForm`,
@@ -2359,8 +2378,9 @@ has to be judged in its own context.
   corner is the same in contra and squares, so a square's `Allemande left your
   corner` from The Caller's Box reads the same way. `resolveDancerSetPhrase`
   shares the reader, so a Caller's Box `[with corner]` bracket on a
-  balance-the-wave line now keeps the note `with firstCorners`, as `[with
-  partner]` keeps `with partners`, where it was dropped before. The bare
+  balance-the-wave line now keeps a note, `with corner`, as `[with partner]`
+  keeps `with partner` (the source's words since the pre-release audit,
+  finding C-07; the dancer-set token before), where it was dropped before. The bare
   `Corner` and the `1st`/`2nd` ordinal readings are the maintainer's decisions
   (#1975; the ordinals and the scope on 2026-10-29); `3rd`/`third` is the
   author's extension of them. A bare plural (`allemande left the corners`,
@@ -2531,8 +2551,10 @@ has to be judged in its own context.
   (`[with N2]`, `[with shadow]`, `[around N2]`). `[with phantom]`, any other
   head, a second bracket, text after the bracket and the non-inverse or
   malformed definitions that decline without a bracket all stay text. The
-  figure's note is then the bracket's canonical text (`with nextNeighbors`)
-  and not the definition, which `who` and `hand` already carry; a line with no
+  figure's note is then the bracket's text in the source's words (`with N2`;
+  `with nextNeighbors` until the pre-release audit, finding C-07, where the
+  maintainer ruled for the source's words because a note shows a dancer-set
+  token raw) and not the definition, which `who` and `hand` already carry; a line with no
   bracket keeps the definition as its note, as before. (#2160 suggested keeping
   the raw bracket in the note; this reading does not.)
 
@@ -2854,7 +2876,12 @@ ECD dance.
   formation past the word "Square" stays as the detail (Newcastle's
   "Quadruplet; Four couples…", an unknown family such as "Hexagon", a
   `ContraForm` start and `Direction`, or a text "Square set"; a `.USR` with no
-  family and no start is read from its `FormationOther`, as #1972 reads it), so an unknown family is kept as its `cc_unmapped_formation`
+  family and no start is read from its `FormationOther`, as #1972 reads it;
+there the word "square" makes a square set only when the text starts with it
+or names no shape besides a start word, so "Sicilian circle; square through
+to start" stays a Sicilian circle with the text in its detail, while "Four
+couples in a square, improper" is a square set; the text export's single
+string still takes any "square"), so an unknown family is kept as its `cc_unmapped_formation`
   warning says, and a Square formation raises no such warning. A square in a
   big circle (`Circle` family) keeps the `circle` shape, which squares use for
   it (ADR-007 §8.1). A square keeps its SubType's repeat order and its

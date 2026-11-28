@@ -2466,11 +2466,12 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       the note in the line's words, as the maintainer allowed; no param holds
       it. A count must agree with "place"/"places". A `(past …)` or other
       parenthetical is a note, as on other moves.
-    - 117 figures read as a shift in those dances. Still custom: "Others shift
-      …" (no dancer set holds "others"), a destination ("to next man's
-      position", "to N2"), "one step", and the bare shifts with a target
-      ("Shift left to N2", "Shift left with neighbor"), which were custom
-      before.
+    - Under this first ruling, 117 figures read as a shift in those dances,
+      and these stayed custom: "Others shift …" (no dancer set holds
+      "others"), a destination ("to next man's position", "to N2"), "one
+      step", and the bare shifts with a target ("Shift left to N2", "Shift
+      left with neighbor"). The ruling below reads all of them but "Others
+      shift …", so the 117 is that day's count, not today's.
     - Later the same day the maintainer ruled that a destination is kept as
       the note: a group shift's `to …`, `behind …`, `until …`, `one step` or
       `a step …` tail ("Men shift right to next man's position" → shift,
@@ -2638,11 +2639,11 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       `N2 Women chain` is the next robins chaining), each with its role's
       hand from `chainHandForWho` (`nextRole2s` right, `prevRole1s` left).
       ContraDB does not write them. The Caller's Box importer produces them
-      from a neighbour number before a role when only that role takes part
-      (`N2 Men allemande left` is `nextRole1s`), so an imported dance can
-      hold one as well as a typed figure; the figure readers do read the
-      display's own words (`next larks`, `prev robins`)
-      back, through `role1s` and `role2s` in `seriesDancerWords`, so a
+      from a neighbour number before a role when the pair does the figure
+      together (`N2 Men allemande left` is `nextRole1s`), so an imported
+      dance can hold one as well as a typed figure; the figure readers do
+      read the display's own words (`next larks`, `prev robins`) back,
+      through `role1s` and `role2s` in `seriesDancerWords`, so a
       displayed figure reads back to its token (`figure_round_trip_test.dart`
       caught that gap). **Plural only**: the display writes a role in the
       plural, so `next lark` (singular) names no set and reads as it did

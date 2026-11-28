@@ -219,7 +219,8 @@ not.
   to `DanceForm.square`. From a `.USR` file it also maps the "Square"
   formation family to `FormationShape.other` with detail "Square", and sets
   `mixer` from a square's `SubType` ("Mixer, H H S S"); the text export
-  gives `other` with the raw text as detail and sets no `mixer`
+  gives `other` with the raw text as detail and sets no `mixer` (until 28
+  November 2026: §5.4)
   ([callers_companion_mapping.dart](../../packages/compendium_core/lib/src/imports/callers_companion_mapping.dart)).
   It parses the figure lines of these dances with the **contra** vocabulary
   (`parseFigureLinesFanOut`). So square dances imported so far hold contra
@@ -245,7 +246,8 @@ not.
   But a square dance cannot choose it yet: `offeredFormationShapes` gives
   square dances contra's shapes
   ([formation.dart](../../packages/compendium_core/lib/src/model/formation.dart)).
-  Caller's Companion squares still map to `other` with detail "Square".
+  Caller's Companion squares still map to `other` with detail "Square"
+  (until 28 November 2026; §5.4).
 - Each dance form has its own dialect library, square included, and the
   dialect settings switch between forms (storage keys
   `custom_dialects_square` and `active_dialect_ref_square`;
@@ -577,7 +579,11 @@ they state the count they mean.
 
 Every held square starts and ends in a squared set. At dance level the
 formation is normally `FormationShape.square` (§8.1 lists the others), and
-the Caller's Companion importer stops using `other` + "Square".
+the Caller's Companion importer stops using `other` + "Square". *Implemented
+28 November 2026: a Caller's Companion square dance is a `square` set, a
+`circle` for a big circle, or `other` for a formation such as a hexagon, with
+the source's other formation words as the detail. Squares imported earlier keep `other` + "Square" until converted
+(§8.4).*
 
 For borrowed club calls, the registry records CALLERLAB's usual starting
 formations as glossary information. These are shipped data, not stored on
@@ -1032,7 +1038,10 @@ filter below are new (phase 2).
   own-words definition, parameters, default beats and program label.
 - Dialect settings already switch by dance form, and squares have their own
   dialect library (§3). The dialect editor's sample figures are ECD's or
-  contra's today; squares need their own (phase 1).
+  contra's today; squares need their own (phase 1). *Implemented 27
+  November 2026: a square dialect's preview shows square calls (a hand turn of
+  `role1s` with partners, a swing of corners, a promenade to `role1`'s
+  place) and a line of free text, rather than contra's figures.*
 - ECD ships its taxonomy with no glossary definition text yet. Squares plan
   own-words definitions, but they can follow the taxonomy as a separate
   step (§9).

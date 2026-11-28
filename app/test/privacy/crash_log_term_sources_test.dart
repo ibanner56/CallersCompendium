@@ -83,6 +83,9 @@ const Map<String, String> _sources = {
   // A hex digest (#2352): the archive codec keeps only that shape.
   'programs.calendar_event_key':
       'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+  // Personal data about the caller (E1-01), and a hex digest too.
+  'programs.calendar_feed_digest':
+      'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
   'program_slots.guest_caller': 'TERMSRC guest caller',
   // -- published sources (thirdParty) --
   'published_sources.author': 'TERMSRC source author',
@@ -314,6 +317,7 @@ Future<void> _populate(CompendiumRepositories repos) async {
       payMinorUnits: 12345,
       payCurrency: _v('programs.pay_currency'),
       calendarEventKey: _v('programs.calendar_event_key'),
+      calendarFeedDigest: _v('programs.calendar_feed_digest'),
       slots: [
         ProgramSlot(
           id: 'ps1',

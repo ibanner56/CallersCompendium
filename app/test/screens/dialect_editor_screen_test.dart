@@ -125,6 +125,33 @@ void main() {
     expect(text, isNot(contains('do si do')));
   });
 
+  testWidgets('a square dialect previews square figures, so a square call\'s '
+      'wording shows (pre-release audit finding B-05)', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          form: DanceForm.square,
+          initial: Dialect(
+            name: 'Square',
+            roles: Dialect.larksRobins.roles,
+            moves: const {'sq_swing': 'twirl'},
+            dancers: const {'corners': 'cornies'},
+          ),
+        ),
+      ),
+    );
+    await reveal(tester, preview());
+    final text = previewText(tester).toLowerCase();
+    expect(text, contains('twirl cornies'));
+    expect(text, contains('promenade'));
+    // Contra's samples: none is a square call, and no square has neighbors.
+    expect(text, isNot(contains('neighbor')));
+    expect(text, isNot(contains('do si do')));
+    expect(text, isNot(contains('allemande')));
+  });
+
   testWidgets('the preview reflects role-term edits live', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

@@ -1028,8 +1028,13 @@ file past v39 already ran that repair on the same open.)
   archive holding a program with rules is stamped core archive v8. Backups
   carry the rules under `app.eventRules` (envelope v3,
   `backupSchemaVersionEventRules`); a backup without the section leaves the
-  live rules alone; a rule the restore refuses is skipped and reported, and
-  its id stays on the programs (#2529). The table and the column are added by
+  live rules alone (none is written for no rules, keeping the v1 envelope),
+  except that a Replace deletes softly, at the backup's time, each live rule
+  the backup does not hold whose saved search the settings replace removes
+  (a `saved_search:` key stored before and not restored), and counts them in
+  `BackupRestoreOutcome.removedEventRules`; a rule whose search was already
+  gone is kept, and a Merge deletes none. A rule the restore refuses is
+  skipped and reported, and its id stays on the programs (#2529). The table and the column are added by
   `_ensureV42EventRules`, run from
   the `from < 42` step and from the on-open v42 ensure below, each time right
   after `_ensureV42Schema` (so after the placeholder column and the other v42
@@ -1048,6 +1053,22 @@ file past v39 already ran that repair on the same open.)
   `event_rule_ids` hold each rule when the picker opens
   (`EventRuleRepository.usageCounts`); no count is stored. The picker's
   order setting is the settings key `event_rule_order`, not a column.
+
+  Also in v42, before it shipped: which calendar a program came from
+  (pre-release audit finding E1-01). Adds one nullable `programs` column,
+  `calendar_feed_digest` (`Program.calendarFeedDigest`): a 128-bit salt drawn
+  for each program and the first 128 bits of HMAC-SHA256, keyed with it, of
+  the calendar address in a normal form (`normalizedCalendarFeedAddress`:
+  `webcal://` read as `https://`, scheme and host lower-cased), 64 hex digits;
+  never the address. A
+  calendar import compares a program (change offers, `cancelled`, `missing`)
+  only with a calendar whose address matches it, and NULL, which every
+  existing program has, matches none. It syncs, is kept in backups (envelope
+  v3, as for the key) and is stripped from share files and the programs CSV;
+  clearing the key clears it. The privacy registry's entry gives the threat.
+  Added by `_ensureV42CalendarFeedDigest`, after `_ensureV42EventRules` (so
+  after `event_rule_ids`) in the `from < 42` step and the on-open ensure,
+  only if absent. No data rewritten, no derived rebuild.
 
   Because test builds stamped v42 before these later pieces joined it,
   `beforeOpen` also ensures v42's pieces on every open of a file at v42 or

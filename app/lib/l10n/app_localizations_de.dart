@@ -2690,12 +2690,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Caller-Notiz (optional)';
 
   @override
-  String get settingsDefaultsStartingProgramMoveUp => 'Nach oben';
-
-  @override
-  String get settingsDefaultsStartingProgramMoveDown => 'Nach unten';
-
-  @override
   String get settingsDefaultsStartingProgramUnavailableDance =>
       'Dieser Tanz ist nicht mehr verfügbar';
 
@@ -3873,6 +3867,19 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get backupRestored => 'Sicherung wiederhergestellt.';
+
+  @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Abendregeln wurden gelöscht, weil die Sicherung ihre gespeicherten Suchen nicht enthält.',
+      one:
+          '1 Abendregel wurde gelöscht, weil die Sicherung ihre gespeicherte Suche nicht enthält.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get backupRestoreFailed =>
@@ -9166,6 +9173,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseRowsRow(int number) {
+    return 'Zeile $number';
+  }
+
+  @override
   String danceEditorPhraseRowsInvalid(int max) {
     return 'Gib in jedes Feld eine ganze Zahl von 1 bis $max ein, in einer Struktur, die nicht zu lang ist. Bis dahin bleibt die letzte gültige Phrasierungsstruktur erhalten.';
   }
@@ -12093,6 +12105,20 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Tanz wurde geändert, bevor er aktualisiert werden konnte. Überprüfe ihn und versuche es erneut.';
 
   @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both':
+          'Der Import ändert die Tanzform dieses Tanzes in $form, daher werden sein Barnes-Verweis und seine Markierung „Beginnt improper“ entfernt.',
+      'barnes':
+          'Der Import ändert die Tanzform dieses Tanzes in $form, daher wird sein Barnes-Verweis entfernt.',
+      'improper':
+          'Der Import ändert die Tanzform dieses Tanzes in $form, daher wird seine Markierung „Beginnt improper“ entfernt.',
+      'other': 'Der Import ändert die Tanzform dieses Tanzes in $form.',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String get publishedCollectionsTitle => 'Veröffentlichte Sammlungen';
 
   @override
@@ -12743,6 +12769,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get compoundParamKindDancers => 'Tänzer';
+
+  @override
+  String get compoundParamKindDancerList => 'Tänzerliste';
 
   @override
   String get compoundParamKindDancerPair => 'Tänzerpaar';
@@ -15157,6 +15186,19 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese gespeicherte Suche wurde gerade gelöscht, deshalb wurde die Regel nicht gespeichert. Wähle eine andere.';
 
   @override
+  String get eventRuleSaveFailed =>
+      'Die Regel konnte nicht gespeichert werden. Versuche es noch einmal.';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'Dieses Gerät hat $max Regeln, mehr geht nicht. Lösche eine, um eine andere hinzuzufügen.';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable =>
+      'Deine gespeicherten Suchen können gerade nicht gelesen werden, daher kann hier keine gewählt werden.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Wie viele';
 
   @override
@@ -15518,7 +15560,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programTemplateRuleRemovedUnknown =>
-      'Entfernt: eine Regel, die nicht auf diesem Gerät ist';
+      'Eine Regel, die nicht auf diesem Gerät ist';
 
   @override
   String get programTemplateRulesPickerTitle => 'Regeln für diese Vorlage';
@@ -15542,6 +15584,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       'Auf einem anderen Gerät hinzugefügt und noch unterwegs, oder endgültig weg. Entfernen nimmt sie aus diesem Programm.';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      'Auf einem anderen Gerät hinzugefügt und noch unterwegs, oder endgültig weg. Entfernen nimmt sie aus dieser Vorlage.';
+
+  @override
+  String get programsRulesPickerUnreadable =>
+      'Deine Regeln können gerade nicht gelesen werden.';
 
   @override
   String get programsRulesChangeFailed =>
@@ -15578,6 +15628,16 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleBadge => 'Slot-Regel';
+
+  @override
+  String programTemplateSlotEditTooltip(String name) {
+    return '$name bearbeiten';
+  }
+
+  @override
+  String programTemplateSlotDeleteTooltip(String name) {
+    return '$name löschen';
+  }
 
   @override
   String programTemplateSlotRuleSubtitle(String name) {

@@ -55,8 +55,11 @@ direction the list opens with, see
   have since deleted is left out). With two or more templates, **New program**
   first asks which one to start from — your **Default template** is listed
   first and marked — or **Blank program**; with one template or none it opens
-  the builder straight away, using the Default template. The Default template
-  also fills the drafts a [calendar import](#import-programs-from-your-calendar)
+  the builder straight away, using the Default template. If you delete your
+  Default template, the first template left in your list takes its place
+  until you choose another. **Undo** of the delete makes the deleted one the
+  default again, unless you have added, duplicated or reordered templates
+  since: then the one that took its place stays the default. The Default template also fills the drafts a [calendar import](#import-programs-from-your-calendar)
   creates. Templates don't apply to other imported or duplicated programs,
   programs someone shared with you, or **Create a new program with this
   dance**. A template's [slot rules](./settings.md#program-defaults) become
@@ -93,8 +96,9 @@ direction the list opens with, see
 - **Archive** a program you're done with but want to keep, from the same menu.
   It leaves the list (an **Undo** option appears) but is not deleted: it never
   expires, it still counts in your
-  [calling history](#track-what-you-have-called), and search still finds it.
-  An archived program is not offered on the **Add to program** sheet. To see
+  [calling history](#track-what-you-have-called), and search still finds it,
+  marked **Archived** after the word **Program** (and the program's dance
+  types) so you can tell it from a live program with the same title. An archived program is not offered on the **Add to program** sheet. To see
   archived programs, choose **Show archived** in the **More actions** (⋮) menu
   in the **Programs** toolbar, just above **Recently deleted**. They are listed
   with the others, marked **Archived**, and their row menu offers **Unarchive**
@@ -323,8 +327,7 @@ behind your back, and never deletes one because of your calendar.
   another time zone.
 - **Changed in your calendar** — the same, for a program you have worked on,
   here or on another device. It starts unticked; tick it and **Import**
-  updates only what changed in the calendar. A program imported before this
-  check existed counts as worked on.
+  updates only what changed in the calendar.
 - If you leave an offer unticked, the program stays as it is, and the change is
   not offered again unless the event changes again.
 - **Canceled or gone from your calendar** — an event marked canceled, or one
@@ -343,9 +346,23 @@ behind your back, and never deletes one because of your calendar.
   program is kept as it is and, when you choose **Import**, labeled **Canceled
   in your calendar** or **No longer in your calendar** in the Programs list and
   on its summary, with an icon and words. Archive or delete it yourself if you
-  no longer need it. The label goes away if the event comes back, or when you
-  choose **Clear calendar flag** on the summary; the next import labels it again
-  if the event is still canceled or gone.
+  no longer need it. The label goes away if the event comes back in the calendar
+  the program came from, or when you choose **Clear calendar flag** on the
+  summary; the next import labels it again if the event is still canceled or
+  gone.
+
+**Which calendar.** Each program remembers which calendar it came from: not the
+address itself, which for a private calendar holds a secret, but a scrambled
+stamp that only that address matches. An import looks for changes,
+cancellations and missing events only among programs from the calendar it is
+reading. So if you change the address, or your phone and your laptop are set to
+different calendars, programs from the other calendar are left alone: still
+recognised, so not offered again, but never labeled canceled or gone and never
+offered a change. The stamp matches only the address it was made from: if you
+change the address of the same calendar (for example after resetting a private
+calendar's secret address), the programs already imported from it are no longer
+checked for changes, cancellations or missing events, and a label they already
+have stays until you clear it.
 
 Closing the review without choosing **Import** changes nothing.
 
@@ -525,7 +542,11 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   the list says how many, such as **1 rule not on this device**: added on
   another device and still on the way, or gone for good. **Remove** beside it
   takes them off this program. If a tick can't be saved, the box clears again
-  and the builder says so.
+  and the builder says so. A rule that isn't checked, because its saved search
+  is gone or can't be read or a newer version of the app made it, is marked
+  **Needs attention** in the list, and can still be ticked. If your saved
+  searches can't be read, the list still shows your rules; if your rules
+  can't be read, it says so.
   **New rule…** at the top opens the rule editor and, once you save the rule,
   adds it to this program. A copy of a program, a program you import (other
   than a calendar import's draft, which takes your Default template's rules),
@@ -797,8 +818,11 @@ programs?**) when you turn the setting on or add the venue; see
 Each time is optional. Tap **Set** beside it to choose a time, **Change** to
 pick another, or the clear button to remove it. They are times of day at the
 hall, with no time zone: a 7:30 PM start stays 7:30 PM wherever your device
-is. They show in your language's 12- or 24-hour clock, and you can set them
-before you know the date.
+is. They show in the clock the time picker uses: the 24-hour clock (19:30)
+when your device is set to it, otherwise your language's usual form (7:30 PM
+in English, 19:30 in German). The set list, the PDF and a calendar file you
+make on that device show them the same way. You can set them before you know
+the date.
 
 - An **End time** earlier than the **Start time** means the dance ends after
   midnight. The editor says **Ends the next day**, and the summary adds

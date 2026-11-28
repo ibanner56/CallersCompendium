@@ -85,7 +85,8 @@ class DanceDetailScreen extends StatefulWidget {
     this.pdfLayouter,
     this.onClose,
   }) : previewData = null,
-       onImport = null;
+       onImport = null,
+       importNotice = null;
 
   /// Preview mode for a **non-persisted** dance (e.g. an online Caller's Box
   /// search result before it is imported). Renders [data] directly with the
@@ -96,6 +97,7 @@ class DanceDetailScreen extends StatefulWidget {
     super.key,
     required DanceDetailData data,
     required this.onImport,
+    this.importNotice,
   }) : danceId = null,
        previewData = data,
        onRestored = null,
@@ -119,6 +121,7 @@ class DanceDetailScreen extends StatefulWidget {
   }) : danceId = null,
        previewData = data,
        onImport = null,
+       importNotice = null,
        onRestored = null,
        onDeleted = null,
        onNavigateTo = null,
@@ -140,6 +143,11 @@ class DanceDetailScreen extends StatefulWidget {
   /// preview mode; the caller performs the direct import (and its snackbar /
   /// collection refresh).
   final Future<void> Function()? onImport;
+
+  /// A notice shown above a preview's details: what importing it changes on
+  /// a saved dance that the preview cannot show, such as a re-import that
+  /// changes the dance's form (`danceReimportNotice`). Preview mode only.
+  final String? importNotice;
 
   /// Hides mutation affordances while retaining the detail body. A persisted
   /// read-only view may still expose [onReimport] as its sole mutation.
@@ -1184,6 +1192,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         AppSpacing.fabClearance,
       ),
       children: [
+        if (widget.importNotice case final notice?) ...[
+          _ImportNotice(notice),
+          const SizedBox(height: AppSpacing.sm),
+        ],
         Card(
           color: theme.colorScheme.surfaceContainer,
           child: Padding(
@@ -1572,16 +1584,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
           const SizedBox(height: AppSpacing.xxs),
           SelectableLine(
+            // As typed, as the title is: a Barnes reference names a book and
+            // often a tune, whose name the discouraged-term conversion would
+            // reword (the maintainer, decision sheet question 18).
             child: Text(
-              canonicalDiscouragedTerms
-                  ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                      dance.barnesReference,
-                      dialect,
-                    )
-                  : _proseRenderer.renderFreeText(
-                      dance.barnesReference,
-                      dialect,
-                    ),
+              dance.barnesReference,
               key: const ValueKey('dance-barnes-reference'),
             ),
           ),
@@ -1716,6 +1723,45 @@ class _RoleTermsOverrideNote extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// [DanceDetailScreen.importNotice]: what the preview's Import changes on the
+/// saved dance. A warning, since it can remove what the person typed.
+class _ImportNotice extends StatelessWidget {
+  const _ImportNotice(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onTertiaryContainer;
+    // About the import, not the dance: it stays out of a copy of the dance.
+    return SelectionContainer.disabled(
+      child: Card(
+        key: const ValueKey('preview-import-notice'),
+        color: theme.colorScheme.tertiaryContainer,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ExcludeSemantics(
+                child: Icon(Icons.warning_amber_outlined, color: color),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  text,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: color),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

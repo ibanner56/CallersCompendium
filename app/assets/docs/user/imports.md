@@ -28,6 +28,10 @@ the [update check](./settings.md#updates), or the
 [calendar import at startup](./settings.md#calendar) set to add drafts — is
 saying so: it runs only once you switch it on.
 
+When you choose a file to import on iPhone, iPad or Android, the system's file
+picker gives the app a copy of it. The app deletes that copy once it has read
+the file; your own file is left as it is.
+
 ## Nothing gets lost when a dance comes in
 
 Every import follows one promise: **bringing a dance in never loses the dance.**
@@ -555,7 +559,10 @@ If your camera app shows the link but won't open it, copy the link, open
 **Import…**, and paste it into the URL field (then choose **Fetch**) or into the
 text field (then choose **Review import**). That works on a computer too, if
 someone sends you the link as text. The link is read on your device; nothing
-is fetched.
+is fetched. A scanned code corrects its own small errors, but a pasted link
+can't: if a character of it was changed on the way, it's usually refused as
+damaged, and sometimes opens as a slightly different dance. Look over the
+review before you import it.
 
 If the app can't read a code, it says why and nothing is imported: a code made
 by a **newer version** of Caller's Compendium asks you to update the app, and a
@@ -711,7 +718,10 @@ across as an English country dance. A dance typed Square, or with a Square
 formation, becomes an English dance in a square set, as Newcastle is,
 keeping what Caller's Companion said of its formation as the formation's
 description and the repeat order its SubType names; a square in a big circle
-stays a circle. A dance typed Circle Mixer becomes a circle marked as a mixer,
+stays a circle. A formation given only in Caller's Companion's own words is a
+square set when those words start with "Square", or name no other shape (a
+start such as "improper" is not a shape), so "Sicilian circle; square through
+to start" stays a Sicilian circle, its words kept as the description. A dance typed Circle Mixer becomes a circle marked as a mixer,
 and one typed Scatter Mixer a formation described as "Scatter mixer", marked
 as a mixer. A dance typed Longways becomes a longways set, and a Becket one a
 longways set described as "Becket" ("Becket CCW" for counterclockwise).
@@ -803,7 +813,10 @@ emptied in Caller's Companion since is not applied; change it in the app.
 Each dance's **formation** comes across as Caller's Companion recorded it: a
 Becket keeps its direction (clockwise or counterclockwise), four facing four,
 triplets, triple minors and longways keep their shape, squares come across as
-squares, circle and scatter mixers are marked as mixers, and your own
+square dances in a square set (one in a big circle keeps the circle, one in
+another formation, such as a hexagon, is described as that, and what Caller's
+Companion said of the formation past "Square" is kept as its detail),
+circle and scatter mixers are marked as mixers, and your own
 description of the starting position ("Long Waves, R-hand to Neighbor") is kept
 as the formation's detail. A square's repeat order comes across too, when
 Caller's Companion gives it as "H H S S" or "H S H S".
@@ -1180,7 +1193,10 @@ would; a phrase structure you already set stays.
 
 Everything else on the dance is yours and stays as it is: its title, authors,
 calling notes, walkthrough, status, rating, tags, links, tunes, custom fields and
-source citations. Your own ratings, tags and notes are never overwritten by a
+source citations. One exception: only an English dance has a Barnes reference
+and a **Starts improper** mark, so an English dance that the incoming figures
+make a contra dance loses both, and setting it back to English does not bring
+them back. Your own ratings, tags and notes are never overwritten by a
 re-import, whatever the source: a share file or other Caller's Compendium file,
 a published collection, a Caller's Companion `.USR` file, ContraDB or The
 Caller's Box. Only the dance's record of where it came from is updated, to the
@@ -1266,9 +1282,15 @@ Review the preview, then import to replace only the dance's **figures,
 formation, and progression**, with the dance form they are written in, the
 meter and key if the dance has none, and the phrase structure if it has the
 standard one. The Caller's Box and ContraDB hold contra
-dances, so refreshing an English dance from them makes it a contra dance. This keeps your title, notes, rating, tags,
-links, custom fields, authors, citations, and other saved metadata. The import
-review's **Re-import onto** does the same. Its **Same dance — replace** choices
+dances, so refreshing an English dance from them makes it a contra dance. When
+the refresh changes the dance's form, a notice at the top of the preview says
+so, and names the Barnes reference and **Starts improper** mark it will remove,
+since only an English dance has them. Everything else is kept: your title,
+notes, rating, tags, links, custom fields, authors, citations, and other saved
+metadata. The import
+review's **Re-import onto** replaces the same parts, and removes the same two
+from an English dance it makes contra, but its note above **Import** says only
+that a dance's form can change, not what that removes. Its **Same dance — replace** choices
 are different: they replace the dance's content (see
 [Avoiding duplicates](#avoiding-duplicates)).
 

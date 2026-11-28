@@ -922,7 +922,11 @@ class _ProgramTemplateEditorScreenState
       final rule = await showDialog<ProgramTemplateEntry>(
         context: context,
         animationStyle: AppMotion.styleFor(context),
-        builder: (_) => _SlotRuleDialog(savedSearches: names, initial: entry),
+        builder: (_) => _SlotRuleDialog(
+          savedSearches: names,
+          unreadableSearchIds: _unreadableSearchIds,
+          initial: entry,
+        ),
       );
       if (rule == null || !mounted) return;
       // The dialog is modal; still, find the rule again rather than trust
@@ -1317,6 +1321,30 @@ class _ProgramTemplateSlotsEditorState
                     ? _ruleSubtitle(l10n, entry.savedSearchId!)
                     : null;
                 final badge = l10n.programTemplateSlotRuleBadge;
+                final title = entry.danceId == null
+                    // A break reads as its label; the entry keeps the
+                    // stored token.
+                    ? templateEntryDisplayText(l10n, entry.text) ?? ''
+                    : widget.danceTitles[entry.danceId] ??
+                          l10n.settingsDefaultsStartingProgramUnavailableDance;
+                // What the row's buttons and a move's announcement call the
+                // slot, so a screen reader can tell one row's buttons from
+                // the next (pre-release audit finding D1a-06).
+                final name = title.isNotEmpty ? title : ruleSubtitle ?? badge;
+                void move(int to) {
+                  setState(() {
+                    final key = _entryKeys.removeAt(index);
+                    _entryKeys.insert(to, key);
+                  });
+                  widget.onReorder(index, to);
+                  announceMoved(
+                    context,
+                    name: name,
+                    position: to + 1,
+                    count: widget.entries.length,
+                  );
+                }
+
                 return ListTile(
                   key: ValueKey(
                     'program-template-slot-${identityHashCode(_entryKeys[index])}',
@@ -1333,14 +1361,7 @@ class _ProgramTemplateSlotsEditorState
                           semanticLabel: ruleSubtitle == badge ? null : badge,
                         )
                       : null,
-                  title: Text(
-                    entry.danceId == null
-                        // A break reads as its label; the entry keeps the
-                        // stored token.
-                        ? templateEntryDisplayText(l10n, entry.text) ?? ''
-                        : widget.danceTitles[entry.danceId] ??
-                              l10n.settingsDefaultsStartingProgramUnavailableDance,
-                  ),
+                  title: Text(title),
                   subtitle: ruleSubtitle != null
                       ? Text(
                           ruleSubtitle,
@@ -1366,38 +1387,20 @@ class _ProgramTemplateSlotsEditorState
                       if (entry.isRule && widget.onEditRule != null)
                         IconButton(
                           key: ValueKey('program-template-rule-edit-$index'),
-                          tooltip: l10n.commonEdit,
+                          tooltip: l10n.programTemplateSlotEditTooltip(name),
                           icon: const Icon(Icons.edit_outlined),
                           onPressed: () => widget.onEditRule!(index),
                         ),
-                      IconButton(
-                        tooltip: l10n.settingsDefaultsStartingProgramMoveUp,
-                        icon: const Icon(Icons.arrow_upward),
-                        onPressed: index == 0
+                      ReorderMoveButtons(
+                        keyPrefix: 'program-template-slot-$index',
+                        name: name,
+                        onMoveUp: index == 0 ? null : () => move(index - 1),
+                        onMoveDown: index == widget.entries.length - 1
                             ? null
-                            : () {
-                                setState(() {
-                                  final key = _entryKeys.removeAt(index);
-                                  _entryKeys.insert(index - 1, key);
-                                });
-                                widget.onReorder(index, index - 1);
-                              },
+                            : () => move(index + 1),
                       ),
                       IconButton(
-                        tooltip: l10n.settingsDefaultsStartingProgramMoveDown,
-                        icon: const Icon(Icons.arrow_downward),
-                        onPressed: index == widget.entries.length - 1
-                            ? null
-                            : () {
-                                setState(() {
-                                  final key = _entryKeys.removeAt(index);
-                                  _entryKeys.insert(index + 1, key);
-                                });
-                                widget.onReorder(index, index + 1);
-                              },
-                      ),
-                      IconButton(
-                        tooltip: l10n.commonDelete,
+                        tooltip: l10n.programTemplateSlotDeleteTooltip(name),
                         icon: const Icon(Icons.delete_outline),
                         onPressed: () {
                           setState(() => _entryKeys.removeAt(index));
@@ -1466,12 +1469,20 @@ class _ProgramTemplateSlotsEditorState
 /// ([savedSearches], names by id). Pops the rule, or nothing on Cancel. With no
 /// saved search it only says where to save one.
 class _SlotRuleDialog extends StatefulWidget {
-  const _SlotRuleDialog({required this.savedSearches, this.initial});
+  const _SlotRuleDialog({
+    required this.savedSearches,
+    this.unreadableSearchIds = const {},
+    this.initial,
+  });
 
   /// The rule being edited, or null for a new one.
   final ProgramTemplateEntry? initial;
 
   final Map<String, String> savedSearches;
+
+  /// The saved searches stored but unreadable, so an edited rule whose
+  /// search is one of them says it can't be opened rather than deleted.
+  final Set<String> unreadableSearchIds;
 
   @override
   State<_SlotRuleDialog> createState() => _SlotRuleDialogState();
@@ -1480,6 +1491,13 @@ class _SlotRuleDialog extends StatefulWidget {
 class _SlotRuleDialogState extends State<_SlotRuleDialog> {
   final _label = TextEditingController();
   String? _searchId;
+
+  /// The edited rule's own saved search while it can't be chosen (gone, or
+  /// unreadable) and no other is: kept, so the label can still be changed
+  /// and saved. The template's save does not check a search the stored
+  /// template already names ([SlotRuleSearchCheck.added]); a newly chosen
+  /// one must be stored.
+  String? _keptSearchId;
 
   /// The label as the dialog opened, for [_dirty].
   String _initialLabel = '';
@@ -1498,9 +1516,11 @@ class _SlotRuleDialogState extends State<_SlotRuleDialog> {
     if (initial != null) {
       _label.text = initial.text ?? '';
       // A search that is gone or unreadable cannot be chosen again: the
-      // field starts empty, and Save waits for one that can.
+      // field starts empty, and the rule keeps it until another is chosen.
       if (widget.savedSearches.containsKey(initial.savedSearchId)) {
         _searchId = initial.savedSearchId;
+      } else {
+        _keptSearchId = initial.savedSearchId;
       }
     }
     _initialLabel = _label.text;
@@ -1517,14 +1537,20 @@ class _SlotRuleDialogState extends State<_SlotRuleDialog> {
     super.dispose();
   }
 
+  /// The saved search the rule is saved with: the one chosen, or the rule's
+  /// own kept one ([_keptSearchId]).
+  String? get _savingSearchId => _searchId ?? _keptSearchId;
+
   bool get _canSave =>
-      _searchId != null && _label.text.trim().isNotEmpty && !_labelIsBreak;
+      _savingSearchId != null &&
+      _label.text.trim().isNotEmpty &&
+      !_labelIsBreak;
 
   void _save() {
     if (!_canSave) return;
     Navigator.of(context).pop(
       ProgramTemplateEntry.rule(
-        savedSearchId: _searchId!,
+        savedSearchId: _savingSearchId!,
         label: _label.text.trim(),
       ),
     );
@@ -1542,7 +1568,8 @@ class _SlotRuleDialogState extends State<_SlotRuleDialog> {
         return byName != 0 ? byName : a.key.compareTo(b.key);
       });
     // Adding needs a saved search to choose; editing still lets the label
-    // change, and says there is no search to choose.
+    // change and be saved, keeping the rule's own search, and says there is
+    // no search to choose.
     if (searches.isEmpty && widget.initial == null) {
       return AlertDialog(
         key: const ValueKey('program-template-rule-no-searches'),
@@ -1622,6 +1649,19 @@ class _SlotRuleDialogState extends State<_SlotRuleDialog> {
                     }
                   }),
                 ),
+              // The rule's own search, kept, can't be chosen: say why, as
+              // the rule's row does.
+              if (_searchId == null ? _keptSearchId : null
+                  case final kept?) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  widget.unreadableSearchIds.contains(kept)
+                      ? l10n.programTemplateSlotRuleSearchUnreadable
+                      : l10n.programTemplateSlotRuleSearchGone,
+                  key: const ValueKey('program-template-rule-search-gone-note'),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
             ],
           ),
         ),

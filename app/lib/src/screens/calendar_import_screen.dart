@@ -142,6 +142,7 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
       final preview = await buildCalendarImportPreview(
         repos,
         body: body,
+        feedUrl: address,
         settings: _settings,
         today: DateTime(now.year, now.month, now.day),
         toLocal: widget.toLocal,
@@ -377,10 +378,11 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
     // The event's times beside its date (#2423), phrased as the set list
     // phrases a program's start and end.
     // Times as the program summary shows them, "(next day)" included.
+    final use24Hour = use24HourClockOf(context);
     String? rangeOf(int? start, int? end) => danceTimesText(
       startMinute: start,
       endMinute: end,
-      formatTime: (m) => formatTimeOfDay(m, l10n),
+      formatTime: (m) => formatTimeOfDay(m, l10n, use24Hour: use24Hour),
       labels: programExportLabels(l10n),
     );
     String? timesOf(CalendarImportEntry e) =>

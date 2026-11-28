@@ -160,24 +160,42 @@ class ProgramEventRulesController extends ChangeNotifier {
       var emissions = 0;
       var applied = 0;
       late final StreamSubscription<List<EventRule>> watch;
-      watch = repos.eventRules.watchAll().listen((live) async {
-        final seq = ++emissions;
-        final liveIds = {for (final r in live) r.id};
-        final all = await repos.eventRules.listAll(includeDeleted: true);
-        if (_disposed || !identical(_rulesWatch, watch)) return;
-        if (seq > applied) {
-          applied = seq;
-          _deletedRuleIds = {
-            for (final r in all)
-              if (!liveIds.contains(r.id)) r.id,
-          };
-        }
-        if (seq > 1) {
-          _rulesGeneration++;
-          _schedule();
-        }
-        _notifyLater();
-      });
+      watch = repos.eventRules.watchAll().listen(
+        (live) async {
+          final seq = ++emissions;
+          final liveIds = {for (final r in live) r.id};
+          // A failed read of the tombstones keeps the deleted ids last read;
+          // the rules are still checked again.
+          List<EventRule>? all;
+          try {
+            all = await repos.eventRules.listAll(includeDeleted: true);
+          } catch (error, stackTrace) {
+            logCaughtError(
+              error,
+              stackTrace,
+              source: 'program_event_rules.deleted_rules',
+            );
+          }
+          if (_disposed || !identical(_rulesWatch, watch)) return;
+          if (all != null && seq > applied) {
+            applied = seq;
+            _deletedRuleIds = {
+              for (final r in all)
+                if (!liveIds.contains(r.id)) r.id,
+            };
+          }
+          if (seq > 1) {
+            _rulesGeneration++;
+            _schedule();
+          }
+          _notifyLater();
+        },
+        onError: (Object error, StackTrace stackTrace) => logCaughtError(
+          error,
+          stackTrace,
+          source: 'program_event_rules.rules_watch',
+        ),
+      );
       _rulesWatch = watch;
     }
     _tablesWatch ??= _watchTables();
@@ -561,8 +579,9 @@ typedef ApplyEventRuleIdsChange =
 /// list stored.
 ///
 /// A program template's Rules row (#2342) opens the same picker with
-/// [forTemplate], which only changes its title and its "full" line to name
-/// the template; [onChange] then changes the template's list.
+/// [forTemplate], which only changes its title, its "full" line and its
+/// rules-not-here line to name the template; [onChange] then changes the
+/// template's list.
 Future<void> showProgramRulesPicker(
   BuildContext context, {
   required List<String> applied,
@@ -641,6 +660,15 @@ class _RulesPickerState extends State<_RulesPicker> {
   List<EventRule>? _rules;
   Map<String, String> _names = const {};
 
+  /// Whether [_names] is the latest read's. After a failed read it is the
+  /// last good read's (or empty), so, as Manage rules does, no rule is shown
+  /// as needing attention for its search until a read succeeds.
+  bool _namesKnown = false;
+
+  /// Whether the rules could not be read before any were listed: the picker
+  /// says so rather than showing its spinner for as long as it is open.
+  bool _rulesUnreadable = false;
+
   /// The ids of the rules this device holds deleted, kept for their Undo:
   /// the only applied ids that do not count toward the most, and the only
   /// ones dropped to make room. A rule not on this device yet counts. Kept
@@ -658,9 +686,23 @@ class _RulesPickerState extends State<_RulesPicker> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _rulesWatch ??= RepositoriesScope.of(
-      context,
-    ).eventRules.watchAll().listen((_) => unawaited(_read()));
+    _rulesWatch ??= RepositoriesScope.of(context).eventRules.watchAll().listen(
+      (_) => unawaited(_read()),
+      onError: (Object error, StackTrace stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'program_rules_picker.rules_watch',
+        );
+        _rulesReadFailed();
+      },
+    );
+  }
+
+  /// After a failed read of the rules: the list already shown stays; with
+  /// none shown yet, the picker says the rules can't be read.
+  void _rulesReadFailed() {
+    if (mounted && _rules == null) setState(() => _rulesUnreadable = true);
   }
 
   @override
@@ -672,16 +714,36 @@ class _RulesPickerState extends State<_RulesPicker> {
 
   Future<void> _read() async {
     final repos = RepositoriesScope.of(context);
-    final rules = await repos.eventRules.listAll();
-    final live = {for (final r in rules) r.id};
-    final deleted = {
-      for (final r in await repos.eventRules.listAll(includeDeleted: true))
-        if (!live.contains(r.id)) r.id,
-    };
-    final names = {
-      for (final stored in await repos.savedSearches.list())
-        if (stored.search case final search?) search.id: search.name,
-    };
+    final List<EventRule> rules;
+    final Set<String> deleted;
+    try {
+      rules = await repos.eventRules.listAll();
+      final live = {for (final r in rules) r.id};
+      deleted = {
+        for (final r in await repos.eventRules.listAll(includeDeleted: true))
+          if (!live.contains(r.id)) r.id,
+      };
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'program_rules_picker.rules');
+      _rulesReadFailed();
+      return;
+    }
+    // A failed read of the saved search names still lists the rules, named
+    // with the names last read (or none), as Manage rules does (#2548).
+    Map<String, String>? read;
+    try {
+      read = {
+        for (final stored in await repos.savedSearches.list())
+          if (stored.search case final search?) search.id: search.name,
+      };
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_rules_picker.search_names',
+      );
+    }
+    final names = read ?? _names;
     // The order is only how the list is sorted: if it can't be read, the
     // rules are listed in My order rather than not at all.
     var order = EventRuleOrder.manual;
@@ -708,7 +770,9 @@ class _RulesPickerState extends State<_RulesPicker> {
         title: (r) => eventRuleTitle(l10n, r, names[r.savedSearchId]),
       );
       _names = names;
+      _namesKnown = read != null;
       _deleted = deleted;
+      _rulesUnreadable = false;
     });
   }
 
@@ -768,6 +832,27 @@ class _RulesPickerState extends State<_RulesPicker> {
   }
 
   Future<void> _add(String id) => _toggle(id, on: true);
+
+  /// Under a rule's title: its sentence when the title is its nickname, and
+  /// a rule that is not checked marked Needs attention with why, as Manage
+  /// rules and a template's Rules row mark it. It can still be ticked. While
+  /// the latest names read failed ([_namesKnown]), a rule is flagged only
+  /// for what it says itself (a newer version made it).
+  Widget? _subtitle(EventRule rule, String Function(EventRule) sentence) {
+    final attention = _namesKnown || !rule.isReadable
+        ? eventRuleListAttention(rule, _names[rule.savedSearchId])
+        : null;
+    if (attention == null) {
+      return rule.nickname == null ? null : Text(sentence(rule));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (rule.nickname != null) Text(sentence(rule)),
+        EventRuleAttentionNote(attention: attention),
+      ],
+    );
+  }
 
   /// Opens the rule editor for a new rule, its nickname [nickname] when the
   /// search found nothing (#2341), and applies the rule once it is saved. The
@@ -920,7 +1005,11 @@ class _RulesPickerState extends State<_RulesPicker> {
                             title: Text(
                               l10n.programsRulesPickerNotHere(notHere.length),
                             ),
-                            subtitle: Text(l10n.programsRulesPickerNotHereHelp),
+                            subtitle: Text(
+                              widget.forTemplate
+                                  ? l10n.programTemplateRulesPickerNotHereHelp
+                                  : l10n.programsRulesPickerNotHereHelp,
+                            ),
                             trailing: TextButton(
                               key: const ValueKey(
                                 'program-rules-remove-not-here',
@@ -948,7 +1037,12 @@ class _RulesPickerState extends State<_RulesPicker> {
                   child: ListView(
                     shrinkWrap: true,
                     children: [
-                      if (rules == null)
+                      if (rules == null && _rulesUnreadable)
+                        ListTile(
+                          key: const ValueKey('program-rules-unreadable'),
+                          title: Text(l10n.programsRulesPickerUnreadable),
+                        )
+                      else if (rules == null)
                         const Padding(
                           padding: EdgeInsets.all(AppSpacing.md),
                           child: Center(child: CircularProgressIndicator()),
@@ -975,9 +1069,7 @@ class _RulesPickerState extends State<_RulesPicker> {
                                 _names[rule.savedSearchId],
                               ),
                             ),
-                            subtitle: rule.nickname == null
-                                ? null
-                                : Text(sentence(rule)),
+                            subtitle: _subtitle(rule, sentence),
                             onChanged: (on) => _toggle(rule.id, on: on == true),
                           ),
                     ],

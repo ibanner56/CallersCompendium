@@ -53,6 +53,7 @@ void main() {
   final l10n = AppLocalizationsEn();
   late List<String> fetched;
   setUp(() => fetched = []);
+  setUp(readDanceLinksInPlace);
 
   Future<String> recordingFetcher(String url) async {
     fetched.add(url);
