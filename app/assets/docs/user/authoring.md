@@ -740,7 +740,11 @@ bar and a half of two beats would be 4½ beats in 3/2, or a count would pass the
 64 beats a figure can hold), or a figure is one of your combinations, no count
 changes: the message says the figures now read in the new bars, so check them.
 Counts left like that still mean the bars you entered them in, so typing the
-Meter back leaves them as they were, until you change one of them.
+Meter back leaves them as they were, until you change one of them. A phrase's
+beats to the bar work the same way: changing a named phrase's **Beats per
+bar**, or typing a structure such as `4*8*3` with no Meter, keeps each figure's
+bars, counted in the bars of the phrase it falls in. Changing only a phrase's
+bars, or whether it plays once or twice, changes no count.
 A Meter given while the dance was another type is
 applied to the phrases the same way when you make it English, unless it states
 the same beats to the bar as it did when you changed the dance from English
@@ -947,7 +951,8 @@ another where there is not.
   and C. A phrase's beats to the bar start as the dance's **Meter** gives them
   (a meter naming several meters gives each new phrase the first phrase's), and
   you can set each phrase's own, such as 3 for an A in 3/4 and 2 for a B in
-  6/8: the dance is then counted in bars phrase by phrase (see
+  6/8: the dance is then counted in bars phrase by phrase, and each figure
+  keeps its bars (see
   [English dances are timed in bars](#english-dances-are-timed-in-bars)).
   Changing the **Meter** to one that now states other beats to the bar sets
   every phrase to them, keeping each one's bars, but only while the phrases

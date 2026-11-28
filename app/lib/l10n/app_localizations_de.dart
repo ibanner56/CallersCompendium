@@ -5387,6 +5387,14 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseFigureBarsKept =>
+      'Die Schlagzahlen der Figuren wurden angepasst, damit jede Figur ihre Takte behält.';
+
+  @override
+  String get danceEditorPhraseFigureBarsNotKept =>
+      'Schlagzahlen nicht geändert: Nicht jede Figur konnte ihre Takte genau behalten, darum zählen sie jetzt in den Takten ihrer Phrase. Prüfe sie.';
+
+  @override
   String get danceEditorSequenceSpanLabel => 'Takte für alle';
 
   @override
