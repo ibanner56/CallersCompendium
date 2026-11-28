@@ -90,9 +90,7 @@ void main() {
     expect(bravo.formation.shape, FormationShape.dupleProper);
   });
 
-  testWidgets('a dance unticked and ticked again is converted', (
-    tester,
-  ) async {
+  testWidgets('a dance unticked and ticked again is converted', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance('Alpha'));
     await repos.dances.create(_dance('Bravo'));

@@ -360,10 +360,7 @@ void main() {
         isTrue,
       );
 
-      final noteMarked = [
-        before[0].copyWith(performedAt: mark),
-        before[1],
-      ];
+      final noteMarked = [before[0].copyWith(performedAt: mark), before[1]];
       expect(
         performAdjustmentStillApplies(
           before: before,

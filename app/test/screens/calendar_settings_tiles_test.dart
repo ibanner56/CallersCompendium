@@ -49,10 +49,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('calendar-settings-save')));
     await tester.pumpAndSettle();
 
-    expect(
-      await repos.settings.get(kCalendarImportTitleFilterKey),
-      'contra',
-    );
+    expect(await repos.settings.get(kCalendarImportTitleFilterKey), 'contra');
     expect(
       find.descendant(of: tile, matching: find.text('"contra"')),
       findsOneWidget,
