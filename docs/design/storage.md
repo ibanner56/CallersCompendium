@@ -344,7 +344,9 @@ the release the below-floor bridge then sent v20–v34 collections through. It
 was retired with the versions below v39. The v39 fixture, from `v0.7.0-beta`,
 was retired when the floor reached v40.)
 
-For the *schema steps* a fixture from a release that writes v41 adds little:
+Every release from `v0.9.0-beta` to `v0.10.0-beta` writes schema v41
+(`kCompendiumSchemaVersion` at each tag). For the *schema steps* a fixture from
+any of them adds little:
 the floor fixture already runs every step from v40, including `from < 41`. It
 is there for the *data*. The floor fixture's dances use only swing, balance,
 circle, robins chain and one meanwhile, so nothing else showed that what v0.9
