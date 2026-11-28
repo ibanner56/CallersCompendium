@@ -103,6 +103,9 @@ work, the app announces changes you'd otherwise have to see:
   know how many matches or selected items you have.
 - Moving a [slot](./glossary.md#slot) or a [figure](./glossary.md#figure) is
   announced as it happens.
+- With event rules on (**Settings ▸ Experimental ▸ Event rules**), the program
+  builder announces its Rules summary, such as "1 rule not met", when it
+  appears and whenever the number changes.
 - A [dance](./glossary.md#dance)'s figure list, the
   [program](./glossary.md#program) [matrix](./glossary.md#matrix) grid, and dance
   details all read as structured, spoken-friendly text. For example, a figure
