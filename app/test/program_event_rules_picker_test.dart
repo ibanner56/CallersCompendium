@@ -118,6 +118,47 @@ List<String> _listed(WidgetTester tester) {
   return ids..sort((a, b) => tops[a]!.compareTo(tops[b]!));
 }
 
+/// Opens the picker on its own, as a template's Rules row does with
+/// [forTemplate], applying [applied]; nothing else on screen reads the
+/// rules or the saved searches.
+Future<void> _openPickerAlone(
+  WidgetTester tester,
+  CompendiumRepositories repos, {
+  List<String> applied = const [],
+  bool forTemplate = false,
+}) async {
+  await tester.binding.setSurfaceSize(const Size(900, 2000));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      builder: (context, child) =>
+          RepositoriesScope(repositories: repos, child: child!),
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: TextButton(
+            onPressed: () => showProgramRulesPicker(
+              context,
+              applied: applied,
+              forTemplate: forTemplate,
+              onChange: (change) async => change(applied),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.tap(find.text('open'));
+  await tester.pump();
+}
+
+Finder _needsAttention(String ruleId) => find.descendant(
+  of: find.byKey(ValueKey('program-rule-$ruleId')),
+  matching: find.text('Needs attention'),
+);
+
 final _search = find.byKey(const ValueKey('program-rules-search'));
 final _newRule = find.byKey(const ValueKey('program-rules-new'));
 
@@ -414,5 +455,145 @@ void main() {
     await seeded.rule(seeded.becket);
     await _openPicker(tester, seeded.repos);
     expect(find.text('Rules for this program'), findsOneWidget);
+  });
+
+  testWidgets('a rule that is not checked is marked Needs attention, with '
+      'why: its saved search is gone, or a newer version made it', (
+    tester,
+  ) async {
+    final seeded = await _seed();
+    final fine = await seeded.rule(seeded.becket, nickname: 'Fine');
+    await seeded.repos.eventRules.writeFromSync(
+      const EventRule(
+        id: 'rule-gone',
+        savedSearchId: 'search-gone',
+        quantifierName: 'atMost',
+        count: 1,
+        scopeName: 'wholeProgram',
+        position: 1,
+      ),
+    );
+    await seeded.repos.eventRules.writeFromSync(
+      EventRule(
+        id: 'rule-newer',
+        savedSearchId: seeded.becket.id,
+        quantifierName: 'mostly',
+        count: 1,
+        scopeName: 'wholeProgram',
+        nickname: 'From the future',
+        position: 2,
+      ),
+    );
+    await _openPickerAlone(tester, seeded.repos);
+    await pumpUntilFound(tester, _row(fine));
+
+    expect(_needsAttention(fine.id), findsNothing);
+    expect(_needsAttention('rule-gone'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('program-rule-rule-gone')),
+        matching: find.text(
+          "Its saved search was deleted or can't be read, so it is not "
+          'checked.',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(_needsAttention('rule-newer'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('program-rule-rule-newer')),
+        matching: find.text(
+          'Made by a newer version of the app, so it is not checked.',
+        ),
+      ),
+      findsOneWidget,
+    );
+    // Still a rule to tick, as on a template's Rules row.
+    expect(
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const ValueKey('program-rule-rule-gone')),
+          )
+          .onChanged,
+      isNotNull,
+    );
+  });
+
+  testWidgets('when the saved search names cannot be read, the picker still '
+      'lists the rules, flagging only a newer-version rule', (tester) async {
+    final db = openWidgetTestDatabase();
+    final settings = FailingSavedSearchReadsSettings(db);
+    final repos = CompendiumRepositories(
+      db,
+      contraTaxonomy,
+      settings: settings,
+    );
+    final becket = await repos.savedSearches.create(
+      name: 'Becket',
+      spec: _spec(FormationShape.becketCcw),
+    );
+    final rule = await repos.eventRules.create(
+      savedSearchId: becket.id,
+      quantifier: EventRuleQuantifier.atMost,
+      count: 1,
+      scope: EventRuleScope.wholeProgram,
+      nickname: 'One Becket',
+    );
+    await repos.eventRules.writeFromSync(
+      EventRule(
+        id: 'rule-newer',
+        savedSearchId: becket.id,
+        quantifierName: 'mostly',
+        count: 1,
+        scopeName: 'wholeProgram',
+        nickname: 'From the future',
+        position: 1,
+      ),
+    );
+    settings.failSearchReads = true;
+    await _openPickerAlone(tester, repos);
+    await pumpUntilFound(tester, _row(rule));
+
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    // Not read is not gone: the readable rule is not flagged for its search.
+    expect(_needsAttention(rule.id), findsNothing);
+    expect(_needsAttention('rule-newer'), findsOneWidget);
+
+    // The next change to the rules reads the names again.
+    settings.failSearchReads = false;
+    await repos.eventRules.create(
+      savedSearchId: becket.id,
+      quantifier: EventRuleQuantifier.none,
+      scope: EventRuleScope.beforeFirstBreak,
+      nickname: 'Later',
+    );
+    await pumpUntilFound(tester, find.text('Later'));
+    expect(
+      find.descendant(
+        of: _row(rule),
+        matching: find.text(
+          'At most 1 dance matching "Becket" in the whole program',
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('when the rules cannot be read, the picker says so rather than '
+      'showing a spinner for as long as it is open', (tester) async {
+    final repos = openTestRepositories();
+    await repos.db.customStatement('DROP TABLE event_rules');
+    await _openPickerAlone(tester, repos);
+    final unreadable = find.byKey(const ValueKey('program-rules-unreadable'));
+    await pumpUntilFound(tester, unreadable);
+    expect(
+      find.descendant(
+        of: unreadable,
+        matching: find.text("Your rules can't be read right now."),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 }

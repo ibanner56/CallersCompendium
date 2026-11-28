@@ -3866,6 +3866,19 @@ class AppLocalizationsNl extends AppLocalizations {
   String get backupRestored => 'Back-up hersteld.';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count avondregels zijn verwijderd, omdat de back-up hun opgeslagen zoekopdrachten niet bevat.',
+      one:
+          '1 avondregel is verwijderd, omdat de back-up de opgeslagen zoekopdracht ervan niet bevat.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed =>
       'De back-up kon niet worden hersteld. Probeer het opnieuw.';
 
@@ -15125,6 +15138,19 @@ class AppLocalizationsNl extends AppLocalizations {
       'Die opgeslagen zoekopdracht is net verwijderd, dus de regel is niet opgeslagen. Kies een andere.';
 
   @override
+  String get eventRuleSaveFailed =>
+      'Kan de regel niet opslaan. Probeer het opnieuw.';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'Dit apparaat heeft $max regels, het maximum. Verwijder er een om een andere toe te voegen.';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable =>
+      'Je opgeslagen zoekopdrachten kunnen nu niet worden gelezen, dus hier kan er geen worden gekozen.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Hoeveel';
 
   @override
@@ -15489,7 +15515,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programTemplateRuleRemovedUnknown =>
-      'Verwijderd: een regel die niet op dit apparaat staat';
+      'Een regel die niet op dit apparaat staat';
 
   @override
   String get programTemplateRulesPickerTitle => 'Regels voor dit sjabloon';
@@ -15513,6 +15539,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       'Toegevoegd op een ander apparaat en nog onderweg, of voorgoed weg. Verwijderen haalt ze van dit programma.';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      'Toegevoegd op een ander apparaat en nog onderweg, of voorgoed weg. Verwijderen haalt ze van dit sjabloon.';
+
+  @override
+  String get programsRulesPickerUnreadable =>
+      'Je regels kunnen nu niet worden gelezen.';
 
   @override
   String get programsRulesChangeFailed =>

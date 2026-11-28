@@ -3808,6 +3808,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupRestored => 'Backup restored.';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count event rules were deleted, because the backup doesn\'t have their saved searches.',
+      one:
+          '1 event rule was deleted, because the backup doesn\'t have its saved search.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed => 'Couldn\'t restore the backup. Try again.';
 
   @override
@@ -14984,6 +14997,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'That saved search was just deleted, so the rule wasn\'t saved. Choose another.';
 
   @override
+  String get eventRuleSaveFailed => 'Couldn\'t save the rule. Try again.';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'This device holds $max rules, the most it can. Delete one to add another.';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable =>
+      'Your saved searches can\'t be read right now, so none can be chosen here.';
+
+  @override
   String get eventRuleQuantifierLabel => 'How many';
 
   @override
@@ -15342,7 +15367,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programTemplateRuleRemovedUnknown =>
-      'Removed: a rule that isn\'t on this device';
+      'A rule that isn\'t on this device';
 
   @override
   String get programTemplateRulesPickerTitle => 'Rules for this template';
@@ -15366,6 +15391,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       'Added on another device and still on the way, or gone for good. Remove takes them off this program.';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      'Added on another device and still on the way, or gone for good. Remove takes them off this template.';
+
+  @override
+  String get programsRulesPickerUnreadable =>
+      'Your rules can\'t be read right now.';
 
   @override
   String get programsRulesChangeFailed =>

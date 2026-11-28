@@ -3875,6 +3875,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get backupRestored => 'Sicherung wiederhergestellt.';
 
   @override
+  String backupRestoreRemovedEventRules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Abendregeln wurden gelöscht, weil die Sicherung ihre gespeicherten Suchen nicht enthält.',
+      one:
+          '1 Abendregel wurde gelöscht, weil die Sicherung ihre gespeicherte Suche nicht enthält.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get backupRestoreFailed =>
       'Die Sicherung konnte nicht wiederhergestellt werden. Versuche es erneut.';
 
@@ -15165,6 +15178,19 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese gespeicherte Suche wurde gerade gelöscht, deshalb wurde die Regel nicht gespeichert. Wähle eine andere.';
 
   @override
+  String get eventRuleSaveFailed =>
+      'Die Regel konnte nicht gespeichert werden. Versuche es noch einmal.';
+
+  @override
+  String eventRuleSaveLimit(int max) {
+    return 'Dieses Gerät hat $max Regeln, mehr geht nicht. Lösche eine, um eine andere hinzuzufügen.';
+  }
+
+  @override
+  String get eventRuleSearchesUnreadable =>
+      'Deine gespeicherten Suchen können gerade nicht gelesen werden, daher kann hier keine gewählt werden.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Wie viele';
 
   @override
@@ -15526,7 +15552,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programTemplateRuleRemovedUnknown =>
-      'Entfernt: eine Regel, die nicht auf diesem Gerät ist';
+      'Eine Regel, die nicht auf diesem Gerät ist';
 
   @override
   String get programTemplateRulesPickerTitle => 'Regeln für diese Vorlage';
@@ -15550,6 +15576,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get programsRulesPickerNotHereHelp =>
       'Auf einem anderen Gerät hinzugefügt und noch unterwegs, oder endgültig weg. Entfernen nimmt sie aus diesem Programm.';
+
+  @override
+  String get programTemplateRulesPickerNotHereHelp =>
+      'Auf einem anderen Gerät hinzugefügt und noch unterwegs, oder endgültig weg. Entfernen nimmt sie aus dieser Vorlage.';
+
+  @override
+  String get programsRulesPickerUnreadable =>
+      'Deine Regeln können gerade nicht gelesen werden.';
 
   @override
   String get programsRulesChangeFailed =>

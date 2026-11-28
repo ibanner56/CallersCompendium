@@ -4807,6 +4807,16 @@
   "@backupRestored": {
     "description": "Snackbar confirming a backup restore completed without skipped problems."
   },
+  "backupRestoreRemovedEventRules": "{count, plural, =1{1 event rule was deleted, because the backup doesn't have its saved search.} other{{count} event rules were deleted, because the backup doesn't have their saved searches.}}",
+  "@backupRestoreRemovedEventRules": {
+    "description": "Second sentence of the snackbar after a backup restore (or its settings retry) that deleted event rules (Experimental): rules kept because the backup holds no rules, whose saved search the restore removed. Joined after backupRestored, backupRestoreSkippedProblems or backupRestoreSettingsRetried.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "backupRestoreFailed": "Couldn't restore the backup. Try again.",
   "@backupRestoreFailed": {
     "description": "Snackbar shown when backup restore fails unexpectedly. The raw exception is logged separately, not shown in the UI."
@@ -20251,6 +20261,24 @@
   "@eventRuleSavedSearchGone": {
     "description": "Snackbar in the rule editor when saving fails because the chosen saved search was deleted after the editor opened (#2529). The search choice is then cleared."
   },
+  "eventRuleSaveFailed": "Couldn't save the rule. Try again.",
+  "@eventRuleSaveFailed": {
+    "description": "Snackbar in the rule editor when saving the rule failed for a reason other than its saved search being deleted or the rule limit, such as a database that can't be written. The editor stays open so Save can be tried again."
+  },
+  "eventRuleSaveLimit": "This device holds {max} rules, the most it can. Delete one to add another.",
+  "@eventRuleSaveLimit": {
+    "description": "Snackbar in the rule editor when a new rule can't be saved because this device already holds the most event rules it can. The editor stays open.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "500"
+      }
+    }
+  },
+  "eventRuleSearchesUnreadable": "Your saved searches can't be read right now, so none can be chosen here.",
+  "@eventRuleSearchesUnreadable": {
+    "description": "In the rule editor, in place of the saved search choice, when the saved searches could not be read (a damaged or locked settings store). A rule being edited keeps its own saved search, so its other fields can still be changed and saved."
+  },
   "eventRuleQuantifierLabel": "How many",
   "@eventRuleQuantifierLabel": {
     "description": "Label of the rule editor choice between At most, At least and None (#2340)."
@@ -20725,9 +20753,9 @@
       }
     }
   },
-  "programTemplateRuleRemovedUnknown": "Removed: a rule that isn't on this device",
+  "programTemplateRuleRemovedUnknown": "A rule that isn't on this device",
   "@programTemplateRuleRemovedUnknown": {
-    "description": "A rule on a program template that this device does not hold, deleted for good or not synced yet (#2342). It is not added to new programs."
+    "description": "A rule on a program template's Rules row that this device holds neither live nor deleted: still on its way from another device, or gone for good (#2342). Not called removed, since it may yet arrive. It is not added to new programs."
   },
   "programTemplateRulesPickerTitle": "Rules for this template",
   "@programTemplateRulesPickerTitle": {
@@ -20756,6 +20784,14 @@
   "programsRulesPickerNotHereHelp": "Added on another device and still on the way, or gone for good. Remove takes them off this program.",
   "@programsRulesPickerNotHereHelp": {
     "description": "Under programsRulesPickerNotHere in a program's Rules picker (#2340): what those rules are, and what Remove beside it does."
+  },
+  "programTemplateRulesPickerNotHereHelp": "Added on another device and still on the way, or gone for good. Remove takes them off this template.",
+  "@programTemplateRulesPickerNotHereHelp": {
+    "description": "Under programsRulesPickerNotHere in the rule picker opened from a program template's Rules row: what those rules are, and what Remove beside it does. The template form of programsRulesPickerNotHereHelp."
+  },
+  "programsRulesPickerUnreadable": "Your rules can't be read right now.",
+  "@programsRulesPickerUnreadable": {
+    "description": "Shown in the rule picker of a program or a program template, in place of the list, when the event rules could not be read (a damaged or locked database)."
   },
   "programsRulesChangeFailed": "Couldn't change this program's rules. Try again.",
   "@programsRulesChangeFailed": {

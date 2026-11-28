@@ -11,7 +11,7 @@ import '../support/test_repositories.dart';
 
 /// The caller's event rules in a backup (#2340): `app.eventRules`, its
 /// conditional v3 envelope, the rules a program applies carried with the
-/// program, and a restore that leaves the rules alone when the file does not
+/// program, and a restore that keeps the rules when the file does not
 /// describe them.
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -155,17 +155,246 @@ void main() {
   });
 
   group('restore', () {
-    test('a backup made before event rules leaves live rules alone', () async {
-      final (repos, rule) = await seeded();
-      await BackupService(repos).restoreFromJson(
-        jsonEncode({
-          'backupVersion': 2,
-          'createdAt': '2026-10-15T00:00:00.000Z',
-          'core': {'dances': <Object?>[]},
-          'app': {'settings': <String, Object?>{}},
-        }),
+    // A backup with no `app.eventRules` section, whether made before event
+    // rules or by this build while there were none, says nothing about the
+    // rules, so a Replace restore keeps them; it does replace the saved
+    // searches, which are settings. A kept rule whose saved search the
+    // restore removed is deleted too, and only such a rule.
+
+    /// The device restored onto: a rule on 'search-1', one on 'search-2',
+    /// and one whose saved search was already gone before the restore (as a
+    /// peer's rule can arrive), each applied by a program.
+    Future<(CompendiumRepositories, List<EventRule>)> withThreeRules() async {
+      final (repos, first) = await seeded();
+      final second = await repos.eventRules.create(
+        savedSearchId: 'search-2',
+        quantifier: EventRuleQuantifier.none,
+        scope: EventRuleScope.wholeProgram,
+        nickname: 'Its search is in the backup',
       );
+      const orphan = EventRule(
+        id: 'rule-orphan',
+        savedSearchId: 'search-gone-before',
+        quantifierName: 'none',
+        count: 0,
+        scopeName: 'wholeProgram',
+        position: 9,
+      );
+      await repos.eventRules.writeFromSync(orphan);
+      final rules = await repos.eventRules.listAll();
+      expect(rules.map((r) => r.id), [first.id, second.id, orphan.id]);
+      return (repos, rules);
+    }
+
+    /// The document of a backup this build makes from a device that holds a
+    /// program and the saved search 'search-2', and no event rule: it has no
+    /// rules section.
+    Future<Map<String, Object?>> thisBuildWithoutRules() async {
+      final source = openTestRepositories();
+      await storeSavedSearches(source.settings, ['search-2']);
+      await source.programs.create(
+        Program(
+          id: 'p-old',
+          title: 'From the backup',
+          createdAt: created,
+          updatedAt: created,
+        ),
+      );
+      final payload = backupToJson(await BackupService(source).buildDocument());
+      final app = payload['app']! as Map;
+      expect(app.containsKey('eventRules'), isFalse);
+      expect(
+        (app['settings'] as Map).keys.where(
+          (k) => '$k'.startsWith(savedSearchKeyPrefix),
+        ),
+        ['${savedSearchKeyPrefix}search-2'],
+      );
+      return payload;
+    }
+
+    /// A backup made before saved searches and event rules: settings, no
+    /// saved search, no rules section.
+    final beforeEventRules = jsonEncode({
+      'backupVersion': 2,
+      'createdAt': '2026-10-15T00:00:00.000Z',
+      'core': {'dances': <Object?>[]},
+      'app': {'settings': <String, Object?>{}},
+    });
+
+    Future<List<String>> liveIds(CompendiumRepositories repos) async => [
+      for (final r in await repos.eventRules.listAll()) r.id,
+    ];
+
+    test(
+      'a Replace restore of a backup this build made with no rules '
+      'deletes the rules whose saved search it removed, and only them',
+      () async {
+        final (repos, before) = await withThreeRules();
+        final [onRemoved, onKept, orphan] = before;
+        final outcome = await BackupService(
+          repos,
+        ).restoreFromJson(jsonEncode(await thisBuildWithoutRules()));
+
+        expect(outcome.applied, isTrue);
+        expect(outcome.errors, isEmpty);
+        expect(outcome.removedEventRules, 1);
+        expect(await isSavedSearchStored(repos.settings, 'search-1'), isFalse);
+        expect(await isSavedSearchStored(repos.settings, 'search-2'), isTrue);
+        // The rule on the search the backup holds, and the one whose search was
+        // gone before the restore, are exactly as they were.
+        expect(await repos.eventRules.listAll(), [onKept, orphan]);
+        // The removed rule is deleted softly, so the deletion syncs.
+        final all = await repos.eventRules.listAll(includeDeleted: true);
+        expect(all.map((r) => r.id), contains(onRemoved.id));
+      },
+    );
+
+    test('a Replace restore of a backup made before event rules deletes the '
+        'rules whose saved search it removed, and only them', () async {
+      final (repos, before) = await withThreeRules();
+      final orphan = before.last;
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson(beforeEventRules);
+
+      expect(outcome.applied, isTrue);
+      expect(outcome.removedEventRules, 2);
+      expect(await repos.eventRules.listAll(), [orphan]);
+    });
+
+    test('a Replace restore of a backup with rules removes none for their '
+        'saved searches: the section says what the rules are', () async {
+      final (source, rule) = await seeded();
+      final json = await BackupService(source).exportToJson();
+      final (repos, _) = await withThreeRules();
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isTrue);
+      expect(outcome.removedEventRules, 0);
       expect(await repos.eventRules.listAll(), [rule]);
+      expect(await isSavedSearchStored(repos.settings, 'search-1'), isTrue);
+    });
+
+    test('a Merge restore of a backup without rules removes no rule', () async {
+      for (final json in [
+        jsonEncode(await thisBuildWithoutRules()),
+        beforeEventRules,
+      ]) {
+        final (repos, before) = await withThreeRules();
+        final outcome = await BackupService(
+          repos,
+        ).restoreFromJson(json, mode: RestoreMode.merge);
+        expect(outcome.applied, isTrue);
+        expect(outcome.removedEventRules, 0);
+        expect(await repos.eventRules.listAll(), before);
+      }
+    });
+
+    test('a Replace restore whose rules section could not all be read keeps '
+        'the rules it lacks, but not those whose saved search it removed; a '
+        'rule the section holds is written as it has it', () async {
+      final (repos, before) = await withThreeRules();
+      final [_, onKept, orphan] = before;
+      // On 'search-3', which the backup lacks too, but the backup holds
+      // the rule itself.
+      final carried = await repos.eventRules.create(
+        savedSearchId: 'search-3',
+        quantifier: EventRuleQuantifier.none,
+        scope: EventRuleScope.wholeProgram,
+      );
+      final payload = await thisBuildWithoutRules();
+      (payload['app']! as Map)['eventRules'] = [
+        {'id': 'bad'},
+        {
+          'id': carried.id,
+          'savedSearchId': 'search-3',
+          'quantifier': 'none',
+          'count': 0,
+          'scope': 'wholeProgram',
+          'position': carried.position,
+        },
+      ];
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson(jsonEncode(payload));
+
+      expect(outcome.applied, isTrue);
+      expect(outcome.errors, isNotEmpty);
+      expect(outcome.removedEventRules, 1);
+      expect(await liveIds(repos), [onKept.id, orphan.id, carried.id]);
+    });
+
+    test('a saved search the backup holds in a form the restore refuses is '
+        'removed, and so is its rule', () async {
+      final (repos, before) = await withThreeRules();
+      final [_, onKept, orphan] = before;
+      final payload = await thisBuildWithoutRules();
+      // 'search-1' is in the backup, but not as a value this build stores.
+      ((payload['app']! as Map)['settings']
+              as Map)['${savedSearchKeyPrefix}search-1'] =
+          42;
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson(jsonEncode(payload));
+
+      expect(outcome.applied, isTrue);
+      expect(await isSavedSearchStored(repos.settings, 'search-1'), isFalse);
+      expect(outcome.removedEventRules, 1);
+      expect(await repos.eventRules.listAll(), [onKept, orphan]);
+    });
+
+    test('a settings apply that fails part way removes neither the saved '
+        'searches nor their rules, and its retry removes both', () async {
+      final db = openWidgetTestDatabase();
+      final settings = _FailingSecondSearchRemoval(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      await storeSavedSearches(repos.settings, ['search-1', 'search-2']);
+      final first = await repos.eventRules.create(
+        savedSearchId: 'search-1',
+        quantifier: EventRuleQuantifier.none,
+        scope: EventRuleScope.wholeProgram,
+      );
+      final second = await repos.eventRules.create(
+        savedSearchId: 'search-2',
+        quantifier: EventRuleQuantifier.none,
+        scope: EventRuleScope.wholeProgram,
+      );
+      final service = BackupService(repos);
+
+      final failed = await service.restoreFromJson(beforeEventRules);
+      expect(failed.applied, isTrue);
+      expect(failed.settingsFailed, isTrue);
+      // All or nothing: no search went, so no rule went either.
+      expect(failed.removedEventRules, 0);
+      expect(await liveIds(repos), [first.id, second.id]);
+      expect(await isSavedSearchStored(repos.settings, 'search-1'), isTrue);
+      expect(await isSavedSearchStored(repos.settings, 'search-2'), isTrue);
+
+      settings.failing = false;
+      final retried = await service.retryApplySettings(
+        beforeEventRules,
+        mode: RestoreMode.replace,
+      );
+      expect(retried.settingsFailed, isFalse);
+      expect(retried.removedEventRules, 2);
+      expect(await liveIds(repos), isEmpty);
+    });
+
+    test('retrying the settings of a Replace restore removes the rules too, '
+        'and says so', () async {
+      final (repos, before) = await withThreeRules();
+      final orphan = before.last;
+      final outcome = await BackupService(
+        repos,
+      ).retryApplySettings(beforeEventRules, mode: RestoreMode.replace);
+
+      expect(outcome.applied, isTrue);
+      expect(outcome.removedEventRules, 2);
+      expect(await repos.eventRules.listAll(), [orphan]);
     });
 
     test(
@@ -303,4 +532,22 @@ void main() {
       expect(read.eventRulesComplete, isFalse);
     });
   });
+}
+
+/// Settings whose restore fails on removing the second saved search while
+/// [failing] is set, so a settings apply fails part way: after one saved
+/// search is removed and before the other.
+class _FailingSecondSearchRemoval extends SettingsRepository {
+  _FailingSecondSearchRemoval(super.db);
+
+  bool failing = true;
+  var _removed = 0;
+
+  @override
+  Future<void> removeFromRestore(String key, {required DateTime at}) async {
+    if (failing && key.startsWith(savedSearchKeyPrefix) && ++_removed == 2) {
+      throw const InjectedSettingsFailure();
+    }
+    return super.removeFromRestore(key, at: at);
+  }
 }
