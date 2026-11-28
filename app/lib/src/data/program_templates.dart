@@ -582,11 +582,26 @@ List<ProgramTemplateEntry>? undoSlotRulesNaming(
 /// Writes the templates' order, keeping at most
 /// [kMaxProgramTemplateOrderLength] ids (more can exist after two devices
 /// add templates at once; the rest then sort after these by name).
+///
+/// While a deleted template's id is still the stored default, the template
+/// standing in for it ([ProgramTemplates.defaultId], the first in the old
+/// order) is written as the default first, so a reorder does not move the
+/// default without saying so. Undo of that delete then no longer makes the
+/// deleted template the default again.
 Future<void> saveProgramTemplateOrder(
   SettingsRepository settings,
   List<String> ids,
 ) async {
   await materializeProgramTemplates(settings);
+  final stored = tryDecodeProgramTemplateDefault(
+    await settings.get(kProgramTemplateDefaultKey),
+  );
+  if (stored != null &&
+      stored != kProgramTemplateBlankDefault &&
+      !await settings.contains(programTemplateKey(stored))) {
+    final standIn = (await loadProgramTemplates(settings)).defaultId;
+    if (standIn != null) await saveProgramTemplateDefault(settings, standIn);
+  }
   await settings.set(
     kProgramTemplateOrderKey,
     ids.length > kMaxProgramTemplateOrderLength
@@ -644,7 +659,8 @@ Future<void> saveProgramTemplateDefaultIfUnset(
 /// reorder, create or duplicate drops it, and it then sorts after the listed
 /// ones by name). Until then a missing id in the order reads as absent, and
 /// a default naming it reads as the first template left
-/// ([ProgramTemplates.defaultId]).
+/// ([ProgramTemplates.defaultId]); a create, duplicate or reorder writes that
+/// stand-in as the default ([saveProgramTemplateOrder]).
 Future<void> deleteProgramTemplate(
   SettingsRepository settings,
   String id,

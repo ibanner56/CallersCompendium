@@ -57,8 +57,9 @@ direction the list opens with, see
   first and marked — or **Blank program**; with one template or none it opens
   the builder straight away, using the Default template. If you delete your
   Default template, the first template left in your list takes its place
-  until you choose another, and **Undo** of the delete makes the deleted one
-  the default again. The Default template also fills the drafts a [calendar import](#import-programs-from-your-calendar)
+  until you choose another. **Undo** of the delete makes the deleted one the
+  default again, unless you have added, duplicated or reordered templates
+  since: then the one that took its place stays the default. The Default template also fills the drafts a [calendar import](#import-programs-from-your-calendar)
   creates. Templates don't apply to other imported or duplicated programs,
   programs someone shared with you, or **Create a new program with this
   dance**. A template's [slot rules](./settings.md#program-defaults) become
