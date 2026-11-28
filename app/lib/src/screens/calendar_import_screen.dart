@@ -142,6 +142,7 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
       final preview = await buildCalendarImportPreview(
         repos,
         body: body,
+        feedUrl: address,
         settings: _settings,
         today: DateTime(now.year, now.month, now.day),
         toLocal: widget.toLocal,

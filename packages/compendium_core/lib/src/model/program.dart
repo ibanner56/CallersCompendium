@@ -301,6 +301,7 @@ class Program {
     this.calendarEventFingerprint,
     this.calendarWrittenAt,
     this.calendarFlag,
+    this.calendarFeedDigest,
     List<String> eventRuleIds = const [],
     this.provenance,
   }) : eventRuleIds = normalizeEventRuleIds(eventRuleIds),
@@ -497,6 +498,19 @@ class Program {
   /// so a value a later build adds reads as a generic flag rather than
   /// refusing the program. Never deletes or edits anything: it is a label.
   final String? calendarFlag;
+
+  /// Which calendar this program was imported from (pre-release audit
+  /// finding E1-01): a salted digest of the calendar's address
+  /// (`CalendarFeedSource` in the app's `calendar_import.dart`), never the
+  /// address, which holds a private calendar's secret. A calendar import
+  /// compares the program with the calendar only when the digest matches the
+  /// address it fetched, so a program from another calendar, or one with no
+  /// digest, is never labelled cancelled or "No longer in your calendar" by
+  /// it. Travels with [calendarEventKey]: Device Sync and the caller's own
+  /// backups, not share files (`sanitizeProgramForShare`). Null for a
+  /// program not imported from a calendar, or imported before the digest
+  /// was recorded.
+  final String? calendarFeedDigest;
 
   /// The event rules applied to this program (#2340), by id, in the order the
   /// caller added them. Only the caller adds one: duplicating a program, or
@@ -959,6 +973,7 @@ class Program {
     String? calendarEventFingerprint,
     DateTime? calendarWrittenAt,
     String? calendarFlag,
+    String? calendarFeedDigest,
     List<String>? eventRuleIds,
     Provenance? provenance,
     bool clearEventDate = false,
@@ -1019,6 +1034,9 @@ class Program {
     calendarFlag: clearCalendarEventKey || clearCalendarFlag
         ? null
         : (calendarFlag ?? this.calendarFlag),
+    calendarFeedDigest: clearCalendarEventKey
+        ? null
+        : (calendarFeedDigest ?? this.calendarFeedDigest),
     eventRuleIds: eventRuleIds ?? this.eventRuleIds,
     provenance: clearProvenance ? null : (provenance ?? this.provenance),
   );
@@ -1155,6 +1173,7 @@ class Program {
       other.calendarEventFingerprint == calendarEventFingerprint &&
       other.calendarWrittenAt == calendarWrittenAt &&
       other.calendarFlag == calendarFlag &&
+      other.calendarFeedDigest == calendarFeedDigest &&
       _listEq.equals(other.eventRuleIds, eventRuleIds);
 
   @override

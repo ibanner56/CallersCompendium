@@ -866,6 +866,23 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     }
   }
 
+  /// The calendar import's record of which calendar a program came from
+  /// (pre-release audit finding E1-01): `programs.calendar_feed_digest`,
+  /// nullable, so no existing program is compared with any calendar until an
+  /// import records one. It joined v42 while v42 was unreleased, after
+  /// `event_rule_ids`, so it is added after [_ensureV42EventRules] wherever
+  /// that runs, which keeps a migrated database's column order the same as a
+  /// fresh one's. The live-schema check keeps it idempotent.
+  Future<void> _ensureV42CalendarFeedDigest(Migrator m) async {
+    final columns = await customSelect(
+      "SELECT name FROM pragma_table_info('${programs.actualTableName}')",
+    ).get();
+    final present = {for (final row in columns) row.read<String>('name')};
+    if (!present.contains(programs.calendarFeedDigest.name)) {
+      await m.addColumn(programs, programs.calendarFeedDigest);
+    }
+  }
+
   /// The v42 addition for slot rules (#2338):
   /// `program_slots.placeholder_search_id`, nullable, so every existing slot
   /// is an ordinary slot rather than an unfilled placeholder. It joined v42 while v42 was
@@ -994,6 +1011,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         if (from < 42) {
           await _ensureV42Schema(m);
           await _ensureV42EventRules(m);
+          await _ensureV42CalendarFeedDigest(m);
         }
 
         // Last statement in the transaction: see the comment above its
@@ -1008,13 +1026,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       // v42 filled in pieces while unreleased: a test build stamped it
       // before later pieces joined it (alternate titles, the square dance
       // fields, the program calendar and time columns, a slot's placeholder
-      // search, the event rules), and no `onUpgrade`
-      // step runs for a file already at 42, so reading a dance then failed on
-      // a NULL from a missing column. Idempotent; run it on every open.
+      // search, the event rules, the program's calendar digest), and no
+      // `onUpgrade` step runs for a file already at 42, so reading a dance
+      // then failed on a NULL from a missing column. Idempotent; run it on every open.
       if (details.versionNow >= 42) {
         final migrator = createMigrator();
         await _ensureV42Schema(migrator);
         await _ensureV42EventRules(migrator);
+        await _ensureV42CalendarFeedDigest(migrator);
       }
       // Defensive: guards a hand-rolled DB (e.g. restored from an external
       // backup) that lacks either raw FTS5 table. Creating a missing index
