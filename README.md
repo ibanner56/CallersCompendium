@@ -84,7 +84,7 @@ assets are:
 | File | Surface |
 |------|---------|
 | `assets/laptop-collection-view.png` | Desktop – collection browser |
-| `assets/ipad-performance-view.jpeg` | Tablet – performance mode |
+| `assets/ipad-performance-view.jpeg` | Tablet – Perform mode |
 | `assets/phone-program-editor.png` | Phone – program editor |
 
 To replace or add a screenshot:
