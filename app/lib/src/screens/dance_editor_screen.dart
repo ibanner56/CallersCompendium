@@ -531,7 +531,20 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     }
   }
 
-  Future<void> _save() async {
+  /// Whether Title or the phrase structure, the fields of the form's first
+  /// list item, would refuse the draft as it stands.
+  bool _firstItemInvalid() {
+    if (_controller.titleController.text.trim().isEmpty) return true;
+    if (_controller.isFreeForm) return false;
+    return phraseStructureFieldError(
+          AppLocalizations.of(context),
+          _controller.phraseController.text,
+          offersNamedPhrases: _controller.offersNamedPhrases,
+        ) !=
+        null;
+  }
+
+  Future<void> _save({bool backAtTop = false}) async {
     // Text typed into a Move box and not yet applied is settled as leaving the
     // box settles it (AUTH-1): a move name or shorthand is applied, anything
     // else put back. Tapping Save does not always take focus from the box.
@@ -540,6 +553,23 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // so the dance saves with the figure the caller just typed. A line that
     // could not be added stays in the box and the save waits.
     if (!_controller.freeTextComposer.submitPendingLine()) return;
+    // Title and the setup panel are the form's first list item, which the
+    // lazy list lets go of once scrolled far enough away; `validate()` then
+    // cannot ask their fields, and the save would fail with no message. So
+    // the draft is checked here, and on an error the form goes back to the
+    // top to build them and validates there (pre-release audit GAPF-01).
+    if (!backAtTop &&
+        !isBuiltUnder(_formKey, const ValueKey('title-field')) &&
+        _firstItemInvalid()) {
+      if (_formScroll.hasClients) {
+        _formScroll.jumpTo(_formScroll.position.minScrollExtent);
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_save(backAtTop: true));
+      });
+      setState(() {});
+      return;
+    }
     final hasInvalidCustomFieldNumber = _controller.hasInvalidCustomFieldNumber;
     final formIsValid = _formKey.currentState?.validate() ?? false;
     if (!formIsValid || hasInvalidCustomFieldNumber) {

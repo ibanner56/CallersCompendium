@@ -8102,6 +8102,18 @@ abstract class AppLocalizations {
   /// **'{order} ({bars})'**
   String exportNamedPhrases(String order, String bars);
 
+  /// On a printed card, a run of an English dance's phrases that have no names: {phrases} of them, each {bars} long ({bars} is already a count of bars with its unit, such as "8 bars"), so 4*8*3 prints "4 phrases of 8 bars".
+  ///
+  /// In en, this message translates to:
+  /// **'{phrases, plural, =1{1 phrase} other{{phrases} phrases}} of {bars}'**
+  String exportPhrasesOfBars(int phrases, String bars);
+
+  /// On a printed card, a phrase's bars with the beats to the bar, for an English tune whose phrases differ in meter: {bars} is a count of bars with its unit, such as "4 bars", and {beats} the beats in each bar, as in "4 bars of 3 beats".
+  ///
+  /// In en, this message translates to:
+  /// **'{bars} of {beats, plural, =1{1 beat} other{{beats} beats}}'**
+  String exportBarsOfBeats(String bars, int beats);
+
   /// Between two phrases' lengths inside exportNamedPhrases, such as the comma and space in "A 4 bars, B 8 bars". Use the locale's list separator; keep any trailing space it needs.
   ///
   /// In en, this message translates to:
@@ -10532,16 +10544,16 @@ abstract class AppLocalizations {
   /// **'Progression'**
   String get performProgression;
 
-  /// Screen-reader label for one figure row on the perform-mode card: the figure text, an optional import-gap note, an optional progression marker, the beat count, and an optional caller note.
+  /// Screen-reader label for one figure row on the perform-mode card: the figure text, an optional import-gap note, an optional progression marker, the beat count, and an optional caller note. {timing} is the count as the screen shows it, such as "16 beats", or "4 bars" for an English dance.
   ///
   /// In en, this message translates to:
-  /// **'{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}, {beats, plural, =1{1 beat} other{{beats} beats}}{hasNote, select, yes{, note: {note}} other{}}'**
+  /// **'{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}, {timing}{hasNote, select, yes{, note: {note}} other{}}'**
   String performFigureSemantic(
     String main,
     String importGap,
     String importGapText,
     String progression,
-    int beats,
+    String timing,
     String hasNote,
     String note,
   );
@@ -15013,11 +15025,11 @@ abstract class AppLocalizations {
   /// **'{summary}, your figure{unavailable, select, yes{, can\'t be expanded} other{}}'**
   String danceEditorCompoundSemantic(String summary, String unavailable);
 
-  /// Under a custom figure being edited in a dance: how many figures, and how many beats, it is replaced by when the dance is saved.
+  /// Under a custom figure being edited in a dance: how many figures, and how many beats, it is replaced by when the dance is saved. {timing} is the count as the screen shows it, such as "16 beats", or "4 bars" for an English dance.
   ///
   /// In en, this message translates to:
-  /// **'Becomes {count, plural, =1{1 figure} other{{count} figures}} ({beats, plural, =1{1 beat} other{{beats} beats}}) when the dance is saved.'**
-  String danceEditorCompoundExpandsTo(int count, int beats);
+  /// **'Becomes {count, plural, =1{1 figure} other{{count} figures}} ({timing}) when the dance is saved.'**
+  String danceEditorCompoundExpandsTo(int count, String timing);
 
   /// Shown on a dance's figure row that is one of the user's own custom figures when it can no longer be expanded into figures; the dance then saves it as a custom figure whose text is the name.
   ///
@@ -15031,17 +15043,17 @@ abstract class AppLocalizations {
   /// **'Not complete, so Save leaves it out.'**
   String get danceEditorIncompleteFigure;
 
-  /// Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position.
+  /// Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position. {timing} is the count as the screen shows it, such as "16 beats", or "4 bars" for an English dance.
   ///
   /// In en, this message translates to:
-  /// **'{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 beat} other{{beats} beats}}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figure {position} of {total}.'**
+  /// **'{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {timing}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figure {position} of {total}.'**
   String danceEditorFigureSummarySemantic(
     String main,
     String importGap,
     String importGapText,
     String progression,
     String hasMove,
-    int beats,
+    String timing,
     String hasNote,
     String note,
     int position,
@@ -15413,6 +15425,34 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Under by {beats} beats'**
   String danceEditorUnderByBeats(int beats);
+
+  /// Summary of an English dance's figures in bars versus the phrase structure's bars: {total} and {expected} are counts as written, such as 32 or 31½; {expectedHalfBars} is {expected} in half bars, which picks the plural (1 is half a bar, 2 is one bar).
+  ///
+  /// In en, this message translates to:
+  /// **'Total: {total} / {expected} {expectedHalfBars, plural, =1{bar} =2{bar} other{bars}}'**
+  String danceEditorBarTotal(
+    String total,
+    String expected,
+    int expectedHalfBars,
+  );
+
+  /// Total length of an English dance's figures when it has no phrase structure: {count} is the count with its unit, such as "8 bars".
+  ///
+  /// In en, this message translates to:
+  /// **'Total: {count}'**
+  String danceEditorBarTotalFreeForm(String count);
+
+  /// Under the total: an English dance's figures are longer than its phrase structure by {count}, a count of bars with its unit, such as "4 bars" or "½ bar".
+  ///
+  /// In en, this message translates to:
+  /// **'Over by {count}'**
+  String danceEditorOverByBars(String count);
+
+  /// Under the total: an English dance's figures are shorter than its phrase structure by {count}, a count of bars with its unit, such as "4 bars" or "½ bar".
+  ///
+  /// In en, this message translates to:
+  /// **'Under by {count}'**
+  String danceEditorUnderByBars(String count);
 
   /// Tooltip for decrementing a numeric figure parameter.
   ///

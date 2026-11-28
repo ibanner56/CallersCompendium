@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -346,8 +347,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count dansen worden verwijderd, waarvan $notShown verborgen door je zoekopdracht. Je kunt dit ongedaan maken.',
-      one:
-          '1 dans wordt verwijderd. Je zoekopdracht verbergt hem. Je kunt dit ongedaan maken.',
+      one: '1 dans wordt verwijderd. Je zoekopdracht verbergt hem. Je kunt dit ongedaan maken.',
     );
     return '$_temp0';
   }
@@ -533,8 +533,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count termen konden niet worden toegevoegd: ze zijn te lang, of je woordenlijst is vol.',
-      one:
-          '1 term kon niet worden toegevoegd: hij is te lang, of je woordenlijst is vol.',
+      one: '1 term kon niet worden toegevoegd: hij is te lang, of je woordenlijst is vol.',
     );
     return '$_temp0';
   }
@@ -603,8 +602,7 @@ class AppLocalizationsNl extends AppLocalizations {
           '$count dansen gebruiken je figuur en gaan $name gebruiken. De jouwe wordt uit je woordenlijst verwijderd.',
       one:
           '1 dans gebruikt je figuur en gaat $name gebruiken. De jouwe wordt uit je woordenlijst verwijderd.',
-      zero:
-          'Geen dans in je collectie gebruikt je figuur. Hij wordt uit je woordenlijst verwijderd.',
+      zero: 'Geen dans in je collectie gebruikt je figuur. Hij wordt uit je woordenlijst verwijderd.',
     );
     return '$_temp0';
   }
@@ -5308,6 +5306,28 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String exportPhrasesOfBars(int phrases, String bars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      phrases,
+      locale: localeName,
+      other: '$phrases frasen',
+      one: '1 frase',
+    );
+    return '$_temp0 van $bars';
+  }
+
+  @override
+  String exportBarsOfBeats(String bars, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats tellen',
+      one: '1 tel',
+    );
+    return '$bars van $_temp0';
+  }
+
+  @override
   String get exportNamedPhraseSeparator => ', ';
 
   @override
@@ -7028,7 +7048,7 @@ class AppLocalizationsNl extends AppLocalizations {
     String importGap,
     String importGapText,
     String progression,
-    int beats,
+    String timing,
     String hasNote,
     String note,
   ) {
@@ -7040,17 +7060,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'yes': ', progressie',
       'other': '',
     });
-    String _temp2 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats tellen',
-      one: '1 tel',
-    );
-    String _temp3 = intl.Intl.selectLogic(hasNote, {
+    String _temp2 = intl.Intl.selectLogic(hasNote, {
       'yes': ', notitie: $note',
       'other': '',
     });
-    return '$main$_temp0$_temp1, $_temp2$_temp3';
+    return '$main$_temp0$_temp1, $timing$_temp2';
   }
 
   @override
@@ -8778,8 +8792,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           'Opnieuw importeren vervangt de figuren, formatie en progressie van $count bestaande dansen en kan hun dansvorm wijzigen. Hun beoordelingen, tags en notities blijven.',
-      one:
-          'Opnieuw importeren vervangt de figuren, formatie en progressie van 1 bestaande dans en kan de dansvorm wijzigen. De beoordeling, tags en notities blijven.',
+      one: 'Opnieuw importeren vervangt de figuren, formatie en progressie van 1 bestaande dans en kan de dansvorm wijzigen. De beoordeling, tags en notities blijven.',
     );
     return '$_temp0';
   }
@@ -8791,8 +8804,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           'Bij $count daarvan worden ook de titel en auteur uit het bestand overgenomen.',
-      one:
-          'Bij 1 daarvan worden ook de titel en auteur uit het bestand overgenomen.',
+      one: 'Bij 1 daarvan worden ook de titel en auteur uit het bestand overgenomen.',
     );
     return '$_temp0';
   }
@@ -9948,8 +9960,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count figuren toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
-      one:
-          '1 figuur toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
+      one: '1 figuur toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
     );
     return '$_temp0';
   }
@@ -9961,8 +9972,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count figuren toegevoegd. Typ nog een figuur of kies Toevoegen afronden als je klaar bent.',
-      one:
-          '1 figuur toegevoegd. Typ nog een figuur of kies Toevoegen afronden als je klaar bent.',
+      one: '1 figuur toegevoegd. Typ nog een figuur of kies Toevoegen afronden als je klaar bent.',
     );
     return '$_temp0';
   }
@@ -10075,8 +10085,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$countString regels worden niet herkend. Die worden toegevoegd als niet-herkende figuren met hun tekst, zodat je ze kunt verbeteren.',
-      one:
-          '1 regel wordt niet herkend. Die wordt toegevoegd als niet-herkende figuur met de tekst, zodat je die kunt verbeteren.',
+      one: '1 regel wordt niet herkend. Die wordt toegevoegd als niet-herkende figuur met de tekst, zodat je die kunt verbeteren.',
     );
     return '$_temp0';
   }
@@ -10221,20 +10230,14 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String danceEditorCompoundExpandsTo(int count, int beats) {
+  String danceEditorCompoundExpandsTo(int count, String timing) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count figuren',
       one: '1 figuur',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats tellen',
-      one: '1 tel',
-    );
-    return 'Wordt bij het opslaan van de dans $_temp0 ($_temp1).';
+    return 'Wordt bij het opslaan van de dans $_temp0 ($timing).';
   }
 
   @override
@@ -10252,7 +10255,7 @@ class AppLocalizationsNl extends AppLocalizations {
     String importGapText,
     String progression,
     String hasMove,
-    int beats,
+    String timing,
     String hasNote,
     String note,
     int position,
@@ -10266,21 +10269,15 @@ class AppLocalizationsNl extends AppLocalizations {
       'yes': ', progressie',
       'other': '',
     });
-    String _temp2 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats tellen',
-      one: '1 tel',
-    );
-    String _temp3 = intl.Intl.selectLogic(hasMove, {
-      'yes': ', $_temp2',
+    String _temp2 = intl.Intl.selectLogic(hasMove, {
+      'yes': ', $timing',
       'other': '',
     });
-    String _temp4 = intl.Intl.selectLogic(hasNote, {
+    String _temp3 = intl.Intl.selectLogic(hasNote, {
       'yes': ', notitie: $note',
       'other': '',
     });
-    return '$main$_temp0$_temp1$_temp3$_temp4. Figuur $position van $total.';
+    return '$main$_temp0$_temp1$_temp2$_temp3. Figuur $position van $total.';
   }
 
   @override
@@ -10591,6 +10588,37 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceEditorBarTotal(
+    String total,
+    String expected,
+    int expectedHalfBars,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      expectedHalfBars,
+      locale: localeName,
+      other: 'maten',
+      two: 'maat',
+      one: 'maat',
+    );
+    return 'Totaal: $total / $expected $_temp0';
+  }
+
+  @override
+  String danceEditorBarTotalFreeForm(String count) {
+    return 'Totaal: $count';
+  }
+
+  @override
+  String danceEditorOverByBars(String count) {
+    return '$count te veel';
+  }
+
+  @override
+  String danceEditorUnderByBars(String count) {
+    return '$count te weinig';
+  }
+
+  @override
   String get danceEditorLessTooltip => 'Minder';
 
   @override
@@ -10764,8 +10792,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other: '$count dansen teruggezet.',
       one: '1 dans teruggezet.',
-      zero:
-          'Er zijn geen dansen teruggezet: van elke dans zijn sindsdien het type of de tags gewijzigd.',
+      zero: 'Er zijn geen dansen teruggezet: van elke dans zijn sindsdien het type of de tags gewijzigd.',
     );
     return '$_temp0';
   }
@@ -11195,8 +11222,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count oproepknoppen zijn weggelaten omdat hun tekst niet als figuren te lezen is.',
-      one:
-          '1 oproepknop is weggelaten omdat de tekst niet als figuren te lezen is.',
+      one: '1 oproepknop is weggelaten omdat de tekst niet als figuren te lezen is.',
     );
     return '$_temp0';
   }
@@ -11245,8 +11271,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count contrastparen onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
-      one:
-          '1 contrastpaar onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
+      one: '1 contrastpaar onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
     );
     return '$_temp0';
   }
@@ -12661,8 +12686,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count dansen onder “Onlangs verwijderd” gebruiken hem en behouden de regels die ze het laatst opsloegen.',
-      one:
-          '1 dans onder “Onlangs verwijderd” gebruikt hem en behoudt de regel die hij het laatst opsloeg.',
+      one: '1 dans onder “Onlangs verwijderd” gebruikt hem en behoudt de regel die hij het laatst opsloeg.',
     );
     return '$_temp0';
   }
@@ -12678,8 +12702,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           'Je $count afkortingen ervoor blijven, en als je die typt, worden ze als gewone regels gelezen.',
-      one:
-          'Je afkorting ervoor blijft, en als je die typt, wordt hij als een gewone regel gelezen.',
+      one: 'Je afkorting ervoor blijft, en als je die typt, wordt hij als een gewone regel gelezen.',
     );
     return '$_temp0';
   }
@@ -12691,10 +12714,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count dansen gebruiken hem. Hij wordt uit je woordenlijst verwijderd en die dansen behouden hun huidige formulering als platte tekst.',
-      one:
-          '1 dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd en die dans behoudt zijn huidige formulering als platte tekst.',
-      zero:
-          'Geen dans in je collectie gebruikt hem. Hij wordt uit je woordenlijst verwijderd.',
+      one: '1 dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd en die dans behoudt zijn huidige formulering als platte tekst.',
+      zero: 'Geen dans in je collectie gebruikt hem. Hij wordt uit je woordenlijst verwijderd.',
     );
     return '$_temp0';
   }
@@ -14902,8 +14923,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           'Je kunt tot $count opgeslagen zoekopdrachten bewaren. Verwijder er een om een andere op te slaan.',
-      one:
-          'Je kunt 1 opgeslagen zoekopdracht bewaren. Verwijder die om een andere op te slaan.',
+      one: 'Je kunt 1 opgeslagen zoekopdracht bewaren. Verwijder die om een andere op te slaan.',
     );
     return '$_temp0';
   }

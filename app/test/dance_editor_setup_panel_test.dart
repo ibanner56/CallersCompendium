@@ -195,6 +195,70 @@ void main() {
     expect(rect.bottom, lessThanOrEqualTo(size.height));
   });
 
+  group('Save after the list has let go of Title and the panel '
+      '(pre-release audit finding GAPF-01)', () {
+    final titleField = find.byKey(
+      const ValueKey('title-field'),
+      skipOffstage: false,
+    );
+
+    Future<void> scrollToEnd(WidgetTester tester) async {
+      // A focused field would keep its list item alive.
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      final list = tester.state<ScrollableState>(
+        find.byType(Scrollable).first,
+      );
+      list.position.jumpTo(list.position.maxScrollExtent);
+      await tester.pumpAndSettle();
+      expect(titleField, findsNothing, reason: 'the list let go of Title');
+    }
+
+    testWidgets('an empty Title shows its own message, not a failed save', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, size: const Size(390, 844));
+      await scrollToEnd(tester);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Title is required'), findsOneWidget);
+      expect(find.textContaining("Couldn't save the dance"), findsNothing);
+      expect(find.byType(DanceEditorScreen), findsOneWidget);
+      expect((await tester.runAsync(repos.dances.listAll))!, isEmpty);
+    });
+
+    testWidgets('a phrase structure that does not read opens the panel at '
+        'its message', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(id: 'd1', title: 'Contra', createdAt: _now, updatedAt: _now),
+      );
+      const size = Size(1200, 400);
+      await _pump(tester, repos, danceId: 'd1', size: size);
+      await openDanceEditorSetup(tester);
+      final phrase = find.byKey(const ValueKey('phrase-field'));
+      await tester.ensureVisible(phrase);
+      await tester.enterText(phrase, 'not a phrase structure !!');
+      await tester.pumpAndSettle();
+      await scrollToEnd(tester);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining("Couldn't save the dance"), findsNothing);
+      final field = tester.widget<TextField>(
+        find.descendant(of: phrase, matching: find.byType(TextField)),
+      );
+      expect(field.decoration?.errorText, isNotNull);
+      final rect = tester.getRect(phrase);
+      expect(rect.top, greaterThanOrEqualTo(0));
+      expect(rect.bottom, lessThanOrEqualTo(size.height));
+    });
+  });
+
   testWidgets('a panel folded on a new dance stays folded after the list lets '
       'it go and builds it again', (tester) async {
     await _pump(tester, openTestRepositories(), size: const Size(1200, 400));

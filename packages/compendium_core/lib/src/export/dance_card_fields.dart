@@ -44,7 +44,7 @@ List<String> danceCardMetaLines(
   if (fields.contains(DanceShareField.phraseStructure) &&
       !dance.isFreeForm &&
       _has(dance.phraseStructure.raw))
-    '${labels.labelled(labels.phrase)}${phraseStructureText(dance.phraseStructure, labels)}',
+    '${labels.labelled(labels.phrase)}${phraseStructureText(dance.phraseStructure, labels, english: dance.form == DanceForm.ecd)}',
 ];
 
 /// How a card prints [structure]. Named phrases (an English dance's A, B and
@@ -53,20 +53,51 @@ List<String> danceCardMetaLines(
 /// prints `AAB (A 4 bars, B 8 bars)`. Bars use [DanceExportLabels.bars], as
 /// a figure's count does, and the punctuation is the locale's
 /// ([DanceExportLabels.namedPhrases], [DanceExportLabels.namedPhraseSeparator]),
-/// so Japanese prints `AAB（A 4小節、B 8小節）`. Any other structure prints as
-/// stored, trimmed, so a contra card keeps The Caller's Box formula as it is;
-/// the editor sets that text as rows (#2304) and the card still prints it.
+/// so Japanese prints `AAB（A 4小節、B 8小節）`. Where the phrases differ in
+/// beats to the bar, each one's bars say how many
+/// ([DanceExportLabels.barsOfBeats]): `A:2*4*3 + B:1*8*2` prints
+/// `AAB (A 4 bars of 3 beats, B 8 bars of 2 beats)`.
+///
+/// An [english] dance's structure that is not named prints in words too,
+/// each run of phrases as [DanceExportLabels.phrasesOfBars], so the `4*8*3`
+/// an import writes for a tune in triple time prints `4 phrases of 8 bars`
+/// (pre-release audit finding A2-05). Any other structure prints as stored,
+/// trimmed, so a contra card keeps The Caller's Box formula as it is; the
+/// editor sets that text as rows (#2304) and the card still prints it.
 String phraseStructureText(
   PhraseStructure structure,
-  DanceExportLabels labels,
-) {
+  DanceExportLabels labels, {
+  bool english = false,
+}) {
+  final mixed = structure.hasMixedMeter;
+  String barsOf(int bars, int beatsPerBar) {
+    final text = labels.bars('$bars', bars * 2);
+    return mixed ? labels.barsOfBeats(text, beatsPerBar) : text;
+  }
+
   final named = structure.namedPhrases;
-  if (named == null) return structure.raw.trim();
+  if (named == null) {
+    if (!english) return structure.raw.trim();
+    return structure.components
+        .map((c) => labels.phrasesOfBars(c.phraseCount, barsOf(c.bars, c.beatsPerBar)))
+        .join(labels.namedPhraseSeparator);
+  }
   final order = named.map((p) => p.name * p.plays).join();
   final bars = named
-      .map((p) => '${p.name} ${labels.bars('${p.bars}', p.bars * 2)}')
+      .map((p) => '${p.name} ${barsOf(p.bars, p.beatsPerBar)}')
       .join(labels.namedPhraseSeparator);
   return labels.namedPhrases(order, bars);
+}
+
+/// [names] joined by [separator] for one line, or by `"; "` when a name
+/// holds the separator's own mark, so two people stored family name first,
+/// "Sharp, Cecil" and "Shaw, Pat", read as two, not four
+/// (`Sharp, Cecil; Shaw, Pat`).
+String joinPersonNames(Iterable<String> names, {String separator = ', '}) {
+  final list = names.toList();
+  final mark = separator.trim();
+  final clashes = mark.isNotEmpty && list.any((n) => n.contains(mark));
+  return list.join(clashes ? '; ' : separator);
 }
 
 /// Resolved, non-blank author names for the dance card, gated on
@@ -95,7 +126,7 @@ List<String> danceCardCreditLines(
 }) {
   if (!fields.contains(DanceShareField.authors)) return const [];
   String names(List<String> raw) =>
-      raw.map((n) => n.trim()).where((n) => n.isNotEmpty).join(', ');
+      joinPersonNames(raw.map((n) => n.trim()).where((n) => n.isNotEmpty));
   final authors = names(authorNames);
   final composed = dance.composedOn?.year.toString();
   final interpreters = names(interpreterNames);

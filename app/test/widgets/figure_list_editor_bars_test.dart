@@ -546,4 +546,65 @@ void main() {
       });
     }
   });
+
+  group('pre-release audit findings A2-04, GAPE-02 and GAPE-03', () {
+    testWidgets('a figure row is announced in the bars it shows', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      addTearDown(handle.dispose);
+      await _pump(tester, [_step('ecd_lead', 12)]);
+      expect(find.text('4 bars'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp(r'\b4 bars\b.*Figure 1 of 1')),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel(RegExp(r'\b12 beats\b')), findsNothing);
+    });
+
+    testWidgets('the running total and the difference are in bars', (
+      tester,
+    ) async {
+      await _pump(tester, [_step('ecd_lead', 12), _step('ecd_set', 12)]);
+      expect(find.text('Total: 8 / 32 bars'), findsOneWidget);
+      expect(find.text('Under by 24 bars'), findsOneWidget);
+      expect(find.textContaining('beats'), findsNothing);
+    });
+
+    testWidgets('a total over by half a bar says so in bars', (tester) async {
+      await _pump(tester, [
+        for (var i = 0; i < 8; i++) _step('ecd_lead', 8),
+        _step('ecd_set', 1),
+      ], beatsPerBar: 2);
+      expect(find.text('Total: 32½ / 32 bars'), findsOneWidget);
+      expect(find.text('Over by ½ bar'), findsOneWidget);
+    });
+
+    testWidgets('a total that is no whole number of half bars stays in '
+        'beats', (tester) async {
+      await _pump(tester, [_step('ecd_lead', 13)]);
+      expect(find.text('Total: 13 / 96 beats'), findsOneWidget);
+      expect(find.text('Under by 83 beats'), findsOneWidget);
+    });
+
+    testWidgets('a sequence\'s span refuses 0 bars and keeps its count', (
+      tester,
+    ) async {
+      final drafts = [
+        FigureDraft(
+          sequenceFigures: [_step('ecd_lead', 6), _step('ecd_set', 6)],
+        )..setSequenceSpan(12),
+      ];
+      await _pump(tester, drafts);
+      await _open(tester, 0);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-sequence-span')),
+        '0',
+      );
+      await tester.pumpAndSettle();
+      expect(drafts.single.beats, 12);
+      expect(find.text('Enter whole or half bars, up to 21'), findsOneWidget);
+    });
+  });
 }

@@ -2348,7 +2348,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         : '';
 
     // Screen-reader composite: "A1, neighbors balance and swing, progression,
-    // 16 beats, note: smooth swing. Figure 3 of 12."
+    // 16 beats, note: smooth swing. Figure 3 of 12." (or "4 bars").
     final main = labelText.isEmpty ? spoken : '$labelText, $spoken';
     final summarySemantic = l10n.danceEditorFigureSummarySemantic(
       main,
@@ -2356,7 +2356,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       l10n.importGapMessage,
       draft.progression ? 'yes' : 'no',
       hasMove ? 'yes' : 'no',
-      draft.beats,
+      // The count as the row shows it, in bars for an English dance, so a
+      // screen reader hears what is on screen (pre-release audit A2-04).
+      beatsLabel,
       hasNote ? 'yes' : 'no',
       displayNote,
       widget.index + 1,
@@ -3065,9 +3067,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
               Text(
                 expanded == null
                     ? l10n.danceEditorCompoundUnavailable
+                    // Its length as the row's count reads, in bars for an
+                    // English dance (pre-release audit finding GAPE-02).
                     : l10n.danceEditorCompoundExpandsTo(
                         expanded.length,
-                        CompoundDefinition.beatsOf(expanded, widget.taxonomy),
+                        timingLabel(
+                          context,
+                          CompoundDefinition.beatsOf(expanded, widget.taxonomy),
+                        ),
                       ),
                 key: _key('compound-status'),
                 style: expanded == null
@@ -3289,6 +3296,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             timing: bars.timing,
             startBeat: FigureStartScope.startOf(context),
             allowsUntimed: true,
+            minHalfBars: 1,
             emptyHint: timingLabel(context, draft.beats),
             onChanged: setSpan,
           )
@@ -5456,21 +5464,64 @@ class _BeatSummary extends StatelessWidget {
 
   ValueKey<String> _key(String suffix) => ValueKey('$keyPrefix-$suffix');
 
+  /// [halfBars] as a count of bars is written: `4`, `½`, `32½`.
+  static String _halfBarsText(int halfBars) {
+    final whole = halfBars ~/ 2;
+    if (halfBars.isEven) return '$whole';
+    return whole == 0 ? '½' : '$whole½';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final expectedBeats = this.expectedBeats;
     final mismatch = expectedBeats != null && totalBeats != expectedBeats;
+    // In bars for an English dance, where both totals come to whole or half
+    // bars from the top, as the phrase warning reads them; else in beats
+    // (pre-release audit finding GAPE-02).
+    final timing = BarTimingScope.maybeOf(context)?.timing;
+    final totalBars = timing?.barsTextAt(0, totalBeats);
+    final expectedBars = expectedBeats == null
+        ? null
+        : timing?.barsTextAt(0, expectedBeats);
+    final inBars =
+        totalBars != null && (expectedBeats == null || expectedBars != null);
+    String difference() {
+      if (inBars && expectedBars != null) {
+        final half = (totalBars.halfBars - expectedBars.halfBars).abs();
+        final text = _halfBarsText(half);
+        final count = l10n.danceFigureBars(text, half);
+        return totalBeats > expectedBeats!
+            ? l10n.danceEditorOverByBars(count)
+            : l10n.danceEditorUnderByBars(count);
+      }
+      return totalBeats > expectedBeats!
+          ? l10n.danceEditorOverByBeats(totalBeats - expectedBeats)
+          : l10n.danceEditorUnderByBeats(expectedBeats - totalBeats);
+    }
+
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            expectedBeats == null
-                ? l10n.danceEditorBeatTotalFreeForm(totalBeats)
-                : l10n.danceEditorBeatTotal(totalBeats, expectedBeats),
+            switch ((expectedBeats, inBars)) {
+              (null, true) => l10n.danceEditorBarTotalFreeForm(
+                l10n.danceFigureBars(totalBars!.text, totalBars.halfBars),
+              ),
+              (null, false) => l10n.danceEditorBeatTotalFreeForm(totalBeats),
+              (_?, true) => l10n.danceEditorBarTotal(
+                totalBars!.text,
+                expectedBars!.text,
+                expectedBars.halfBars,
+              ),
+              (final expected?, false) => l10n.danceEditorBeatTotal(
+                totalBeats,
+                expected,
+              ),
+            },
             key: _key('beats-total'),
             style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w700,
@@ -5492,13 +5543,7 @@ class _BeatSummary extends StatelessWidget {
                   // text (pre-release audit finding B-12).
                   Flexible(
                     child: Text(
-                      totalBeats > expectedBeats
-                          ? l10n.danceEditorOverByBeats(
-                              totalBeats - expectedBeats,
-                            )
-                          : l10n.danceEditorUnderByBeats(
-                              expectedBeats - totalBeats,
-                            ),
+                      difference(),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.tertiary,
                       ),

@@ -1384,7 +1384,8 @@ class _FigureRow extends StatelessWidget {
       isImportGap ? 'yes' : 'no',
       isImportGap ? l10n.importGapMessage : '',
       progression ? 'yes' : 'no',
-      beats,
+      // As shown: in bars for an English dance (pre-release audit A2-04).
+      beatsLabel,
       noteText.isNotEmpty ? 'yes' : 'no',
       noteText,
     );

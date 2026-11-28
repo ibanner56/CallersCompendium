@@ -58,6 +58,12 @@ String _englishEndsAt(String end) => 'until $end';
 
 String _englishNextDay(String times) => '$times (next day)';
 
+String _englishPhrasesOfBars(int phrases, String bars) =>
+    '$phrases ${phrases == 1 ? 'phrase' : 'phrases'} of $bars';
+
+String _englishBarsOfBeats(String bars, int beats) =>
+    '$bars of $beats ${beats == 1 ? 'beat' : 'beats'}';
+
 String _englishOmittedCaption(int count) =>
     '$count free-text ${count == 1 ? 'slot' : 'slots'} '
     '(breaks, notes) omitted — the matrix shows dances only.';
@@ -83,6 +89,8 @@ class DanceExportLabels {
     this.bars = _englishBars,
     this.namedPhrases = _englishNamedPhrases,
     this.namedPhraseSeparator = ', ',
+    this.phrasesOfBars = _englishPhrasesOfBars,
+    this.barsOfBeats = _englishBarsOfBeats,
     this.labelSeparator = ': ',
     this.pageOf = _englishPageOf,
     this.authorsWithYear = _englishAuthorsWithYear,
@@ -134,6 +142,15 @@ class DanceExportLabels {
   /// Between two phrases' bars in [namedPhrases]: `", "` in English, `"、"`
   /// in Japanese.
   final String namedPhraseSeparator;
+
+  /// A run of phrases of one length, for an English dance whose phrases are
+  /// not named: [phrases] of them, each [bars] long ([bars] already labelled,
+  /// such as `8 bars`), so `4*8*3` prints `4 phrases of 8 bars`.
+  final String Function(int phrases, String bars) phrasesOfBars;
+
+  /// [bars], already labelled, with [beats] to the bar, such as
+  /// `4 bars of 3 beats`: for an English tune whose phrases differ in meter.
+  final String Function(String bars, int beats) barsOfBeats;
 
   /// Between a field's label and its value, such as `Phrase: AAB`: `": "` in
   /// English, the full-width `"："` in Japanese.

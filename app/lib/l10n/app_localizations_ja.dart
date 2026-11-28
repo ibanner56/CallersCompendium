@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -5038,6 +5039,26 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String exportPhrasesOfBars(int phrases, String bars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      phrases,
+      locale: localeName,
+      other: '$phrasesつ',
+    );
+    return '$barsのフレーズ$_temp0';
+  }
+
+  @override
+  String exportBarsOfBeats(String bars, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats拍',
+    );
+    return '$_temp0の$bars';
+  }
+
+  @override
   String get exportNamedPhraseSeparator => '、';
 
   @override
@@ -6705,7 +6726,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String importGap,
     String importGapText,
     String progression,
-    int beats,
+    String timing,
     String hasNote,
     String note,
   ) {
@@ -6717,16 +6738,11 @@ class AppLocalizationsJa extends AppLocalizations {
       'yes': '、プログレッション',
       'other': '',
     });
-    String _temp2 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats拍',
-    );
-    String _temp3 = intl.Intl.selectLogic(hasNote, {
+    String _temp2 = intl.Intl.selectLogic(hasNote, {
       'yes': '、ノート: $note',
       'other': '',
     });
-    return '$main$_temp0$_temp1、$_temp2$_temp3';
+    return '$main$_temp0$_temp1、$timing$_temp2';
   }
 
   @override
@@ -9753,18 +9769,13 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String danceEditorCompoundExpandsTo(int count, int beats) {
+  String danceEditorCompoundExpandsTo(int count, String timing) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count個のフィギュア',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats拍',
-    );
-    return 'ダンスを保存すると$_temp0（$_temp1）になります。';
+    return 'ダンスを保存すると$_temp0（$timing）になります。';
   }
 
   @override
@@ -9781,7 +9792,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String importGapText,
     String progression,
     String hasMove,
-    int beats,
+    String timing,
     String hasNote,
     String note,
     int position,
@@ -9795,20 +9806,15 @@ class AppLocalizationsJa extends AppLocalizations {
       'yes': '、プログレッション',
       'other': '',
     });
-    String _temp2 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats拍',
-    );
-    String _temp3 = intl.Intl.selectLogic(hasMove, {
-      'yes': '、$_temp2',
+    String _temp2 = intl.Intl.selectLogic(hasMove, {
+      'yes': '、$timing',
       'other': '',
     });
-    String _temp4 = intl.Intl.selectLogic(hasNote, {
+    String _temp3 = intl.Intl.selectLogic(hasNote, {
       'yes': '、ノート: $note',
       'other': '',
     });
-    return '$main$_temp0$_temp1$_temp3$_temp4。$total件中フィギュア$position。';
+    return '$main$_temp0$_temp1$_temp2$_temp3。$total件中フィギュア$position。';
   }
 
   @override
@@ -10109,6 +10115,35 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String danceEditorUnderByBeats(int beats) {
     return '$beats拍不足';
+  }
+
+  @override
+  String danceEditorBarTotal(
+    String total,
+    String expected,
+    int expectedHalfBars,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      expectedHalfBars,
+      locale: localeName,
+      other: '小節',
+    );
+    return '合計: $total / $expected$_temp0';
+  }
+
+  @override
+  String danceEditorBarTotalFreeForm(String count) {
+    return '合計: $count';
+  }
+
+  @override
+  String danceEditorOverByBars(String count) {
+    return '$count超過';
+  }
+
+  @override
+  String danceEditorUnderByBars(String count) {
+    return '$count不足';
   }
 
   @override

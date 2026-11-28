@@ -2,6 +2,7 @@ import '../model/program.dart';
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import 'export_labels.dart';
+import 'dance_card_fields.dart' show joinPersonNames;
 
 /// Renders a [Program] as a clean, human-readable plain-text set list — the
 /// "emailable set list" of ROADMAP §4.3 (CC parity: "email set list").
@@ -306,7 +307,7 @@ String programSlotLine(
         .where((n) => n.isNotEmpty)
         .toList();
     if (authorNames != null && authorNames.isNotEmpty) {
-      buffer.write(' — ${labels.by(authorNames.join(', '))}');
+      buffer.write(' — ${labels.by(joinPersonNames(authorNames))}');
     }
     // On a dance slot, `text` is a per-slot caller note.
     if (_has(slot.text)) {

@@ -1,0 +1,22 @@
+{
+  "id": "audit-s27-english-editor",
+  "user_visible": true,
+  "app": {
+    "data_migrations": [
+      "A figure of your own made for English in 0.10.x whose default group of dancers is third corners or opposites, two groups only contra has, is marked Needs repair after the update until you choose another group for it. Uses of it already in your dances keep their wording."
+    ],
+    "fixed": [
+      "In an English dance, the dance editor's running Total and its Over by or Under by now read in bars, as the figures and the warnings do, wherever both come to whole or half bars; a combination placed in the dance says how many bars it becomes.",
+      "A screen reader now hears an English dance's figures in bars in the dance editor and in Perform, as the screen shows them, instead of in beats.",
+      "An English sequence's Bars for all no longer takes 0, which saved a sequence of no length: it asks for whole or half bars instead, as a square dance's span asks for at least 1 beat.",
+      "Saving a dance whose Title is empty, or whose phrase structure doesn't read, after scrolling far down the form now goes back to the field and shows its message, instead of saying the save failed and to try again.",
+      "Printed and shared cards for an English dance give a phrase structure that has no named phrases in words, such as 4 phrases of 8 bars instead of 4*8*3, and name phrases in different meters with their beats to the bar.",
+      "Names stored family name first, such as Sharp, Cecil, are set apart with semicolons wherever several are joined on one line: the Authors and Interpreted by fields, the dance page, Perform, the collection and printed cards."
+    ]
+  },
+  "core": {
+    "added": [
+      "joinPersonNames joins names with \"; \" when one holds the separator's mark. DanceExportLabels gains phrasesOfBars and barsOfBeats, and phraseStructureText takes english: to print an English dance's unnamed structure in words."
+    ]
+  }
+}

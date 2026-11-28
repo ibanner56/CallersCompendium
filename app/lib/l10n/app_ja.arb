@@ -5320,6 +5320,14 @@
   "@exportNamedPhrases": {
     "x-sourceSha256": "6e23f847cf631cba44e5527430ca33c1bbc4601a0baa3b666316ec7100121909"
   },
+  "exportPhrasesOfBars": "{bars}のフレーズ{phrases, plural, other{{phrases}つ}}",
+  "@exportPhrasesOfBars": {
+    "x-sourceSha256": "a5fc6e852e22719b520ff09870833a509a26c2932c166d5be070e716834eab63"
+  },
+  "exportBarsOfBeats": "{beats, plural, other{{beats}拍}}の{bars}",
+  "@exportBarsOfBeats": {
+    "x-sourceSha256": "0a1d6b88d1e154c4f42490efb109a2798d5425b29e8e011eba70b73f73158ca0"
+  },
   "exportNamedPhraseSeparator": "、",
   "@exportNamedPhraseSeparator": {
     "x-sourceSha256": "0a07f659461970d8d8dcefe4fff96a1745599810dc7d47391e95c803b7b2072c"
@@ -6922,9 +6930,9 @@
   "@performProgression": {
     "x-sourceSha256": "f193d07c37765ecb1de9acb1af52d788851273a68ddd8b3791e4288c5e85ef77"
   },
-  "performFigureSemantic": "{main}{importGap, select, yes{、{importGapText}} other{}}{progression, select, yes{、プログレッション} other{}}、{beats, plural, other{{beats}拍}}{hasNote, select, yes{、ノート: {note}} other{}}",
+  "performFigureSemantic": "{main}{importGap, select, yes{、{importGapText}} other{}}{progression, select, yes{、プログレッション} other{}}、{timing}{hasNote, select, yes{、ノート: {note}} other{}}",
   "@performFigureSemantic": {
-    "x-sourceSha256": "8d80202ff6be06e607cc29eda341e32192b8990564c815166530272d593245a9"
+    "x-sourceSha256": "993f7be3aa91fb297d1a21d4908f7cf4bd231c154b2c9386b51720c5dfefe311"
   },
   "programsSelectTitle": "プログラムを選択",
   "@programsSelectTitle": {
@@ -9890,9 +9898,9 @@
   "@danceEditorCompoundSemantic": {
     "x-sourceSha256": "24498eb89526ea5fa53aab4ce10493fcb73caadfba10f08eb270271d88f317be"
   },
-  "danceEditorCompoundExpandsTo": "ダンスを保存すると{count, plural, other{{count}個のフィギュア}}（{beats, plural, other{{beats}拍}}）になります。",
+  "danceEditorCompoundExpandsTo": "ダンスを保存すると{count, plural, other{{count}個のフィギュア}}（{timing}）になります。",
   "@danceEditorCompoundExpandsTo": {
-    "x-sourceSha256": "e1e59e23f7602c299e99da09509da61d362a2d51216e964a0fdf7f0d85a6732d"
+    "x-sourceSha256": "6659b0dda494b4a7344193e7a6b1c4b05d0342a65903ec1044cfbb5704793685"
   },
   "danceEditorCompoundUnavailable": "自分のフィギュアを展開できません。削除または変更されたか、これらの値を受け付けません。保存すると、名前、拍数、メモ、プログレッションのマークだけが保持されます。",
   "@danceEditorCompoundUnavailable": {
@@ -9902,9 +9910,9 @@
   "@danceEditorIncompleteFigure": {
     "x-sourceSha256": "a94c6fd28cd88d631dc65171fee6a1ec2665e1d82ac33275a06a7fc64d24b7f3"
   },
-  "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{、{importGapText}} other{}}{progression, select, yes{、プログレッション} other{}}{hasMove, select, yes{、{beats, plural, other{{beats}拍}}} other{}}{hasNote, select, yes{、ノート: {note}} other{}}。{total}件中フィギュア{position}。",
+  "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{、{importGapText}} other{}}{progression, select, yes{、プログレッション} other{}}{hasMove, select, yes{、{timing}} other{}}{hasNote, select, yes{、ノート: {note}} other{}}。{total}件中フィギュア{position}。",
   "@danceEditorFigureSummarySemantic": {
-    "x-sourceSha256": "e6e055515213aca43227e08180eedb9332836f9adc9dff767e7e5b0d47d55858"
+    "x-sourceSha256": "3914e9effeb040d5f8dfe8f4ec81609daa9d95a9cb8fd8dd73c985dd7357bbd4"
   },
   "danceEditorActivateToEditHint": "編集するにはアクティブにしてください",
   "@danceEditorActivateToEditHint": {
@@ -10149,6 +10157,22 @@
   "danceEditorUnderByBeats": "{beats}拍不足",
   "@danceEditorUnderByBeats": {
     "x-sourceSha256": "2931d84e5fea1cad70a43acbef80c3039fe87f2242a58ee8a43148bb688e44a7"
+  },
+  "danceEditorBarTotal": "合計: {total} / {expected}{expectedHalfBars, plural, other{小節}}",
+  "@danceEditorBarTotal": {
+    "x-sourceSha256": "8d3acf824d9b296450f12d34ea96a84e1994e2f2f5b9d80a0539969339cebc76"
+  },
+  "danceEditorBarTotalFreeForm": "合計: {count}",
+  "@danceEditorBarTotalFreeForm": {
+    "x-sourceSha256": "a3869d811e41d19e6bfe501699c43c71f1f6ade0508fac28f041891f64a3a5af"
+  },
+  "danceEditorOverByBars": "{count}超過",
+  "@danceEditorOverByBars": {
+    "x-sourceSha256": "bc3aac712ae79358e1cb21192519b924200b9bab2ab89ae5365862f4f4975582"
+  },
+  "danceEditorUnderByBars": "{count}不足",
+  "@danceEditorUnderByBars": {
+    "x-sourceSha256": "36100aa122206dfc32ee18932672652a3275e69ecf18a0fd727ad041d0185fd7"
   },
   "danceEditorLessTooltip": "少なく",
   "@danceEditorLessTooltip": {

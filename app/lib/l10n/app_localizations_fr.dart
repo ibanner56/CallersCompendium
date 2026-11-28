@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -354,8 +355,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count danses seront supprimées, dont $notShown masquées par votre recherche. Vous pouvez annuler cette action.',
-      one:
-          '1 danse sera supprimée. Votre recherche la masque. Vous pouvez annuler cette action.',
+      one: '1 danse sera supprimée. Votre recherche la masque. Vous pouvez annuler cette action.',
     );
     return '$_temp0';
   }
@@ -544,8 +544,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count termes n’ont pas pu être ajoutés : ils sont trop longs, ou votre glossaire est plein.',
-      one:
-          '1 terme n’a pas pu être ajouté : il est trop long, ou votre glossaire est plein.',
+      one: '1 terme n’a pas pu être ajouté : il est trop long, ou votre glossaire est plein.',
     );
     return '$_temp0';
   }
@@ -614,8 +613,7 @@ class AppLocalizationsFr extends AppLocalizations {
           '$count danses utilisent votre figure et utiliseront $name à la place. La vôtre est retirée de votre glossaire.',
       one:
           '1 danse utilise votre figure et utilisera $name à la place. La vôtre est retirée de votre glossaire.',
-      zero:
-          'Aucune danse de votre collection n’utilise votre figure. Elle est retirée de votre glossaire.',
+      zero: 'Aucune danse de votre collection n’utilise votre figure. Elle est retirée de votre glossaire.',
     );
     return '$_temp0';
   }
@@ -1033,8 +1031,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'download':
           'Interrompu pendant le téléchargement depuis vos autres appareils.',
       'upload': 'Interrompu pendant l’envoi des modifications de cet appareil.',
-      'publish':
-          'Interrompu pendant la publication des modifications de cet appareil.',
+      'publish': 'Interrompu pendant la publication des modifications de cet appareil.',
       'createStore': 'Interrompu pendant la création de l’espace.',
       'other': 'Interrompu en cours de route.',
     });
@@ -5348,6 +5345,28 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String exportPhrasesOfBars(int phrases, String bars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      phrases,
+      locale: localeName,
+      other: '$phrases phrases',
+      one: '1 phrase',
+    );
+    return '$_temp0 de $bars';
+  }
+
+  @override
+  String exportBarsOfBeats(String bars, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats temps',
+      one: '1 temps',
+    );
+    return '$bars à $_temp0';
+  }
+
+  @override
   String get exportNamedPhraseSeparator => ', ';
 
   @override
@@ -7074,7 +7093,7 @@ class AppLocalizationsFr extends AppLocalizations {
     String importGap,
     String importGapText,
     String progression,
-    int beats,
+    String timing,
     String hasNote,
     String note,
   ) {
@@ -7086,17 +7105,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'yes': ', progression',
       'other': '',
     });
-    String _temp2 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats temps',
-      one: '1 temps',
-    );
-    String _temp3 = intl.Intl.selectLogic(hasNote, {
+    String _temp2 = intl.Intl.selectLogic(hasNote, {
       'yes': ', note : $note',
       'other': '',
     });
-    return '$main$_temp0$_temp1, $_temp2$_temp3';
+    return '$main$_temp0$_temp1, $timing$_temp2';
   }
 
   @override
@@ -8830,8 +8843,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           'La ré-importation remplace les figures, la formation et la progression de $count danses existantes, et peut changer leur forme de danse. Leurs notes, tags et remarques restent.',
-      one:
-          'La ré-importation remplace les figures, la formation et la progression d’une danse existante, et peut changer sa forme de danse. Sa note, ses tags et ses notes restent.',
+      one: 'La ré-importation remplace les figures, la formation et la progression d’une danse existante, et peut changer sa forme de danse. Sa note, ses tags et ses notes restent.',
     );
     return '$_temp0';
   }
@@ -8863,8 +8875,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           'Cet import contient $count éléments — plus que prévu pour un partage normal.',
-      one:
-          'Cet import contient 1 élément — plus que prévu pour un partage normal.',
+      one: 'Cet import contient 1 élément — plus que prévu pour un partage normal.',
     );
     return '$_temp0';
   }
@@ -10006,8 +10017,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count figures ajoutées. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
-      one:
-          '1 figure ajoutée. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
+      one: '1 figure ajoutée. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
     );
     return '$_temp0';
   }
@@ -10019,8 +10029,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count figures ajoutées. Saisissez-en une autre ou choisissez « Terminer l’ajout » quand vous avez fini.',
-      one:
-          '1 figure ajoutée. Saisissez-en une autre ou choisissez « Terminer l’ajout » quand vous avez fini.',
+      one: '1 figure ajoutée. Saisissez-en une autre ou choisissez « Terminer l’ajout » quand vous avez fini.',
     );
     return '$_temp0';
   }
@@ -10134,8 +10143,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$countString lignes ne sont pas reconnues. Elles seront ajoutées comme figures non reconnues avec leur texte, pour que vous les corrigiez.',
-      one:
-          '1 ligne n’est pas reconnue. Elle sera ajoutée comme figure non reconnue avec son texte, pour que vous la corrigiez.',
+      one: '1 ligne n’est pas reconnue. Elle sera ajoutée comme figure non reconnue avec son texte, pour que vous la corrigiez.',
     );
     return '$_temp0';
   }
@@ -10282,20 +10290,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String danceEditorCompoundExpandsTo(int count, int beats) {
+  String danceEditorCompoundExpandsTo(int count, String timing) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count figures',
       one: '1 figure',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats temps',
-      one: '1 temps',
-    );
-    return 'Devient $_temp0 ($_temp1) à l’enregistrement de la danse.';
+    return 'Devient $_temp0 ($timing) à l’enregistrement de la danse.';
   }
 
   @override
@@ -10313,7 +10315,7 @@ class AppLocalizationsFr extends AppLocalizations {
     String importGapText,
     String progression,
     String hasMove,
-    int beats,
+    String timing,
     String hasNote,
     String note,
     int position,
@@ -10327,21 +10329,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'yes': ', progression',
       'other': '',
     });
-    String _temp2 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats temps',
-      one: '1 temps',
-    );
-    String _temp3 = intl.Intl.selectLogic(hasMove, {
-      'yes': ', $_temp2',
+    String _temp2 = intl.Intl.selectLogic(hasMove, {
+      'yes': ', $timing',
       'other': '',
     });
-    String _temp4 = intl.Intl.selectLogic(hasNote, {
+    String _temp3 = intl.Intl.selectLogic(hasNote, {
       'yes': ', note : $note',
       'other': '',
     });
-    return '$main$_temp0$_temp1$_temp3$_temp4. Figure $position sur $total.';
+    return '$main$_temp0$_temp1$_temp2$_temp3. Figure $position sur $total.';
   }
 
   @override
@@ -10654,6 +10650,37 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String danceEditorBarTotal(
+    String total,
+    String expected,
+    int expectedHalfBars,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      expectedHalfBars,
+      locale: localeName,
+      other: 'mesures',
+      two: 'mesure',
+      one: 'mesure',
+    );
+    return 'Total : $total / $expected $_temp0';
+  }
+
+  @override
+  String danceEditorBarTotalFreeForm(String count) {
+    return 'Total : $count';
+  }
+
+  @override
+  String danceEditorOverByBars(String count) {
+    return 'Dépassement de $count';
+  }
+
+  @override
+  String danceEditorUnderByBars(String count) {
+    return 'Manque de $count';
+  }
+
+  @override
   String get danceEditorLessTooltip => 'Moins';
 
   @override
@@ -10828,8 +10855,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other: '$count danses rétablies.',
       one: '1 danse rétablie.',
-      zero:
-          'Aucune danse n’a été rétablie : le type ou les tags de chacune ont changé depuis.',
+      zero: 'Aucune danse n’a été rétablie : le type ou les tags de chacune ont changé depuis.',
     );
     return '$_temp0';
   }
@@ -11260,8 +11286,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count boutons d’appel ont été ignorés, car leur texte n’est pas lisible comme des figures.',
-      one:
-          '1 bouton d’appel a été ignoré, car son texte n’est pas lisible comme des figures.',
+      one: '1 bouton d’appel a été ignoré, car son texte n’est pas lisible comme des figures.',
     );
     return '$_temp0';
   }
@@ -11311,8 +11336,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count paires de contraste inférieures au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
-      one:
-          '1 paire de contraste inférieure au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
+      one: '1 paire de contraste inférieure au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
     );
     return '$_temp0';
   }
@@ -12732,8 +12756,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count danses dans « Récemment supprimées » l’utilisent et gardent les lignes qu’elles ont enregistrées en dernier.',
-      one:
-          '1 danse dans « Récemment supprimées » l’utilise et garde la ligne qu’elle a enregistrée en dernier.',
+      one: '1 danse dans « Récemment supprimées » l’utilise et garde la ligne qu’elle a enregistrée en dernier.',
     );
     return '$_temp0';
   }
@@ -12749,8 +12772,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           'Vos $count abréviations pour celle-ci sont conservées, et les saisir donnera des lignes ordinaires.',
-      one:
-          'Votre abréviation pour celle-ci est conservée, et la saisir donnera une ligne ordinaire.',
+      one: 'Votre abréviation pour celle-ci est conservée, et la saisir donnera une ligne ordinaire.',
     );
     return '$_temp0';
   }
@@ -12762,10 +12784,8 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count danses l’utilisent. Elle est retirée de votre glossaire, et ces danses conservent leur formulation actuelle en texte simple.',
-      one:
-          '1 danse l’utilise. Elle est retirée de votre glossaire, et cette danse conserve sa formulation actuelle en texte simple.',
-      zero:
-          'Aucune danse de votre collection ne l’utilise. Elle est retirée de votre glossaire.',
+      one: '1 danse l’utilise. Elle est retirée de votre glossaire, et cette danse conserve sa formulation actuelle en texte simple.',
+      zero: 'Aucune danse de votre collection ne l’utilise. Elle est retirée de votre glossaire.',
     );
     return '$_temp0';
   }
@@ -14976,8 +14996,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           'Vous pouvez garder jusqu’à $count recherches enregistrées. Supprimez-en une pour en enregistrer une autre.',
-      one:
-          'Vous pouvez garder 1 recherche enregistrée. Supprimez-la pour en enregistrer une autre.',
+      one: 'Vous pouvez garder 1 recherche enregistrée. Supprimez-la pour en enregistrer une autre.',
     );
     return '$_temp0';
   }
