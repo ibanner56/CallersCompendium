@@ -75,7 +75,7 @@ Future<ArchiveIntakeValidation> validateDanceLink(
 }) {
   final trimmed = link.trim();
   final service = intake ?? ArchiveIntakeService();
-  return danceLinkWorkRunner(() {
+  return danceLinkWorkRunner(() async {
     final json = decodeDanceLink(
       trimmed,
       maxLinkLength: maxLinkLength,
