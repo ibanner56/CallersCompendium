@@ -3988,12 +3988,12 @@ void main() {
       await tester.enterText(barnes, 'Ladies of London, BIII p. 92');
       await tester.pumpAndSettle();
 
-      final controller = tester.widget<TextFormField>(barnes).controller!;
-      expect(controller, isNot(isA<LingoTextEditingController>()));
       expect(
         find.byKey(const ValueKey('barnes-reference-lingo-hint')),
         findsNothing,
       );
+      final controller = tester.widget<TextFormField>(barnes).controller!;
+      expect(controller, isNot(isA<LingoTextEditingController>()));
       await tester.tap(find.byKey(const ValueKey('save-dance')));
       await tester.pumpAndSettle();
       expect(
