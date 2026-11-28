@@ -123,6 +123,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ouvrir la page des versions (Releases)';
 
   @override
+  String get appBootstrapBugReportLink => 'Signaler un bug';
+
+  @override
+  String appBootstrapEmailLink(String address) {
+    return 'Écrire à $address';
+  }
+
+  @override
   String migrationDowngradeVersions(int fileVersion, int appVersion) {
     final intl.NumberFormat fileVersionNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -8885,6 +8893,19 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String importReviewReimportRemovesWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count d’entre elles changent de forme de danse et perdent leur référence Barnes ou leur marque « Commence improper », comme l’indiquent leurs lignes.',
+      one:
+          'L’une d’elles change de forme de danse et perd sa référence Barnes ou sa marque « Commence improper », comme l’indique sa ligne.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String importReviewWarningPrefix(String message) {
     return 'Avertissement : $message';
   }
@@ -15225,8 +15246,23 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher, ajouter, modifier, réordonner et supprimer vos règles.';
 
   @override
-  String get eventRulesEmpty =>
-      'Aucune règle pour l’instant. Une règle utilise l’une de vos recherches enregistrées pour dire de quelles danses elle parle.';
+  String get eventRulesEmptyTitle => 'Aucune règle pour l’instant';
+
+  @override
+  String get eventRulesEmptyBody =>
+      'Une règle utilise l’une de vos recherches enregistrées pour dire de quelles danses elle parle. Choisissez Nouvelle règle… pour en ajouter une.';
+
+  @override
+  String get eventRulesLoadError =>
+      'Impossible de charger vos règles. Rien n’a été modifié. Réessayez.';
+
+  @override
+  String get eventRuleDeleteFailed =>
+      'Impossible de supprimer la règle. Réessayez.';
+
+  @override
+  String get eventRuleMoveFailed =>
+      'Impossible de déplacer la règle. Réessayez.';
 
   @override
   String get eventRulesNewRule => 'Nouvelle règle…';
@@ -15703,13 +15739,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programTemplateSlotRuleBadge => 'Règle de créneau';
 
   @override
-  String programTemplateSlotEditTooltip(String name) {
-    return 'Modifier $name';
+  String programTemplateSlotEditTooltip(int position, String name) {
+    return 'Créneau $position, $name : modifier';
   }
 
   @override
-  String programTemplateSlotDeleteTooltip(String name) {
-    return 'Supprimer $name';
+  String programTemplateSlotDeleteTooltip(int position, String name) {
+    return 'Créneau $position, $name : supprimer';
+  }
+
+  @override
+  String programTemplateSlotMoveUpTooltip(int position, String name) {
+    return 'Créneau $position, $name : déplacer vers le haut';
+  }
+
+  @override
+  String programTemplateSlotMoveDownTooltip(int position, String name) {
+    return 'Créneau $position, $name : déplacer vers le bas';
   }
 
   @override

@@ -132,6 +132,14 @@
   "@appBootstrapReleasesLink": {
     "x-sourceSha256": "aa932a0163205c8c118c750181bfdc29c51c68f28a545e66dfdf06cb25ce9fb9"
   },
+  "appBootstrapBugReportLink": "不具合を報告",
+  "@appBootstrapBugReportLink": {
+    "x-sourceSha256": "f75e0bd8ff2369251bc8767de55dd8c0bcb3efd1dbc34041bfca4058f9edf0ef"
+  },
+  "appBootstrapEmailLink": "{address} にメールする",
+  "@appBootstrapEmailLink": {
+    "x-sourceSha256": "9e537fc54df73ab84fb572f70641a065b775dc49953e2538e1619efda013b3c4"
+  },
   "migrationDowngradeVersions": "お使いのデータの保存形式はバージョン {fileVersion} です。このバージョンのアプリは形式 {appVersion} まで読み込めます。",
   "@migrationDowngradeVersions": {
     "x-sourceSha256": "e98535aaca5822fdd932b29a528215a0c8cb34647f524f6818da24899f6b538a"
@@ -8582,6 +8590,10 @@
   "@importReviewReimportTitleWarning": {
     "x-sourceSha256": "f1695458fa6aac28fb41eb780c35447bbbab515fceffe9ce59dd8866c14c0e4f"
   },
+  "importReviewReimportRemovesWarning": "{count, plural, other{そのうち{count}件はダンスの形式が変わり、Barnes 掲載箇所または「インプロパーで始まる」の印が削除されます（各行に表示）。}}",
+  "@importReviewReimportRemovesWarning": {
+    "x-sourceSha256": "3bd6dcb210e55143abec4c67880a29c51fee28c9fdfc2439acb1240a90e0dcd8"
+  },
   "importReviewWarningPrefix": "警告: {message}",
   "@importReviewWarningPrefix": {
     "x-sourceSha256": "bc349610f5be4b2da9ca53a9aaaa12b2701afbf54d5988b920d8f331c41f5f0a"
@@ -14386,9 +14398,25 @@
   "@eventRulesManageSubtitle": {
     "x-sourceSha256": "e3201fa38d2cc62d010cbcd6d873777c0e5034d2c8c0a7c95b31fe0ab26ebe57"
   },
-  "eventRulesEmpty": "ルールはまだありません。ルールは保存した検索を使って、対象のダンスを指定します。",
-  "@eventRulesEmpty": {
-    "x-sourceSha256": "3e6f22b9afd7db701d5f8741327bb290a4c1d0153bb03d774729b4ec697b75ab"
+  "eventRulesEmptyTitle": "ルールはまだありません",
+  "@eventRulesEmptyTitle": {
+    "x-sourceSha256": "d29cf782366d138c1caa5421be061a9bd8a9d6607c3a6b8ca9f0d5ea986e5db8"
+  },
+  "eventRulesEmptyBody": "ルールは保存した検索を使って、対象のダンスを指定します。追加するには「新しいルール…」を選んでください。",
+  "@eventRulesEmptyBody": {
+    "x-sourceSha256": "c8c922348a950f211fff1f9082d6c080d9a9177e9b4aafdba21b09fdf4025650"
+  },
+  "eventRulesLoadError": "ルールを読み込めませんでした。何も変更されていません。もう一度お試しください。",
+  "@eventRulesLoadError": {
+    "x-sourceSha256": "de39c42c3186347986451402e7e3204f779611f5962ca734c73b3e1a18a390c2"
+  },
+  "eventRuleDeleteFailed": "ルールを削除できませんでした。もう一度お試しください。",
+  "@eventRuleDeleteFailed": {
+    "x-sourceSha256": "38f5cce45721fdc140146228b8afba21fce0bdfd9aef46e9337a211d1525f361"
+  },
+  "eventRuleMoveFailed": "ルールを移動できませんでした。もう一度お試しください。",
+  "@eventRuleMoveFailed": {
+    "x-sourceSha256": "838a24e89e0977cacbe775caba43859768ee91bccc3b3353131320dd2ef44232"
   },
   "eventRulesNewRule": "新しいルール…",
   "@eventRulesNewRule": {
@@ -14746,13 +14774,21 @@
   "@programTemplateSlotRuleBadge": {
     "x-sourceSha256": "d3c802c982976b306a8676af4f5bc4811ecfbe9275f29e1ec1bab7a826d2f751"
   },
-  "programTemplateSlotEditTooltip": "{name}を編集",
+  "programTemplateSlotEditTooltip": "スロット{position}、{name}：編集",
   "@programTemplateSlotEditTooltip": {
-    "x-sourceSha256": "2313fe21ea84567f451e913cae39bd4ef9775a83458b23f3f440c2108e5363a1"
+    "x-sourceSha256": "75f7f529ed01f6c425886734edaa138df2b4d14a3b3ef367ab998db0a64d3125"
   },
-  "programTemplateSlotDeleteTooltip": "{name}を削除",
+  "programTemplateSlotDeleteTooltip": "スロット{position}、{name}：削除",
   "@programTemplateSlotDeleteTooltip": {
-    "x-sourceSha256": "3cf8146e529f1e4296d40d7ea32ffc63bc2647d416851ed43921bfedf3097cb3"
+    "x-sourceSha256": "482bf3c757428bc1b69a88488f99a26289afd806b32323131d13706dfa08f2bb"
+  },
+  "programTemplateSlotMoveUpTooltip": "スロット{position}、{name}：上に移動",
+  "@programTemplateSlotMoveUpTooltip": {
+    "x-sourceSha256": "67c4d607d116067555823f4eeaf1a94bec08604c446685b41f51713c037cef14"
+  },
+  "programTemplateSlotMoveDownTooltip": "スロット{position}、{name}：下に移動",
+  "@programTemplateSlotMoveDownTooltip": {
+    "x-sourceSha256": "c8689033ba4b637fc72f839aeaec1a6061f91f3e7b4bffcd0e1a01bb0fafcd85"
   },
   "programTemplateSlotRuleSubtitle": "保存した検索「{name}」から埋めます",
   "@programTemplateSlotRuleSubtitle": {

@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/app_metadata.dart'
+    show kBugReportFormUrl, kProjectEmail;
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/update/retirement_banner.dart'
     show kReleasesPageUrl;
@@ -21,6 +23,36 @@ Future<void> _noopReset(DatabaseBelowFloorError _) async {}
 
 /// No-op share callback for tests that don't exercise the share action.
 Future<void> _noopShare(DatabaseBelowFloorError _, Rect? _) async {}
+
+/// Where to report the problem (the maintainer's ruling, 2026-11-28): the
+/// Bug report form first, then the project's email address, each opening.
+Future<void> _expectReportLinks(
+  WidgetTester tester,
+  FakeUrlLauncher launcher,
+) async {
+  final form = find.byKey(const ValueKey('bootstrap-bug-report-link'));
+  final email = find.byKey(const ValueKey('bootstrap-email-link'));
+  expect(form, findsOneWidget);
+  expect(email, findsOneWidget);
+  expect(
+    tester.getTopLeft(form).dy,
+    lessThan(tester.getTopLeft(email).dy),
+    reason: 'the Bug report form comes first',
+  );
+  expect(
+    find.descendant(of: email, matching: find.textContaining(kProjectEmail)),
+    findsOneWidget,
+    reason: 'the address is shown, so it can be copied by hand',
+  );
+  launcher.launchedUrls.clear();
+  await tester.ensureVisible(form);
+  await tester.tap(form);
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(email);
+  await tester.tap(email);
+  await tester.pumpAndSettle();
+  expect(launcher.launchedUrls, [kBugReportFormUrl, 'mailto:$kProjectEmail']);
+}
 
 void main() {
   testWidgets('shows a loading screen until the startup future completes', (
@@ -58,6 +90,7 @@ void main() {
     tester,
   ) async {
     var retried = false;
+    final launcher = installFakeUrlLauncher();
     final completer = Completer<void>();
     await tester.pumpWidget(
       MaterialApp(
@@ -85,6 +118,8 @@ void main() {
     // The brand mark replaces the generic Material error glyph.
     expect(find.byType(BrandMark), findsOneWidget);
     expect(find.byIcon(Icons.error_outline), findsNothing);
+
+    await _expectReportLinks(tester, launcher);
 
     await tester.tap(find.text('Try again'));
     expect(retried, isTrue);
@@ -805,6 +840,7 @@ void main() {
           }
           // Only the desktop below-floor screen has a Get button; the Android
           // and iOS ones are tested in their own group above.
+          await _expectReportLinks(tester, launcher);
         },
         variant: entry.key == 'below floor'
             ? TargetPlatformVariant.desktop()

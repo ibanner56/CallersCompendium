@@ -374,7 +374,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   until one of its own tables changes) and, when a rule is broken or
   needs attention, a collapsible **Rules strip** sits under the warnings card:
   "1 rule not met" / "1 rule needs attention" (rule icon plus text, never
-  colour alone). Expanded, each broken rule shows its sentence, the count or
+  colour alone), its summary a live region, so a screen reader hears it
+  arrive and change, as it does the warnings. Expanded, each broken rule shows its sentence, the count or
   the breaking neighboring pairs, the dances involved, and for an alternate
   "If you call *X*"; each rule needing attention names what is missing and is
   not checked. Involved slots carry a marker in the slot row, icon plus
@@ -385,8 +386,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   export. Off, no button, strip or marker is built and nothing is checked.
   The manager (Settings ▸ Experimental ▸ Event rules ▸ Manage rules, also
   linked from Settings ▸ Program while on) is a full-screen list of rules
-  (nickname over sentence, or sentence) with a **New rule…** FAB, delete with
-  Undo, and reordering by a drag handle and Move up / Move down (#2341); the
+  (nickname over sentence, or sentence) with a **New rule…** FAB (folding
+  in a short window; while there is no rule the empty state carries the
+  button instead, and a failed read shows Try again, as in the other
+  managers), delete with Undo, and reordering by a drag handle and Move up / Move down (#2341); the
   editor picks a saved search (dropdown), At most / At least / None
   (segmented), a count, the scope (radios), and an optional nickname, with
   the sentence previewed live. **Rule order** (a dropdown under the same

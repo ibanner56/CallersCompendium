@@ -121,6 +121,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get appBootstrapReleasesLink => 'Releases-pagina openen';
 
   @override
+  String get appBootstrapBugReportLink => 'Fout melden';
+
+  @override
+  String appBootstrapEmailLink(String address) {
+    return 'E-mail sturen naar $address';
+  }
+
+  @override
   String migrationDowngradeVersions(int fileVersion, int appVersion) {
     final intl.NumberFormat fileVersionNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -8834,6 +8842,19 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String importReviewReimportRemovesWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count daarvan krijgen een andere dansvorm en verliezen de Barnes-verwijzing of de markering Begint improper, zoals de rijen aangeven.',
+      one:
+          '1 daarvan krijgt een andere dansvorm en verliest de Barnes-verwijzing of de markering Begint improper, zoals de rij aangeeft.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String importReviewWarningPrefix(String message) {
     return 'Waarschuwing: $message';
   }
@@ -15148,8 +15169,23 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je regels bekijken, toevoegen, bewerken, herschikken en verwijderen.';
 
   @override
-  String get eventRulesEmpty =>
-      'Nog geen regels. Een regel gebruikt een van je opgeslagen zoekopdrachten om te zeggen welke dansen hij bedoelt.';
+  String get eventRulesEmptyTitle => 'Nog geen regels';
+
+  @override
+  String get eventRulesEmptyBody =>
+      'Een regel gebruikt een van je opgeslagen zoekopdrachten om te zeggen welke dansen hij bedoelt. Kies Nieuwe regel… om er een toe te voegen.';
+
+  @override
+  String get eventRulesLoadError =>
+      'Je regels konden niet worden geladen. Er is niets gewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get eventRuleDeleteFailed =>
+      'De regel kon niet worden verwijderd. Probeer het opnieuw.';
+
+  @override
+  String get eventRuleMoveFailed =>
+      'De regel kon niet worden verplaatst. Probeer het opnieuw.';
 
   @override
   String get eventRulesNewRule => 'Nieuwe regel…';
@@ -15622,13 +15658,23 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programTemplateSlotRuleBadge => 'Slotregel';
 
   @override
-  String programTemplateSlotEditTooltip(String name) {
-    return '$name bewerken';
+  String programTemplateSlotEditTooltip(int position, String name) {
+    return 'Slot $position, $name: bewerken';
   }
 
   @override
-  String programTemplateSlotDeleteTooltip(String name) {
-    return '$name verwijderen';
+  String programTemplateSlotDeleteTooltip(int position, String name) {
+    return 'Slot $position, $name: verwijderen';
+  }
+
+  @override
+  String programTemplateSlotMoveUpTooltip(int position, String name) {
+    return 'Slot $position, $name: omhoog verplaatsen';
+  }
+
+  @override
+  String programTemplateSlotMoveDownTooltip(int position, String name) {
+    return 'Slot $position, $name: omlaag verplaatsen';
   }
 
   @override

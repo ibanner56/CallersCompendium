@@ -101,5 +101,39 @@ void main() {
       await tester.pump();
       expect(find.text("Couldn't open link"), findsOneWidget);
     });
+
+    testWidgets('launchEmail opens a mailto: link to the address', (
+      tester,
+    ) async {
+      final ctx = await pumpContext(tester);
+      await launchEmail(ctx, ' someone@example.org ');
+      expect(fake.launchedUrls, ['mailto:someone@example.org']);
+    });
+
+    testWidgets('launchEmail refuses what is not one address, and says so', (
+      tester,
+    ) async {
+      final ctx = await pumpContext(tester);
+      for (final address in [
+        'nobody',
+        'a@b@c',
+        'a@b?subject=x',
+        'a b@c',
+        'javascript:x@y',
+      ]) {
+        await launchEmail(ctx, address);
+      }
+      await tester.pump();
+      expect(fake.launchedUrls, isEmpty);
+      expect(find.text("Couldn't open link"), findsOneWidget);
+    });
+
+    testWidgets('launchEmail says so when no mail app opens', (tester) async {
+      fake.launchResult = false;
+      final ctx = await pumpContext(tester);
+      await launchEmail(ctx, 'someone@example.org');
+      await tester.pump();
+      expect(find.text("Couldn't open link"), findsOneWidget);
+    });
   });
 }

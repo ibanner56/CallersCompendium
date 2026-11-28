@@ -114,6 +114,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appBootstrapReleasesLink => 'Releases ページを開く';
 
   @override
+  String get appBootstrapBugReportLink => '不具合を報告';
+
+  @override
+  String appBootstrapEmailLink(String address) {
+    return '$address にメールする';
+  }
+
+  @override
   String migrationDowngradeVersions(int fileVersion, int appVersion) {
     final intl.NumberFormat fileVersionNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -8422,6 +8430,17 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String importReviewReimportRemovesWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'そのうち$count件はダンスの形式が変わり、Barnes 掲載箇所または「インプロパーで始まる」の印が削除されます（各行に表示）。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String importReviewWarningPrefix(String message) {
     return '警告: $message';
   }
@@ -14469,7 +14488,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get eventRulesManageSubtitle => 'ルールを表示、追加、編集、並べ替え、削除します。';
 
   @override
-  String get eventRulesEmpty => 'ルールはまだありません。ルールは保存した検索を使って、対象のダンスを指定します。';
+  String get eventRulesEmptyTitle => 'ルールはまだありません';
+
+  @override
+  String get eventRulesEmptyBody =>
+      'ルールは保存した検索を使って、対象のダンスを指定します。追加するには「新しいルール…」を選んでください。';
+
+  @override
+  String get eventRulesLoadError => 'ルールを読み込めませんでした。何も変更されていません。もう一度お試しください。';
+
+  @override
+  String get eventRuleDeleteFailed => 'ルールを削除できませんでした。もう一度お試しください。';
+
+  @override
+  String get eventRuleMoveFailed => 'ルールを移動できませんでした。もう一度お試しください。';
 
   @override
   String get eventRulesNewRule => '新しいルール…';
@@ -14902,13 +14934,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programTemplateSlotRuleBadge => 'スロットのルール';
 
   @override
-  String programTemplateSlotEditTooltip(String name) {
-    return '$nameを編集';
+  String programTemplateSlotEditTooltip(int position, String name) {
+    return 'スロット$position、$name：編集';
   }
 
   @override
-  String programTemplateSlotDeleteTooltip(String name) {
-    return '$nameを削除';
+  String programTemplateSlotDeleteTooltip(int position, String name) {
+    return 'スロット$position、$name：削除';
+  }
+
+  @override
+  String programTemplateSlotMoveUpTooltip(int position, String name) {
+    return 'スロット$position、$name：上に移動';
+  }
+
+  @override
+  String programTemplateSlotMoveDownTooltip(int position, String name) {
+    return 'スロット$position、$name：下に移動';
   }
 
   @override

@@ -21,7 +21,14 @@
 //     stop: see the note where it is checked).
 //  2. Reachable: every tappable, enabled semantics node on screen is covered by
 //     a Tab stop of about its own size (a stop for a small button inside a large
-//     row does not count as reaching the row).
+//     row does not count as reaching the row). Two kinds are reached another
+//     way, and are checked that way: a radio group is one Tab stop and its
+//     other buttons are reached with the arrow keys, which the walk presses;
+//     and the rows of a saved search field's list are chosen with the arrow
+//     keys from the field, which keeps focus, so they count as reached while
+//     the field is the stop. A page with fewer than five controls is judged
+//     as a whole form is (below), since the ordinary rule cannot tell its wrap
+//     from a trap.
 //  3. Visible: the app draws its focus ring from one layer (`FocusRingLayer`)
 //     around whatever has keyboard focus, so after each Tab press the ring must
 //     be there and must sit on the stop. Text fields draw their own border and
@@ -34,10 +41,24 @@
 //
 // This supplements the manual gate; it does not replace it. It does not check
 // the activation keys (Enter, Space), contrast, or text fields' own editing.
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
+import 'package:compendium_app/src/data/display_defaults.dart'
+    show ProgramTemplateEntry;
+import 'package:compendium_app/src/data/event_rules_scope.dart';
+import 'package:compendium_app/src/data/program_templates.dart';
+import 'package:compendium_app/src/screens/app_shell.dart';
+import 'package:compendium_app/src/screens/calendar_import_screen.dart';
+import 'package:compendium_app/src/screens/combined_programs_screen.dart';
+import 'package:compendium_app/src/screens/ecd_migration_screen.dart';
+import 'package:compendium_app/src/screens/repertoire_screen.dart';
+import 'package:compendium_app/src/screens/settings/event_rules_screen.dart';
+import 'package:compendium_app/src/screens/settings/perform_swap_defaults_screen.dart';
+import 'package:compendium_app/src/screens/settings/program_templates_screen.dart';
+import 'package:compendium_app/src/screens/settings/suggestion_settings_screen.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
@@ -140,7 +161,94 @@ Future<AppData> _seed() async {
       updatedAt: stamp,
     ),
   );
+  // A second program, for the combined view.
+  await repos.programs.create(
+    Program(
+      id: 'p2',
+      title: 'Winter Ball',
+      slots: [
+        ProgramSlot(id: 'w1', position: 0, danceId: 'd2'),
+        ProgramSlot(id: 'w2', position: 1, danceId: 'd1'),
+      ],
+      createdAt: stamp,
+      updatedAt: stamp,
+    ),
+  );
+  // Event rules (Experimental) on, with six rules to list, and a template to
+  // list and edit.
+  await repos.settings.set(kEventRulesEnabledKey, true);
+  final facets = FacetSelections()..formations.add(FormationShape.becketCcw);
+  final search = await repos.savedSearches.create(
+    name: 'Becket',
+    spec: SavedSearchSpec.fromPanelState(
+      CollectionPanelState(facets: facets),
+      today: DateTime.utc(2026, 1, 1),
+    ).value!,
+  );
+  for (final (quantifier, scope, nickname) in [
+    (EventRuleQuantifier.atMost, EventRuleScope.wholeProgram, null),
+    (EventRuleQuantifier.atLeast, EventRuleScope.afterFirstBreak, null),
+    (EventRuleQuantifier.none, EventRuleScope.beforeFirstBreak, 'Easy start'),
+    (EventRuleQuantifier.atMost, EventRuleScope.neighbouring, null),
+    (EventRuleQuantifier.atMost, EventRuleScope.beforeFirstBreak, null),
+    (EventRuleQuantifier.atLeast, EventRuleScope.wholeProgram, 'Late lift'),
+  ]) {
+    await repos.eventRules.create(
+      savedSearchId: search.id,
+      quantifier: quantifier,
+      count: quantifier == EventRuleQuantifier.none ? 0 : 1,
+      scope: scope,
+      nickname: nickname,
+    );
+  }
+  for (final (id, name) in [
+    ('tpl-autumn', 'Autumn'),
+    ('tpl-winter', 'Winter'),
+    ('tpl-spring', 'Spring'),
+    ('tpl-summer', 'Summer'),
+  ]) {
+    await saveProgramTemplate(
+      repos.settings,
+      ProgramTemplate(
+        id: id,
+        name: name,
+        entries: const [
+          ProgramTemplateEntry(danceId: 'd1'),
+          ProgramTemplateEntry(text: 'Waltz'),
+          ProgramTemplateEntry(text: Program.breakSlotText),
+          ProgramTemplateEntry(danceId: 'd2'),
+        ],
+      ),
+    );
+  }
+  // English dances stored with contra moves, for Convert English dances.
+  for (final title in ['Upon a Summer Day', 'Wakefield Hunt']) {
+    await repos.dances.create(
+      Dance(
+        id: title,
+        title: title,
+        form: DanceForm.ecd,
+        formation: Formation(FormationShape.dupleProper),
+        figures: [
+          Figure(move: 'circle', params: const {'direction': 'left'}),
+        ],
+        status: DanceStatus.active,
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+  }
   return appData;
+}
+
+/// Pushes [screen] over the app, as the row or button that opens it does.
+Future<void> _push(WidgetTester tester, Widget screen) async {
+  unawaited(
+    Navigator.of(
+      tester.element(find.byType(AppShell)),
+    ).push(MaterialPageRoute<void>(builder: (_) => screen)),
+  );
+  await tester.pumpAndSettle();
 }
 
 /// Whether [node]'s widget is still in the tree. A lazy list disposes an item
@@ -181,8 +289,14 @@ class _Tappable {
     this.rect,
     this.kinds, {
     required this.hasFocus,
+    required this.inRadioGroup,
   });
   final int id;
+
+  /// A radio button. A radio group is one Tab stop, its selected button, and
+  /// the arrow keys move between its buttons (`RadioGroup`), so its other
+  /// buttons are reached by the arrow keys, not by Tab.
+  final bool inRadioGroup;
 
   /// Whether the semantics tree says this node holds keyboard focus right now.
   /// Flutter reports it for the merged node of a control with a focusable
@@ -216,12 +330,19 @@ List<_Tappable> _tappables(WidgetTester tester) {
           ? data.label.replaceAll('\n', ' ')
           : data.tooltip;
       found.add(
-        _Tappable(node.id, label.isEmpty ? '(unlabelled)' : label, rect, {
-          if (f.isTextField) 'textfield',
-          if (f.isButton) 'button',
-          if (f.isChecked != ui.CheckedState.none) 'checkable',
-          if (f.isToggled != ui.Tristate.none) 'toggle',
-        }, hasFocus: f.isFocused == ui.Tristate.isTrue),
+        _Tappable(
+          node.id,
+          label.isEmpty ? '(unlabelled)' : label,
+          rect,
+          {
+            if (f.isTextField) 'textfield',
+            if (f.isButton) 'button',
+            if (f.isChecked != ui.CheckedState.none) 'checkable',
+            if (f.isToggled != ui.Tristate.none) 'toggle',
+          },
+          hasFocus: f.isFocused == ui.Tristate.isTrue,
+          inRadioGroup: f.isInMutuallyExclusiveGroup,
+        ),
       );
     }
     node.visitChildren((child) {
@@ -286,6 +407,10 @@ typedef _Walk = ({
   List<_Stop> stops,
   List<String> unreached,
 
+  /// Radio buttons on screen that Tab did not reach, by semantics id, for the
+  /// arrow-key check.
+  Map<int, _Tappable> unreachedRadios,
+
   /// The stops of a loop Tab could not leave (in the whole-form mode any loop
   /// that is not a return to the first stop; otherwise one of only a few
   /// controls), or a note that Tab visited too few stops to have wrapped: a
@@ -310,11 +435,15 @@ typedef _Walk = ({
 /// from step to step. Each step therefore asks which of the tappables on screen
 /// *now* the stop reaches, and a tappable counts as unreached only if it was on
 /// screen at some step and no step reached it.
-Future<_Walk?> _walk(WidgetTester tester, {required bool strict}) async {
+Future<_Walk?> _walk(
+  WidgetTester tester, {
+  required bool strict,
+  bool small = false,
+}) async {
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pump();
   final stops = <_Stop>[];
-  final seen = <int, String>{};
+  final seen = <int, _Tappable>{};
   final reached = <int>{};
   for (var i = 0; i < _maxStops; i++) {
     await _tab(tester);
@@ -323,15 +452,27 @@ Future<_Walk?> _walk(WidgetTester tester, {required bool strict}) async {
     final repeat = stops.indexWhere((s) => identical(s.node, node));
     if (repeat >= 0) {
       final loop = stops.length - repeat;
+      String describe(_Tappable t) =>
+          '${t.label} [${t.kinds.join('+')}] ${t.rect}';
       return (
         stops: stops,
         unreached: [
           for (final e in seen.entries)
-            if (!reached.contains(e.key)) e.value,
+            if (!reached.contains(e.key) && !e.value.inRadioGroup)
+              describe(e.value),
         ],
+        unreachedRadios: {
+          for (final e in seen.entries)
+            if (!reached.contains(e.key) && e.value.inRadioGroup)
+              e.key: e.value,
+        },
+        // A small page (see [_screen]) is not lazy, so its wrap is judged as
+        // the whole-form walk's is, by returning to the first stop.
         trap:
-            (strict ? repeat == 0 : loop >= _minLoop) &&
-                stops.length >= _minLoop
+            (small
+                ? repeat == 0
+                : (strict ? repeat == 0 : loop >= _minLoop) &&
+                      stops.length >= _minLoop)
             ? null
             : [
                 if (stops.length < _minLoop)
@@ -351,9 +492,28 @@ Future<_Walk?> _walk(WidgetTester tester, {required bool strict}) async {
     );
     stops.add(stop);
     if (stop.isWholeWindow) continue;
+    // A saved search field's list of saved searches, open under the field
+    // while it has focus: its rows are chosen with the arrow keys from the
+    // field, which keeps focus (`saved_search_field.dart`), as a combo box's
+    // are, so they are reached through the field, not as stops of their own.
+    final listbox = stop.isTextInput
+        ? [
+            for (final e
+                in find
+                    .byKey(const ValueKey('saved-search-dropdown'))
+                    .evaluate())
+              if (e.renderObject case final RenderBox box
+                  when box.attached && box.hasSize)
+                box.localToGlobal(Offset.zero) & box.size,
+          ]
+        : const <Rect>[];
     for (final t in _tappables(tester)) {
-      seen[t.id] = '${t.label} [${t.kinds.join('+')}] ${t.rect}';
-      if (t.hasFocus || _reaches(stop, t)) reached.add(t.id);
+      seen[t.id] = t;
+      if (t.hasFocus ||
+          _reaches(stop, t) ||
+          listbox.any((r) => r.inflate(1).contains(t.rect.center))) {
+        reached.add(t.id);
+      }
     }
   }
   return null;
@@ -367,20 +527,67 @@ bool _sameBounds(Rect ring, Rect stop) =>
     (ring.width - stop.width).abs() < 1 &&
     (ring.height - stop.height).abs() < 1;
 
+/// The radio buttons in [radios] that the arrow keys do not reach from any
+/// Tab stop that is a radio button: from each such stop, Down and then Up are
+/// pressed as many times as there are radio buttons on screen, and each focus
+/// they land on is judged as a Tab stop is ([_reaches]).
+Future<List<String>> _unreachedByArrows(
+  WidgetTester tester,
+  List<_Stop> stops,
+  Map<int, _Tappable> radios,
+) async {
+  final left = Map.of(radios);
+  final groupStops = [
+    for (final stop in stops)
+      if (_live(stop.node) &&
+          _tappables(tester).any((t) => t.inRadioGroup && _reaches(stop, t)))
+        stop,
+  ];
+  final presses = _tappables(tester).where((t) => t.inRadioGroup).length;
+  for (final start in groupStops) {
+    for (final key in [
+      LogicalKeyboardKey.arrowDown,
+      LogicalKeyboardKey.arrowUp,
+    ]) {
+      if (!_live(start.node)) continue;
+      start.node.requestFocus();
+      await tester.pump();
+      for (var i = 0; i < presses && left.isNotEmpty; i++) {
+        await tester.sendKeyEvent(key);
+        await tester.pump(const Duration(milliseconds: 300));
+        final node = FocusManager.instance.primaryFocus;
+        if (node == null || !_live(node)) continue;
+        final at = _Stop(node, _globalRect(node), null, isTextInput: false);
+        left.removeWhere((_, radio) => _reaches(at, radio));
+      }
+    }
+  }
+  return [
+    for (final t in left.values) '${t.label} [${t.kinds.join('+')}] ${t.rect}',
+  ];
+}
+
 /// Registers a screen's walk. A [long] screen (a form built lazily because it
 /// runs past the window)
 /// is walked twice: in the ordinary window, where its lazy list scrolls under
 /// Tab as a person would see it, and in a window tall enough to build all of it
 /// (see [_tallDesktop]), where nothing is lazy and so the trap and reachability
 /// checks can be exact.
+///
+/// A [small] page has fewer than [_minLoop] controls, too few for the ordinary
+/// walk to tell its wrap from a trap. It is not lazy either, so it is judged
+/// as a whole-form walk is: Tab must come back to the very first stop, and
+/// every control that can take focus must be a stop (which also catches a
+/// control that keeps Tab to itself).
 void _screen(
   String name,
   Future<void> Function(WidgetTester tester) navigate, {
   required Finder landedOn,
   List<String> mustStopAt = const [],
   bool long = false,
+  bool small = false,
 }) {
-  _walkScreen(name, navigate, landedOn, mustStopAt, tall: false);
+  _walkScreen(name, navigate, landedOn, mustStopAt, tall: false, small: small);
   if (long) {
     _walkScreen(
       '$name, whole form built',
@@ -399,6 +606,7 @@ void _walkScreen(
   Finder landedOn,
   List<String> mustStopAt, {
   required bool tall,
+  bool small = false,
 }) {
   testWidgets(name, (tester) async {
     _window = tall ? _tallDesktop : _desktop;
@@ -445,7 +653,7 @@ void _walkScreen(
       }
 
       // 1. No trap.
-      final walk = await _walk(tester, strict: tall);
+      final walk = await _walk(tester, strict: tall, small: small);
       expect(
         walk,
         isNotNull,
@@ -490,7 +698,7 @@ void _walkScreen(
             'Tab visited ${real.length}',
       );
 
-      if (tall) {
+      if (tall || small) {
         // Nothing is lazy here, so every control that can take focus must be a
         // Tab stop. A loop that includes the first stop looks like a clean wrap
         // by itself; it leaves the rest of the page unvisited.
@@ -525,12 +733,22 @@ void _walkScreen(
         );
       }
 
-      // 2. Everything tappable is reachable.
+      // 2. Everything tappable is reachable: by Tab, or, for a radio
+      // button, by the arrow keys from its group's one stop.
       expect(
         walk.unreached,
         isEmpty,
         reason: '$name: tappable but never reached by Tab',
       );
+      if (walk.unreachedRadios.isNotEmpty) {
+        expect(
+          await _unreachedByArrows(tester, stops, walk.unreachedRadios),
+          isEmpty,
+          reason:
+              '$name: a radio button neither Tab nor the arrow keys from its '
+              "group's stop reach",
+        );
+      }
 
       // A stop must be somewhere a person can see it. The ring check compares
       // the ring with the stop's own bounds, so a zero-size or off-screen stop
@@ -683,5 +901,83 @@ void main() {
     },
     landedOn: find.byKey(const ValueKey('settings-nav-general')),
     long: true,
+  );
+
+  // Settings > Collection, a section added since v0.10.0-beta.
+  _screen(
+    'Settings, collection',
+    (tester) async {
+      await tester.tap(find.text('Settings').last);
+      await tester.pumpAndSettle();
+      await _tapKey(tester, 'settings-nav-collection');
+    },
+    landedOn: find.byKey(const ValueKey('settings-nav-collection')),
+    long: true,
+  );
+
+  // Screens added since v0.10.0-beta (audit L10N-09). Each is pushed as the
+  // row or button that opens it does; the path to it is not what is walked.
+  _screen(
+    'Repertoire',
+    (tester) => _push(tester, const RepertoireScreen()),
+    landedOn: find.byType(RepertoireScreen),
+  );
+
+  _screen(
+    'Combined view',
+    (tester) =>
+        _push(tester, const CombinedProgramsScreen(programIds: {'p1', 'p2'})),
+    landedOn: find.byType(CombinedProgramsScreen),
+  );
+
+  _screen(
+    'Calendar import',
+    (tester) => _push(tester, const CalendarImportScreen()),
+    landedOn: find.byType(CalendarImportScreen),
+    small: true,
+  );
+
+  _screen(
+    'Manage rules',
+    (tester) => _push(tester, const EventRulesScreen()),
+    landedOn: find.text('Easy start'),
+  );
+
+  _screen('Rule editor', (tester) async {
+    await _push(tester, const EventRulesScreen());
+    await tester.tap(find.text('Easy start'));
+    await tester.pumpAndSettle();
+  }, landedOn: find.byType(EventRuleEditorScreen));
+
+  _screen(
+    'Program templates',
+    (tester) => _push(tester, const ProgramTemplatesScreen()),
+    landedOn: find.byKey(const ValueKey('program-template-tile-tpl-autumn')),
+  );
+
+  _screen('Template editor', (tester) async {
+    await _push(tester, const ProgramTemplatesScreen());
+    await _tapKey(tester, 'program-template-tile-tpl-autumn');
+  }, landedOn: find.byType(ProgramTemplateEditorScreen));
+
+  _screen(
+    'Suggestion settings',
+    (tester) => _push(tester, const SuggestionSettingsScreen()),
+    landedOn: find.byType(SuggestionSettingsScreen),
+  );
+
+  _screen(
+    'Perform swap defaults',
+    (tester) => _push(tester, const PerformSwapDefaultsScreen()),
+    landedOn: find.byType(PerformSwapDefaultsScreen),
+  );
+
+  _screen(
+    'Convert English dances',
+    (tester) => _push(tester, const EcdMigrationScreen()),
+    landedOn: find.byKey(
+      const ValueKey('ecd-migration-dance-Upon a Summer Day'),
+    ),
+    small: true,
   );
 }

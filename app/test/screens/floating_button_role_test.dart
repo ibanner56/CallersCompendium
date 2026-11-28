@@ -105,6 +105,30 @@ void main() {
     );
   });
 
+  // `docs/design/ux.md`: in a short window (a phone in landscape) each
+  // screen's labelled floating button folds to its icon. Only the shared
+  // helper does that, so a labelled button built any other way never folds.
+  test('every labelled floating button goes through adaptiveExtendedFab', () {
+    final extended = RegExp(r'\bFloatingActionButton\.extended\(');
+    expect(
+      [
+        for (final f in files)
+          for (final match in extended.allMatches(f.readAsStringSync()))
+            '${f.path}:${'\n'.allMatches(f.readAsStringSync().substring(0, match.start)).length + 1}',
+      ],
+      isEmpty,
+      reason:
+          'use adaptiveExtendedFab (widgets/adaptive_fab.dart), which folds '
+          'the button to its icon in a short window',
+    );
+    // Positive control: the helper itself builds one, and is what the scan
+    // leaves out.
+    expect(
+      extended.hasMatch(File('lib/src/widgets/$_fabHelper').readAsStringSync()),
+      isTrue,
+    );
+  });
+
   test('the scanner flags Save and other icons, not New, Edit or Import', () {
     const save = '''
       floatingActionButton: FloatingActionButton.extended(
