@@ -870,4 +870,250 @@ void main() {
       expect(find.text('My order'), findsNothing);
     });
   });
+
+  group('the rule editor', () {
+    Future<void> openEditor(
+      WidgetTester tester,
+      CompendiumRepositories repos, [
+      EventRule? rule,
+    ]) async {
+      await _pump(
+        tester,
+        repos,
+        Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showEventRuleEditor(context, rule: rule),
+            child: const Text('open'),
+          ),
+        ),
+        enabled: true,
+      );
+      await tester.tap(find.text('open'));
+      await tester.pump();
+      await pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('event-rule-nickname')),
+      );
+    }
+
+    final save = find.byKey(const ValueKey('event-rule-save'));
+    VoidCallback? saveAction(WidgetTester tester) =>
+        tester.widget<AppBarTextAction>(save).onPressed;
+
+    testWidgets('a rule whose saved search is gone says so, and can be '
+        'renamed and saved, keeping its search', (tester) async {
+      final repos = openTestRepositories();
+      await repos.savedSearches.create(name: 'Becket', spec: _spec());
+      // Its saved search was deleted on another device: the rule arrives (or
+      // stays) naming a search that is not stored.
+      const rule = EventRule(
+        id: 'rule-gone',
+        savedSearchId: 'search-gone',
+        quantifierName: 'atMost',
+        count: 1,
+        scopeName: 'wholeProgram',
+      );
+      await repos.eventRules.writeFromSync(rule);
+      await openEditor(tester, repos, rule);
+
+      expect(find.text('Needs attention'), findsOneWidget);
+      expect(
+        find.text(
+          "Its saved search was deleted or can't be read, so it is not "
+          'checked.',
+        ),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('event-rule-nickname')),
+        'One per night',
+      );
+      await tester.pumpAndSettle();
+      expect(saveAction(tester), isNotNull);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EventRuleEditorScreen), findsNothing);
+      final stored = (await repos.eventRules.get('rule-gone'))!;
+      expect(stored.nickname, 'One per night');
+      expect(stored.savedSearchId, 'search-gone');
+    });
+
+    testWidgets('a newly chosen search deleted before Save is refused, and the '
+        "rule's own gone search is still kept for a rename", (tester) async {
+      final repos = openTestRepositories();
+      final becket = await repos.savedSearches.create(
+        name: 'Becket',
+        spec: _spec(),
+      );
+      const rule = EventRule(
+        id: 'rule-gone',
+        savedSearchId: 'search-gone',
+        quantifierName: 'atMost',
+        count: 1,
+        scopeName: 'wholeProgram',
+      );
+      await repos.eventRules.writeFromSync(rule);
+      await openEditor(tester, repos, rule);
+      await pickDropdownEntry(
+        tester,
+        find.byKey(const ValueKey('event-rule-search')),
+        'Becket',
+      );
+      await tester.pumpAndSettle();
+      // Deleted elsewhere meanwhile.
+      await repos.savedSearches.delete(becket.id);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      await pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('event-rule-saved-search-gone')),
+      );
+      expect(
+        (await repos.eventRules.get('rule-gone'))!.savedSearchId,
+        'search-gone',
+      );
+
+      // The rule's own search is still kept: a rename saves.
+      await tester.enterText(
+        find.byKey(const ValueKey('event-rule-nickname')),
+        'One per night',
+      );
+      await tester.pumpAndSettle();
+      expect(saveAction(tester), isNotNull);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      final stored = (await repos.eventRules.get('rule-gone'))!;
+      expect(stored.nickname, 'One per night');
+      expect(stored.savedSearchId, 'search-gone');
+    });
+
+    testWidgets('when the saved searches cannot be read, the editor says so '
+        'rather than spinning, and a rule can still be renamed', (
+      tester,
+    ) async {
+      final db = openWidgetTestDatabase();
+      final settings = FailingSavedSearchReadsSettings(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      final becket = await repos.savedSearches.create(
+        name: 'Becket',
+        spec: _spec(),
+      );
+      final rule = await repos.eventRules.create(
+        savedSearchId: becket.id,
+        quantifier: EventRuleQuantifier.atMost,
+        count: 1,
+        scope: EventRuleScope.wholeProgram,
+      );
+      settings.failSearchReads = true;
+      await openEditor(tester, repos, rule);
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(
+        find.byKey(const ValueKey('event-rule-searches-unreadable')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          "Your saved searches can't be read right now, so none can be "
+          'chosen here.',
+        ),
+        findsOneWidget,
+      );
+      // Not read is not gone, and not "save a search first".
+      expect(find.text('Needs attention'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('event-rule-no-searches')),
+        findsNothing,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('event-rule-nickname')),
+        'One Becket',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      final stored = (await repos.eventRules.get(rule.id))!;
+      expect(stored.nickname, 'One Becket');
+      expect(stored.savedSearchId, becket.id);
+    });
+
+    testWidgets('at the rule limit, Save says why and keeps the editor open', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final becket = await repos.savedSearches.create(
+        name: 'Becket',
+        spec: _spec(),
+      );
+      for (var i = 0; i < maxEventRules; i++) {
+        await repos.eventRules.writeFromSync(
+          EventRule(
+            id: 'r$i',
+            savedSearchId: becket.id,
+            quantifierName: 'atMost',
+            count: 1,
+            scopeName: 'wholeProgram',
+            position: i,
+          ),
+        );
+      }
+      await openEditor(tester, repos);
+      await pickDropdownEntry(
+        tester,
+        find.byKey(const ValueKey('event-rule-search')),
+        'Becket',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+
+      final snack = find.byKey(const ValueKey('event-rule-save-failed'));
+      expect(snack, findsOneWidget);
+      expect(
+        find.descendant(
+          of: snack,
+          matching: find.text(
+            'This device holds $maxEventRules rules, the most it can. Delete '
+            'one to add another.',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(EventRuleEditorScreen), findsOneWidget);
+      expect(saveAction(tester), isNotNull, reason: 'Save can be tried again');
+      expect(await repos.eventRules.listAll(), hasLength(maxEventRules));
+    });
+
+    testWidgets('a failed write says the rule was not saved', (tester) async {
+      final repos = openTestRepositories();
+      await repos.savedSearches.create(name: 'Becket', spec: _spec());
+      await openEditor(tester, repos);
+      await pickDropdownEntry(
+        tester,
+        find.byKey(const ValueKey('event-rule-search')),
+        'Becket',
+      );
+      await tester.pumpAndSettle();
+      // The rules table is gone, as a damaged database's can be.
+      await repos.db.customStatement('DROP TABLE event_rules');
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+
+      final snack = find.byKey(const ValueKey('event-rule-save-failed'));
+      expect(snack, findsOneWidget);
+      expect(
+        find.descendant(
+          of: snack,
+          matching: find.text("Couldn't save the rule. Try again."),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(EventRuleEditorScreen), findsOneWidget);
+    });
+  });
 }
