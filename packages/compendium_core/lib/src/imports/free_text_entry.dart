@@ -444,8 +444,9 @@ List<Figure> parseFreeTextFigureEntry(
   // in bars of the dance's [meter] (ADR-006 W6; Hudson: "the meter is the
   // rule"), or by [timing] from [startBeat] where the dance's phrases differ
   // in beats per bar (#2303): the rest is read, and one figure read in full
-  // takes the bars as its count. Anything else, a rest that also states a count in beats or a
-  // line of several ranges (`(5-8) X (9-12) Y`, counted across all of them)
+  // takes the bars as its count. Anything else, a rest that also states a
+  // count in beats (bracketed, with `beats`, or a bare number read as one) or
+  // a line of several ranges (`(5-8) X (9-12) Y`, counted across all of them)
   // included, keeps the line whole as typed, with that count.
   final bars = _isEcd(taxonomy)
       ? ecdBarCount(trimmed, meter: meter, timing: timing, startBeat: startBeat)
@@ -457,7 +458,14 @@ List<Figure> parseFreeTextFigureEntry(
       return [_typedCustom(trimmed, bars.beats)];
     }
     final read = _parseLine(bars.rest, taxonomy, dialect, ringDancers: ring);
-    if (read.length == 1 && !read.single.isCustom) {
+    // A rest that reads with a count of its own (`1-4 8 circle left`, a bare
+    // leading number read as beats) states a count as well, so it is kept
+    // whole like a bracketed one. A number that is part of the figure (`1-4 2
+    // hand turn`) leaves the figure without a count, and is read.
+    final stated = _splitInlineBeats(bars.rest).beats;
+    if (read.length == 1 &&
+        !read.single.isCustom &&
+        !(stated > 0 && read.single.params['beats'] == stated)) {
       final figure = read.single;
       return [
         figure.copyWith(params: {...figure.params, 'beats': bars.beats}),
@@ -687,7 +695,9 @@ List<Figure> _parseLine(
     // A clause that does not structure keeps the line whole, as for any other
     // `;` line, with its text as typed and the line's own edge count (if any)
     // as its beats.
-    return counted.isEmpty ? [_typedCustom(trimmed, split.beats)] : counted;
+    return counted.isEmpty
+        ? [_typedCustom(trimmed, _typedBeats(trimmed, split, taxonomy))]
+        : counted;
   }
   // A stray count keeps the line out of the parser, which would drop the
   // number: it is kept whole as a custom.
@@ -715,8 +725,10 @@ List<Figure> _parseLine(
   }
   // A line that stayed custom keeps the text as typed: the count peeled above
   // would have left the custom with only its remainder.
+  // A leading number that counts hands or dancers in an English line (`3
+  // couples circle left`) is not its beats, so the custom states none.
   if (split.beats > 0 && result.length == 1 && result.single.isCustom) {
-    return [_typedCustom(trimmed, split.beats)];
+    return [_typedCustom(trimmed, _typedBeats(trimmed, split, taxonomy))];
   }
   // A typed `(8) Box circulate` or `(8) Square through 2` reads its balance
   // from its beats as an imported one does (#1975), and a typed balance and
@@ -760,6 +772,13 @@ List<Figure>? _parseCountedClauses(
     return null;
   }
   if (splits.any((s) => s.hasStrayCount)) return const [];
+  // A clause whose leading number counts hands or dancers (`3 couples circle
+  // left; turn single`) states no beats; the line is kept whole, as typed.
+  if (_isEcd(taxonomy)) {
+    for (var i = 0; i < clauses.length; i++) {
+      if (_leadingNumberCountsNotBeats(clauses[i], splits[i])) return const [];
+    }
+  }
   final first = splits.first;
   final figures = _parseSplit(
     _BeatSplit(splits.map((s) => s.text).join('; '), first.beats, first.forms),
@@ -1018,12 +1037,14 @@ List<Figure> _parseEcdSplit(
       leading.group(2)!.trim() == split.text &&
       int.tryParse(leading.group(1)!) == split.beats;
   // `4 hands across`: the number counts hands, so the line is never read as
-  // beats and a star.
-  final countsHands =
-      leadingCount && _handsWord.hasMatch(leading.group(2)!.trim());
+  // beats and a star. `3 couples circle left` and `2 men turn single` count
+  // dancers the same way: the line is kept as typed, not read as a 3-beat
+  // circle of everyone or a turn single of all the larks.
+  final countsNotBeats =
+      leadingCount && _leadingNumberCountsNotBeats(whole!, split);
   final figures =
       (leadingCount ? readEach(whole!, 0) : null) ??
-      (countsHands ? null : readEach(split.text, split.beats));
+      (countsNotBeats ? null : readEach(split.text, split.beats));
   if (figures != null) return figures;
   // A count over the beats range is not read off the line, as for contra:
   // the custom keeps the whole line as typed (`circle left (100)`).
@@ -1039,8 +1060,51 @@ List<Figure> _parseEcdSplit(
 /// A line that starts with a bare number and a space: `2 changes of …`.
 final RegExp _bareLeadingCount = RegExp(r'^(\d+)\s+(.*)$');
 
-/// `hand`/`hands` as a line's first word, after its leading number.
-final RegExp _handsWord = RegExp(r'^hands?\b', caseSensitive: false);
+/// Whether the count [split] peeled from [line] is a bare leading number that
+/// counts the hands or dancers its next word names ([_countedWord]), not
+/// beats. A count stated elsewhere on the line (`4 hands across (8)`) is beats.
+bool _leadingNumberCountsNotBeats(String line, _BeatSplit split) {
+  final leading = _bareLeadingCount.firstMatch(line.trim());
+  if (leading == null || split.beats == 0) return false;
+  final rest = leading.group(2)!.trim();
+  if (int.tryParse(leading.group(1)!) != split.beats || rest != split.text) {
+    return false;
+  }
+  // Any number of hands, couples or dancers; of one role, only a few, since
+  // four or eight is far likelier the beats (`8 ladies chain`).
+  return _countedWord.hasMatch(rest) ||
+      (split.beats <= _maxRoleCount && _countedRoleWord.hasMatch(rest));
+}
+
+/// The most dancers of one role a leading number counts (`3 men hey for
+/// three`): a set has few of each role to name, while 4 and 8 are common
+/// counts in beats. An agent's call in the pre-release audit (finding C-04,
+/// after review): no limit read `8 ladies chain` as eight ladies.
+const int _maxRoleCount = 3;
+
+/// The beats a custom kept whole from the typed [line] states: [split]'s
+/// count, unless an English line's leading number counts dancers.
+int _typedBeats(String line, _BeatSplit split, Taxonomy? taxonomy) =>
+    _isEcd(taxonomy) && _leadingNumberCountsNotBeats(line, split)
+    ? 0
+    : split.beats;
+
+/// A line's first word, after its leading number, that the number counts
+/// instead of beats, whatever the number: hands (`4 hands across`), couples
+/// (`3 couples`) or dancers. Role words are [_countedRoleWord].
+final RegExp _countedWord = RegExp(
+  r'^(?:hands?|couples?|dancers?)\b',
+  caseSensitive: false,
+);
+
+/// A role word as a line's first word, after its leading number: a count of
+/// dancers only up to [_maxRoleCount]. Corners are not counted: a set's
+/// corners are named by order (`1st corners`), so `8 corners cross` is beats.
+final RegExp _countedRoleWord = RegExp(
+  r'^(?:men|man|women|woman|ladies|lady|gents?|gentlemen|gentleman|larks?|'
+  r'robins?)\b',
+  caseSensitive: false,
+);
 
 final RegExp _whitespaceRun = RegExp(r'\s+');
 

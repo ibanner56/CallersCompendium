@@ -23,9 +23,12 @@ const Map<String, RoleTerm> _larksRobinsRoles = {
 };
 
 /// Choreographers, as `(given names, family name)`, who asked for the
-/// larks/robins exception. A given name matches the first word of an author
-/// name and the family name its last, so "Rae Fifer", "Rachel Fifer" and
-/// "Rachel (Rae) Fifer" all match.
+/// larks/robins exception. A credit matches when its words hold the family
+/// name and one of the given names, in any order, so "Rae Fifer", "Rachel
+/// (Rae) Fifer", "Fifer, Rachel" and "Rachel Fifer (2019)" all match. An author
+/// name that holds a joint credit ("Bob Smith & Rae Fifer") is split into its
+/// people first ([_credits]), so another person's given name never pairs with
+/// her family name.
 const List<({Set<String> given, String family})> _larksRobinsChoreographers = [
   (given: {'rachel', 'rae'}, family: 'fifer'),
 ];
@@ -96,13 +99,46 @@ List<String> _words(String text) => text
     .toList();
 
 bool _isLarksRobinsChoreographer(String name) {
-  final words = _words(name);
-  if (words.length < 2) return false;
-  for (final c in _larksRobinsChoreographers) {
-    if (words.last == c.family && c.given.contains(words.first)) return true;
+  for (final credit in _credits(name)) {
+    final words = _words(credit).toSet();
+    for (final c in _larksRobinsChoreographers) {
+      if (words.contains(c.family) && words.any(c.given.contains)) return true;
+    }
   }
   return false;
 }
+
+/// The people one author name credits: [name] split at `&`, `+`, `/`, `;`
+/// and the words "and" and "with", then at commas when every part names a
+/// person in two or more words ("Rachel Smith, Bob Fifer"), but not when a
+/// comma puts a family name first ("Fifer, Rachel") or adds a year ("Rae
+/// Fifer, 2019").
+List<String> _credits(String name) {
+  final credits = <String>[];
+  for (final part in name.split(_creditSeparator)) {
+    // A piece with no name word (a year) belongs to no one.
+    final named = [
+      for (final p in part.split(','))
+        if (_words(p).any(_isNameWord)) p,
+    ];
+    final eachAPerson =
+        named.length > 1 &&
+        named.every((p) => _words(p).where(_isNameWord).length >= 2);
+    credits.addAll(eachAPerson ? named : [part]);
+  }
+  return credits;
+}
+
+/// Whether [word] can be part of a person's name: not a number (a year).
+bool _isNameWord(String word) => !_digits.hasMatch(word);
+
+final RegExp _digits = RegExp(r'^\p{N}+$', unicode: true);
+
+/// What joins two people in one author credit.
+final RegExp _creditSeparator = RegExp(
+  r'[&+/;]|\s(?:and|with)\s',
+  caseSensitive: false,
+);
 
 /// Whether the dance titled [title] by [authorNames] must be shown with the
 /// role terms "larks" and "robins" whatever the reader's dialect.

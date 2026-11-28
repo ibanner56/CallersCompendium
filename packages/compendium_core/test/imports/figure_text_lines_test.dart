@@ -61,6 +61,30 @@ void main() {
       ]);
     });
 
+    test('keeps a corner code that opens a line, so the line reads as the '
+        'Move box reads it', () {
+      final result = splitFigureTextLines(
+        'C2 corner allemande left 1\n'
+        'c1 corners swing\n'
+        'C1 (8) corner swing',
+        dropPhraseLabels: true,
+      );
+      expect(result.lines, const [
+        FigureTextLine(text: 'C2 corner allemande left 1'),
+        FigureTextLine(text: 'c1 corners swing'),
+        FigureTextLine(text: '(8) corner swing', label: 'C1'),
+      ]);
+      // The Move box keeps the line as text, because no dancer set holds a
+      // numbered corner; read without its code it would be the FIRST corners.
+      for (final line in result.lines.take(2)) {
+        final typed = parseFreeTextFigureEntry(
+          line.text,
+          taxonomy: shippedTaxonomies.forForm(DanceForm.contra),
+        );
+        expect(typed.single.isCustom, isTrue, reason: line.text);
+      }
+    });
+
     test('keeps the label when not asked to drop it (English), but skips a '
         'label-only line', () {
       final result = splitFigureTextLines(
