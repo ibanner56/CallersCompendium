@@ -55,8 +55,10 @@ direction the list opens with, see
   have since deleted is left out). With two or more templates, **New program**
   first asks which one to start from — your **Default template** is listed
   first and marked — or **Blank program**; with one template or none it opens
-  the builder straight away, using the Default template. The Default template
-  also fills the drafts a [calendar import](#import-programs-from-your-calendar)
+  the builder straight away, using the Default template. If you delete your
+  Default template, the first template left in your list takes its place
+  until you choose another, and **Undo** of the delete makes the deleted one
+  the default again. The Default template also fills the drafts a [calendar import](#import-programs-from-your-calendar)
   creates. Templates don't apply to other imported or duplicated programs,
   programs someone shared with you, or **Create a new program with this
   dance**. A template's [slot rules](./settings.md#program-defaults) become
@@ -93,8 +95,9 @@ direction the list opens with, see
 - **Archive** a program you're done with but want to keep, from the same menu.
   It leaves the list (an **Undo** option appears) but is not deleted: it never
   expires, it still counts in your
-  [calling history](#track-what-you-have-called), and search still finds it.
-  An archived program is not offered on the **Add to program** sheet. To see
+  [calling history](#track-what-you-have-called), and search still finds it,
+  marked **Archived** beside the word **Program** so you can tell it from a
+  live program with the same title. An archived program is not offered on the **Add to program** sheet. To see
   archived programs, choose **Show archived** in the **More actions** (⋮) menu
   in the **Programs** toolbar, just above **Recently deleted**. They are listed
   with the others, marked **Archived**, and their row menu offers **Unarchive**
@@ -798,8 +801,11 @@ programs?**) when you turn the setting on or add the venue; see
 Each time is optional. Tap **Set** beside it to choose a time, **Change** to
 pick another, or the clear button to remove it. They are times of day at the
 hall, with no time zone: a 7:30 PM start stays 7:30 PM wherever your device
-is. They show in your language's 12- or 24-hour clock, and you can set them
-before you know the date.
+is. They show in the clock the time picker uses: the 24-hour clock (19:30)
+when your device is set to it, otherwise your language's usual form (7:30 PM
+in English, 19:30 in German). The set list, the PDF and a calendar file you
+make on that device show them the same way. You can set them before you know
+the date.
 
 - An **End time** earlier than the **Start time** means the dance ends after
   midnight. The editor says **Ends the next day**, and the summary adds
