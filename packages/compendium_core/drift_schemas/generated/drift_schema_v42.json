@@ -1181,6 +1181,16 @@
             "default_dart": "const CustomExpression('\\'[]\\'')",
             "default_client_dart": null,
             "dsl_features": []
+          },
+          {
+            "name": "calendar_feed_digest",
+            "getter_name": "calendarFeedDigest",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
           }
         ],
         "is_virtual": false,

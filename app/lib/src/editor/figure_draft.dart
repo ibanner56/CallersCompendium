@@ -1060,11 +1060,11 @@ int figureStartBeat(Iterable<FigureDraft> drafts) {
 
 /// What [rescaleFigureBars] did to an English dance's counts.
 enum FigureBarsRescale {
-  /// No count needed changing: the bar length is the same, or none of the
-  /// rows holds a count other than 0.
+  /// No count needed changing: the bars are counted as they were, or none of
+  /// the rows holds a count other than 0.
   unchanged,
 
-  /// Every count now holds the same number of bars in the new bar length.
+  /// Every count now holds the same number of bars in the new bars.
   rescaled,
 
   /// Some count could not keep its length in bars as a whole number of beats,
@@ -1072,16 +1072,23 @@ enum FigureBarsRescale {
   notExact,
 }
 
-/// [beats] in bars of [to] beats instead of [from], the same number of bars,
-/// or null when that is not exact: [beats] is not a whole or half number of
-/// bars of [from] ([barsText]), the bars are no whole number of beats of [to],
-/// or the count would pass the 64 beats a figure can hold.
-int? beatsInOtherBars(int beats, {required int from, required int to}) {
-  if (barsText(beats, from) == null) return null;
-  final scaled = beats * to;
-  if (scaled % from != 0) return null;
-  final result = scaled ~/ from;
-  return result > 64 ? null : result;
+/// [beats] counted from [fromStart] in bars of [from], as beats counted from
+/// [toStart] in bars of [to]: the same number of bars. Null when that is not
+/// exact: [beats] is not a whole or half number of bars where it falls
+/// ([BarTiming.barsTextAt]), the bars are no whole number of beats where they
+/// now fall ([BarTiming.beatsForHalfBars]), or the count would pass the 64
+/// beats a figure can hold.
+int? beatsInOtherBars(
+  int beats, {
+  required BarTiming from,
+  required int fromStart,
+  required BarTiming to,
+  required int toStart,
+}) {
+  final halfBars = from.barsTextAt(fromStart, beats)?.halfBars;
+  if (halfBars == null) return null;
+  final result = to.beatsForHalfBars(toStart, halfBars);
+  return result == null || result > 64 ? null : result;
 }
 
 /// The counts [rescaleFigureBars] reads in [drafts], each with its row's id,
@@ -1099,10 +1106,20 @@ List<Object?> figureCounts(Iterable<FigureDraft> drafts) => [
 ];
 
 /// Gives every count [drafts] store the beats that keep its length in bars
-/// when the dance's bar goes from [from] to [to] beats (pre-release audit
-/// finding A2-02): an English dance's Meter typed or corrected after its
-/// figures were entered. The counts are stored in beats and shown in bars, so
-/// without this a caller's "4 bars" would read differently in the new bars.
+/// when an English dance's bars go from being counted by [from] to [to]: its
+/// Meter typed or corrected after the figures were entered (pre-release audit
+/// finding A2-02, decision sheet question 14), or a phrase's beats to the bar
+/// changed (question 48). The counts are stored in beats and shown in bars,
+/// so without this a caller's "4 bars" would read differently in the new
+/// bars.
+///
+/// Each count is read where it falls: a row from where the rows before it
+/// end ([figureStartBeat]), a meanwhile's sides and a modifier's parts from
+/// where their group starts, and a sequence's steps one after another
+/// ([childStartBeatsOfDraft]), before the change by the old counts and after
+/// it by the new, so where the phrases differ in beats to the bar
+/// ([BarTiming.byPhrase]) each count keeps the bars of the phrase it falls
+/// in.
 ///
 /// A count is a row's `beats` (an ordinary row, a meanwhile's or modifier's
 /// shared count, a sequence's own span when it states one), and each of a
@@ -1112,28 +1129,65 @@ List<Object?> figureCounts(Iterable<FigureDraft> drafts) => [
 /// figures with a count (#709: its count is its expansion's, not the row's to
 /// change), no count changes and the result is [FigureBarsRescale.notExact].
 /// The rows' [FigureDraft.beatsTouched] are kept, so a count still follows
-/// its move's default as it did before.
+/// its move's default as it did before. Each count changed is recorded in
+/// [originals] with the value it had, unless it is there already.
 FigureBarsRescale rescaleFigureBars(
-  Iterable<FigureDraft> drafts, {
-  required int from,
-  required int to,
+  List<FigureDraft> drafts, {
+  required BarTiming from,
+  required BarTiming to,
+  Map<FigureDraft, int>? originals,
 }) {
   if (from == to) return FigureBarsRescale.unchanged;
   final writes = <(FigureDraft, int)>[];
-  bool collect(FigureDraft draft) {
-    if (draft.compound case final compound?) return compound.beats == 0;
-    final counted = !draft.isSequenceGroup || draft.sequenceSpanStated;
-    if (draft.params['beats'] case final int beats when counted) {
-      final scaled = beatsInOtherBars(beats, from: from, to: to);
-      if (scaled == null) return false;
-      if (scaled != beats) writes.add((draft, scaled));
+
+  // The beats [draft] spans before and after, read from [fromStart] and
+  // [toStart], or null when one of its counts is not exact.
+  (int, int)? collect(FigureDraft draft, int fromStart, int toStart) {
+    if (draft.compound case final compound?) {
+      return compound.beats == 0 ? (0, 0) : null;
     }
-    return (draft.containerChildren ?? const <FigureDraft>[]).every(collect);
+    final counted = !draft.isSequenceGroup || draft.sequenceSpanStated;
+    var span = (0, 0);
+    if (draft.params['beats'] case final int beats when counted) {
+      final scaled = beatsInOtherBars(
+        beats,
+        from: from,
+        fromStart: fromStart,
+        to: to,
+        toStart: toStart,
+      );
+      if (scaled == null) return null;
+      if (scaled != beats) writes.add((draft, scaled));
+      span = (beats, scaled);
+    }
+    final children = draft.containerChildren;
+    if (children == null) return span;
+    var (childFrom, childTo) = (fromStart, toStart);
+    for (final child in children) {
+      final childSpan = collect(child, childFrom, childTo);
+      if (childSpan == null) return null;
+      if (draft.isSequenceGroup) {
+        childFrom += childSpan.$1;
+        childTo += childSpan.$2;
+      }
+    }
+    return draft.isSequenceGroup && !draft.sequenceSpanStated
+        ? (childFrom - fromStart, childTo - toStart)
+        : span;
   }
 
-  if (!drafts.every(collect)) return FigureBarsRescale.notExact;
+  var (rowFrom, rowTo) = (0, 0);
+  for (final draft in drafts) {
+    final span = collect(draft, rowFrom, rowTo);
+    if (span == null) return FigureBarsRescale.notExact;
+    if (draft.savesAsFigure) {
+      rowFrom += span.$1;
+      rowTo += span.$2;
+    }
+  }
   if (writes.isEmpty) return FigureBarsRescale.unchanged;
   for (final (draft, beats) in writes) {
+    originals?.putIfAbsent(draft, () => draft.params['beats']! as int);
     draft.params['beats'] = beats;
   }
   return FigureBarsRescale.rescaled;

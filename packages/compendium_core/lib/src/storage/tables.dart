@@ -446,6 +446,15 @@ class Programs extends Table {
   TextColumn get eventRuleIds =>
       text().named('event_rule_ids').withDefault(const Constant('[]'))();
 
+  /// Which calendar the program was imported from (pre-release audit finding
+  /// E1-01, schema v42): a salted digest of the calendar's address, never the
+  /// address. A calendar import compares the program only with a calendar
+  /// whose address matches it. `null` for every program not imported from a
+  /// calendar, or imported before it was recorded: such a program is never
+  /// labelled cancelled or missing. Declared last for the same column-order
+  /// reason as [archivedAt].
+  TextColumn get calendarFeedDigest => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

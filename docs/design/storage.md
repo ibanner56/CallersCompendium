@@ -1054,6 +1054,22 @@ file past v39 already ran that repair on the same open.)
   (`EventRuleRepository.usageCounts`); no count is stored. The picker's
   order setting is the settings key `event_rule_order`, not a column.
 
+  Also in v42, before it shipped: which calendar a program came from
+  (pre-release audit finding E1-01). Adds one nullable `programs` column,
+  `calendar_feed_digest` (`Program.calendarFeedDigest`): a 128-bit salt drawn
+  for each program and the first 128 bits of HMAC-SHA256, keyed with it, of
+  the calendar address in a normal form (`normalizedCalendarFeedAddress`:
+  `webcal://` read as `https://`, scheme and host lower-cased), 64 hex digits;
+  never the address. A
+  calendar import compares a program (change offers, `cancelled`, `missing`)
+  only with a calendar whose address matches it, and NULL, which every
+  existing program has, matches none. It syncs, is kept in backups (envelope
+  v3, as for the key) and is stripped from share files and the programs CSV;
+  clearing the key clears it. The privacy registry's entry gives the threat.
+  Added by `_ensureV42CalendarFeedDigest`, after `_ensureV42EventRules` (so
+  after `event_rule_ids`) in the `from < 42` step and the on-open ensure,
+  only if absent. No data rewritten, no derived rebuild.
+
   Because test builds stamped v42 before these later pieces joined it,
   `beforeOpen` also ensures v42's pieces on every open of a file at v42 or
   later, as it did for v39 until v39 was retired

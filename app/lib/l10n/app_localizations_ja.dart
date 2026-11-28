@@ -5119,6 +5119,13 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseFigureBarsKept => '各フィギュアの小節数が変わらないよう拍数を変更しました。';
+
+  @override
+  String get danceEditorPhraseFigureBarsNotKept =>
+      '拍数は変更していません。小節数をそのまま保てないフィギュアがあるため、各フレーズの小節で読み直されます。確認してください。';
+
+  @override
   String get danceEditorSequenceSpanLabel => '全体の小節';
 
   @override

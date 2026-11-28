@@ -5364,6 +5364,14 @@
   "@danceEditorMeterFigureBarsNotKept": {
     "x-sourceSha256": "efc7fb0ae0879a42dc8ca78dac63969b6dad4a686b93bc5fffa490eb031faee1"
   },
+  "danceEditorPhraseFigureBarsKept": "Les temps des figures ont été modifiés pour que chacune garde ses mesures.",
+  "@danceEditorPhraseFigureBarsKept": {
+    "x-sourceSha256": "7f173c9d15cd6e5e6112ba33791f167b564691612300398388a80463e5e263d3"
+  },
+  "danceEditorPhraseFigureBarsNotKept": "Temps des figures inchangés : toutes les figures ne pouvaient pas garder exactement leurs mesures, elles se lisent donc dans les mesures de chaque phrase. Vérifiez-les.",
+  "@danceEditorPhraseFigureBarsNotKept": {
+    "x-sourceSha256": "8bf80d3ed6a16a78210ec436b1a61fd53fda3656c39d43fab151e2d872142b58"
+  },
   "danceEditorSequenceSpanLabel": "Mesures pour l’ensemble",
   "@danceEditorSequenceSpanLabel": {
     "x-sourceSha256": "8fe969410459de862aea4879d9ebbdd6588698d681056570bff0f861cd4776ff"

@@ -2986,6 +2986,28 @@ void main() {
         expect(fieldText(tester, 'named-phrase-1-beats'), '2');
       });
 
+      testWidgets("a phrase's beats to the bar keep its figures' bars, and a "
+          'notice says so (question 48)', (tester) async {
+        // One figure of 4 bars of two beats, in A.
+        final repos = await ecdDance(
+          meter: '',
+          phraseStructure: 'A:2*4*2 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await setBeatsPerBar(tester, 0, '3');
+        expect(
+          find.text('Figure counts changed so each figure keeps its bars.'),
+          findsOneWidget,
+        );
+        await tester.pumpAndSettle();
+        expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*2');
+        final saved = await repos.dances.getById('d3');
+        expect(
+          (saved!.figuresSource as DecodedFigures).figures.single.beats,
+          12,
+        );
+      });
+
       testWidgets('a caller sets one phrase\'s beats to the bar, and the other '
           'keeps its own (#2303)', (tester) async {
         final repos = await ecdDance(

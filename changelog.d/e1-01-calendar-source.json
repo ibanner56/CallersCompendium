@@ -1,0 +1,14 @@
+{
+  "id": "e1-01-calendar-source",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Each program you import from your calendar remembers which calendar it came from, and an import looks for changes, cancellations and missing events only among programs from the calendar it is reading. Changing the calendar's address, or setting your phone and your laptop to different calendars, no longer labels every upcoming program from the other calendar No longer in your calendar, and the message at startup no longer counts them as changes. The program keeps a scrambled stamp of the address, never the address itself."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add Program.calendarFeedDigest (schema v42, programs.calendar_feed_digest): which calendar a program was imported from, as a per-program salted HMAC-SHA256 of the calendar address, never the address. It has an archive codec, a sync wire field (omitted when null) and a privacy classification, and clearCalendarEventKey clears it."
+    ]
+  }
+}

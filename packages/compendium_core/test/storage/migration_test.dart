@@ -1953,6 +1953,8 @@ void main() {
             'calendar_event_fingerprint',
             'calendar_written_at',
             'calendar_flag',
+            // Which calendar it came from (E1-01), later still.
+            'calendar_feed_digest',
           ]),
         );
         final program = await ProgramRepository(db).getById('p1');
@@ -1960,6 +1962,11 @@ void main() {
         expect(program.calendarEventFingerprint, isNull);
         expect(program.calendarWrittenAt, isNull);
         expect(program.calendarFlag, isNull);
+        expect(
+          program.calendarFeedDigest,
+          isNull,
+          reason: 'an existing program is compared with no calendar',
+        );
         expect(
           program.updatedAt,
           DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),

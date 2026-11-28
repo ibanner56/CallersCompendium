@@ -146,6 +146,9 @@ Future<Set<String>> collectSensitiveTerms(
     // A digest of a third party's calendar event id (#2352): pseudonymous,
     // so a failed statement echoing it is redacted like the rest of the row.
     add(program.calendarEventKey);
+    // Which calendar it came from (pre-release audit finding E1-01): personal
+    // data about the caller, linkable to their calendar's address.
+    add(program.calendarFeedDigest);
     // Pay is private bookkeeping. A failed statement echoes the stored minor
     // units, while the editor shows the decimal form: redact both.
     final pay = program.payMinorUnits;

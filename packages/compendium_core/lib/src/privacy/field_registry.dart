@@ -804,6 +804,48 @@ final Map<String, DataClassification> fieldClassifications = {
         'Classified like choreography fields, as the issue proposed and the '
         'maintainer approved (issue review, 2026-11-22).',
   ),
+  'programs.calendar_feed_digest': const DataClassification(
+    term: DpvTerm.unclassifiedPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'Which calendar the program was imported from (pre-release audit '
+        'finding E1-01, schema v42), so an import compares a program only '
+        'with its own calendar and never labels one from another calendar '
+        'cancelled or missing; NULL for a program not imported from a '
+        'calendar, which is never compared. The value is a 128-bit salt drawn '
+        'at random for each program and the first 128 bits of HMAC-SHA256, '
+        'keyed with that salt, of the calendar address in a normal form '
+        '(trimmed, webcal:// read as https://, scheme and host lower-cased, '
+        'as Uri reads it; the path keeps its case), in hex; the import recomputes it with the '
+        'program\'s own salt over the address it fetched and compares. '
+        'Threat: the address is a secret (a private calendar\'s address holds '
+        'an access token, which is why calendar_feed_url stays on the device '
+        'and out of backups), and this column goes where the address does '
+        'not: the sync server, which holds bodies as sent, the caller\'s other '
+        'devices, anyone the caller gives the sync ID to (a co-caller sharing '
+        'the library), and backup files. From it, nobody can recover the address or '
+        'its token, or tell that two programs, or two libraries, came from '
+        'the same calendar, because each program\'s salt differs. Someone who '
+        'holds it and already knows or guesses an exact address, in practice '
+        'a public calendar\'s, can confirm that a program came from that '
+        'calendar, one program at a time; the program\'s own title, date and '
+        'venue usually say as much. Personal data about the app user for that '
+        'reason: it is linkable to their calendar by whoever has the address. '
+        'Shareable so Device Sync carries it and every device judges alike; '
+        'kept in the caller\'s own backups; stripped from share files and the '
+        'programs CSV with the event key (sanitizeProgramForCsv), since a '
+        'recipient has no such calendar. Rejected: a plain or library-wide '
+        'hash, which would link programs and libraries; and an HMAC keyed by '
+        'the sync ID, the one value a library\'s devices share, which is no '
+        'secret by the maintainer\'s ruling (sync_id), reaches the server with '
+        'every request, does not exist on a device that does not sync, and '
+        'would change with the store, silently switching the judgement off. '
+        'The column is the maintainer\'s decision (audit decision sheet, '
+        'question 7); the construction and this classification were proposed '
+        'by Claude and approved by the maintainer (audit decision sheet, '
+        'question 49, 2026-11-28).',
+  ),
 
   // --------------------------------------------------------- program_slots --
   'program_slots.id': _key,
