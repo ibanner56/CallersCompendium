@@ -5311,6 +5311,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseFigureBarsKept =>
+      'Figure counts changed so each figure keeps its bars.';
+
+  @override
+  String get danceEditorPhraseFigureBarsNotKept =>
+      'Figure counts not changed: not every figure could keep its bars exactly, so they now read in each phrase\'s bars. Check them.';
+
+  @override
   String get danceEditorSequenceSpanLabel => 'Bars for all';
 
   @override

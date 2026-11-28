@@ -676,32 +676,48 @@ void main() {
       beatsTouched: touched,
     );
 
+    int? inOther(int beats, int from, int to) => beatsInOtherBars(
+      beats,
+      from: BarTiming.fixed(from),
+      fromStart: 0,
+      to: BarTiming.fixed(to),
+      toStart: 0,
+    );
+
     test('a count keeps its bars only where they are whole beats, whole or '
         'half bars, within 64 beats', () {
       // 4 bars and 1½ bars of two beats, in bars of three and of four.
-      expect(beatsInOtherBars(8, from: 2, to: 3), 12);
-      expect(beatsInOtherBars(8, from: 2, to: 4), 16);
-      expect(beatsInOtherBars(3, from: 2, to: 4), 6);
-      expect(beatsInOtherBars(3, from: 2, to: 3), isNull);
+      expect(inOther(8, 2, 3), 12);
+      expect(inOther(8, 2, 4), 16);
+      expect(inOther(3, 2, 4), 6);
+      expect(inOther(3, 2, 3), isNull);
       // 1½ bars of four is 6 beats, and 3 in bars of two.
-      expect(beatsInOtherBars(6, from: 4, to: 2), 3);
+      expect(inOther(6, 4, 2), 3);
       // A quarter bar of four is no whole or half bar, though it would be 2
       // whole beats in bars of eight.
-      expect(beatsInOtherBars(1, from: 4, to: 8), isNull);
-      expect(beatsInOtherBars(0, from: 2, to: 3), 0);
-      expect(beatsInOtherBars(32, from: 2, to: 4), 64);
-      expect(beatsInOtherBars(64, from: 2, to: 3), isNull);
+      expect(inOther(1, 4, 8), isNull);
+      expect(inOther(0, 2, 3), 0);
+      expect(inOther(32, 2, 4), 64);
+      expect(inOther(64, 2, 3), isNull);
     });
 
     test('changes every count or none', () {
       final rows = [row(8), row(3)];
       expect(
-        rescaleFigureBars(rows, from: 2, to: 3),
+        rescaleFigureBars(
+          rows,
+          from: BarTiming.fixed(2),
+          to: BarTiming.fixed(3),
+        ),
         FigureBarsRescale.notExact,
       );
       expect([for (final r in rows) r.beats], [8, 3]);
       expect(
-        rescaleFigureBars(rows, from: 2, to: 4),
+        rescaleFigureBars(
+          rows,
+          from: BarTiming.fixed(2),
+          to: BarTiming.fixed(4),
+        ),
         FigureBarsRescale.rescaled,
       );
       expect([for (final r in rows) r.beats], [16, 6]);
@@ -710,12 +726,16 @@ void main() {
     test('leaves rows with no count, or a count of 0, as they are', () {
       final rows = [row(null), row(0)];
       expect(
-        rescaleFigureBars(rows, from: 2, to: 3),
+        rescaleFigureBars(
+          rows,
+          from: BarTiming.fixed(2),
+          to: BarTiming.fixed(3),
+        ),
         FigureBarsRescale.unchanged,
       );
       expect(rows.first.params.containsKey('beats'), isFalse);
       expect(
-        rescaleFigureBars([], from: 2, to: 3),
+        rescaleFigureBars([], from: BarTiming.fixed(2), to: BarTiming.fixed(3)),
         FigureBarsRescale.unchanged,
       );
     });
@@ -723,7 +743,11 @@ void main() {
     test('the same bar length changes nothing, whatever the counts', () {
       final rows = [row(1)];
       expect(
-        rescaleFigureBars(rows, from: 3, to: 3),
+        rescaleFigureBars(
+          rows,
+          from: BarTiming.fixed(3),
+          to: BarTiming.fixed(3),
+        ),
         FigureBarsRescale.unchanged,
       );
       expect(rows.single.beats, 1);
@@ -731,7 +755,7 @@ void main() {
 
     test('keeps whether a count follows its move', () {
       final rows = [row(8, touched: false), row(8)];
-      rescaleFigureBars(rows, from: 2, to: 3);
+      rescaleFigureBars(rows, from: BarTiming.fixed(2), to: BarTiming.fixed(3));
       expect([for (final r in rows) r.beatsTouched], [false, true]);
     });
 
@@ -742,14 +766,22 @@ void main() {
       );
       final rows = [row(8), compound(8)];
       expect(
-        rescaleFigureBars(rows, from: 2, to: 3),
+        rescaleFigureBars(
+          rows,
+          from: BarTiming.fixed(2),
+          to: BarTiming.fixed(3),
+        ),
         FigureBarsRescale.notExact,
       );
       expect(rows.first.beats, 8);
       expect(rows.last.beats, 8);
       final empty = [row(8), compound(0)];
       expect(
-        rescaleFigureBars(empty, from: 2, to: 3),
+        rescaleFigureBars(
+          empty,
+          from: BarTiming.fixed(2),
+          to: BarTiming.fixed(3),
+        ),
         FigureBarsRescale.rescaled,
       );
       expect(empty.first.beats, 12);
@@ -761,7 +793,11 @@ void main() {
         ..params['beats'] = 5;
       expect(sequence.sequenceSpanStated, isFalse);
       expect(
-        rescaleFigureBars([sequence], from: 2, to: 3),
+        rescaleFigureBars(
+          [sequence],
+          from: BarTiming.fixed(2),
+          to: BarTiming.fixed(3),
+        ),
         FigureBarsRescale.rescaled,
       );
       expect(sequence.beats, 12);
@@ -771,13 +807,96 @@ void main() {
     test("a step's count inside a group blocks it as a row's does", () {
       final group = FigureDraft.group(meanwhileMove, row(8), row(3));
       expect(
-        rescaleFigureBars([group], from: 2, to: 3),
+        rescaleFigureBars(
+          [group],
+          from: BarTiming.fixed(2),
+          to: BarTiming.fixed(3),
+        ),
         FigureBarsRescale.notExact,
       );
       expect(
         [group.beats, for (final side in group.meanwhileSides!) side.beats],
         [8, 8, 3],
       );
+    });
+  });
+
+  // Decision sheet question 48: where the phrases differ in beats to the bar,
+  // each count keeps the bars of the phrase it falls in.
+  group('rescaleFigureBars by phrase', () {
+    FigureDraft row(int? beats) =>
+        FigureDraft(move: 'ecd_set', params: {'beats': ?beats});
+    BarTiming byPhrase(String raw) =>
+        BarTiming.byPhrase(PhraseStructure.parse(raw));
+
+    test('reads each count where it falls before and after', () {
+      // Two 4-bar phrases of two beats; then A in three beats to the bar.
+      final rows = [row(4), row(4), row(8)];
+      expect(
+        rescaleFigureBars(
+          rows,
+          from: BarTiming.fixed(2),
+          to: byPhrase('A:1*4*3 + B:1*4*2'),
+        ),
+        FigureBarsRescale.rescaled,
+      );
+      // 2 bars and 2 bars of A, then 4 bars of B.
+      expect([for (final r in rows) r.beats], [6, 6, 8]);
+    });
+
+    test('a count that runs across a change of meter keeps its bars', () {
+      // 3 bars from bar 3 of a 4-bar A: one bar of A and two of B.
+      final rows = [row(4), row(6)];
+      expect(
+        rescaleFigureBars(
+          rows,
+          from: BarTiming.fixed(2),
+          to: byPhrase('A:1*3*3 + B:1*4*2'),
+        ),
+        FigureBarsRescale.rescaled,
+      );
+      expect([for (final r in rows) r.beats], [6, 7]);
+    });
+
+    test("a sequence's steps are read one after another, a meanwhile's sides "
+        'from where it starts', () {
+      final sequence = FigureDraft(sequenceFigures: [row(4), row(4)]);
+      final meanwhile = FigureDraft.group(meanwhileMove, row(8), row(8));
+      final rows = [sequence, meanwhile];
+      expect(
+        rescaleFigureBars(
+          rows,
+          from: BarTiming.fixed(2),
+          to: byPhrase('A:1*2*3 + B:1*6*2'),
+        ),
+        FigureBarsRescale.rescaled,
+      );
+      // The sequence's two steps are A's two bars of three, then two bars
+      // of B; the meanwhile starts in B.
+      expect(
+        [for (final step in sequence.sequenceFigures!) step.beats],
+        [6, 4],
+      );
+      expect(
+        [
+          meanwhile.beats,
+          for (final side in meanwhile.meanwhileSides!) side.beats,
+        ],
+        [8, 8, 8],
+      );
+    });
+
+    test('a half bar that now falls in a bar of three changes no count', () {
+      final rows = [row(3), row(8)];
+      expect(
+        rescaleFigureBars(
+          rows,
+          from: BarTiming.fixed(2),
+          to: byPhrase('A:1*4*3 + B:1*4*2'),
+        ),
+        FigureBarsRescale.notExact,
+      );
+      expect([for (final r in rows) r.beats], [3, 8]);
     });
   });
 }

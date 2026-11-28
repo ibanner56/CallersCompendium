@@ -5417,6 +5417,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseFigureBarsKept =>
+      'Les temps des figures ont été modifiés pour que chacune garde ses mesures.';
+
+  @override
+  String get danceEditorPhraseFigureBarsNotKept =>
+      'Temps des figures inchangés : toutes les figures ne pouvaient pas garder exactement leurs mesures, elles se lisent donc dans les mesures de chaque phrase. Vérifiez-les.';
+
+  @override
   String get danceEditorSequenceSpanLabel => 'Mesures pour l’ensemble';
 
   @override

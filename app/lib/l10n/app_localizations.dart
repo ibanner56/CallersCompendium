@@ -8162,6 +8162,18 @@ abstract class AppLocalizations {
   /// **'Figure counts not changed: not every figure could keep its bars exactly, so they now read in bars of {beatsPerBar, plural, =1{1 beat} other{{beatsPerBar} beats}}. Check them.'**
   String danceEditorMeterFigureBarsNotKept(int beatsPerBar);
 
+  /// Message with an Undo button, shown when a change to an English country dance's phrases (a phrase's beats to the bar) leaves its phrases with different beats to the bar: each figure's count in beats was changed so that it lasts as many bars as before, in the bars of the phrase it falls in.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure counts changed so each figure keeps its bars.'**
+  String get danceEditorPhraseFigureBarsKept;
+
+  /// Message with an Undo button, shown when a change to an English country dance's phrases leaves them with different beats to the bar and some figure's count cannot last the same number of bars as a whole number of beats: no count was changed, so the figures' lengths in bars now read differently.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure counts not changed: not every figure could keep its bars exactly, so they now read in each phrase\'s bars. Check them.'**
+  String get danceEditorPhraseFigureBarsNotKept;
+
   /// Label of the field giving the bars a whole sequence takes in an English country dance, as in 'A, B and C in bars 1–4'.
   ///
   /// In en, this message translates to:

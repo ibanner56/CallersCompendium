@@ -5350,6 +5350,14 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseFigureBarsKept =>
+      'Figurernes slagantal er ændret, så hver figur beholder sine takter.';
+
+  @override
+  String get danceEditorPhraseFigureBarsNotKept =>
+      'Slagantallet er ikke ændret: ikke alle figurer kunne beholde deres takter præcist, så de læses nu i hver frases takter. Tjek dem.';
+
+  @override
   String get danceEditorSequenceSpanLabel => 'Takter i alt';
 
   @override
