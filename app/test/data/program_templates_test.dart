@@ -363,6 +363,26 @@ void main() {
       expect(await repos.settings.get(kProgramTemplateDefaultKey), 'b');
     });
 
+    test('reordering after deleting the default keeps the one standing in '
+        'as the default', () async {
+      final repos = openTestRepositories();
+      for (final id in ['a', 'b', 'c']) {
+        await saveProgramTemplate(
+          repos.settings,
+          ProgramTemplate(id: id, name: id),
+        );
+      }
+      await saveProgramTemplateOrder(repos.settings, ['a', 'b', 'c']);
+      await saveProgramTemplateDefault(repos.settings, 'a');
+      await deleteProgramTemplate(repos.settings, 'a');
+      expect((await loadProgramTemplates(repos.settings)).defaultId, 'b');
+
+      // As the manager's Move down writes it.
+      await saveProgramTemplateOrder(repos.settings, ['c', 'b']);
+      expect((await loadProgramTemplates(repos.settings)).defaultId, 'b');
+      expect(await repos.settings.get(kProgramTemplateDefaultKey), 'b');
+    });
+
     test('a live default is kept', () async {
       final repos = openTestRepositories();
       await saveProgramTemplate(
