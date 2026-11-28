@@ -1174,15 +1174,23 @@ class SyncConflictComparison extends StatelessWidget {
     if (value == null || value == '' || (value is List && value.isEmpty)) {
       return l10n.syncConflictValueNotSet;
     }
-    String names(Map<String, String> lookup) => [
-      for (final id in value as List)
-        lookup[id] ?? l10n.syncConflictUnknownItem,
-    ].join(l10n.commonListSeparator);
+    String names(Map<String, String> lookup, {bool people = false}) {
+      final shown = [
+        for (final id in value as List)
+          lookup[id] ?? l10n.syncConflictUnknownItem,
+      ];
+      // A person's name stored family name first keeps its comma, so people
+      // are then set apart with semicolons, as on the dance itself.
+      return people
+          ? joinPersonNames(shown, separator: l10n.commonListSeparator)
+          : shown.join(l10n.commonListSeparator);
+    }
+
     try {
       switch (key) {
         case 'authorIds':
         case 'interpreterIds':
-          return names(lookups.choreographers);
+          return names(lookups.choreographers, people: true);
         case 'tagIds':
           return names(lookups.tags);
         case 'difficultyLevelId':

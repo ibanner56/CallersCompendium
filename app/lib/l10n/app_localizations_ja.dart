@@ -114,6 +114,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appBootstrapReleasesLink => 'Releases ページを開く';
 
   @override
+  String get appBootstrapBugReportLink => '不具合を報告';
+
+  @override
+  String appBootstrapEmailLink(String address) {
+    return '$address にメールする';
+  }
+
+  @override
   String migrationDowngradeVersions(int fileVersion, int appVersion) {
     final intl.NumberFormat fileVersionNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -8417,6 +8425,17 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: 'そのうち$count件はファイルのタイトルと作者も反映します。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportRemovesWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'そのうち$count件はダンスの形式が変わり、Barnes 掲載箇所または「インプロパーで始まる」の印が削除されます（各行に表示）。',
     );
     return '$_temp0';
   }

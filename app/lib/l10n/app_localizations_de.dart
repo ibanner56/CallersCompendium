@@ -119,6 +119,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appBootstrapReleasesLink => 'Releases-Seite öffnen';
 
   @override
+  String get appBootstrapBugReportLink => 'Fehler melden';
+
+  @override
+  String appBootstrapEmailLink(String address) {
+    return 'E-Mail an $address';
+  }
+
+  @override
   String migrationDowngradeVersions(int fileVersion, int appVersion) {
     final intl.NumberFormat fileVersionNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -8856,6 +8864,19 @@ class AppLocalizationsDe extends AppLocalizations {
           'Bei $count davon werden auch Titel und Autorenangabe aus der Datei übernommen.',
       one:
           'Bei 1 davon werden auch Titel und Autorenangabe aus der Datei übernommen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportRemovesWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count davon erhalten eine andere Tanzform und verlieren ihren Barnes-Verweis oder ihre Markierung „Beginnt improper“, wie ihre Zeilen angeben.',
+      one:
+          '1 davon erhält eine andere Tanzform und verliert seinen Barnes-Verweis oder seine Markierung „Beginnt improper“, wie seine Zeile angibt.',
     );
     return '$_temp0';
   }

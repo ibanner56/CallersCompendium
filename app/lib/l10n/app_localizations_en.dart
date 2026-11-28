@@ -118,6 +118,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appBootstrapReleasesLink => 'Open the Releases page';
 
   @override
+  String get appBootstrapBugReportLink => 'Report a bug';
+
+  @override
+  String appBootstrapEmailLink(String address) {
+    return 'Email $address';
+  }
+
+  @override
   String migrationDowngradeVersions(int fileVersion, int appVersion) {
     final intl.NumberFormat fileVersionNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -8738,6 +8746,19 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '$count of them also take the file\'s title and credit.',
       one: '1 of them also takes the file\'s title and credit.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportRemovesWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count of them become another dance form and lose their Barnes reference or Starts improper mark, as their rows say.',
+      one:
+          '1 of them becomes another dance form and loses its Barnes reference or Starts improper mark, as its row says.',
     );
     return '$_temp0';
   }

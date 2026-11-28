@@ -144,6 +144,20 @@
   "@appBootstrapReleasesLink": {
     "description": "Button on the terminal startup screens (newer data, backup could not be made, data could not be moved) that opens the project's GitHub Releases page in the browser, where newer builds and the migration-bridge build can be downloaded."
   },
+  "appBootstrapBugReportLink": "Report a bug",
+  "@appBootstrapBugReportLink": {
+    "description": "Button on every startup error screen, under Copy details, that opens the project's Bug report form on GitHub in the browser, where the user can paste the copied details. Offered before the email link."
+  },
+  "appBootstrapEmailLink": "Email {address}",
+  "@appBootstrapEmailLink": {
+    "description": "Button on every startup error screen, after Report a bug, that opens a new email to the project's address in the user's mail app, for someone who would rather not use GitHub. {address} is the email address itself and is never translated.",
+    "placeholders": {
+      "address": {
+        "type": "String",
+        "example": "compendium@contra.dance"
+      }
+    }
+  },
   "migrationDowngradeVersions": "Your data uses storage format {fileVersion}. This version of the app reads up to format {appVersion}.",
   "@migrationDowngradeVersions": {
     "description": "Second line of the newer-data startup screen. {fileVersion} is the storage format version recorded in the user's data file, {appVersion} the highest storage format version this build can read; both are plain integers. Helps a bug report and tells the user how far behind the app is.",
@@ -11494,6 +11508,15 @@
   "importReviewReimportTitleWarning": "{count, plural, =1{1 of them also takes the file's title and credit.} other{{count} of them also take the file's title and credit.}}",
   "@importReviewReimportTitleWarning": {
     "description": "Second sentence of the re-import warning: how many of those re-imports have Also update title and credit ticked.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importReviewReimportRemovesWarning": "{count, plural, =1{1 of them becomes another dance form and loses its Barnes reference or Starts improper mark, as its row says.} other{{count} of them become another dance form and lose their Barnes reference or Starts improper mark, as their rows say.}}",
+  "@importReviewReimportRemovesWarning": {
+    "description": "Last sentence of the re-import warning above Import: how many of the dances being re-imported are English dances that the incoming figures make another form (such as contra), which removes their Barnes reference (where the tune is printed in the Barnes books; 'Barnes' is a name and stays as is) or their Starts improper mark (danceEditorImproperLabel). Each such row names which of the two it loses (danceReimportFormChangeNotice).",
     "placeholders": {
       "count": {
         "type": "int"

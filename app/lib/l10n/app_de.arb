@@ -132,6 +132,14 @@
   "@appBootstrapReleasesLink": {
     "x-sourceSha256": "aa932a0163205c8c118c750181bfdc29c51c68f28a545e66dfdf06cb25ce9fb9"
   },
+  "appBootstrapBugReportLink": "Fehler melden",
+  "@appBootstrapBugReportLink": {
+    "x-sourceSha256": "f75e0bd8ff2369251bc8767de55dd8c0bcb3efd1dbc34041bfca4058f9edf0ef"
+  },
+  "appBootstrapEmailLink": "E-Mail an {address}",
+  "@appBootstrapEmailLink": {
+    "x-sourceSha256": "9e537fc54df73ab84fb572f70641a065b775dc49953e2538e1619efda013b3c4"
+  },
   "migrationDowngradeVersions": "Deine Daten verwenden Speicherformat {fileVersion}. Diese Version der App liest bis Format {appVersion}.",
   "@migrationDowngradeVersions": {
     "x-sourceSha256": "e98535aaca5822fdd932b29a528215a0c8cb34647f524f6818da24899f6b538a"
@@ -8581,6 +8589,10 @@
   "importReviewReimportTitleWarning": "{count, plural, =1{Bei 1 davon werden auch Titel und Autorenangabe aus der Datei übernommen.} other{Bei {count} davon werden auch Titel und Autorenangabe aus der Datei übernommen.}}",
   "@importReviewReimportTitleWarning": {
     "x-sourceSha256": "f1695458fa6aac28fb41eb780c35447bbbab515fceffe9ce59dd8866c14c0e4f"
+  },
+  "importReviewReimportRemovesWarning": "{count, plural, =1{1 davon erhält eine andere Tanzform und verliert seinen Barnes-Verweis oder seine Markierung „Beginnt improper“, wie seine Zeile angibt.} other{{count} davon erhalten eine andere Tanzform und verlieren ihren Barnes-Verweis oder ihre Markierung „Beginnt improper“, wie ihre Zeilen angeben.}}",
+  "@importReviewReimportRemovesWarning": {
+    "x-sourceSha256": "3bd6dcb210e55143abec4c67880a29c51fee28c9fdfc2439acb1240a90e0dcd8"
   },
   "importReviewWarningPrefix": "Warnung: {message}",
   "@importReviewWarningPrefix": {

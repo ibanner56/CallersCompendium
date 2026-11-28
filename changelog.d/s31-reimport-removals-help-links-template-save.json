@@ -1,0 +1,14 @@
+{
+  "id": "s31-reimport-removals-help-links-template-save",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Every startup error screen now says where to report the problem: Report a bug opens the project's Bug report form on GitHub, and an email link opens a message to compendium@contra.dance."
+    ],
+    "fixed": [
+      "In the import review, a row set to Re-import onto now says when the re-import changes the dance's form and names what that removes, its Barnes reference or Starts improper mark, and the note above Import counts those dances.",
+      "A change to a program template that could not be saved now says so, instead of looking saved.",
+      "The import review's \"You already have this, by …\" and \"By …\" lines, and the authors and interpreters in a sync conflict, now set names stored family name first apart with semicolons (\"Sharp, Cecil; Shaw, Pat\"), as the rest of the app does."
+    ]
+  }
+}

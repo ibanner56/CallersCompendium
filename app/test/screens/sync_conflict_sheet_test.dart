@@ -1251,6 +1251,67 @@ void main() {
       expect(find.textContaining('300.00 EUR'), findsOneWidget);
     });
 
+    testWidgets('people stored family name first are set apart with '
+        'semicolons in the author and interpreter lists', (tester) async {
+      Map<String, Object?> body(String title) => {
+        'id': 'd1',
+        'title': title,
+        'authorIds': const ['c1', 'c2'],
+        'interpreterIds': const ['c2', 'c1'],
+        'tagIds': const ['t1', 't2'],
+        'createdAt': '2026-09-01T00:00:00.000Z',
+      };
+      final theirs = SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: 'd1',
+        updatedAt: DateTime.utc(2026, 9, 30),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 9, 30),
+        body: {
+          ...body('Hey Day!'),
+          'authorIds': const ['c1'],
+          'interpreterIds': const ['c2'],
+          'tagIds': const ['t1'],
+        },
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: SyncConflictComparison(
+                group: SyncConflictGroup(
+                  kind: SyncRecordKind.dance,
+                  recordId: 'd1',
+                  localBody: body('Hey Day'),
+                  candidates: syncConflictGroupFor(
+                    SyncConflictReconsideration(
+                      kind: SyncRecordKind.dance,
+                      recordId: 'd1',
+                      before: null,
+                      offered: [theirs],
+                      writtenWireHash: 'written',
+                      writtenAt: DateTime.utc(2026, 9, 30),
+                    ),
+                  ).candidates,
+                ),
+                lookups: const SyncConflictLookups(
+                  choreographers: {'c1': 'Sharp, Cecil', 'c2': 'Shaw, Pat'},
+                  tags: {'t1': 'Easy, slow', 't2': 'Jig'},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.textContaining('Sharp, Cecil; Shaw, Pat'), findsOneWidget);
+      expect(find.textContaining('Shaw, Pat; Sharp, Cecil'), findsOneWidget);
+      // Tags are not people: their list keeps the plain separator.
+      expect(find.textContaining('Easy, slow, Jig'), findsOneWidget);
+    });
+
     testWidgets('one of the user\'s own figures is compared in the active '
         'dialect, by what it becomes (#709)', (tester) async {
       final compound = canonicalJson(

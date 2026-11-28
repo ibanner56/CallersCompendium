@@ -132,6 +132,14 @@
   "@appBootstrapReleasesLink": {
     "x-sourceSha256": "aa932a0163205c8c118c750181bfdc29c51c68f28a545e66dfdf06cb25ce9fb9"
   },
+  "appBootstrapBugReportLink": "不具合を報告",
+  "@appBootstrapBugReportLink": {
+    "x-sourceSha256": "f75e0bd8ff2369251bc8767de55dd8c0bcb3efd1dbc34041bfca4058f9edf0ef"
+  },
+  "appBootstrapEmailLink": "{address} にメールする",
+  "@appBootstrapEmailLink": {
+    "x-sourceSha256": "9e537fc54df73ab84fb572f70641a065b775dc49953e2538e1619efda013b3c4"
+  },
   "migrationDowngradeVersions": "お使いのデータの保存形式はバージョン {fileVersion} です。このバージョンのアプリは形式 {appVersion} まで読み込めます。",
   "@migrationDowngradeVersions": {
     "x-sourceSha256": "e98535aaca5822fdd932b29a528215a0c8cb34647f524f6818da24899f6b538a"
@@ -8581,6 +8589,10 @@
   "importReviewReimportTitleWarning": "{count, plural, other{そのうち{count}件はファイルのタイトルと作者も反映します。}}",
   "@importReviewReimportTitleWarning": {
     "x-sourceSha256": "f1695458fa6aac28fb41eb780c35447bbbab515fceffe9ce59dd8866c14c0e4f"
+  },
+  "importReviewReimportRemovesWarning": "{count, plural, other{そのうち{count}件はダンスの形式が変わり、Barnes 掲載箇所または「インプロパーで始まる」の印が削除されます（各行に表示）。}}",
+  "@importReviewReimportRemovesWarning": {
+    "x-sourceSha256": "3bd6dcb210e55143abec4c67880a29c51fee28c9fdfc2439acb1240a90e0dcd8"
   },
   "importReviewWarningPrefix": "警告: {message}",
   "@importReviewWarningPrefix": {

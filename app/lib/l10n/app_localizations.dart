@@ -304,6 +304,18 @@ abstract class AppLocalizations {
   /// **'Open the Releases page'**
   String get appBootstrapReleasesLink;
 
+  /// Button on every startup error screen, under Copy details, that opens the project's Bug report form on GitHub in the browser, where the user can paste the copied details. Offered before the email link.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a bug'**
+  String get appBootstrapBugReportLink;
+
+  /// Button on every startup error screen, after Report a bug, that opens a new email to the project's address in the user's mail app, for someone who would rather not use GitHub. {address} is the email address itself and is never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Email {address}'**
+  String appBootstrapEmailLink(String address);
+
   /// Second line of the newer-data startup screen. {fileVersion} is the storage format version recorded in the user's data file, {appVersion} the highest storage format version this build can read; both are plain integers. Helps a bug report and tells the user how far behind the app is.
   ///
   /// In en, this message translates to:
@@ -13029,6 +13041,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 of them also takes the file\'s title and credit.} other{{count} of them also take the file\'s title and credit.}}'**
   String importReviewReimportTitleWarning(int count);
+
+  /// Last sentence of the re-import warning above Import: how many of the dances being re-imported are English dances that the incoming figures make another form (such as contra), which removes their Barnes reference (where the tune is printed in the Barnes books; 'Barnes' is a name and stays as is) or their Starts improper mark (danceEditorImproperLabel). Each such row names which of the two it loses (danceReimportFormChangeNotice).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 of them becomes another dance form and loses its Barnes reference or Starts improper mark, as its row says.} other{{count} of them become another dance form and lose their Barnes reference or Starts improper mark, as their rows say.}}'**
+  String importReviewReimportRemovesWarning(int count);
 
   /// Screen-reader label that prefixes the overwrite-warning message with 'Warning:'.
   ///

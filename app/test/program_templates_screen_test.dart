@@ -431,6 +431,63 @@ void main() {
       expect(await repos.settings.get(programTemplateKey('b')), otherBefore);
     });
 
+    // Pre-release audit finding D1a-06: a failed save used to be logged
+    // only, so an edit that was not saved still looked saved.
+    testWidgets('a failed save says so, once until a save succeeds', (
+      tester,
+    ) async {
+      final sink = _RecordingCrashLogSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+      final db = openWidgetTestDatabase();
+      final settings = FailingSettingsRepository(db)..failWrites = false;
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      const template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [ProgramTemplateEntry(text: 'Raffle')],
+      );
+      await _seed(repos, const [template]);
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+      const failed = "Couldn't save that change to your templates. Try again.";
+      final name = find.byKey(const ValueKey('program-template-editor-name'));
+
+      settings.failWrites = true;
+      await tester.enterText(name, 'Family d');
+      await tester.pumpAndSettle();
+      await tester.enterText(name, 'Family da');
+      await tester.pumpAndSettle();
+      expect(find.text(failed), findsOneWidget);
+      expect(sink.sources, [
+        'program_templates_screen.save',
+        'program_templates_screen.save',
+      ]);
+      expect((await _stored(repos)).byId('a')!.name, 'Family');
+
+      // A save that works clears it, so the next failure is said again.
+      ScaffoldMessenger.of(
+        tester.element(find.byType(ProgramTemplateEditorScreen)),
+      ).removeCurrentSnackBar();
+      await tester.pumpAndSettle();
+      settings.failWrites = false;
+      await tester.enterText(name, 'Family dan');
+      await tester.pumpAndSettle();
+      expect(find.text(failed), findsNothing);
+      expect((await _stored(repos)).byId('a')!.name, 'Family dan');
+      settings.failWrites = true;
+      await tester.enterText(name, 'Family danc');
+      await tester.pumpAndSettle();
+      expect(find.text(failed), findsOneWidget);
+    });
+
     // Pre-release audit finding D1a-06: every slot's buttons used to read
     // "Edit", "Move up", "Move down" and "Delete" alike, and a move said
     // nothing.

@@ -132,6 +132,14 @@
   "@appBootstrapReleasesLink": {
     "x-sourceSha256": "aa932a0163205c8c118c750181bfdc29c51c68f28a545e66dfdf06cb25ce9fb9"
   },
+  "appBootstrapBugReportLink": "Signaler un bug",
+  "@appBootstrapBugReportLink": {
+    "x-sourceSha256": "f75e0bd8ff2369251bc8767de55dd8c0bcb3efd1dbc34041bfca4058f9edf0ef"
+  },
+  "appBootstrapEmailLink": "Écrire à {address}",
+  "@appBootstrapEmailLink": {
+    "x-sourceSha256": "9e537fc54df73ab84fb572f70641a065b775dc49953e2538e1619efda013b3c4"
+  },
   "migrationDowngradeVersions": "Vos données utilisent le format de stockage {fileVersion}. Cette version de l’application lit jusqu’au format {appVersion}.",
   "@migrationDowngradeVersions": {
     "x-sourceSha256": "e98535aaca5822fdd932b29a528215a0c8cb34647f524f6818da24899f6b538a"
@@ -8581,6 +8589,10 @@
   "importReviewReimportTitleWarning": "{count, plural, =1{L’une d’elles reprend aussi le titre et l’auteur du fichier.} other{{count} d’entre elles reprennent aussi le titre et l’auteur du fichier.}}",
   "@importReviewReimportTitleWarning": {
     "x-sourceSha256": "f1695458fa6aac28fb41eb780c35447bbbab515fceffe9ce59dd8866c14c0e4f"
+  },
+  "importReviewReimportRemovesWarning": "{count, plural, =1{L’une d’elles change de forme de danse et perd sa référence Barnes ou sa marque « Commence improper », comme l’indique sa ligne.} other{{count} d’entre elles changent de forme de danse et perdent leur référence Barnes ou leur marque « Commence improper », comme l’indiquent leurs lignes.}}",
+  "@importReviewReimportRemovesWarning": {
+    "x-sourceSha256": "3bd6dcb210e55143abec4c67880a29c51fee28c9fdfc2439acb1240a90e0dcd8"
   },
   "importReviewWarningPrefix": "Avertissement : {message}",
   "@importReviewWarningPrefix": {

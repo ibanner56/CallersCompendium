@@ -974,12 +974,15 @@ class _ProgramTemplateEditorScreenState
       eventRuleIds: List.unmodifiable(_eventRuleIds),
     );
     final saving = _template.entries;
+    final messenger = ScaffoldMessenger.of(context);
+    final saveError = AppLocalizations.of(context).programTemplateSaveError;
     try {
       await saveProgramTemplate(
         RepositoriesScope.of(context).settings,
         _template,
         checkSlotRules: SlotRuleSearchCheck.added,
       );
+      _lastSaveFailed = false;
       // Saved: an edit this save carried has nothing left to undo.
       _editedFrom.removeWhere(
         (edited, _) => saving.any((entry) => identical(entry, edited)),
@@ -993,8 +996,24 @@ class _ProgramTemplateEditorScreenState
         stackTrace,
         source: 'program_templates_screen.save',
       );
+      // Say so, as the template list's own writes do, so an edit that did not
+      // save never looks saved. Once until a save succeeds: the name field
+      // saves on every keystroke, and one failing store would otherwise
+      // queue a message per letter.
+      if (!_lastSaveFailed) {
+        _lastSaveFailed = true;
+        messenger.showSnackBar(
+          SnackBar(
+            key: const ValueKey('program-template-save-error'),
+            content: Text(saveError),
+          ),
+        );
+      }
     }
   }
+
+  /// Whether the last save failed and said so ([_persist]).
+  bool _lastSaveFailed = false;
 
   /// A save was refused because a slot rule added or changed here names the
   /// saved search [goneId], which is no longer stored (#2529): nothing was

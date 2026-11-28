@@ -42,6 +42,15 @@ const String kUpdaterVersion = String.fromEnvironment(
 /// as the "View source" link target.
 const String kSourceRepoUrl = 'https://github.com/ibanner56/CallersCompendium';
 
+/// The repository's Bug report form (`.github/ISSUE_TEMPLATE/bug_report.yml`),
+/// where the startup error screens send someone reporting a problem first.
+const String kBugReportFormUrl =
+    '$kSourceRepoUrl/issues/new?template=bug_report.yml';
+
+/// The project's email address, as the README lists it: the startup error
+/// screens offer it after the Bug report form, for someone without GitHub.
+const String kProjectEmail = 'compendium@contra.dance';
+
 /// SPDX identifier for the application's own license. The repository is
 /// licensed under the GNU Affero General Public License, version 3 (see the
 /// top-level `LICENSE` file and the README license badge). The `LICENSE` text
