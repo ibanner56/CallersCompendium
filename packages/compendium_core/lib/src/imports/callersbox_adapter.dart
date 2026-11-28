@@ -1755,9 +1755,9 @@ class CallersBoxAdapter implements SourceAdapter {
     if (match == null) return null;
     final rest = match
         .group(1)!
-        .replaceFirst(RegExp(r'^[\s,;:.\-–—]+'), '')
+        .replaceFirst(RegExp(r'^[\s,;:.!\-–—]+'), '')
         .trimRight();
-    return rest.isEmpty || RegExp(r'^[.!]+$').hasMatch(rest) ? null : rest;
+    return rest.isEmpty ? null : rest;
   }
 
   /// A balance-wave line's head: an optional dancer and comma, `balance`, any
