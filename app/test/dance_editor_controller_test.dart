@@ -4366,6 +4366,161 @@ void main() {
       expect(controller.formationShape, FormationShape.circle);
     });
 
+    group('a saved dance maps its formation as Convert English dances '
+        'does', () {
+      Future<DanceEditorController> openSaved(
+        CompendiumRepositories repos,
+        DanceForm form,
+        Formation formation,
+      ) async {
+        await repos.dances.create(
+          Dance(
+            id: 'd1',
+            title: 'Saved',
+            form: form,
+            formation: formation,
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        final controller = DanceEditorController(
+          repositories: repos,
+          danceId: 'd1',
+          dialects: DialectsByForm.all(Dialect.larksRobins),
+          debounce: testDebounce,
+        );
+        await controller.load(
+          dance: await repos.dances.getById('d1'),
+          fieldDefs: const [],
+        );
+        return controller;
+      }
+
+      for (final source in const [
+        Formation(FormationShape.dupleImproper),
+        Formation(FormationShape.dupleProper),
+        Formation(FormationShape.triplet),
+        Formation(FormationShape.quadruplet),
+        Formation(FormationShape.becketCw, detail: 'double progression'),
+        Formation(FormationShape.becketCcw),
+        Formation(FormationShape.circleMixer),
+        Formation(FormationShape.tripleMinor, detail: 'slow'),
+      ]) {
+        test('contra ${source.shape.name} to English matches '
+            'ecdFormationFromContra', () async {
+          final repos = openTestRepositories();
+          final controller = await openSaved(repos, DanceForm.contra, source);
+          addTearDown(controller.dispose);
+
+          controller.setForm(DanceForm.ecd);
+          expect(controller.buildDance().formation, ecdFormationFromContra(source));
+        });
+      }
+
+      for (final (source, expected) in const [
+        (Formation(FormationShape.dupleMinor), FormationShape.dupleProper),
+        (
+          Formation(FormationShape.dupleMinor, improper: true),
+          FormationShape.dupleImproper,
+        ),
+        (
+          Formation(FormationShape.threeCoupleLongways),
+          FormationShape.triplet,
+        ),
+        (
+          Formation(FormationShape.fourCoupleLongways),
+          FormationShape.quadruplet,
+        ),
+        (Formation(FormationShape.circle), FormationShape.circle),
+        (Formation(FormationShape.twoCoupleSet), FormationShape.twoCoupleSet),
+        (
+          Formation(FormationShape.sixCoupleLongways),
+          FormationShape.sixCoupleLongways,
+        ),
+      ]) {
+        test('English ${source.shape.name}'
+            '${source.improper ? ' improper' : ''} to contra is '
+            '${expected.name}, and back again restores it', () async {
+          final repos = openTestRepositories();
+          final controller = await openSaved(repos, DanceForm.ecd, source);
+          addTearDown(controller.dispose);
+
+          controller.setForm(DanceForm.contra);
+          expect(controller.buildDance().formation.shape, expected);
+          controller.setForm(DanceForm.ecd);
+          expect(controller.buildDance().formation, source);
+        });
+      }
+
+      test('an English Becket longways set goes back to contra as the '
+          'Becket it was converted from', () async {
+        final repos = openTestRepositories();
+        final controller = await openSaved(
+          repos,
+          DanceForm.ecd,
+          const Formation(
+            FormationShape.longways,
+            detail: 'Becket CCW; double progression',
+          ),
+        );
+        addTearDown(controller.dispose);
+
+        controller.setForm(DanceForm.contra);
+        expect(
+          controller.buildDance().formation,
+          const Formation(
+            FormationShape.becketCcw,
+            detail: 'double progression',
+          ),
+        );
+        controller.setForm(DanceForm.ecd);
+        expect(
+          controller.buildDance().formation,
+          const Formation(
+            FormationShape.longways,
+            detail: 'Becket CCW; double progression',
+          ),
+        );
+      });
+
+      test('a contra duple proper chosen after a change from English to '
+          'contra goes back as a proper duple minor', () async {
+        final repos = openTestRepositories();
+        final controller = await openSaved(
+          repos,
+          DanceForm.ecd,
+          const Formation(FormationShape.dupleMinor, improper: true),
+        );
+        addTearDown(controller.dispose);
+
+        controller.setForm(DanceForm.contra);
+        controller.setFormationShape(FormationShape.dupleProper);
+        controller.setForm(DanceForm.ecd);
+        expect(
+          controller.buildDance().formation,
+          const Formation(FormationShape.dupleMinor),
+        );
+      });
+
+      test('Undo puts back the shape, detail and checkbox', () async {
+        final repos = openTestRepositories();
+        final controller = await openSaved(
+          repos,
+          DanceForm.contra,
+          const Formation(FormationShape.becketCw, detail: 'double'),
+        );
+        addTearDown(controller.dispose);
+
+        controller.setForm(DanceForm.ecd);
+        expect(controller.formationShape, FormationShape.longways);
+        expect(controller.formationDetailController.text, 'Becket; double');
+        controller.undo();
+        expect(controller.form, DanceForm.contra);
+        expect(controller.formationShape, FormationShape.becketCw);
+        expect(controller.formationDetailController.text, 'double');
+      });
+    });
+
     test('choosing the form the dance already has keeps its shape', () async {
       final repos = openTestRepositories();
       final controller = await newDanceController(repos);
