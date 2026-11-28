@@ -4,6 +4,7 @@ import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart';
 import 'package:compendium_app/src/utils/undo_snack_bar.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Pumps a minimal Scaffold whose button shows an undo prompt via
@@ -530,6 +531,200 @@ void main() {
       await tester.pump(const Duration(seconds: 4));
       await tester.pumpAndSettle();
       expect(find.text('Undo'), findsNothing);
+    });
+  });
+
+  // F-03: on a long list a keyboard user can need some twenty Tab presses to
+  // get from the control that deleted to the prompt's Undo.
+  group('from the keyboard', () {
+    /// A long list of rows, each with a Delete button that shows a prompt; a
+    /// search field above it; and, when [nearerUndo] is given, a Ctrl-Z of
+    /// the page's own (as the dance editor has) around the list.
+    Widget listHarness({
+      required ValueNotifier<int> undone,
+      Duration duration = const Duration(seconds: 3),
+      VoidCallback? nearerUndo,
+      bool accessibleNavigation = false,
+    }) {
+      Widget list = Builder(
+        builder: (context) => ListView(
+          children: [
+            for (var i = 0; i < 40; i++)
+              ListTile(
+                title: Text('Row $i'),
+                onTap: () {},
+                trailing: IconButton(
+                  key: ValueKey('delete-$i'),
+                  tooltip: 'Delete row $i',
+                  icon: const Icon(Icons.delete),
+                  onPressed: () => showUndoSnackBar(
+                    ScaffoldMessenger.of(context),
+                    key: const ValueKey('undo-snackbar'),
+                    message: 'Row deleted.',
+                    undoLabel: 'Undo',
+                    undoFailedMessage: 'Undo failed.',
+                    accessibleNavigation: accessibleNavigation,
+                    duration: duration,
+                    onUndo: () => undone.value++,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+      if (nearerUndo != null) {
+        list = CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.keyZ, control: true):
+                nearerUndo,
+          },
+          child: list,
+        );
+      }
+      return MaterialApp(
+        home: Scaffold(
+          appBar: AppBar(title: const Text('Rows')),
+          body: Column(
+            children: [
+              const TextField(key: ValueKey('search')),
+              Expanded(child: list),
+            ],
+          ),
+        ),
+      );
+    }
+
+    /// Deletes row 1 from the keyboard: focus its Delete button, press Enter.
+    Future<void> deleteFromKeyboard(WidgetTester tester) async {
+      // The icon sits inside the button's own Focus.
+      Focus.of(
+        tester.element(
+          find.descendant(
+            of: find.byKey(const ValueKey('delete-1')),
+            matching: find.byIcon(Icons.delete),
+          ),
+        ),
+      ).requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Row deleted.'), findsOneWidget);
+    }
+
+    Future<void> pressUndoKey(WidgetTester tester, {bool meta = false}) async {
+      final modifier = meta
+          ? LogicalKeyboardKey.metaLeft
+          : LogicalKeyboardKey.controlLeft;
+      await tester.sendKeyDownEvent(modifier);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      await tester.sendKeyUpEvent(modifier);
+      await tester.pump();
+    }
+
+    for (final meta in [false, true]) {
+      final key = meta ? 'Cmd-Z' : 'Ctrl-Z';
+      testWidgets('$key presses Undo on the showing prompt, once', (
+        tester,
+      ) async {
+        final undone = ValueNotifier(0);
+        addTearDown(undone.dispose);
+        await tester.pumpWidget(listHarness(undone: undone));
+        await deleteFromKeyboard(tester);
+
+        await pressUndoKey(tester, meta: meta);
+        await tester.pumpAndSettle();
+        expect(undone.value, 1);
+        expect(find.text('Row deleted.'), findsNothing);
+
+        // The prompt has gone, so the key has nothing left to undo.
+        await pressUndoKey(tester, meta: meta);
+        await tester.pumpAndSettle();
+        expect(undone.value, 1);
+      });
+    }
+
+    testWidgets('the key works on a prompt that waits to be closed', (
+      tester,
+    ) async {
+      final undone = ValueNotifier(0);
+      addTearDown(undone.dispose);
+      await tester.pumpWidget(
+        listHarness(undone: undone, accessibleNavigation: true),
+      );
+      await deleteFromKeyboard(tester);
+      await pressUndoKey(tester);
+      await tester.pumpAndSettle();
+      expect(undone.value, 1);
+    });
+
+    testWidgets('Ctrl-Z in a text field is left to the field', (tester) async {
+      final undone = ValueNotifier(0);
+      addTearDown(undone.dispose);
+      await tester.pumpWidget(listHarness(undone: undone));
+      await deleteFromKeyboard(tester);
+      await tester.tap(find.byKey(const ValueKey('search')));
+      await tester.pump();
+      await pressUndoKey(tester);
+      await tester.pump();
+      expect(undone.value, 0);
+      expect(find.text('Row deleted.'), findsOneWidget);
+    });
+
+    testWidgets("Ctrl-Z that a page binds itself is left to the page", (
+      tester,
+    ) async {
+      final undone = ValueNotifier(0);
+      addTearDown(undone.dispose);
+      var pageUndos = 0;
+      await tester.pumpWidget(
+        listHarness(undone: undone, nearerUndo: () => pageUndos++),
+      );
+      await deleteFromKeyboard(tester);
+      await pressUndoKey(tester);
+      expect(pageUndos, 1);
+      expect(undone.value, 0);
+      expect(find.text('Row deleted.'), findsOneWidget);
+    });
+
+    testWidgets('a keyboard user tabbing toward Undo is not timed out '
+        'mid-reach; the full time starts again after the last key', (
+      tester,
+    ) async {
+      final undone = ValueNotifier(0);
+      addTearDown(undone.dispose);
+      await tester.pumpWidget(listHarness(undone: undone));
+      await deleteFromKeyboard(tester);
+
+      // Tab every two seconds for twelve seconds: four times the prompt's
+      // three, and still far from the prompt on a forty-row list.
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(seconds: 2));
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+        expect(find.text('Row deleted.'), findsOneWidget, reason: 'tab $i');
+      }
+      final focused = FocusManager.instance.primaryFocus?.context;
+      expect(
+        focused == null ||
+            find
+                .descendant(
+                  of: find.byType(SnackBar),
+                  matching: find.byWidget(focused.widget),
+                )
+                .evaluate()
+                .isEmpty,
+        isTrue,
+        reason: 'focus reached the prompt, so this is the focus hold',
+      );
+
+      // No key for a full three seconds: it goes.
+      await tester.pump(const Duration(seconds: 2));
+      expect(find.text('Row deleted.'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 1100));
+      await tester.pumpAndSettle();
+      expect(find.text('Row deleted.'), findsNothing);
+      expect(undone.value, 0);
     });
   });
 }
