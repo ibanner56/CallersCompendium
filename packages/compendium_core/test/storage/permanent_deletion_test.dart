@@ -98,7 +98,6 @@ void main() {
         walkthrough: 'Walk it through',
         interpreterIds: ['i-$id'],
         alternateTitles: ['Secret Other Title $id'],
-        barnesReference: 'Barnes II p. 7',
         rating: 4,
         tunes: ['Tune'],
         difficultyLevelId: DifficultyLevel.beginnerId,
@@ -173,6 +172,33 @@ void main() {
       // The dance model still loads.
       final dance = await repos.dances.getById('d1', includeDeleted: true);
       expect(dance!.title, blankedRecordTitle);
+    });
+
+    test('an English dance loses its Barnes reference', () async {
+      // Only an English dance carries one (formHasBarnesReference).
+      await repos.dances.create(
+        sampleDance(
+          id: 'e1',
+          title: 'Secret English Title',
+          createdAt: created,
+          updatedAt: created,
+        ).copyWith(form: DanceForm.ecd, barnesReference: 'Barnes II p. 7'),
+      );
+      expect((await danceRow('e1'))!.barnesReference, 'Barnes II p. 7');
+      await publish(SyncRecordKind.dance, 'e1');
+      await repos.dances.softDelete('e1', at: trashedAt);
+
+      await repos.dances.permanentlyDelete('e1', now: now);
+
+      final row = (await danceRow('e1'))!;
+      expect(row.title, blankedRecordTitle);
+      expect(row.barnesReference, isEmpty);
+      expect(
+        await repos.dances.removePermanentlyDeleted(
+          now: now.add(const Duration(days: 1)),
+        ),
+        0,
+      );
     });
 
     test('a program slot keeps the dance title as a caption, and the program '
