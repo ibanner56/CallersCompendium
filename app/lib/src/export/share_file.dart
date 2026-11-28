@@ -4,7 +4,7 @@ import 'dart:ui' show Rect;
 import 'package:compendium_core/compendium_core.dart'
     show csvExtension, csvMimeType;
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart' show TargetPlatform, visibleForTesting;
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -81,11 +81,13 @@ XTypeGroup csvTypeGroup({bool? isLinux}) => XTypeGroup(
   mimeTypes: const [csvMimeType],
 );
 
-/// The folder, in the app's temporary folder, that every file handed to the
-/// share sheet or a phone's save dialog is staged in. Not `share_plus`: on
-/// Android that plugin copies a shared file into a folder of that name in the
-/// cache, and refuses a file already in it.
-const String kShareStagingFolderName = 'share_staging';
+/// The folder, in the app's temporary folder, that the export menus and the
+/// phone backup stage a file in for the share sheet or a phone's save dialog
+/// ([writeBundleFile], `saveBackupToFile`). Named for this app: on Windows the
+/// temporary folder is shared by all of one user's programs. Not `share_plus`:
+/// on Android that plugin copies a shared file into a folder of that name in
+/// the cache, and refuses a file already in it ([clearSharePlusCopies]).
+const String kShareStagingFolderName = 'callers-compendium-share-staging';
 
 /// The staging folder: [kShareStagingFolderName] in [temporaryDirectory]
 /// (the app's temporary folder by default). It may not exist yet.
@@ -113,6 +115,9 @@ Future<void> clearShareStaging({ShareTempDirProvider? stagingDirectory}) async {
     return;
   }
   try {
+    // A link here is not a folder this app made: listing it would list, and
+    // empty, whatever it points to.
+    if (await FileSystemEntity.isLink(dir.path)) return;
     if (!await dir.exists()) return;
     await for (final entry in dir.list(followLinks: false)) {
       try {
@@ -123,6 +128,36 @@ Future<void> clearShareStaging({ShareTempDirProvider? stagingDirectory}) async {
     }
   } on FileSystemException {
     // diagnostics: silent — the folder could not be listed; the next clear tries again
+  }
+}
+
+/// Deletes the copies `share_plus` keeps on Android of the files last shared:
+/// it copies each shared file into a `share_plus` folder in the app's cache
+/// ([cacheDirectory]), and empties that folder only when the next share
+/// starts. Run once at start, when no share can be in flight. Never throws.
+Future<void> clearSharePlusCopies({
+  ShareTempDirProvider cacheDirectory = getTemporaryDirectory,
+}) => clearShareStaging(
+  stagingDirectory: () async =>
+      Directory(p.join((await cacheDirectory()).path, 'share_plus')),
+);
+
+/// Clears what earlier runs left staged for sharing: the staging folder
+/// ([clearShareStaging]) and, on Android, `share_plus`'s copies
+/// ([clearSharePlusCopies]). Not on Linux, where a file is never staged (it
+/// is saved instead, [isBundleShareUnsupported]) and the temporary folder is
+/// the system's shared one. Run once at start; never throws.
+Future<void> clearLeftoverSharedFiles({
+  required TargetPlatform platform,
+  ShareTempDirProvider temporaryDirectory = getTemporaryDirectory,
+}) async {
+  if (platform == TargetPlatform.linux) return;
+  await clearShareStaging(
+    stagingDirectory: () =>
+        shareStagingDirectory(temporaryDirectory: temporaryDirectory),
+  );
+  if (platform == TargetPlatform.android) {
+    await clearSharePlusCopies(cacheDirectory: temporaryDirectory);
   }
 }
 

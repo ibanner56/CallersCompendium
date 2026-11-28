@@ -72,17 +72,29 @@ Future<ArchiveIntakeValidation> validateDanceLink(
   ArchiveIntakeService? intake,
   int maxLinkLength = kMaxDanceLinkLength,
   int maxInflatedBytes = kMaxDanceInflatedBytes,
-}) {
+}) async {
   final trimmed = link.trim();
   final service = intake ?? ArchiveIntakeService();
-  return danceLinkWorkRunner(() async {
-    final json = decodeDanceLink(
-      trimmed,
-      maxLinkLength: maxLinkLength,
-      maxInflatedBytes: maxInflatedBytes,
+  try {
+    return await danceLinkWorkRunner(() async {
+      final json = decodeDanceLink(
+        trimmed,
+        maxLinkLength: maxLinkLength,
+        maxInflatedBytes: maxInflatedBytes,
+      );
+      return service.validateBytes(Uint8List.fromList(utf8.encode(json)));
+    });
+  } on DanceLinkException {
+    // diagnostics: silent — rethrown as is; the caller logs it and says why
+    rethrow;
+  } on Object {
+    // diagnostics: silent — the worker could not run or reply (it cannot
+    // throw anything else: validateBytes catches everything); surfaced as a
+    // rejection, which the caller shows as a damaged code.
+    return ArchiveIntakeValidation.rejected(
+      ArchiveIntakeRejectionReason.unreadable,
     );
-    return service.validateBytes(Uint8List.fromList(utf8.encode(json)));
-  });
+  }
 }
 
 /// What to tell the user about a link [decodeDanceLink] refused. A link from a

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:compendium_app/src/export/share_file.dart';
+import 'package:flutter/foundation.dart' show TargetPlatform;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -62,6 +63,68 @@ void main() {
     expect(staging.existsSync(), isTrue);
     expect(staging.listSync(), isEmpty);
     expect(outside.readAsStringSync(), 'keep');
+  });
+
+  test('a staging folder that is a link is not followed or emptied', () async {
+    final target = Directory(p.join(temp.path, 'someone-else'))..createSync();
+    final theirs = File(p.join(target.path, 'keep.txt'))
+      ..writeAsStringSync('keep');
+    Link(staging.path).createSync(target.path);
+
+    await clearShareStaging(stagingDirectory: () async => staging);
+
+    expect(theirs.readAsStringSync(), 'keep');
+  });
+
+  group('clearLeftoverSharedFiles at start', () {
+    late File staged;
+    late File sharePlusCopy;
+    setUp(() {
+      staged = File(p.join(staging.path, 'backup.json'))
+        ..createSync(recursive: true);
+      sharePlusCopy = File(p.join(temp.path, 'share_plus', 'backup.json'))
+        ..createSync(recursive: true);
+    });
+
+    test(
+      'on Android, empties the staging folder and share_plus\'s copies',
+      () async {
+        await clearLeftoverSharedFiles(
+          platform: TargetPlatform.android,
+          temporaryDirectory: () async => temp,
+        );
+        expect(staged.existsSync(), isFalse);
+        expect(sharePlusCopy.existsSync(), isFalse);
+      },
+    );
+
+    test(
+      'on iOS, macOS and Windows, empties the staging folder only',
+      () async {
+        for (final platform in [
+          TargetPlatform.iOS,
+          TargetPlatform.macOS,
+          TargetPlatform.windows,
+        ]) {
+          staged.createSync(recursive: true);
+          await clearLeftoverSharedFiles(
+            platform: platform,
+            temporaryDirectory: () async => temp,
+          );
+          expect(staged.existsSync(), isFalse, reason: '$platform');
+          expect(sharePlusCopy.existsSync(), isTrue, reason: '$platform');
+        }
+      },
+    );
+
+    test('on Linux, where nothing is staged, touches nothing', () async {
+      await clearLeftoverSharedFiles(
+        platform: TargetPlatform.linux,
+        temporaryDirectory: () async => temp,
+      );
+      expect(staged.existsSync(), isTrue);
+      expect(sharePlusCopy.existsSync(), isTrue);
+    });
   });
 
   test('clearing a folder that is not there, or with no temporary folder, '

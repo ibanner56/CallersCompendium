@@ -416,8 +416,9 @@ void main() {
 
   group('caps', () {
     // Every paragraph is folded into the one dance, in order, near the dance
-    // cap. The fold was once a `removeAt` per paragraph, quadratic in their
-    // number: about two seconds for this file.
+    // cap. This pins the output, not the time: the fold was once a `removeAt`
+    // per paragraph, quadratic in their number (about two seconds for this
+    // file), and its one-pass replacement must read the file the same way.
     test('prose under a single # dance folds in whole, near the cap', () {
       // Each paragraph is a block until it is folded, and so counts towards
       // the cap; the two dances take the rest.

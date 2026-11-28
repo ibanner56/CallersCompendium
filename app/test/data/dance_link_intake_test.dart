@@ -81,6 +81,14 @@ void main() {
       );
     });
 
+    test('a worker that cannot run or reply reads as a damaged link, '
+        'not an untyped error', () async {
+      danceLinkWorkRunner = (_) async => throw StateError('no worker');
+      addTearDown(() => danceLinkWorkRunner = runDanceLinkWorkOnWorker);
+      final validation = await validateDanceLink(goodDanceLink());
+      expect(validation.reason, ArchiveIntakeRejectionReason.unreadable);
+    });
+
     test('surrounding whitespace is ignored', () async {
       final validation = await validateDanceLink(' ${goodDanceLink()}\n');
       expect(validation.isRejected, isFalse);

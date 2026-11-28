@@ -12,7 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// Makes [validateDanceLink] read links in place, on the test's own isolate,
 /// until the current test ends. For widget tests: they run under fake time,
 /// where the reply from the worker isolate the app uses would never arrive.
-/// Call it from `setUp` or at the start of a test.
+/// Call it from a test's set-up or at its start.
 void readDanceLinksInPlace() {
   danceLinkWorkRunner = (work) => work();
   addTearDown(() => danceLinkWorkRunner = runDanceLinkWorkOnWorker);

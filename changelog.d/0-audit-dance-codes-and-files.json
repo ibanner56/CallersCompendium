@@ -7,7 +7,12 @@
       "A dance link with a version no app writes, such as 0 or letters, is now reported as damaged, instead of as made by a newer version with advice to update.",
       "Reading a text or Markdown file with one dance and many paragraphs of notes under it no longer takes seconds: it now takes about as long as any other file of that size.",
       "A web address that names this device or the local network in another form, such as 2130706433, 0x7f.0.0.1, 0177.0.0.1 or 127.1, is now refused for an import or a calendar address, as 127.0.0.1 already was.",
-      "A file staged for the share sheet, such as a spreadsheet, a calendar file or a backup, is now deleted the next time you share a file or start the app, instead of staying in the app's temporary folder. On iPhone, iPad and Android, the copy the file picker makes of a file you import or restore is deleted once it has been read."
+      "A dance or program file, spreadsheet, calendar file or backup handed to the share sheet is now deleted the next time you share one of these files or start the app, instead of staying in the app's temporary folder; on Android that includes the copy the share sheet is given. On iPhone, iPad and Android, the copy the file picker makes of a file you import or restore is deleted once it has been read."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "readTextDocument folds the prose paragraphs under a single `#` dance in one pass, not with a removeAt per paragraph, so a file of many paragraphs is no longer quadratic to read. The output is unchanged."
     ]
   }
 }
