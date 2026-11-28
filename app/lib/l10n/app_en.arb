@@ -20225,9 +20225,25 @@
   "@eventRulesManageSubtitle": {
     "description": "Subtitle of the Manage rules row (#2340, #2341)."
   },
-  "eventRulesEmpty": "No rules yet. A rule uses one of your saved searches to say which dances it means.",
-  "@eventRulesEmpty": {
-    "description": "Shown in the event rules manager when there are no rules (#2340)."
+  "eventRulesEmptyTitle": "No rules yet",
+  "@eventRulesEmptyTitle": {
+    "description": "Heading of the event rules manager's empty state, shown when there are no rules (#2340)."
+  },
+  "eventRulesEmptyBody": "A rule uses one of your saved searches to say which dances it means. Choose New rule… to add one.",
+  "@eventRulesEmptyBody": {
+    "description": "Body of the event rules manager's empty state, under eventRulesEmptyTitle and above a New rule… button (eventRulesNewRule), whose label it quotes (#2340)."
+  },
+  "eventRulesLoadError": "Couldn't load your rules. Nothing was changed. Try again.",
+  "@eventRulesLoadError": {
+    "description": "Shown in the event rules manager, with a Try again button, when the rules cannot be read."
+  },
+  "eventRuleDeleteFailed": "Couldn't delete the rule. Try again.",
+  "@eventRuleDeleteFailed": {
+    "description": "Snackbar in the event rules manager when deleting a rule fails; the rule is still there."
+  },
+  "eventRuleMoveFailed": "Couldn't move the rule. Try again.",
+  "@eventRuleMoveFailed": {
+    "description": "Snackbar in the event rules manager when moving a rule up or down fails; the rule goes back to where it was."
   },
   "eventRulesNewRule": "New rule…",
   "@eventRulesNewRule": {

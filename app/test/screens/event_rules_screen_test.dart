@@ -362,7 +362,10 @@ void main() {
       );
       expect(fab().isExtended, isTrue);
 
-      await tester.binding.setSurfaceSize(const Size(800, 360));
+      // The window, not just the surface: a short window is read from it.
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 360);
+      addTearDown(tester.view.reset);
       await tester.pumpAndSettle();
       expect(fab().isExtended, isFalse);
       expect(fab().tooltip, 'New rule…');
@@ -555,7 +558,7 @@ void main() {
     ) async {
       await repos.savedSearches.create(name: 'Becket', spec: _spec());
       await _pump(tester, repos, const EventRulesScreen(), enabled: true);
-      await tester.tap(find.byKey(const ValueKey('event-rules-new')));
+      await tester.tap(find.byKey(const ValueKey('event-rules-empty-add')));
       await tester.pumpAndSettle();
       await pumpUntilFound(
         tester,
@@ -660,7 +663,7 @@ void main() {
       spec: _spec(),
     );
     await _pump(tester, repos, const EventRulesScreen(), enabled: true);
-    await tester.tap(find.byKey(const ValueKey('event-rules-new')));
+    await tester.tap(find.byKey(const ValueKey('event-rules-empty-add')));
     await tester.pumpAndSettle();
     await pickDropdownEntry(
       tester,
@@ -701,7 +704,7 @@ void main() {
     final repos = openTestRepositories();
     await repos.savedSearches.create(name: 'Becket', spec: _spec());
     await _pump(tester, repos, const EventRulesScreen(), enabled: true);
-    await tester.tap(find.byKey(const ValueKey('event-rules-new')));
+    await tester.tap(find.byKey(const ValueKey('event-rules-empty-add')));
     await tester.pumpAndSettle();
     await pickDropdownEntry(
       tester,

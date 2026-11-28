@@ -15148,8 +15148,23 @@ class AppLocalizationsDe extends AppLocalizations {
       'Deine Regeln ansehen, hinzufügen, bearbeiten, neu anordnen und löschen.';
 
   @override
-  String get eventRulesEmpty =>
-      'Noch keine Regeln. Eine Regel verwendet eine deiner gespeicherten Suchen, um zu sagen, welche Tänze sie meint.';
+  String get eventRulesEmptyTitle => 'Noch keine Regeln';
+
+  @override
+  String get eventRulesEmptyBody =>
+      'Eine Regel verwendet eine deiner gespeicherten Suchen, um zu sagen, welche Tänze sie meint. Wähle Neue Regel…, um eine hinzuzufügen.';
+
+  @override
+  String get eventRulesLoadError =>
+      'Deine Regeln konnten nicht geladen werden. Es wurde nichts geändert. Versuche es erneut.';
+
+  @override
+  String get eventRuleDeleteFailed =>
+      'Die Regel konnte nicht gelöscht werden. Versuche es erneut.';
+
+  @override
+  String get eventRuleMoveFailed =>
+      'Die Regel konnte nicht verschoben werden. Versuche es erneut.';
 
   @override
   String get eventRulesNewRule => 'Neue Regel…';

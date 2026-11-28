@@ -14433,7 +14433,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get eventRulesManageSubtitle => 'ルールを表示、追加、編集、並べ替え、削除します。';
 
   @override
-  String get eventRulesEmpty => 'ルールはまだありません。ルールは保存した検索を使って、対象のダンスを指定します。';
+  String get eventRulesEmptyTitle => 'ルールはまだありません';
+
+  @override
+  String get eventRulesEmptyBody =>
+      'ルールは保存した検索を使って、対象のダンスを指定します。追加するには「新しいルール…」を選んでください。';
+
+  @override
+  String get eventRulesLoadError => 'ルールを読み込めませんでした。何も変更されていません。もう一度お試しください。';
+
+  @override
+  String get eventRuleDeleteFailed => 'ルールを削除できませんでした。もう一度お試しください。';
+
+  @override
+  String get eventRuleMoveFailed => 'ルールを移動できませんでした。もう一度お試しください。';
 
   @override
   String get eventRulesNewRule => '新しいルール…';
