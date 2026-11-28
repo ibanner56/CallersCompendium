@@ -2070,7 +2070,11 @@ has to be judged in its own context.
   `form_a_long_wave` / `form_long_waves` with `balance: true`, beats summed;
   #577; a balance line whose annotation does not decode — `(Ph1R,WL)`,
   `(SRNR,1CL)` — is not folded and stays custom, since the fold carries only
-  decoded params; since taxonomy v38 a square corner decodes, so `(C2R,WL)`
+  decoded params; an unannotated balance line that says more after its wave
+  phrase keeps those words as the figure's note (`Balance long wave in center
+  and slide left` → note `and slide left`, the maintainer's ruling,
+  2026-11-28), and one whose phrase names a wave the figure is not stays
+  custom; since taxonomy v38 a square corner decodes, so `(C2R,WL)`
   folds with `opposites` as the sides; since #2331 a bare `form long wave` is
   `form_long_waves` with an unstated facing (its own line's beats aside, a
   bare wave states nothing else), its `Balance long wave (…, <role>
@@ -3098,6 +3102,20 @@ role stepping in.
    deliberately not compared: after a forming line that says `with N2`, the
    balance writes those same dancers as `N`, and the forming line's
    `nextNeighbors` has always won there.
+
+   A balance line with no annotation that says more than the balance keeps
+   the rest as the merged figure's note, so no word is lost (the maintainer's
+   ruling, 2026-11-28, on `Balance long wave in center and slide left` after a
+   bare `form long wave`): the fixed phrase `[dancer] balance [the|a]
+   [long|short|ocean] wave[s] [of four] [in [the] center]` is taken off and
+   the rest, less the punctuation that joined it, becomes the note. The fold
+   is refused, and the line stays custom, when that phrase names a wave the
+   figure is not (`long` on a short wave or pass the ocean, `short` or `of
+   four` on a long wave, `in center` on anything but `form_a_long_wave`),
+   when the line's head is not that phrase, or when the rest is longer than
+   `kMaxClauseNote`. A dancer on the phrase is left to the dancer guard: a
+   move with no `who` (`pass_the_ocean`) still takes such a balance without
+   it.
 3. **Promotion** — whatever is left becomes the form figure on its own. This is
    the implicit case (an allemande or shoulder round leaves the dancers in the
    wave the very next line balances): the forming is a fact the source implies,
