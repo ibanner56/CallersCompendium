@@ -247,12 +247,12 @@ relies on (§2). Update this section when that tag is cut.
  set Dynamic Type to its **largest accessibility size**. **Pass**: no text is
  clipped, truncated without a way to reveal the rest, or overlapping other
  content; layouts reflow instead of overflowing off-screen.
- (`app/test/a11y_guidelines_test.dart` sweeps the Collection, Programs list,
- summary and builder (also with More details open, for its filterable
+ (`app/test/a11y_guidelines_test.dart` sweeps the Collection (also in selection
+ mode), Advanced search, the Programs list, summary and builder (also with More details open, for its filterable
  drop-downs), Perform and its Adjust sheet, the Dance editor's first
  screenful, Dance detail (a long title, notes, a tag and a rating, scrolled to
- the end), each Settings section page (scrolled to the end), and the Tags
- manager at 2.0× on 360 and 412 dp with the real fonts. Settings' Diagnostics
+ the end), each Settings section page (scrolled to the end), the Tags manager
+ and Import review at 2.0× on 360 and 412 dp with the real fonts. Settings' Diagnostics
  page is swept by its own case there, with an in-memory crash log, because the
  app's on-disk one never settles in a widget test. The Settings sweep does not
  open the collapsed sections on the Defaults page, and does not reach the
@@ -328,6 +328,11 @@ relies on (§2). Update this section when that tag is cut.
  (catches broken uploads).
 
 ## 10. Post-release
+- [ ] Open PRs that amend an unreleased version (vNext of the schema, a
+  taxonomy or the wire format) now amend a shipped one, if this tag carries
+  that number. Tell each author to rebase into a bump instead. No gate tells
+  an edit to a released `if (from < N)` step, dump or schema class from an
+  amend of vNext ([CONTRIBUTING.md](../../CONTRIBUTING.md#adding-to-an-unreleased-version)).
 - [ ] Roadmap updated (what shipped, what's still open).
 - [ ] Known-issues list published with the release.
 - [ ] Feedback channel for testers is stated in the release notes.

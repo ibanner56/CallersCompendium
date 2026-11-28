@@ -178,8 +178,8 @@ is stored as the movement `hand_turn` with `who = partners`, `hand = right`,
 `travel = 1`. It is not stored as a separate "right-hand turn partners"
 entry. Two-hand turns and arm turns are movements of their own (Q12).
 
-The registry (§7) has **49 movements**, each with parameters and a draft
-display. The points left open on acceptance have been answered (§9.1).
+The registry (§7) has **52 movements**, each with parameters and a draft
+display, and two aliases. The points left open on acceptance have been answered (§9.1).
 Movements left out on purpose are listed in §10.
 
 ### 1.1 Requirements
@@ -198,7 +198,7 @@ ADR's.
 | **R4. Render as calling language, in any dialect.** | Every stored line reads back as a line a caller could say aloud, keeping its stated meaning ("Right hands across and back by the left"). The app's full [dialect system](../design/dialect.md) applies, as it does for contra: spelling, role and dancer terms, and per-movement display formulas, including the conditional `[if … then … else …]` groups. |
 | **R5. Import without inventing, aimed at ECDDB.** | The main import target is ECDDB, integrated as the app integrates The Caller's Box: not every dance will have published figures. Aligning on a shared taxonomy should keep the adapter small. Heywood's catalogue and the UpaDouble videos inform the vocabulary (§3), but are not import sources (§2). A line an importer can't resolve keeps its source text. |
 | **R6. Minimal and canonical.** | One movement per pattern of travel (§4). Hand, hold, extent, direction, who dances and where they end are parameters. Familiar names are aliases that can be entered, searched and displayed, while the stored form stays compact. The `sequence` container (§5.6) groups runs without adding combined movements. |
-| **R7. Timing in bars.** | Users enter timing in bars, imports bring bars where the source gives them, and the app shows bars. The app stores beats, converted through the dance's phrase structure (§5.5). In ECD, a sequence can give one span of bars for several actions without timing each step. |
+| **R7. Timing in bars.** | Users enter timing in bars, imports bring bars where the source gives them, and the app shows bars. The app stores beats, converted by the dance's meter or, failing that, its phrase structure (§5.5). In ECD, a sequence can give one span of bars for several actions without timing each step. |
 | **R8. Independent of contra.** | ECD owns its movements. Stored IDs carry an `ecd_` prefix. Parameter names are shared with contra where the concept is the same, but definitions are not (§5.1). |
 | **R9. No tracking of dancer positions.** | The app does not work out where dancers are or check that a dance works. A `destination` is stored because the source, or the person entering the dance, states it. It is never computed. |
 
@@ -427,7 +427,7 @@ defines its own parameter.
 **Stored IDs carry an `ecd_` prefix**: `ecd_set`, `ecd_hand_turn`,
 `ecd_poussette`. The maintainer decided this in November 2026 (recorded
 with the other decisions behind this revision). ECD dances imported or
-entered today hold contra moves, because no ECD taxonomy exists yet, so a
+entered before the ECD taxonomy existed hold contra moves (§12, F5), so a
 plain `poussette` or `star` in an ECD dance would be ambiguous. The reasons
 for the prefix, as this ADR sees them:
 
@@ -555,8 +555,11 @@ other points below are this ADR's proposal.
   the source gives them, and the app shows bars.
 - **Beats underneath.** The app stores beats, as it does for contra, so its
   existing timing and section arithmetic applies to lines as it does today.
-  It converts between bars and beats through the dance's phrase structure,
-  which records
+  It converts between bars and beats by the dance's meter when the meter
+  states one and every part of the tune agrees in beats per bar (the
+  maintainer, 19 November 2026: "the meter is the rule"; recorded here from
+  `danceBeatsPerBar` in `bar_count.dart` and `ecd_bars.dart`, which cite it).
+  Otherwise it uses the dance's phrase structure, which records
   the number of phrases, bars per phrase and beats per bar for each part of
   the tune: for example `4*8*3` for four 8-bar phrases in triple time. A
   tune whose meter changes is several components joined with `+`, and so
@@ -1508,7 +1511,8 @@ an all-English evening.
   shape.
 - **F3. Meter and key.** A dance gains optional meter and key text fields,
   shown on the dance and the program sheet, and searchable. Phrase
-  structure still records beats per bar (§5.5).
+  structure still records beats per bar, but a meter that states one decides
+  a bar's length where the phrases agree (§5.5).
 - **F4. Dances in several parts** use one phrase structure joined with `+`,
   with section labels derived as they are today. No part grouping is added.
 - **F5. ECD dances already imported** with contra moves are left as they

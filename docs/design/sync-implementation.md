@@ -1555,7 +1555,8 @@ cannot recover from.
   the contract. Two units that each assume a different manifest shape conflict
   with zero textual overlap.
 - **S3 · The server deploys before any client that emits a new `shareable`
-  field or record kind** (§7.2). Adding either does **not** bump `v`, so nothing
+  field, settings key or key prefix, or record kind** (§7.2). Adding any of
+  them does **not** bump `v`, so nothing
   on the wire signals the difference: the client simply gets `422` on every
   affected blob, visibly, with no retry. This binds v1's rollout *and every
   future vocabulary change*, and it binds self-hosters too — their upgrade must
