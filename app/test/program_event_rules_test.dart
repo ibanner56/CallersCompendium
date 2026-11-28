@@ -262,7 +262,7 @@ void main() {
       await pumpUntilFound(tester, _strip);
       expect(
         tester.getSemantics(find.text('2 rules not met')),
-        containsSemantics(label: '2 rules not met', isLiveRegion: true),
+        isSemantics(label: '2 rules not met', isLiveRegion: true),
       );
     } finally {
       // Disposed in the body: the framework checks handles before teardowns.
