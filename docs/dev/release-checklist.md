@@ -252,7 +252,13 @@ relies on (§2). Update this section when that tag is cut.
  drop-downs), Perform and its Adjust sheet, the Dance editor's first
  screenful, Dance detail (a long title, notes, a tag and a rating, scrolled to
  the end), each Settings section page (scrolled to the end), the Theme screen
- that Appearance pushes, the Tags manager and Import review at 2.0× on 360 and 412 dp with the real fonts. Settings' Diagnostics
+ that Appearance pushes, the Tags manager, Import review, and the screens added
+ since v0.10.0-beta (Repertoire, the combined view of two programs, Calendar
+ import, Manage rules and the rule editor, Program templates and the template
+ editor, Suggestion settings, Perform swap defaults and Convert English dances,
+ each pushed directly rather than reached through its row) at 2.0× on 360 and
+ 412 dp with the real fonts. A test there fails when a section on the Settings
+ hub is missing from its list. Settings' Diagnostics
  page is swept by its own case there, with an in-memory crash log, because the
  app's on-disk one never settles in a widget test. The Settings sweep does not
  open the collapsed sections on the Defaults page, and does not reach the
@@ -278,18 +284,24 @@ relies on (§2). Update this section when that tag is cut.
  (`app/test/keyboard_traversal_test.dart` walks the Collection, Dance detail,
  Dance editor, Programs list, a program's summary and builder, Perform and
  Settings (its sidebar and the General page, which is what a desktop window
- shows) on a 1100×800 window with real Tab and Shift+Tab presses; the two
+ shows, and the Collection page), and the screens added since v0.10.0-beta
+ that the 2.0× sweep lists, on a 1100×800 window with real Tab and Shift+Tab presses; the two
  editors are walked both with their "More details" section collapsed (its
  fields must stay out of the focus order) and opened. It fails on a
  keyboard trap (the lazily built screens are walked a second time in a window
  tall enough to build the whole form, where a loop of any size is caught; in the
- ordinary window only a loop of under five controls is; the Program builder's
+ ordinary window only a loop of under five controls is; a page with fewer than
+ five controls is held to returning to its first stop; the Program builder's
  Matrix tab is not walked),
- on a tappable control Tab never reaches, and on a Tab stop that gets no focus
+ on a tappable control Tab never reaches (a radio button is reached with the
+ arrow keys from its group's one stop, which the walk presses, and a saved
+ search field's rows through the field, which keeps focus while the arrow keys
+ choose them), and on a Tab stop that gets no focus
  ring from the app's `FocusRingLayer`; it reads that layer's
  rectangle, not pixels, because Material's focus overlays do not appear in a
  widget test's image. It does not check the ring's contrast
- (`palette_contrast_test.dart` does), Enter/Space activation, text editing,
+ (`palette_contrast_test.dart` does for each theme, and
+ `focus_ring_layer_test.dart` on Perform's stage), Enter/Space activation, text editing,
  dialogs and menus, or fast dance entry. It supplements this gate, not
  replaces it.)
 - [ ] **Deferred (advisory, not gating).** NVDA, Narrator, and Orca full
