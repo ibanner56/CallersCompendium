@@ -35,7 +35,9 @@ import 'dance_card_fields.dart' show joinPersonNames;
 ///   date).
 /// - [formatTime] formats a time of day, given as minutes after midnight
 ///   ([Program.startMinute] and the others); defaults to a 24-hour `HH:mm`
-///   ([isoTimeOfDay]). The app passes the active locale's 12- or 24-hour form.
+///   ([isoTimeOfDay]). The app passes the clock its time picker uses: 24-hour
+///   when the device is set to it, else the app language's 12- or 24-hour
+///   form.
 ///   The caller's [Program.arrivalMinute] is never written: the set list is
 ///   made for other people (#2350).
 /// - [authorNamesFor] resolves a slot's `danceId` to its already-resolved

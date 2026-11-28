@@ -4,6 +4,8 @@ import 'package:compendium_app/src/data/backup_io.dart';
 import 'package:compendium_app/src/data/backup_reminder.dart';
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/diagnostics/crash_log_io.dart';
+import 'package:compendium_app/src/export/share_file.dart'
+    show kShareStagingFolderName;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
@@ -73,6 +75,24 @@ void main() {
         },
       );
     }
+  });
+
+  test('a phone backup is staged in the staging folder, and the file '
+      'staged before it is deleted', () async {
+    status = ShareResultStatus.success;
+    final staging = Directory('${temp.path}/$kShareStagingFolderName')
+      ..createSync();
+    final older = File('${staging.path}/programs.csv')..writeAsStringSync('x');
+    final shared = <String>[];
+    shareFilesViaSheet = (params) async {
+      shared.addAll(params.files!.map((f) => f.path));
+      return ShareResult('', status);
+    };
+
+    expect(await saveBackupToFile('{}', 'b.json'), isTrue);
+
+    expect(older.existsSync(), isFalse);
+    expect(shared, ['${staging.path}/b.json']);
   });
 
   test('a dismissed share sheet does not stamp last_backup_at', () async {

@@ -1174,7 +1174,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           ),
         if (dateLabel != null) _summaryRow(Icons.event_outlined, dateLabel),
         // The times line under the date (#2350); shown with no date too.
-        if (programTimesSummary(program, l10n) case final times?)
+        if (programTimesSummary(
+              program,
+              l10n,
+              use24Hour: use24HourClockOf(context),
+            )
+            case final times?)
           KeyedSubtree(
             key: const ValueKey('program-summary-times'),
             child: _summaryRow(Icons.schedule_outlined, times),

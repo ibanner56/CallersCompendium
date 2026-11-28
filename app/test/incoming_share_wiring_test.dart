@@ -903,6 +903,7 @@ void main() {
     // the network.
     late List<String> fetched;
     setUp(() => fetched = []);
+    setUp(readDanceLinksInPlace);
 
     Future<(AppData, _FakeIncomingFileChannel)> pumpWithLink(
       WidgetTester tester, {

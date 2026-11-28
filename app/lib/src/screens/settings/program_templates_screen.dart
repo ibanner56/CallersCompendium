@@ -1321,6 +1321,30 @@ class _ProgramTemplateSlotsEditorState
                     ? _ruleSubtitle(l10n, entry.savedSearchId!)
                     : null;
                 final badge = l10n.programTemplateSlotRuleBadge;
+                final title = entry.danceId == null
+                    // A break reads as its label; the entry keeps the
+                    // stored token.
+                    ? templateEntryDisplayText(l10n, entry.text) ?? ''
+                    : widget.danceTitles[entry.danceId] ??
+                          l10n.settingsDefaultsStartingProgramUnavailableDance;
+                // What the row's buttons and a move's announcement call the
+                // slot, so a screen reader can tell one row's buttons from
+                // the next (pre-release audit finding D1a-06).
+                final name = title.isNotEmpty ? title : ruleSubtitle ?? badge;
+                void move(int to) {
+                  setState(() {
+                    final key = _entryKeys.removeAt(index);
+                    _entryKeys.insert(to, key);
+                  });
+                  widget.onReorder(index, to);
+                  announceMoved(
+                    context,
+                    name: name,
+                    position: to + 1,
+                    count: widget.entries.length,
+                  );
+                }
+
                 return ListTile(
                   key: ValueKey(
                     'program-template-slot-${identityHashCode(_entryKeys[index])}',
@@ -1337,14 +1361,7 @@ class _ProgramTemplateSlotsEditorState
                           semanticLabel: ruleSubtitle == badge ? null : badge,
                         )
                       : null,
-                  title: Text(
-                    entry.danceId == null
-                        // A break reads as its label; the entry keeps the
-                        // stored token.
-                        ? templateEntryDisplayText(l10n, entry.text) ?? ''
-                        : widget.danceTitles[entry.danceId] ??
-                              l10n.settingsDefaultsStartingProgramUnavailableDance,
-                  ),
+                  title: Text(title),
                   subtitle: ruleSubtitle != null
                       ? Text(
                           ruleSubtitle,
@@ -1370,38 +1387,20 @@ class _ProgramTemplateSlotsEditorState
                       if (entry.isRule && widget.onEditRule != null)
                         IconButton(
                           key: ValueKey('program-template-rule-edit-$index'),
-                          tooltip: l10n.commonEdit,
+                          tooltip: l10n.programTemplateSlotEditTooltip(name),
                           icon: const Icon(Icons.edit_outlined),
                           onPressed: () => widget.onEditRule!(index),
                         ),
-                      IconButton(
-                        tooltip: l10n.settingsDefaultsStartingProgramMoveUp,
-                        icon: const Icon(Icons.arrow_upward),
-                        onPressed: index == 0
+                      ReorderMoveButtons(
+                        keyPrefix: 'program-template-slot-$index',
+                        name: name,
+                        onMoveUp: index == 0 ? null : () => move(index - 1),
+                        onMoveDown: index == widget.entries.length - 1
                             ? null
-                            : () {
-                                setState(() {
-                                  final key = _entryKeys.removeAt(index);
-                                  _entryKeys.insert(index - 1, key);
-                                });
-                                widget.onReorder(index, index - 1);
-                              },
+                            : () => move(index + 1),
                       ),
                       IconButton(
-                        tooltip: l10n.settingsDefaultsStartingProgramMoveDown,
-                        icon: const Icon(Icons.arrow_downward),
-                        onPressed: index == widget.entries.length - 1
-                            ? null
-                            : () {
-                                setState(() {
-                                  final key = _entryKeys.removeAt(index);
-                                  _entryKeys.insert(index + 1, key);
-                                });
-                                widget.onReorder(index, index + 1);
-                              },
-                      ),
-                      IconButton(
-                        tooltip: l10n.commonDelete,
+                        tooltip: l10n.programTemplateSlotDeleteTooltip(name),
                         icon: const Icon(Icons.delete_outline),
                         onPressed: () {
                           setState(() => _entryKeys.removeAt(index));

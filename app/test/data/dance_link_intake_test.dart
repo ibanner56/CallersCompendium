@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/archive_intake_service.dart';
 import 'package:compendium_app/src/data/dance_link_intake.dart';
@@ -5,6 +7,19 @@ import 'package:compendium_app/src/export/dance_code.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/dance_links.dart';
+
+/// Set on whichever isolate runs [_RecordingIntake.validateBytes]. A worker
+/// isolate has its own copy of every top-level variable, so the test's copy
+/// stays false when the work ran elsewhere.
+bool _validatedOnThisIsolate = false;
+
+class _RecordingIntake extends ArchiveIntakeService {
+  @override
+  Future<ArchiveIntakeValidation> validateBytes(Uint8List bytes) {
+    _validatedOnThisIsolate = true;
+    return super.validateBytes(bytes);
+  }
+}
 
 Future<DanceLinkFailure?> _refusalOf(String link) async {
   try {
@@ -38,6 +53,40 @@ void main() {
       expect(validation.isRejected, isFalse);
       expect(validation.json, danceLinkBundleJson());
       expect(validation.archive!.dances.single.title, danceLinkTitle);
+    });
+
+    // A link of a few hundred characters can inflate to 512 KiB of tiny JSON
+    // values, which took about a second to validate: on the UI isolate, the
+    // interface would not respond for that long.
+    test('the link is read and checked off the calling isolate', () async {
+      _validatedOnThisIsolate = false;
+      final validation = await validateDanceLink(
+        goodDanceLink(),
+        intake: _RecordingIntake(),
+      );
+      expect(validation.archive!.dances.single.title, danceLinkTitle);
+      expect(_validatedOnThisIsolate, isFalse);
+    });
+
+    test('a refusal on the worker reaches the caller as its typed failure', () {
+      expect(
+        validateDanceLink(truncatedDanceLink()),
+        throwsA(
+          isA<DanceLinkException>().having(
+            (e) => e.failure,
+            'failure',
+            DanceLinkFailure.notAJsonObject,
+          ),
+        ),
+      );
+    });
+
+    test('a worker that cannot run or reply reads as a damaged link, '
+        'not an untyped error', () async {
+      danceLinkWorkRunner = (_) async => throw StateError('no worker');
+      addTearDown(() => danceLinkWorkRunner = runDanceLinkWorkOnWorker);
+      final validation = await validateDanceLink(goodDanceLink());
+      expect(validation.reason, ArchiveIntakeRejectionReason.unreadable);
     });
 
     test('surrounding whitespace is ignored', () async {

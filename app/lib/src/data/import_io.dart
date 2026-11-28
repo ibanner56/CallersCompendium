@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
 import 'file_dialog_labels.dart';
+import 'picker_copy.dart';
 import 'picker_extensions.dart';
 import 'usr_archive_isolate.dart';
 
@@ -208,7 +209,7 @@ typedef ImportPicker = Future<String?> Function();
 Future<String?> pickImportFile() async {
   final file = await openFile(acceptedTypeGroups: [importJsonTypeGroup()]);
   if (file == null) return null;
-  return readImportTextCapped(file);
+  return readPickedFile(file, readImportTextCapped);
 }
 
 /// A file chosen in the import dialog: its [name] (as the picker reports it)
@@ -264,14 +265,17 @@ Future<PickedImportFile?> pickImportAnyFile() async {
   );
   if (file == null) return null;
   final kind = importSourceKindForFileName(file.name);
-  final bytes = await readImportBytesCapped(
+  final bytes = await readPickedFile(
     file,
-    maxBytes: switch (kind) {
-      ImportSourceKind.callersCompanionUsr => kMaxImportUsrBytes,
-      ImportSourceKind.csv ||
-      ImportSourceKind.textDocument => kMaxCsvImportBytes,
-      _ => kMaxImportFileBytes,
-    },
+    (file) => readImportBytesCapped(
+      file,
+      maxBytes: switch (kind) {
+        ImportSourceKind.callersCompanionUsr => kMaxImportUsrBytes,
+        ImportSourceKind.csv ||
+        ImportSourceKind.textDocument => kMaxCsvImportBytes,
+        _ => kMaxImportFileBytes,
+      },
+    ),
   );
   return PickedImportFile(name: file.name, bytes: bytes);
 }
@@ -298,7 +302,7 @@ typedef ImportBytePicker = Future<Uint8List?> Function();
 Future<Uint8List?> pickImportUsrFile() async {
   final file = await openFile(acceptedTypeGroups: [importUsrTypeGroup()]);
   if (file == null) return null;
-  return readImportUsrBytesCapped(file);
+  return readPickedFile(file, readImportUsrBytesCapped);
 }
 
 /// Default [ImportBytePicker] for a spreadsheet (#2329): opens the native
@@ -309,7 +313,10 @@ Future<Uint8List?> pickImportUsrFile() async {
 Future<Uint8List?> pickImportCsvFile() async {
   final file = await openFile(acceptedTypeGroups: [importCsvTypeGroup()]);
   if (file == null) return null;
-  return readImportBytesCapped(file, maxBytes: kMaxCsvImportBytes);
+  return readPickedFile(
+    file,
+    (file) => readImportBytesCapped(file, maxBytes: kMaxCsvImportBytes),
+  );
 }
 
 /// The file-type filter behind [pickImportCsvFile]. Its label is the format
@@ -331,7 +338,10 @@ Future<Uint8List?> pickImportTextDocumentFile() async {
     acceptedTypeGroups: [importTextDocumentTypeGroup()],
   );
   if (file == null) return null;
-  return readImportBytesCapped(file, maxBytes: kMaxCsvImportBytes);
+  return readPickedFile(
+    file,
+    (file) => readImportBytesCapped(file, maxBytes: kMaxCsvImportBytes),
+  );
 }
 
 /// The file-type filter behind [pickImportTextDocumentFile]: `.txt` and
@@ -560,7 +570,15 @@ const int importMaxRedirects = 5;
 /// - `localhost`, `*.localhost`, and `*.local` hostnames are rejected.
 /// - A value that parses as an IP literal is rejected when it falls in a
 ///   loopback / private / link-local / CGNAT / reserved / multicast range
-///   (IPv4 and IPv6, including IPv4-mapped IPv6).
+///   (IPv4 and IPv6, including IPv4-mapped and IPv4-compatible IPv6).
+/// - A value made only of numbers between dots, other than a dotted quad, is
+///   rejected whatever address it names. The system resolver reads such a
+///   host as an IPv4 address (`2130706433`, `0x7f.0.0.1`, `0177.0.0.1` and
+///   `127.1` are all 127.0.0.1), but [InternetAddress.tryParse] does not, so
+///   it cannot be checked against the ranges above; no real host is written
+///   that way.
+/// - A value with a `:` that does not parse (an IPv6 literal with a zone, such
+///   as `fe80::1%25eth0`) is rejected: no DNS hostname contains one.
 /// - Any other value (a real DNS hostname) is **allowed**. Per #332,
 ///   DNS-resolution-time IP checking (to defeat DNS rebinding) is an explicit
 ///   non-goal here; a hostname is trusted to resolve to a public address.
@@ -583,9 +601,30 @@ bool isBlockedImportHost(String host) {
     return true;
   }
   final addr = InternetAddress.tryParse(h);
+  if (addr != null) return _isBlockedIp(addr);
+  // Not an address Dart reads, but one the system resolver may: see above.
+  if (h.contains(':') || _isNumericHost(h)) return true;
   // A DNS hostname (not an IP literal) — allow; see the dartdoc non-goal note.
-  if (addr == null) return false;
-  return _isBlockedIp(addr);
+  return false;
+}
+
+/// Whether every dot-separated part of [host] (lower case, trailing dots
+/// removed) is a number as `inet_aton` reads one: decimal digits, or `0x`
+/// and hex digits. A leading `0` (octal) is digits too.
+bool _isNumericHost(String host) {
+  for (final part in host.split('.')) {
+    if (part.isEmpty) return false;
+    final hex = part.startsWith('0x');
+    final digits = hex ? part.substring(2) : part;
+    for (var i = 0; i < digits.length; i++) {
+      final c = digits.codeUnitAt(i);
+      final isDigit = c >= 0x30 && c <= 0x39;
+      final isHexLetter = c >= 0x61 && c <= 0x66;
+      if (!isDigit && !(hex && isHexLetter)) return false;
+    }
+    if (!hex && digits.isEmpty) return false;
+  }
+  return true;
 }
 
 /// Classifies a parsed IP literal as reserved (blocked) or public (allowed).
@@ -599,17 +638,16 @@ bool _isBlockedIp(InternetAddress addr) {
   if (_isIpv4MappedIpv6(bytes)) {
     return _isBlockedIpv4(bytes.sublist(12));
   }
-  // :: (unspecified).
-  if (bytes.every((b) => b == 0)) return true;
-  // ::1 (loopback).
-  var loopback = true;
-  for (var i = 0; i < 15; i++) {
+  // ::/96: :: (unspecified), ::1 (loopback), and the deprecated
+  // IPv4-compatible form (::127.0.0.1), which no public host uses.
+  var ipv4Compatible = true;
+  for (var i = 0; i < 12; i++) {
     if (bytes[i] != 0) {
-      loopback = false;
+      ipv4Compatible = false;
       break;
     }
   }
-  if (loopback && bytes[15] == 1) return true;
+  if (ipv4Compatible) return true;
   final first = bytes[0];
   // fc00::/7 (unique local address).
   if ((first & 0xFE) == 0xFC) return true;
