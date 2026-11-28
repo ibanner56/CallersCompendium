@@ -18,6 +18,7 @@ import 'dialect_library_controller.dart';
 import '../update/update_config.dart' show kUpdateRetirementNoticeKey;
 import 'settings_keys.dart'
     show
+        kNoBackupMarkerWrittenKey,
         kSyncDeviceIdKey,
         kSyncEnabledKey,
         kSyncEndpointKey,
@@ -149,6 +150,9 @@ const String kNormalisationDerivedIndexRepairDoneKey =
 ///   consent on another, so a restore must leave sync off (spec §6.1):
 ///   [kSyncEnabledKey], [kSyncEndpointKey], [kSyncWifiOnlyKey],
 ///   [kSyncExcludeImportsKey], [kSyncLastSuccessAtKey].
+/// - **the device-backup marker flag** ([kNoBackupMarkerWrittenKey]) — says
+///   this library has started beside this installation's no-backup marker,
+///   which is false of the installation a backup file is restored on.
 /// - **the calendar feed address** ([kCalendarFeedUrlKey], #2352) — a private
 ///   calendar's secret address embeds an access token, so it is kept out of
 ///   backup files (maintainer decision, issue draft review, 2026-11-22). After
@@ -196,6 +200,7 @@ const Set<String> kBackupSettingsDenylist = {
   kSyncWifiOnlyKey,
   kSyncExcludeImportsKey,
   kSyncLastSuccessAtKey,
+  kNoBackupMarkerWrittenKey,
 };
 
 /// Key *prefixes* excluded from backups. Some settings-table keys are dynamic
