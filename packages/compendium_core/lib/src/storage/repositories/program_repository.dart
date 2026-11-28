@@ -1392,9 +1392,9 @@ class ProgramRepository {
   }
 
   /// The ids of the live (not soft-deleted) programs that are archived.
-  /// Reads only the two columns it filters on, for a caller that lists
-  /// programs through [listIdsAndTitles] and marks the archived ones, as the
-  /// command palette does.
+  /// Selects only `id`, filtering on `deleted_at` and `archived_at`, for a
+  /// caller that lists programs through [listIdsAndTitles] and marks the
+  /// archived ones, as the command palette does.
   Future<Set<String>> archivedIds() async {
     final query = _db.selectOnly(_db.programs)
       ..addColumns([_db.programs.id])
