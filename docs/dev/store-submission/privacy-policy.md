@@ -15,7 +15,7 @@
 
 ## Privacy Policy for Caller's Compendium
 
-**Effective date:** November 27, 2026 · **Last updated:** November 27, 2026
+**Effective date:** November 28, 2026 · **Last updated:** November 28, 2026
 
 Caller's Compendium ("the app") is a free, open-source, local-first application
 for dance callers, developed by Isaac Banner ("we," "us"). This policy explains
@@ -149,7 +149,11 @@ internet, it does so only in the cases and for the purposes described below:
   also read it once each time the app starts, but this is **off by default** and
   only runs if you turn it on in Settings. Either way the app requests only that
   calendar from the service that hosts it, sends it nothing about you or your
-  data, and does not send the address to us.
+  data, and does not send the address to us. A program imported from your
+  calendar keeps a scrambled stamp of the calendar's address, never the address
+  itself, so the app can tell which calendar it came from; the stamp travels
+  with the program to your other devices through Device Sync and is kept in your
+  backups.
 - **Optional Device Sync.** When you enable it, the app contacts the configured
   sync service to synchronize selected shareable content for app functionality.
 
