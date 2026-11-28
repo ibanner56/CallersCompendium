@@ -25,9 +25,15 @@ String programTimeFieldLabel(AppLocalizations l10n, ProgramTimeField field) =>
 /// ([programDanceTimes]), including "(next day)".
 ///
 /// Unlike the set-list text and PDF, this includes Arrive by: the summary is
-/// the caller's own screen.
-String? programTimesSummary(Program program, AppLocalizations l10n) {
-  String format(int minute) => formatTimeOfDay(minute, l10n);
+/// the caller's own screen. [use24Hour] is the device's clock
+/// ([formatTimeOfDay]).
+String? programTimesSummary(
+  Program program,
+  AppLocalizations l10n, {
+  required bool use24Hour,
+}) {
+  String format(int minute) =>
+      formatTimeOfDay(minute, l10n, use24Hour: use24Hour);
   final dance = programDanceTimes(
     program,
     formatTime: format,

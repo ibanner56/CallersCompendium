@@ -2536,12 +2536,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsStartingProgramNoteLabel => 'caller のメモ（任意）';
 
   @override
-  String get settingsDefaultsStartingProgramMoveUp => '上へ移動';
-
-  @override
-  String get settingsDefaultsStartingProgramMoveDown => '下へ移動';
-
-  @override
   String get settingsDefaultsStartingProgramUnavailableDance =>
       'このダンスは利用できなくなりました';
 
@@ -14878,6 +14872,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleBadge => 'スロットのルール';
+
+  @override
+  String programTemplateSlotEditTooltip(String name) {
+    return '$nameを編集';
+  }
+
+  @override
+  String programTemplateSlotDeleteTooltip(String name) {
+    return '$nameを削除';
+  }
 
   @override
   String programTemplateSlotRuleSubtitle(String name) {

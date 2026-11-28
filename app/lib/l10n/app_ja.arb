@@ -2612,14 +2612,6 @@
   "@settingsDefaultsStartingProgramNoteLabel": {
     "x-sourceSha256": "72124dc9dd25c16e0c8da9a2e6c5c2866e09fd6de4519906f4193cb4bfe2e013"
   },
-  "settingsDefaultsStartingProgramMoveUp": "上へ移動",
-  "@settingsDefaultsStartingProgramMoveUp": {
-    "x-sourceSha256": "c66feb5eb8f217c76bfb0f1b41e3ee73ab41cb9959fae8284911bd3ad3816086"
-  },
-  "settingsDefaultsStartingProgramMoveDown": "下へ移動",
-  "@settingsDefaultsStartingProgramMoveDown": {
-    "x-sourceSha256": "40bb50da160cdc21d6029a927b68f92b07fd450688e609826cbc70d202db96da"
-  },
   "settingsDefaultsStartingProgramUnavailableDance": "このダンスは利用できなくなりました",
   "@settingsDefaultsStartingProgramUnavailableDance": {
     "x-sourceSha256": "0a7b13854c4e1a687cedd04599934273238c5f9a799fc1749fa1f709495c64f8"
@@ -14717,6 +14709,14 @@
   "programTemplateSlotRuleBadge": "スロットのルール",
   "@programTemplateSlotRuleBadge": {
     "x-sourceSha256": "d3c802c982976b306a8676af4f5bc4811ecfbe9275f29e1ec1bab7a826d2f751"
+  },
+  "programTemplateSlotEditTooltip": "{name}を編集",
+  "@programTemplateSlotEditTooltip": {
+    "x-sourceSha256": "2313fe21ea84567f451e913cae39bd4ef9775a83458b23f3f440c2108e5363a1"
+  },
+  "programTemplateSlotDeleteTooltip": "{name}を削除",
+  "@programTemplateSlotDeleteTooltip": {
+    "x-sourceSha256": "3cf8146e529f1e4296d40d7ea32ffc63bc2647d416851ed43921bfedf3097cb3"
   },
   "programTemplateSlotRuleSubtitle": "保存した検索「{name}」から埋めます",
   "@programTemplateSlotRuleSubtitle": {

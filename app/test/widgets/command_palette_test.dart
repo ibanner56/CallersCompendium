@@ -252,6 +252,40 @@ void main() {
     },
   );
 
+  testWidgets('an archived program is marked Archived, on screen and to a '
+      'screen reader; a live one with the same title is not', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program('old', 'Friday Contra'));
+    await repos.programs.create(_program('new', 'Friday Contra'));
+    expect(
+      await repos.programs.archive('old', at: DateTime.utc(2026, 2, 1)),
+      isTrue,
+    );
+    final handle = tester.ensureSemantics();
+    await _openPalette(tester, repos);
+
+    Finder subtitleOf(String id) => find.descendant(
+      of: find.byKey(ValueKey('command-result-program-$id')),
+      matching: find.text('Program · Archived'),
+    );
+    // Still listed (decision 4 on #2218), and told apart from the live copy.
+    expect(subtitleOf('old'), findsOneWidget);
+    expect(subtitleOf('new'), findsNothing);
+    expect(
+      tester.getSemantics(
+        find.byKey(const ValueKey('command-result-program-old')),
+      ),
+      isSemantics(label: 'Friday Contra\nProgram · Archived'),
+    );
+    expect(
+      tester.getSemantics(
+        find.byKey(const ValueKey('command-result-program-new')),
+      ),
+      isSemantics(label: 'Friday Contra\nProgram'),
+    );
+    handle.dispose();
+  });
+
   group('assistive technology', () {
     // Arrow-key movement keeps focus in the text field, so a screen reader
     // never hears which row Enter will open unless the palette says so;
