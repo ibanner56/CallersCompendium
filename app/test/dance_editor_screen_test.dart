@@ -2661,6 +2661,55 @@ void main() {
       return repos;
     }
 
+    // The maintainer's ruling, 2026-11-28: any edit that changes bar timing
+    // keeps the figures' bars, with the notice and its one-step Undo.
+    testWidgets('Twice on a phrase in other beats to the bar keeps the '
+        'figures\' bars, and the notice\'s Undo takes it back', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd2',
+          title: 'Mixed Dance',
+          form: DanceForm.ecd,
+          phraseStructure: 'A:1*4*3 + B:1*8*2',
+          formation: const Formation(FormationShape.dupleMinor),
+          figures: [
+            testFigure(move: 'ecd_circle', params: {'beats': 12}),
+            testFigure(move: 'ecd_circle', params: {'beats': 8}),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd2');
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('named-phrase-0-plays')),
+      );
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('named-phrase-0-plays')),
+          matching: find.text('Twice'),
+        ),
+      );
+      await tester.pump();
+      expect(
+        find.text('Figure counts changed so each figure keeps its bars.'),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.byKey(const ValueKey('meter-bars-notice-undo')));
+      await tester.pumpAndSettle();
+      final saved = await _saveAndRead(tester, repos, 'd2');
+      expect(saved.phraseStructure.raw, 'A:1*4*3 + B:1*8*2');
+      expect(
+        [
+          for (final f in (saved.figuresSource as DecodedFigures).figures)
+            f.beats,
+        ],
+        [12, 8],
+      );
+    });
+
     testWidgets('an English dance times its figures in bars of its meter, '
         'and follows the meter as it is edited', (tester) async {
       final repos = openTestRepositories();
