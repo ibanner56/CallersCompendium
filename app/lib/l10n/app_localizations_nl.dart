@@ -121,6 +121,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get appBootstrapReleasesLink => 'Releases-pagina openen';
 
   @override
+  String get appBootstrapBugReportLink => 'Fout melden';
+
+  @override
+  String appBootstrapEmailLink(String address) {
+    return 'E-mail sturen naar $address';
+  }
+
+  @override
   String migrationDowngradeVersions(int fileVersion, int appVersion) {
     final intl.NumberFormat fileVersionNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -4107,7 +4115,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Dit onderdeel van de app heeft een onverwachte fout gehad. De details zijn bewaard in een lokaal diagnoselog (Instellingen ▸ Diagnostics) dat je apparaat nooit verlaat. Ga terug en probeer het opnieuw.';
+      'Dit onderdeel van de app heeft een onverwachte fout gehad. De details zijn bewaard in een lokaal diagnoselog (Instellingen ▸ Diagnostics) dat de app nergens naartoe stuurt. Ga terug en probeer het opnieuw.';
 
   @override
   String get crashFallbackCopied => 'Gekopieerd';
@@ -8829,6 +8837,19 @@ class AppLocalizationsNl extends AppLocalizations {
           'Bij $count daarvan worden ook de titel en auteur uit het bestand overgenomen.',
       one:
           'Bij 1 daarvan worden ook de titel en auteur uit het bestand overgenomen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportRemovesWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count daarvan krijgen een andere dansvorm en verliezen de Barnes-verwijzing of de markering Begint improper, zoals de rijen aangeven.',
+      one:
+          '1 daarvan krijgt een andere dansvorm en verliest de Barnes-verwijzing of de markering Begint improper, zoals de rij aangeeft.',
     );
     return '$_temp0';
   }
@@ -15618,13 +15639,23 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programTemplateSlotRuleBadge => 'Slotregel';
 
   @override
-  String programTemplateSlotEditTooltip(String name) {
-    return '$name bewerken';
+  String programTemplateSlotEditTooltip(int position, String name) {
+    return 'Slot $position, $name: bewerken';
   }
 
   @override
-  String programTemplateSlotDeleteTooltip(String name) {
-    return '$name verwijderen';
+  String programTemplateSlotDeleteTooltip(int position, String name) {
+    return 'Slot $position, $name: verwijderen';
+  }
+
+  @override
+  String programTemplateSlotMoveUpTooltip(int position, String name) {
+    return 'Slot $position, $name: omhoog verplaatsen';
+  }
+
+  @override
+  String programTemplateSlotMoveDownTooltip(int position, String name) {
+    return 'Slot $position, $name: omlaag verplaatsen';
   }
 
   @override

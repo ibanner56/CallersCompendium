@@ -21,8 +21,9 @@ create, and nothing you do is sent anywhere for tracking. Importing and
 exporting are the doors your dances walk through — the ways you bring
 material in from the wider community and carry your own library from one machine
 to the next. Nothing leaves your device unless you ask for it (an online search
-or a single dance import reaches out once, when you tell it to), and nothing
-changes your collection until you say so. Turning on an automatic option —
+or a single dance import reaches out once, when you tell it to), apart from
+[your device's own backup](./backup-portability.md#your-devices-own-backup), and
+nothing changes your collection until you say so. Turning on an automatic option —
 the [update check](./settings.md#updates), or the
 [calendar import at startup](./settings.md#calendar) set to add drafts — is
 saying so: it runs only once you switch it on.
@@ -1210,8 +1211,10 @@ no author, yours are kept. Its rating, tags, notes, links and status still
 never change.
 
 Before you commit, a note above the **Import** button says how many existing
-dances a re-import will update, and how many of those will also take the
-file's title and credit.
+dances a re-import will update, how many of those will also take the file's
+title and credit, and how many will lose their Barnes reference or **Starts
+improper** mark because the incoming figures make an English dance another
+form. Each such row says which of them it loses.
 
 A shared file carries the tags, custom fields and published sources its dances
 use. Those that only a re-imported or skipped dance needed are not added to
@@ -1288,8 +1291,10 @@ since only an English dance has them. Everything else is kept: your title,
 notes, rating, tags, links, custom fields, authors, citations, and other saved
 metadata. The import
 review's **Re-import onto** replaces the same parts, and removes the same two
-from an English dance it makes contra, but its note above **Import** says only
-that a dance's form can change, not what that removes. Its **Same dance — replace** choices
+from an English dance it makes contra: a row set to **Re-import onto** says
+when the dance's form changes and names what that removes, and the note above
+**Import** counts the dances that lose their Barnes reference or **Starts
+improper** mark. Its **Same dance — replace** choices
 are different: they replace the dance's content (see
 [Avoiding duplicates](#avoiding-duplicates)).
 

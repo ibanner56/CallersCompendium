@@ -132,6 +132,14 @@
   "@appBootstrapReleasesLink": {
     "x-sourceSha256": "aa932a0163205c8c118c750181bfdc29c51c68f28a545e66dfdf06cb25ce9fb9"
   },
+  "appBootstrapBugReportLink": "Rapportér en fejl",
+  "@appBootstrapBugReportLink": {
+    "x-sourceSha256": "f75e0bd8ff2369251bc8767de55dd8c0bcb3efd1dbc34041bfca4058f9edf0ef"
+  },
+  "appBootstrapEmailLink": "Send e-mail til {address}",
+  "@appBootstrapEmailLink": {
+    "x-sourceSha256": "9e537fc54df73ab84fb572f70641a065b775dc49953e2538e1619efda013b3c4"
+  },
   "migrationDowngradeVersions": "Dine data bruger lagringsformat {fileVersion}. Denne version af appen kan læse op til format {appVersion}.",
   "@migrationDowngradeVersions": {
     "x-sourceSha256": "e98535aaca5822fdd932b29a528215a0c8cb34647f524f6818da24899f6b538a"
@@ -4100,9 +4108,9 @@
   "@crashFallbackTitle": {
     "x-sourceSha256": "8f57c66fd319b8791131188ba4d99ec2acfbfa4c163fa2619b636df3550dd244"
   },
-  "crashFallbackBody": "Denne del af appen stødte på en uventet fejl. Detaljerne blev gemt i en lokal diagnostiklog (Indstillinger ▸ Diagnostik), der aldrig forlader din enhed. Gå tilbage og prøv igen.",
+  "crashFallbackBody": "Denne del af appen stødte på en uventet fejl. Detaljerne blev gemt i en lokal diagnostiklog (Indstillinger ▸ Diagnostik), som appen aldrig sender nogen steder hen. Gå tilbage og prøv igen.",
   "@crashFallbackBody": {
-    "x-sourceSha256": "cd6f68c73b3c2787820f5718ad32da5f46fb8cbc3a2118cabd52661160020182"
+    "x-sourceSha256": "3bed66f33c77d41cd2da4526321ed13f64a936c5f8e7bfc22ef01ecfc92b0d90"
   },
   "crashFallbackCopied": "Kopieret",
   "@crashFallbackCopied": {
@@ -8581,6 +8589,10 @@
   "importReviewReimportTitleWarning": "{count, plural, =1{1 af dem overtager også filens titel og forfatter.} other{{count} af dem overtager også filens titel og forfatter.}}",
   "@importReviewReimportTitleWarning": {
     "x-sourceSha256": "f1695458fa6aac28fb41eb780c35447bbbab515fceffe9ce59dd8866c14c0e4f"
+  },
+  "importReviewReimportRemovesWarning": "{count, plural, =1{1 af dem får en anden danseform og mister sin Barnes-henvisning eller markering Starter improper, som dens række viser.} other{{count} af dem får en anden danseform og mister deres Barnes-henvisning eller markering Starter improper, som deres rækker viser.}}",
+  "@importReviewReimportRemovesWarning": {
+    "x-sourceSha256": "3bd6dcb210e55143abec4c67880a29c51fee28c9fdfc2439acb1240a90e0dcd8"
   },
   "importReviewWarningPrefix": "Advarsel: {message}",
   "@importReviewWarningPrefix": {
@@ -14742,13 +14754,21 @@
   "@programTemplateSlotRuleBadge": {
     "x-sourceSha256": "d3c802c982976b306a8676af4f5bc4811ecfbe9275f29e1ec1bab7a826d2f751"
   },
-  "programTemplateSlotEditTooltip": "Rediger {name}",
+  "programTemplateSlotEditTooltip": "Slot {position}, {name}: rediger",
   "@programTemplateSlotEditTooltip": {
-    "x-sourceSha256": "2313fe21ea84567f451e913cae39bd4ef9775a83458b23f3f440c2108e5363a1"
+    "x-sourceSha256": "75f7f529ed01f6c425886734edaa138df2b4d14a3b3ef367ab998db0a64d3125"
   },
-  "programTemplateSlotDeleteTooltip": "Slet {name}",
+  "programTemplateSlotDeleteTooltip": "Slot {position}, {name}: slet",
   "@programTemplateSlotDeleteTooltip": {
-    "x-sourceSha256": "3cf8146e529f1e4296d40d7ea32ffc63bc2647d416851ed43921bfedf3097cb3"
+    "x-sourceSha256": "482bf3c757428bc1b69a88488f99a26289afd806b32323131d13706dfa08f2bb"
+  },
+  "programTemplateSlotMoveUpTooltip": "Slot {position}, {name}: flyt op",
+  "@programTemplateSlotMoveUpTooltip": {
+    "x-sourceSha256": "67c4d607d116067555823f4eeaf1a94bec08604c446685b41f51713c037cef14"
+  },
+  "programTemplateSlotMoveDownTooltip": "Slot {position}, {name}: flyt ned",
+  "@programTemplateSlotMoveDownTooltip": {
+    "x-sourceSha256": "c8689033ba4b637fc72f839aeaec1a6061f91f3e7b4bffcd0e1a01bb0fafcd85"
   },
   "programTemplateSlotRuleSubtitle": "Udfyldes fra den gemte søgning \"{name}\"",
   "@programTemplateSlotRuleSubtitle": {

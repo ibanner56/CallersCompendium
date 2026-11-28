@@ -1003,7 +1003,9 @@ another where there is not.
   **Barnes books**, and its Perform card as *Barnes: BIII p. 92*. It shows as you
   typed it, as the title does, everywhere, printed and shared cards included:
   **Auto-convert all discouraged terms** leaves it alone, so a tune named in
-  it, such as *Ladies of London*, keeps its name.
+  it, such as *Ladies of London*, keeps its name. Unlike the title, it is a
+  plain field: the editor does not strike discouraged words in it as you
+  type.
 
 ### Notes
 
@@ -1142,8 +1144,10 @@ last saved version.
 
 The draft is written about half a second after you stop typing, and at once
 when you switch away from the app on a phone or tablet, or close it on a
-computer, so even the last few keystrokes are kept. Drafts stay on your device; they are never uploaded, shared,
-or included in exports.
+computer, so even the last few keystrokes are kept. Drafts stay on your device:
+the app never uploads or shares them or puts them in an export, though your
+[device's own backup](./backup-portability.md#your-devices-own-backup) can copy
+them with the rest of the app's data.
 
 If the app cannot write the draft — the device is out of storage space, for
 example — a small cloud-with-a-slash icon appears in the top bar of the dance

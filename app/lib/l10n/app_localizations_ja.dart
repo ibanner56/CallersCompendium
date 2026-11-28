@@ -114,6 +114,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appBootstrapReleasesLink => 'Releases ページを開く';
 
   @override
+  String get appBootstrapBugReportLink => '不具合を報告';
+
+  @override
+  String appBootstrapEmailLink(String address) {
+    return '$address にメールする';
+  }
+
+  @override
   String migrationDowngradeVersions(int fileVersion, int appVersion) {
     final intl.NumberFormat fileVersionNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -3876,7 +3884,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'アプリのこの部分で予期しないエラーが発生しました。詳細はデバイスの外に出ないローカル診断ログ（設定 ▸ 診断）に保存されました。前の画面に戻って、もう一度お試しください。';
+      'アプリのこの部分で予期しないエラーが発生しました。詳細は、アプリがどこにも送信しないローカル診断ログ（設定 ▸ 診断）に保存されました。前の画面に戻って、もう一度お試しください。';
 
   @override
   String get crashFallbackCopied => 'コピーしました';
@@ -8417,6 +8425,17 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: 'そのうち$count件はファイルのタイトルと作者も反映します。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportRemovesWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'そのうち$count件はダンスの形式が変わり、Barnes 掲載箇所または「インプロパーで始まる」の印が削除されます（各行に表示）。',
     );
     return '$_temp0';
   }
@@ -14898,13 +14917,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programTemplateSlotRuleBadge => 'スロットのルール';
 
   @override
-  String programTemplateSlotEditTooltip(String name) {
-    return '$nameを編集';
+  String programTemplateSlotEditTooltip(int position, String name) {
+    return 'スロット$position、$name：編集';
   }
 
   @override
-  String programTemplateSlotDeleteTooltip(String name) {
-    return '$nameを削除';
+  String programTemplateSlotDeleteTooltip(int position, String name) {
+    return 'スロット$position、$name：削除';
+  }
+
+  @override
+  String programTemplateSlotMoveUpTooltip(int position, String name) {
+    return 'スロット$position、$name：上に移動';
+  }
+
+  @override
+  String programTemplateSlotMoveDownTooltip(int position, String name) {
+    return 'スロット$position、$name：下に移動';
   }
 
   @override

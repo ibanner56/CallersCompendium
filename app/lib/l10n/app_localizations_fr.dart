@@ -123,6 +123,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ouvrir la page des versions (Releases)';
 
   @override
+  String get appBootstrapBugReportLink => 'Signaler un bug';
+
+  @override
+  String appBootstrapEmailLink(String address) {
+    return 'Écrire à $address';
+  }
+
+  @override
   String migrationDowngradeVersions(int fileVersion, int appVersion) {
     final intl.NumberFormat fileVersionNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -4139,7 +4147,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Cette partie de l’application a rencontré une erreur inattendue. Les détails ont été enregistrés dans un journal de diagnostic local (Réglages ▸ Diagnostics) qui ne quitte jamais votre appareil. Revenez en arrière et réessayez.';
+      'Cette partie de l’application a rencontré une erreur inattendue. Les détails ont été enregistrés dans un journal de diagnostic local (Réglages ▸ Diagnostics) que l’application n’envoie jamais nulle part. Revenez en arrière et réessayez.';
 
   @override
   String get crashFallbackCopied => 'Copié';
@@ -8880,6 +8888,19 @@ class AppLocalizationsFr extends AppLocalizations {
       other:
           '$count d’entre elles reprennent aussi le titre et l’auteur du fichier.',
       one: 'L’une d’elles reprend aussi le titre et l’auteur du fichier.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportRemovesWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count d’entre elles changent de forme de danse et perdent leur référence Barnes ou leur marque « Commence improper », comme l’indiquent leurs lignes.',
+      one:
+          'L’une d’elles change de forme de danse et perd sa référence Barnes ou sa marque « Commence improper », comme l’indique sa ligne.',
     );
     return '$_temp0';
   }
@@ -15699,13 +15720,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programTemplateSlotRuleBadge => 'Règle de créneau';
 
   @override
-  String programTemplateSlotEditTooltip(String name) {
-    return 'Modifier $name';
+  String programTemplateSlotEditTooltip(int position, String name) {
+    return 'Créneau $position, $name : modifier';
   }
 
   @override
-  String programTemplateSlotDeleteTooltip(String name) {
-    return 'Supprimer $name';
+  String programTemplateSlotDeleteTooltip(int position, String name) {
+    return 'Créneau $position, $name : supprimer';
+  }
+
+  @override
+  String programTemplateSlotMoveUpTooltip(int position, String name) {
+    return 'Créneau $position, $name : déplacer vers le haut';
+  }
+
+  @override
+  String programTemplateSlotMoveDownTooltip(int position, String name) {
+    return 'Créneau $position, $name : déplacer vers le bas';
   }
 
   @override

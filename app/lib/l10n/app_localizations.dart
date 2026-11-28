@@ -304,6 +304,18 @@ abstract class AppLocalizations {
   /// **'Open the Releases page'**
   String get appBootstrapReleasesLink;
 
+  /// Button on every startup error screen, under Copy details, that opens the project's Bug report form on GitHub in the browser, where the user can paste the copied details. Offered before the email link.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a bug'**
+  String get appBootstrapBugReportLink;
+
+  /// Button on every startup error screen, after Report a bug, that opens a new email to the project's address in the user's mail app, for someone who would rather not use GitHub. {address} is the email address itself and is never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Email {address}'**
+  String appBootstrapEmailLink(String address);
+
   /// Second line of the newer-data startup screen. {fileVersion} is the storage format version recorded in the user's data file, {appVersion} the highest storage format version this build can read; both are plain integers. Helps a bug report and tells the user how far behind the app is.
   ///
   /// In en, this message translates to:
@@ -6268,10 +6280,10 @@ abstract class AppLocalizations {
   /// **'Couldn\'t show this part of the app'**
   String get crashFallbackTitle;
 
-  /// Body text in the friendly crash fallback widget explaining that details were saved locally only.
+  /// Body text in the friendly crash fallback widget explaining that the details were saved to a log on this device that the app never sends anywhere. Not 'never leaves your device': the device's own backup (Android backup, iCloud) can copy the app's data, the log included.
   ///
   /// In en, this message translates to:
-  /// **'This part of the app hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device. Go back and try again.'**
+  /// **'This part of the app hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that the app never sends anywhere. Go back and try again.'**
   String get crashFallbackBody;
 
   /// Button label in the crash fallback widget after copying error details to the clipboard.
@@ -13029,6 +13041,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 of them also takes the file\'s title and credit.} other{{count} of them also take the file\'s title and credit.}}'**
   String importReviewReimportTitleWarning(int count);
+
+  /// Last sentence of the re-import warning above Import: how many of the dances being re-imported are English dances that the incoming figures make another form (such as contra), which removes their Barnes reference (where the tune is printed in the Barnes books; 'Barnes' is a name and stays as is) or their Starts improper mark (danceEditorImproperLabel). Each such row names which of the two it loses (danceReimportFormChangeNotice).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 of them becomes another dance form and loses its Barnes reference or Starts improper mark, as its row says.} other{{count} of them become another dance form and lose their Barnes reference or Starts improper mark, as their rows say.}}'**
+  String importReviewReimportRemovesWarning(int count);
 
   /// Screen-reader label that prefixes the overwrite-warning message with 'Warning:'.
   ///
@@ -22359,17 +22377,29 @@ abstract class AppLocalizations {
   /// **'Slot rule'**
   String get programTemplateSlotRuleBadge;
 
-  /// Tooltip and screen-reader label of the Edit button on a slot rule's row in the program template editor; {name} is the row's own label, so the buttons of one row can be told from the next (pre-release audit finding D1a-06).
+  /// Tooltip and screen-reader label of the Edit button on a slot rule's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, so two slot rules with the same label can be told apart (pre-release audit finding D1a-06; the maintainer's ruling, 2026-11-28).
   ///
   /// In en, this message translates to:
-  /// **'Edit {name}'**
-  String programTemplateSlotEditTooltip(String name);
+  /// **'Slot {position}, {name}: edit'**
+  String programTemplateSlotEditTooltip(int position, String name);
 
-  /// Tooltip and screen-reader label of the Delete button on a slot's row in the program template editor (a dance, note, break or slot rule); {name} is the row's own label, such as the dance's title, so the buttons of one row can be told from the next (pre-release audit finding D1a-06).
+  /// Tooltip and screen-reader label of the Delete button on a slot's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, as on its other buttons.
   ///
   /// In en, this message translates to:
-  /// **'Delete {name}'**
-  String programTemplateSlotDeleteTooltip(String name);
+  /// **'Slot {position}, {name}: delete'**
+  String programTemplateSlotDeleteTooltip(int position, String name);
+
+  /// Tooltip and screen-reader label of the Move up button on a slot's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, as on its other buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {position}, {name}: move up'**
+  String programTemplateSlotMoveUpTooltip(int position, String name);
+
+  /// Tooltip and screen-reader label of the Move down button on a slot's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, as on its other buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {position}, {name}: move down'**
+  String programTemplateSlotMoveDownTooltip(int position, String name);
 
   /// Subtitle of a slot rule in the program template editor: the saved search that says which dances it means (#2338).
   ///

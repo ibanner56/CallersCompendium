@@ -119,6 +119,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appBootstrapReleasesLink => 'Releases-Seite öffnen';
 
   @override
+  String get appBootstrapBugReportLink => 'Fehler melden';
+
+  @override
+  String appBootstrapEmailLink(String address) {
+    return 'E-Mail an $address senden';
+  }
+
+  @override
   String migrationDowngradeVersions(int fileVersion, int appVersion) {
     final intl.NumberFormat fileVersionNumberFormat =
         intl.NumberFormat.decimalPattern(localeName);
@@ -4116,7 +4124,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'In diesem Teil der App ist ein unerwarteter Fehler aufgetreten. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das dein Gerät nie verlässt. Geh zurück und versuche es erneut.';
+      'In diesem Teil der App ist ein unerwarteter Fehler aufgetreten. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das die App nirgendwohin sendet. Geh zurück und versuche es erneut.';
 
   @override
   String get crashFallbackCopied => 'Kopiert';
@@ -8856,6 +8864,19 @@ class AppLocalizationsDe extends AppLocalizations {
           'Bei $count davon werden auch Titel und Autorenangabe aus der Datei übernommen.',
       one:
           'Bei 1 davon werden auch Titel und Autorenangabe aus der Datei übernommen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewReimportRemovesWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count davon erhalten eine andere Tanzform und verlieren ihren Barnes-Verweis oder ihre Markierung „Beginnt improper“, wie ihre Zeilen angeben.',
+      one:
+          '1 davon erhält eine andere Tanzform und verliert seinen Barnes-Verweis oder seine Markierung „Beginnt improper“, wie seine Zeile angibt.',
     );
     return '$_temp0';
   }
@@ -15655,13 +15676,23 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programTemplateSlotRuleBadge => 'Slot-Regel';
 
   @override
-  String programTemplateSlotEditTooltip(String name) {
-    return '$name bearbeiten';
+  String programTemplateSlotEditTooltip(int position, String name) {
+    return 'Slot $position, $name: bearbeiten';
   }
 
   @override
-  String programTemplateSlotDeleteTooltip(String name) {
-    return '$name löschen';
+  String programTemplateSlotDeleteTooltip(int position, String name) {
+    return 'Slot $position, $name: löschen';
+  }
+
+  @override
+  String programTemplateSlotMoveUpTooltip(int position, String name) {
+    return 'Slot $position, $name: nach oben verschieben';
+  }
+
+  @override
+  String programTemplateSlotMoveDownTooltip(int position, String name) {
+    return 'Slot $position, $name: nach unten verschieben';
   }
 
   @override

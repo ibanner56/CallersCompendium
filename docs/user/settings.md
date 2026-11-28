@@ -441,11 +441,14 @@ as draft programs.
 
 - **Calendar address** — your calendar's iCal address (`https://…` or
   `webcal://…`). One address per device. The setting shows only **Set** or
-  **Not set**, and the address itself appears only when you edit it, because a
-  private calendar's address contains a secret: it is never
-  synced to your other devices, never put in a [backup](./backup-portability.md)
+  **Not set**, because a private calendar's address contains a secret; the
+  address itself appears when you edit the setting, and in the address box at
+  the top of the calendar import screen each time it opens. It is never synced
+  to your other devices, never put in a [backup file](./backup-portability.md)
   (enter it again after a restore), and removed from
-  [diagnostics](#diagnostics).
+  [diagnostics](#diagnostics). Your device's own backup is different: it can
+  copy the app's data, address included. See
+  [Your device's own backup](./backup-portability.md#your-devices-own-backup).
 - **Which events** — how far ahead to look: 3, 6 (the default) or 12 months.
   Repeating events are read only 30 days ahead, whatever you choose.
 - **Only events whose title contains** — for a calendar that also holds things
@@ -654,7 +657,8 @@ are shown.
   The same choice formats the dates the app stamps itself, such as when an
   unsaved draft was saved, when Device Sync last ran and when a version on a
   sync conflict was changed. The time of day after the date stays in the app
-  language.
+  language, in the 24-hour clock (15:04) when your device is set to it,
+  otherwise your language's usual form (3:04 PM in English).
 
   A custom pattern is built from these tokens:
 
@@ -975,8 +979,11 @@ you use the app is ever sent.
 
 When something goes wrong, the app writes a short technical note to a log on your
 own device — not just outright crashes, but also errors you see reported on
-screen (like a failed import). **It is never sent anywhere — there is no
-telemetry.** The **Diagnostics** section is where you read that log, hand a
+screen (like a failed import). **The app never sends it anywhere — there is no
+telemetry.** Your device's own backup can copy it along with the rest of the
+app's data; see
+[Your device's own backup](./backup-portability.md#your-devices-own-backup).
+The **Diagnostics** section is where you read that log, hand a
 copy to a bug report, or wipe it.
 
 ### Recent entries
@@ -1565,16 +1572,16 @@ Sync is off and open while it is on.
 **A phone or tablet set up from a device backup.** If you set up a phone or
 tablet from your device's own backup of another one (Android's backup or its
 phone-to-phone transfer, an iCloud or computer backup, or moving to a new
-iPhone or iPad), the app notices the first time it opens there and turns
-Device Sync off, with a message saying why. It also forgets the old device's
-identity, so when you turn Device Sync back on, this device connects to the
-same store as a device of its own, and the old one is listed under **Other
-devices**. The same happens if Android puts the app's data back when you
-reinstall it, or you restore a phone from its own backup: there the old entry
-under **Other devices** is no longer in use, and you can remove it. This works
-for backups made by this version of the app or a later one; a backup made by
-an earlier version isn't recognised, and Device Sync stays as it was in the
-copy.
+iPhone or iPad), the app notices the first time it opens there. If Device
+Sync was on, it turns it off, with a message saying why. Either way it forgets
+the old device's identity, so when you turn Device Sync on, this device
+connects to the same store as a device of its own, and the old one is listed
+under **Other devices**. The same happens if Android puts the app's data back
+when you reinstall it, or you restore a phone from its own backup: there the
+old entry under **Other devices** is no longer in use, and you can remove it.
+This works only for a backup made after the app had been opened on a version
+later than 0.10.0; the app can't tell an earlier backup was restored, and
+Device Sync stays as it was in the copy.
 
 - **Sync only on Wi-Fi** is on by default. On a mobile-data connection automatic
   sync waits, and pressing **Sync now** tells you why. In this section it points
@@ -1760,8 +1767,14 @@ copy.
   meter, key or improper mark alone doesn't hold it back: an older device
   keeps those and passes them on unchanged.
 - These settings belong to this device. They are not synced to your other
-  devices, and they are not included in a backup, so restoring a backup never
-  turns sync on.
+  devices, and they are not included in a backup file, so restoring a backup
+  file never turns sync on. A device set up from your
+  [device's own backup](./backup-portability.md#your-devices-own-backup) is
+  different: the copy carries them. On a phone or tablet the app turns Device
+  Sync off when it can tell the copy was restored, as **A phone or tablet set
+  up from a device backup** above describes; on a Windows, macOS or Linux
+  computer, and from a backup it can't tell was restored, sync stays as it was
+  in the copy.
 - A few other settings depend on the screen they are used on, so they stay on
   each device too: **App language**, **Reduce motion**, **Auto-size Perform
   cards**, and Perform's stage theme and text size. Unlike the sync settings

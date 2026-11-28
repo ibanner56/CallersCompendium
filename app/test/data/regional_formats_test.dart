@@ -122,6 +122,7 @@ void main() {
           DateFormatSetting(DateFormatPref.ymd),
           material,
           l10n,
+          use24Hour: false,
         ),
         '2026-07-15 ${time()}',
       );
@@ -131,6 +132,7 @@ void main() {
           DateFormatSetting(DateFormatPref.dmy),
           material,
           l10n,
+          use24Hour: false,
         ),
         '15/07/2026 ${time()}',
       );
@@ -143,10 +145,27 @@ void main() {
         DateFormatSetting.system,
         material,
         l10n,
+        use24Hour: false,
         platformLocale: const Locale('en', 'DK'),
       );
       expect(text, '${DateFormat.yMd('da').format(when)} ${time()}');
       expect(text, isNot(contains('Jul')));
+    });
+
+    // The maintainer's ruling, 2026-11-28: a time the app stamps follows the
+    // device's 24-hour setting, as a program time does.
+    test('on a 24-hour device, the time is in the 24-hour clock', () {
+      expect(
+        formatEventDateTime(
+          when,
+          DateFormatSetting(DateFormatPref.ymd),
+          material,
+          l10n,
+          use24Hour: true,
+        ),
+        '2026-07-15 15:04',
+      );
+      expect(time(), isNot('15:04'), reason: 'English is 12-hour otherwise');
     });
   });
 
