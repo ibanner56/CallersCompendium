@@ -282,9 +282,10 @@ wording, saved unchanged, reads as the default line. Imported
   author credit holds the words Fifer and Rachel or Rae, in any order, so
   "Fifer, Rachel" and "Rachel Fifer (2019)" count. An author name that holds
   a joint credit ("Bob Smith & Rae Fifer", split at `&`, `+`, `/`, `;`, "and",
-  "with", and at commas after a first name of two or more words) is read one
-  person at a time, so neither "Bob Fifer & Rachel Smith" nor "Bob Fifer,
-  Rachel" does (pre-release audit finding A1-03; the
+  "with", and into comma pieces, where a one-word piece is a family name put
+  first and takes the next piece as its given names) is read one person at a
+  time, so neither "Bob Fifer & Rachel Smith" nor "Bob Fifer, Rachel" does,
+  while "Bob Smith, Fifer, Rachel" does (pre-release audit finding A1-03; the
   split is the implementer's call, over matching the words of the whole name,
   which would catch that pair). An initial alone ("R. Fifer") does not count.
   "Renewed Joy" and "If I Was Dead and It Wouldn't Go To Waste" also require it

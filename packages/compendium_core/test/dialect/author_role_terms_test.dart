@@ -33,6 +33,9 @@ void main() {
         'Bob Smith & Rae Fifer',
         'Bob Smith / Rachel Fifer',
         'Rachel Smith, Rae Fifer',
+        'Bob Smith, Fifer, Rachel',
+        'Fifer, Rachel (Rae)',
+        'Smith, Bob, Fifer, Rae',
       ]) {
         expect(requires('Any Dance At All', [name]), isTrue, reason: name);
       }
@@ -55,6 +58,7 @@ void main() {
         'Rachel Smith, Bob Fifer',
         'Bob Fifer, Rachel Smith, 2019',
         'Bob Fifer, Rachel',
+        'Fifer, Bob, Smith, Rachel',
       ]) {
         expect(requires('Any Dance At All', [name]), isFalse, reason: name);
       }
