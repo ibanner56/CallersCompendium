@@ -13,8 +13,12 @@ import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
 class _Harness {
-  _Harness(this.repos, this.enabled, this.settings, this.inPerformSwap);
-  final CompendiumRepositories repos;
+  _Harness(this.library, this.enabled, this.settings, this.inPerformSwap);
+
+  /// The open library; a test may swap it, as a restore or a reset to a
+  /// clean install does.
+  final ValueNotifier<CompendiumRepositories> library;
+  CompendiumRepositories get repos => library.value;
   final ValueNotifier<bool> enabled;
   final ValueNotifier<SuggestionSettingsRead> settings;
   final ValueNotifier<bool> inPerformSwap;
@@ -31,7 +35,8 @@ Future<_Harness> _pump(
 }) async {
   await tester.binding.setSurfaceSize(const Size(800, 2000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  final repos = openTestRepositories();
+  final library = ValueNotifier(openTestRepositories());
+  addTearDown(library.dispose);
   final enabledNotifier = ValueNotifier<bool>(enabled);
   addTearDown(enabledNotifier.dispose);
   final settings = ValueNotifier<SuggestionSettingsRead>(read);
@@ -42,13 +47,16 @@ Future<_Harness> _pump(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: SuggestionsEnabledScope(
-          notifier: enabledNotifier,
-          child: SuggestionsInPerformSwapScope(
-            notifier: inPerformSwap,
-            child: SuggestionSettingsScope(notifier: settings, child: child!),
+      builder: (context, child) => ValueListenableBuilder(
+        valueListenable: library,
+        builder: (context, repos, _) => RepositoriesScope(
+          repositories: repos,
+          child: SuggestionsEnabledScope(
+            notifier: enabledNotifier,
+            child: SuggestionsInPerformSwapScope(
+              notifier: inPerformSwap,
+              child: SuggestionSettingsScope(notifier: settings, child: child!),
+            ),
           ),
         ),
       ),
@@ -56,7 +64,7 @@ Future<_Harness> _pump(
     ),
   );
   await tester.pumpAndSettle();
-  return _Harness(repos, enabledNotifier, settings, inPerformSwap);
+  return _Harness(library, enabledNotifier, settings, inPerformSwap);
 }
 
 Finder _segment(SuggestionFactor factor, String label) => find.descendant(
@@ -401,6 +409,66 @@ void main() {
     expect(h.settings.value.settings.matrixVariety, SuggestionWeight.off);
     expect((await _stored(h)).settings.matrixVariety, SuggestionWeight.off);
     expect(find.byKey(const ValueKey('undo-failed-snackbar')), findsNothing);
+  });
+
+  testWidgets('Undo after Reset to defaults writes nothing into a library '
+      'opened since', (tester) async {
+    final h = await _pump(
+      tester,
+      const SuggestionSettingsScreen(),
+      read: readSuggestionSettings({
+        'version': 1,
+        'factors': {
+          'matrixVariety': {'weight': 'off'},
+        },
+      }),
+    );
+    await tester.tap(find.byKey(const ValueKey('suggestion-settings-reset')));
+    await tester.pumpAndSettle();
+
+    // A restore or a reset to a clean install: another library, read with
+    // the default choices.
+    final old = h.repos;
+    h.library.value = openTestRepositories();
+    h.settings.value = (settings: const SuggestionSettings(), isNewer: false);
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('suggestion-settings-reset-undo')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(await h.repos.settings.get(kSuggestionSettingsKey), isNull);
+    expect(h.settings.value.settings.hasDefaultChoices, isTrue);
+    expect(find.byKey(const ValueKey('undo-failed-snackbar')), findsOneWidget);
+    expect(identical(old, h.repos), isFalse);
+  });
+
+  testWidgets('Reset to defaults announces nothing when a newer build\'s value '
+      'arrived first', (tester) async {
+    final h = await _pump(
+      tester,
+      const SuggestionSettingsScreen(),
+      read: readSuggestionSettings({
+        'version': 1,
+        'factors': {
+          'matrixVariety': {'weight': 'off'},
+        },
+      }),
+    );
+    // Synced in after the screen was built, before the tap is handled.
+    h.settings.value = readSuggestionSettings({
+      'version': 2,
+      'factors': <String, Object?>{},
+    });
+    await tester.tap(find.byKey(const ValueKey('suggestion-settings-reset')));
+    await tester.pumpAndSettle();
+
+    expect(await h.repos.settings.get(kSuggestionSettingsKey), isNull);
+    expect(
+      find.byKey(const ValueKey('suggestion-settings-reset-undo')),
+      findsNothing,
+    );
   });
 
   testWidgets('a value saved by a newer version is shown read-only and never '

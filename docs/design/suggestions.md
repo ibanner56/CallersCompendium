@@ -356,8 +356,9 @@ sync capability ([sync-spec.md §6.15](sync-spec.md#615-capability-gate)):
 - **Reset to defaults** writes the default choices for the four factors and
   keeps the preserved unknown factors and `preferences`. It acts at once and
   offers Undo, which writes back the choices it replaced onto the value held
-  then, so a part synced in meanwhile is kept; if a choice was made since,
-  here or on another device, Undo changes nothing and says it failed. It does
+  when Undo is tapped, so a part synced in meanwhile is kept; if a choice was
+  made since, here or on another device, or the library was restored or reset
+  meanwhile, Undo changes nothing and says it failed. It does
   not ask first. It is disabled while the choices already are the defaults.
 
 The backup validator accepts a value with an integer `version` of at least 1,
