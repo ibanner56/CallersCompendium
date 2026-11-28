@@ -165,6 +165,61 @@ void main() {
 
       expect(controller.activeId, 't2');
     });
+
+    // Sync can bring the theme back (same id) before Undo is tapped; Undo
+    // must not then insert a second theme with that id.
+    test('refuses when a theme with its id exists again', () async {
+      final repos = openTestRepositories();
+      final controller = CustomThemesController(repos.settings);
+      await controller.upsert(_theme('t1', 'Dawn'));
+      final removed = controller.byId('t1')!;
+      await controller.delete('t1');
+      await controller.upsert(_theme('t1', 'Dawn, synced'));
+
+      await expectLater(
+        controller.restoreDeleted(removed, index: 0, wasActive: false),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect([for (final t in controller.themes) t.name], ['Dawn, synced']);
+    });
+  });
+
+  group('ShorthandMappingsController.restoreUserFigureAt', () {
+    UserFigureShorthand shorthand({int? beats}) => UserFigureShorthand(
+      token: 'ZM',
+      figureId: 'zoom-id',
+      figureName: 'zoom',
+      beats: beats,
+    );
+
+    test('puts a deleted shorthand back, and persists it', () async {
+      final repos = openTestRepositories();
+      final controller = ShorthandMappingsController(repos.settings);
+      await controller.upsertUserFigure(shorthand(beats: 4));
+      final removed = controller.userFigureShorthands.single;
+      await controller.removeUserFigureAt(0);
+
+      await controller.restoreUserFigureAt(0, removed);
+
+      final reloaded = ShorthandMappingsController(repos.settings);
+      await reloaded.load();
+      expect([for (final s in reloaded.userFigureShorthands) s.token], ['ZM']);
+    });
+
+    test('refuses a shorthand the next load would drop', () async {
+      final repos = openTestRepositories();
+      final controller = ShorthandMappingsController(repos.settings);
+      // More beats than a figure of the user's may default to: decode drops
+      // it, so putting it back would "succeed" and then vanish on reload.
+      final unkeepable = shorthand(beats: maxUserFigureDefaultBeats + 1);
+      expect(UserFigureShorthands.keeps(unkeepable), isFalse);
+
+      await expectLater(
+        controller.restoreUserFigureAt(0, unkeepable),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(controller.userFigureShorthands, isEmpty);
+    });
   });
 
   group('WalkthroughSnippetLibraryController.restoreSnippet', () {

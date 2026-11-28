@@ -469,6 +469,90 @@ void main() {
       );
       expect(calledSince.toSet(), {'petronella', 'becket'});
     });
+
+    testWidgets('a date picked for Since applies', (tester) async {
+      final repos = await seeded();
+      await pumpCollection(tester, repos, home: const RepertoireScreen());
+      expect(
+        find.byKey(const ValueKey('repertoire-most-rose')),
+        findsOneWidget,
+      );
+
+      await withClock(Clock.fixed(today), () async {
+        await tester.tap(find.byKey(const ValueKey('repertoire-period-since')));
+        await tester.pumpAndSettle();
+        // The picker opens on today's month: November 2026.
+        await tester.tap(
+          find.descendant(
+            of: find.byType(DatePickerDialog),
+            matching: find.text('2'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('OK'));
+        await tester.pumpAndSettle();
+      });
+
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const ValueKey('repertoire-period-since')),
+            )
+            .selected,
+        isTrue,
+      );
+      // Since 2 November, a day with no call on it, so the result does not
+      // hang on a boundary: only p2's call of Petronella.
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('repertoire-summary')))
+            .data,
+        'Calls in this period: 1. Dances called: 1 of 4.',
+      );
+      expect(find.byKey(const ValueKey('repertoire-most-rose')), findsNothing);
+    });
+  });
+
+  group('the dance type', () {
+    testWidgets('choosing a type reloads the page for that type', (
+      tester,
+    ) async {
+      final repos = await seeded();
+      await pumpCollection(tester, repos, home: const RepertoireScreen());
+      expect(
+        find.byKey(const ValueKey('repertoire-figure-contra-swing')),
+        findsOneWidget,
+      );
+
+      await withClock(Clock.fixed(today), () async {
+        await tester.tap(find.byKey(const ValueKey('repertoire-type-ecd')));
+        await tester.pumpAndSettle();
+      });
+
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const ValueKey('repertoire-type-ecd')),
+            )
+            .selected,
+        isTrue,
+      );
+      // Only Rose Tree, English, and its one call.
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('repertoire-summary')))
+            .data,
+        'Calls in this period: 1. Dances called: 1 of 1.',
+      );
+      expect(
+        find.byKey(const ValueKey('repertoire-figure-ecd-swing')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('repertoire-figure-contra-swing')),
+        findsNothing,
+      );
+    });
   });
 
   group('accessibility', () {

@@ -22,6 +22,9 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/seed_service.dart';
 import 'package:compendium_app/src/data/require_event_date_for_history_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
+import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
+import 'package:compendium_app/src/data/show_glossary_scope.dart';
+import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/published_collection_catalog_screen.dart';
@@ -89,6 +92,8 @@ Future<void> _pumpScreen(
   ValueNotifier<String>? defaultProgramCaller,
   ValueNotifier<bool>? requireEventDate,
   VoidCallback? onImport,
+  ValueNotifier<DialectsByForm>? dialectsByForm,
+  Widget Function(Widget child)? wrap,
 }) async {
   // A tall surface so the search bar, filter/advanced panels and results are
   // all laid out without scrolling, keeping chip/control taps stable.
@@ -120,9 +125,10 @@ Future<void> _pumpScreen(
           notifier: themeNotifier,
           child: CustomThemesScope(
             controller: customThemes,
-            child: ActiveDialectScope(
-              notifier: notifier,
-              child: SortIgnoreArticlesScope(
+            child: _activeDialectScope(
+              notifier,
+              dialectsByForm,
+              SortIgnoreArticlesScope(
                 notifier: sortIgnoreArticlesNotifier,
                 child: CollectionFilterScope(
                   controller: activeFilterController,
@@ -134,10 +140,10 @@ Future<void> _pumpScreen(
                     _maybeWrapRequireEventDate(
                       requireEventDate,
                       hiddenFacets == null
-                          ? child!
+                          ? wrap?.call(child!) ?? child!
                           : CollectionFacetsScope(
                               notifier: hiddenFacets,
-                              child: child!,
+                              child: wrap?.call(child!) ?? child!,
                             ),
                     ),
                   ),
@@ -155,6 +161,16 @@ Future<void> _pumpScreen(
     ),
   );
 }
+
+/// The active dialect: one for every form from [notifier], or, when a test
+/// supplies [byForm], each form's own.
+Widget _activeDialectScope(
+  ValueNotifier<Dialect> notifier,
+  ValueNotifier<DialectsByForm>? byForm,
+  Widget child,
+) => byForm == null
+    ? ActiveDialectScope(notifier: notifier, child: child)
+    : ActiveDialectScope.byForm(dialects: byForm, child: child);
 
 /// Mounts [DefaultProgramCallerScope] only when a test supplies a notifier, so
 /// every other test still reads the default caller from settings.
@@ -2094,6 +2110,92 @@ void main() {
     await tester.tap(find.byIcon(Icons.sort));
     await tester.pumpAndSettle();
     expect(find.text('Best match'), findsOneWidget);
+  });
+
+  // #2294 / #2458: the dance list hands the Advanced search each form's
+  // dialect, as the program builder's picker does (collection_picker_test).
+  testWidgets('advanced builder names a figure of your own in the dialect of '
+      'its form, from the active dialects', (tester) async {
+    final repos = openTestRepositories();
+    await tester.runAsync(
+      () => repos.userGlossary.upsert(
+        UserGlossaryEntry(
+          id: 'e',
+          kindName: UserGlossaryEntryKind.customFigure.name,
+          name: 'role1s swoop',
+          definition: 'A figure.',
+          description: 'Of your own.',
+          payload: const {
+            'form': 'ecd',
+            'template': '{move}',
+            'defaultBeats': 8,
+            'params': <Object?>[],
+          },
+          createdAt: DateTime.utc(2026, 10, 16),
+        ),
+      ),
+    );
+    final userFigures = UserFiguresController(repos.userGlossary);
+    addTearDown(userFigures.dispose);
+    unawaited(userFigures.start());
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    final glossary = ValueNotifier(true);
+    final custom = ValueNotifier(true);
+    // Contra words the first role "larks", English leaves it as it is.
+    final dialects = ValueNotifier(
+      DialectsByForm({
+        DanceForm.contra: Dialect.larksRobins,
+        DanceForm.ecd: Dialect.canonical,
+      }),
+    );
+    for (final n in <ChangeNotifier>[glossary, custom, dialects]) {
+      addTearDown(n.dispose);
+    }
+    final renderer = FigureRenderer(contraTaxonomy);
+    final inEnglish = renderer.renderFreeText(
+      'role1s swoop',
+      Dialect.canonical,
+    );
+    final inContra = renderer.renderFreeText(
+      'role1s swoop',
+      Dialect.larksRobins,
+    );
+    expect(inEnglish, isNot(inContra), reason: 'a control: they read apart');
+
+    await _pumpScreen(
+      tester,
+      repos,
+      dialectsByForm: dialects,
+      wrap: (child) => ShowGlossaryScope(
+        notifier: glossary,
+        child: ShowCustomFiguresScope(
+          notifier: custom,
+          child: UserFiguresScope(controller: userFigures, child: child),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _tapVisible(tester, find.byKey(const ValueKey('advanced-panel')));
+    await _tapVisible(tester, find.text('Add'));
+    await _tapVisible(tester, find.text('Has figure'));
+    final moveField = hasFigureMoveField();
+    await tester.ensureVisible(moveField);
+    await tester.enterText(moveField, 'swoop');
+    await tester.pumpAndSettle();
+
+    final option = find.byWidgetPredicate(
+      (w) =>
+          w.key is ValueKey<String> &&
+          (w.key! as ValueKey<String>).value.endsWith('-option-userFigure:e'),
+    );
+    expect(option, findsOneWidget);
+    // Named in English's dialect, though the list's own is contra's.
+    expect(
+      find.descendant(of: option, matching: find.text(inEnglish)),
+      findsOneWidget,
+    );
+    expect(find.text(inContra), findsNothing);
   });
 
   testWidgets('advanced builder: add a figure row filters by figure', (
