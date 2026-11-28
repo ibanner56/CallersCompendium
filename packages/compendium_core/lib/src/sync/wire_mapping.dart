@@ -118,6 +118,7 @@ const _programFields = [
   ]),
   SyncWireField('calendarWrittenAt', ['programs.calendar_written_at']),
   SyncWireField('calendarFlag', ['programs.calendar_flag']),
+  SyncWireField('calendarFeedDigest', ['programs.calendar_feed_digest']),
   SyncWireField('eventRuleIds', ['programs.event_rule_ids']),
   SyncWireField('slots', []),
   SyncWireField('slots.id', ['program_slots.id']),

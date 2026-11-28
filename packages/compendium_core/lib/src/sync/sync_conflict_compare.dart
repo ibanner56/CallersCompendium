@@ -375,6 +375,11 @@ Map<String, String> syncUserHiddenFields(SyncRecordKind kind) => switch (kind) {
     'calendarWrittenAt':
         'The stamp the calendar import last wrote (#2354). Nothing shows it: '
         'only the calendar import\'s untouched test reads it.',
+    'calendarFeedDigest':
+        'Which calendar the program was imported from (pre-release audit '
+        'finding E1-01), as a salted digest of its address. Nothing shows '
+        'it: only the calendar import compares it with the address it '
+        'fetched.',
   },
   SyncRecordKind.venue => const {
     'provenance':

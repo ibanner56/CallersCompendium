@@ -57,6 +57,7 @@ void main() {
     calendarEventFingerprint: 'b' * 64,
     calendarWrittenAt: edited,
     calendarFlag: 'cancelled',
+    calendarFeedDigest: 'c' * 64,
     eventRuleIds: const ['r1'],
     slots: [ProgramSlot(id: 's1', position: 0, text: 'Opener')],
     createdAt: created,
@@ -113,6 +114,7 @@ void main() {
             'calendarEventFingerprint',
             'calendarWrittenAt',
             'calendarFlag',
+            'calendarFeedDigest',
           },
           (p) => p.copyWith(clearCalendarEventKey: true),
           (p) => [
@@ -120,6 +122,7 @@ void main() {
             p.calendarEventFingerprint,
             p.calendarWrittenAt,
             p.calendarFlag,
+            p.calendarFeedDigest,
           ].nonNulls.firstOrNull,
         ),
         'clearing the pay': (

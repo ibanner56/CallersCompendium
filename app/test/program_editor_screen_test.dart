@@ -4181,6 +4181,59 @@ void main() {
     expect(saved.dialectName, 'Leads/Follows');
   });
 
+  testWidgets('persisted Undo keeps a calendar record a remote write set '
+      '(pre-release audit finding E1-01)', (tester) async {
+    // As above: the editor never edits the calendar fields, so a value a
+    // remote write set during the live read must survive Undo. Its write
+    // takes them from the stored program (`before` in the save), which is
+    // what this catches; dropping the calendar digest there would stop the
+    // calendar import ever comparing the program with its calendar again.
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    delayed.programs.holdNextRead();
+    await tester.tap(find.byType(SnackBarAction));
+    await delayed.programs.readStarted;
+    await tester.pump();
+
+    final remote = await delayed.repos.programs.getById('p1');
+    await delayed.repos.programs.update(
+      remote!.copyWith(
+        calendarEventKey: 'a' * 64,
+        calendarFeedDigest: 'c' * 64,
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
+    final slotEditor = tester.widget<ProgramSlotListEditor>(
+      find.byType(ProgramSlotListEditor),
+    );
+    slotEditor.onSlotChanged(0, slotEditor.slots.single.copyWith(isAlt: true));
+    await tester.pump();
+    delayed.programs.releaseRead();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.slots.single.isAlt, isTrue);
+    expect(saved.calendarEventKey, 'a' * 64);
+    expect(saved.calendarFeedDigest, 'c' * 64);
+  });
+
   testWidgets('failed persisted Undo keeps edits made during live recovery', (
     tester,
   ) async {
