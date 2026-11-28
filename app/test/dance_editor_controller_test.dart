@@ -906,6 +906,101 @@ void main() {
       expect(notified, greaterThan(0));
     });
 
+    // Decision sheet question 48 (the maintainer, building on question 14):
+    // the same rule for a named phrase's Beats per bar and for a structure
+    // typed with no Meter.
+    void typePhrases(DanceEditorController controller, String raw) {
+      controller.phraseController.text = raw;
+      controller.onPhraseChanged();
+    }
+
+    test('a structure typed with no Meter keeps each figure\'s bars, in one '
+        'undo step with the typing', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(repos);
+      addTearDown(controller.dispose);
+      for (final text in ['4', '4*', '4*8', '4*8*', '4*8*3']) {
+        typePhrases(controller, text);
+      }
+      expect(counts(controller), List.filled(8, 12));
+      expect(bars(controller, 12), '4');
+      expect(controller.warnings, isEmpty);
+      await settleDebounce();
+      controller.undo();
+      expect(controller.phraseController.text, '');
+      expect(counts(controller), List.filled(8, 8));
+      controller.redo();
+      expect(counts(controller), List.filled(8, 12));
+    });
+
+    test("a named phrase's Beats per bar keeps the bars of the figures in "
+        'it, and the next keeps them all', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        meter: '2/2',
+        phraseStructure: 'A:2*8*2 + B:2*8*2',
+      );
+      addTearDown(controller.dispose);
+      // A in 3/2 and B still in 2/2: the four figures in A are 4 bars of 3.
+      controller.setPhraseStructureText('A:2*8*3 + B:2*8*2');
+      expect(counts(controller), [12, 12, 12, 12, 8, 8, 8, 8]);
+      expect(controller.warnings, isEmpty);
+      controller.setPhraseStructureText('A:2*8*3 + B:2*8*3');
+      expect(counts(controller), List.filled(8, 12));
+      expect(controller.warnings, isEmpty);
+    });
+
+    test("a named phrase's Bars changes no count", () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        phraseStructure: 'A:2*4*3 + B:1*8*2',
+        figures: [
+          for (var i = 0; i < 2; i++)
+            testFigure(move: 'ecd_set', params: {'beats': 12}),
+          for (var i = 0; i < 2; i++)
+            testFigure(move: 'ecd_set', params: {'beats': 8}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      controller.setPhraseStructureText('A:2*8*3 + B:1*8*2');
+      expect(counts(controller), [12, 12, 8, 8]);
+    });
+
+    test('a structure typed under a stated Meter, which keeps the bar '
+        'length, changes no count', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        meter: '3/2',
+        phraseStructure: '4*8*3',
+        figures: [
+          for (var i = 0; i < 8; i++)
+            testFigure(move: 'ecd_set', params: {'beats': 12}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      typePhrases(controller, '4*8*4');
+      expect(counts(controller), List.filled(8, 12));
+    });
+
+    test('a phrase edit no count can follow exactly changes none', () async {
+      final repos = openTestRepositories();
+      // A bar and a half of 2/2 in phrase A: 4½ beats in 3/2.
+      final controller = await openDance(
+        repos,
+        phraseStructure: 'A:2*8*2 + B:2*8*2',
+        figures: [
+          testFigure(move: 'ecd_set', params: {'beats': 8}),
+          testFigure(move: 'ecd_set', params: {'beats': 3}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      controller.setPhraseStructureText('A:2*8*3 + B:2*8*2');
+      expect(counts(controller), [8, 3]);
+    });
+
     for (final form in [DanceForm.contra, DanceForm.square]) {
       test('a ${form.name} dance, timed in beats, keeps its counts', () async {
         final repos = openTestRepositories();
