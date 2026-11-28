@@ -13319,10 +13319,14 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'カレンダーに$count件を超える予定があります。最初の$count件だけを読み取りました。',
+      other: 'カレンダーに今後の予定または繰り返しの予定が$count件を超えてあります。最初の$count件だけを読み取りました。',
     );
     return '$_temp0';
   }
+
+  @override
+  String get calendarImportDeviceTimeZoneNote =>
+      'カレンダーがUTCで保存している時刻は、このデバイスのタイムゾーンで表示されます。別のタイムゾーンにいるときにインポートすると、その予定にはそのタイムゾーンの時刻が使われます。';
 
   @override
   String get calendarSettingsHeader => 'カレンダー';

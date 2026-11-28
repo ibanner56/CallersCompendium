@@ -495,6 +495,15 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
             : l10n.calendarImportSummary(preview.freshCount),
         key: const ValueKey('calendar-import-summary'),
       ),
+      // A `Z` time is read in this device's zone (#2423), so an import made
+      // while away keeps that zone's times (pre-release audit finding E1-03).
+      if (preview.entries.any((e) => e.candidate.startsInUtc)) ...[
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          l10n.calendarImportDeviceTimeZoneNote,
+          key: const ValueKey('calendar-import-device-zone-note'),
+        ),
+      ],
       if (fresh.isNotEmpty) ...[
         header(l10n.calendarImportNewHeader),
         for (final e in fresh) tickable(e),

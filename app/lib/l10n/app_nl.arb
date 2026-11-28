@@ -13302,9 +13302,13 @@
   "@calendarImportSkippedNoUid": {
     "x-sourceSha256": "957369e2925755b73b3b208a96574ba86511d5a84e9536ac01dd88d77eecff3c"
   },
-  "calendarImportTruncated": "{count, plural, other{De agenda heeft meer dan {count} afspraken. Alleen de eerste {count} zijn gelezen.}}",
+  "calendarImportTruncated": "{count, plural, other{De agenda heeft meer dan {count} komende of terugkerende afspraken. Alleen de eerste {count} zijn gelezen.}}",
   "@calendarImportTruncated": {
     "x-sourceSha256": "9d05f4e12d75a6e091de66518cbca2f6f8929efa055f5030b2bfb3da1a685554"
+  },
+  "calendarImportDeviceTimeZoneNote": "Tijden die je agenda in UTC bewaart, worden getoond in de tijdzone van dit apparaat. Importeer je terwijl je in een andere tijdzone bent, dan houden die afspraken de tijden van die tijdzone.",
+  "@calendarImportDeviceTimeZoneNote": {
+    "description": "Note in the calendar import preview when an event's time is kept in UTC and so shown in the device's own time zone (pre-release audit finding E1-03)."
   },
   "calendarSettingsHeader": "Agenda",
   "@calendarSettingsHeader": {

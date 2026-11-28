@@ -14028,10 +14028,14 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Le calendrier contient plus de $count événements. Seuls les $count premiers ont été lus.',
+          'Le calendrier contient plus de $count événements à venir ou récurrents. Seuls les $count premiers ont été lus.',
     );
     return '$_temp0';
   }
+
+  @override
+  String get calendarImportDeviceTimeZoneNote =>
+      'Les heures que votre calendrier enregistre en UTC sont affichées dans le fuseau horaire de cet appareil. Si vous importez depuis un autre fuseau horaire, ces événements gardent les heures de ce fuseau.';
 
   @override
   String get calendarSettingsHeader => 'Calendrier';

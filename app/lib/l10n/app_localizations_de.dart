@@ -13990,10 +13990,14 @@ class AppLocalizationsDe extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Der Kalender hat mehr als $count Termine. Nur die ersten $count wurden gelesen.',
+          'Der Kalender hat mehr als $count anstehende oder wiederkehrende Termine. Nur die ersten $count wurden gelesen.',
     );
     return '$_temp0';
   }
+
+  @override
+  String get calendarImportDeviceTimeZoneNote =>
+      'Zeiten, die dein Kalender in UTC speichert, werden in der Zeitzone dieses Geräts angezeigt. Wenn du in einer anderen Zeitzone importierst, behalten diese Termine die Zeiten jener Zeitzone.';
 
   @override
   String get calendarSettingsHeader => 'Kalender';

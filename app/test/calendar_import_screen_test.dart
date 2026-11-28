@@ -196,6 +196,44 @@ void main() {
     });
   });
 
+  testWidgets('the preview says a UTC time is shown in this device\'s time '
+      'zone, and says nothing for times kept in a zone (pre-release audit '
+      'finding E1-03)', (tester) async {
+    await withClock(fixed, () async {
+      for (final (start, said) in [
+        ('DTSTART:20300620T233000Z', true),
+        ('DTSTART;TZID=America/New_York:20300620T193000', false),
+        ('DTSTART;VALUE=DATE:20300620', false),
+      ]) {
+        final repos = openTestRepositories();
+        await repos.settings.set(kCalendarFeedUrlKey, _secret);
+        await pump(
+          tester,
+          repos,
+          CalendarImportScreen(
+            key: UniqueKey(),
+            fetcher: (_) async => _cal([
+              ['UID:u', start, 'SUMMARY:Contra'],
+            ]),
+            toLocal: (u) => u.subtract(const Duration(hours: 4)),
+          ),
+        );
+        await tester.tap(find.byKey(const ValueKey('calendar-import-fetch')));
+        await tester.pumpAndSettle();
+        expect(find.text('Contra'), findsOneWidget, reason: start);
+        expect(
+          find.text(
+            "Times your calendar keeps in UTC are shown in this device's "
+            'time zone. If you import while in another time zone, those '
+            "events keep that zone's times.",
+          ),
+          said ? findsOneWidget : findsNothing,
+          reason: start,
+        );
+      }
+    });
+  });
+
   testWidgets('the review offers a changed time as "Time: old → new" '
       '(#2354 with #2423)', (tester) async {
     await withClock(fixed, () async {

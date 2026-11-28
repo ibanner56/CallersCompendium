@@ -20196,8 +20196,14 @@ abstract class AppLocalizations {
   /// Note in the calendar import preview when the feed is over the event cap.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, other{The calendar has more than {count} events. Only the first {count} were read.}}'**
+  /// **'{count, plural, other{The calendar has more than {count} upcoming or repeating events. Only the first {count} were read.}}'**
   String calendarImportTruncated(int count);
+
+  /// Note in the calendar import preview when an event's time is kept in UTC and so shown in the device's own time zone (pre-release audit finding E1-03).
+  ///
+  /// In en, this message translates to:
+  /// **'Times your calendar keeps in UTC are shown in this device\'s time zone. If you import while in another time zone, those events keep that zone\'s times.'**
+  String get calendarImportDeviceTimeZoneNote;
 
   /// Settings ▸ Program subsection heading for the calendar import.
   ///

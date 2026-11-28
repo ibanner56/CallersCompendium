@@ -13302,9 +13302,13 @@
   "@calendarImportSkippedNoUid": {
     "x-sourceSha256": "957369e2925755b73b3b208a96574ba86511d5a84e9536ac01dd88d77eecff3c"
   },
-  "calendarImportTruncated": "{count, plural, other{Der Kalender hat mehr als {count} Termine. Nur die ersten {count} wurden gelesen.}}",
+  "calendarImportTruncated": "{count, plural, other{Der Kalender hat mehr als {count} anstehende oder wiederkehrende Termine. Nur die ersten {count} wurden gelesen.}}",
   "@calendarImportTruncated": {
     "x-sourceSha256": "9d05f4e12d75a6e091de66518cbca2f6f8929efa055f5030b2bfb3da1a685554"
+  },
+  "calendarImportDeviceTimeZoneNote": "Zeiten, die dein Kalender in UTC speichert, werden in der Zeitzone dieses Geräts angezeigt. Wenn du in einer anderen Zeitzone importierst, behalten diese Termine die Zeiten jener Zeitzone.",
+  "@calendarImportDeviceTimeZoneNote": {
+    "description": "Note in the calendar import preview when an event's time is kept in UTC and so shown in the device's own time zone (pre-release audit finding E1-03)."
   },
   "calendarSettingsHeader": "Kalender",
   "@calendarSettingsHeader": {

@@ -13823,10 +13823,14 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'The calendar has more than $count events. Only the first $count were read.',
+          'The calendar has more than $count upcoming or repeating events. Only the first $count were read.',
     );
     return '$_temp0';
   }
+
+  @override
+  String get calendarImportDeviceTimeZoneNote =>
+      'Times your calendar keeps in UTC are shown in this device\'s time zone. If you import while in another time zone, those events keep that zone\'s times.';
 
   @override
   String get calendarSettingsHeader => 'Calendar';
