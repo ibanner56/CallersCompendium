@@ -13,8 +13,9 @@ import '../../l10n/app_localizations.dart';
 ///
 /// Keys are `<keyPrefix>-move-up` and `<keyPrefix>-move-down`; [name] is the
 /// item's own label, so the tooltip and screen-reader label say which item
-/// moves. A list whose items can share a label words its buttons itself, with
-/// the item's position ([moveUpTooltip], [moveDownTooltip]).
+/// moves. [moveUpTooltip] and [moveDownTooltip] replace that wording where a
+/// list says more, such as the program template editor's slots, which name
+/// their position too.
 class ReorderMoveButtons extends StatelessWidget {
   const ReorderMoveButtons({
     super.key,

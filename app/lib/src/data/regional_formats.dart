@@ -376,7 +376,8 @@ String formatTimeOfDay(
             : DateFormat.jm(l10n.localeName))
         .format(DateTime(2000, 1, 1, minuteOfDay ~/ 60, minuteOfDay % 60));
 
-/// Whether the device is set to the 24-hour clock, for [formatTimeOfDay].
+/// Whether the device is set to the 24-hour clock, for [formatTimeOfDay] and
+/// [formatEventDateTime].
 bool use24HourClockOf(BuildContext context) =>
     MediaQuery.alwaysUse24HourFormatOf(context);
 

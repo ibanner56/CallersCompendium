@@ -618,7 +618,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   /// Row index → how re-importing that row onto its matched dance changes the
   /// dance's form ([reimportFormChange]), computed once per plan in
-  /// [_adoptBatch] for every re-import row whose target could be loaded. Only
+  /// [_adoptBatch] for every re-import row whose target could be loaded, and
+  /// read again after Import and edit ([_refreshReimportFormChanges]). Only
   /// rows whose re-import changes the form have an entry: the row names what
   /// the change removes, and the warning above Import counts those that
   /// remove something (the maintainer's ruling, 2026-11-28).
@@ -2061,9 +2062,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// Asks before Import and edit writes onto [matchedTitle]'s dance. A
   /// re-import ([choice] is [_ActionKind.reimport]) says it replaces only the
   /// choreography, plus the title and credit when its box is ticked, and
-  /// names what a change of the dance's form removes ([formChange], as the
-  /// row says it: the maintainer's ruling, 2026-11-28); a link says it
-  /// replaces the dance.
+  /// names what a change of the dance's form removes ([formChange]) in the
+  /// row's own words; a link says it replaces the dance.
   Future<bool?> _confirmEditOverwrite(
     String matchedTitle,
     _RowChoice choice, {

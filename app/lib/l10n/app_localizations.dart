@@ -22377,7 +22377,7 @@ abstract class AppLocalizations {
   /// **'Slot rule'**
   String get programTemplateSlotRuleBadge;
 
-  /// Tooltip and screen-reader label of the Edit button on a slot rule's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, so two slots with the same label (two Breaks) can be told apart (pre-release audit finding D1a-06; the maintainer's ruling, 2026-11-28).
+  /// Tooltip and screen-reader label of the Edit button on a slot rule's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, so two slot rules with the same label can be told apart (pre-release audit finding D1a-06; the maintainer's ruling, 2026-11-28).
   ///
   /// In en, this message translates to:
   /// **'Slot {position}, {name}: edit'**

@@ -1003,8 +1003,9 @@ another where there is not.
   **Barnes books**, and its Perform card as *Barnes: BIII p. 92*. It shows as you
   typed it, as the title does, everywhere, printed and shared cards included:
   **Auto-convert all discouraged terms** leaves it alone, so a tune named in
-  it, such as *Ladies of London*, keeps its name. It is a plain field: the
-  editor does not strike discouraged words in it as you type.
+  it, such as *Ladies of London*, keeps its name. Unlike the title, it is a
+  plain field: the editor does not strike discouraged words in it as you
+  type.
 
 ### Notes
 
