@@ -424,7 +424,7 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "schema-gate",
-        "the schema-bump gate's own logic",
+        "the schema gate's own logic: bump evidence, retired and released versions",
         (py("tools/ci/test_check_schema_migration.py"),),
     ),
     Step(
