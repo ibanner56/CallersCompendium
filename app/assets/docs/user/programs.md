@@ -276,9 +276,10 @@ in the background, on a timer, or when you come back to the app.
   A series that repeats in a way the app can't read (anything beyond every so
   many days, weeks, months or years, on given weekdays such as "second
   Saturday", or on given days of the month) is listed under **Repeating events
-  the app can't read** and not imported, and so is one set to repeat a number
-  of times from a start so far back, centuries for a daily event, that
-  counting its dates would take too long. The app never guesses.
+  the app can't read** and not imported. So are events set to repeat a
+  number of times once counting the dates they had before today has taken
+  too long, which only centuries of them between them can do, counted across
+  the whole calendar. The app never guesses.
 - Events with no identifier can't be recognised next time, so they are skipped,
   and the list says how many.
 

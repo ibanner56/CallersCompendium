@@ -21,7 +21,8 @@ const int iCalMaxEvents = 5000;
 /// every import. Only the days a rule can fall on are tried (each day of a
 /// daily series, each listed weekday of a weekly one, and so on), so this is
 /// about 2,700 years of a daily series between them; a calendar's own series
-/// come nowhere near it. A series that would need more is listed in
+/// come nowhere near it. Once it is spent, the series that would need more,
+/// and every later one with dates to count, is listed in
 /// [CalendarImportPlan.unreadableSeries], like a rule the app can't read.
 const int iCalCountWorkLimit = 1000000;
 
@@ -1009,10 +1010,8 @@ String calendarEventKey(String uid, String recurrenceId) =>
 ///   and time for the reader (pre-release audit finding E1-11). A rule
 ///   outside [ICalRecurrence.tryParse]'s subset, or a `COUNT` series too long
 ///   to count ([iCalCountWorkLimit]), lists the series in
-///   [CalendarImportPlan.unreadableSeries]. Only the first series with a
-///   given `UID` is offered; a second, which RFC 5545 does not allow, would
-///   offer every override of that `UID` again (pre-release audit finding
-///   SEC-03). Its dates are still known.
+///   [CalendarImportPlan.unreadableSeries]. A `UID`'s overrides are offered
+///   once, however many series share it (pre-release audit finding SEC-03).
 /// * `STATUS:CANCELLED` events, series and overrides are not offered.
 /// * [titleFilter], when not blank, keeps events whose sanitized title
 ///   contains it, ignoring case.
@@ -1070,7 +1069,7 @@ CalendarImportPlan planCalendarImport(
   // whatever its title or status.
   var triesLeft = iCalCountWorkLimit;
   var uncounted = false;
-  final offeredSeries = <String>{};
+  final overridesOffered = <String>{};
 
   /// [start] is when this occurrence starts: the event's own `DTSTART`, or
   /// for a series occurrence, the series' moved to that day.
@@ -1164,39 +1163,31 @@ CalendarImportPlan planCalendarImport(
     for (final o in occurrences) {
       know(e, o.text);
     }
-    if (!offeredSeries.add(e.uid)) continue;
     final seriesOverrides = overrides[e.uid];
-    final placed = <String>{};
     // The offers are on written dates; a `Z` series can land a day either
     // side locally, so take one day either side of the horizon and filter on
-    // local dates.
+    // local dates. An occurrence an override replaces is not offered.
     final offerFrom = day0.subtract(const Duration(days: 1));
     final offerTo = horizonEnd.add(const Duration(days: 1));
     for (final occurrence in occurrences) {
       final d = occurrence.writtenDate;
       if (d.isBefore(offerFrom) || d.isAfter(offerTo)) continue;
-      final override = seriesOverrides?.replacing(occurrence);
-      if (override != null) {
-        final rid = override.recurrenceId!.text;
-        placed.add(rid);
-        final date = override.start.localDate(localOf);
-        if (inRange(date, horizonEnd)) {
-          offer(override, rid, date, override.start);
-        }
-        continue;
-      }
+      if (seriesOverrides?.replacing(occurrence) != null) continue;
       final date = occurrence.localDate(localOf);
       if (inRange(date, horizonEnd)) {
         offer(e, occurrence.text, date, occurrence);
       }
     }
-    // An override moved into the horizon from an occurrence outside it.
+    // Each override is offered on its own date, wherever the occurrence it
+    // replaces was, and once per `UID`: with the first readable series of
+    // it. A second series with that `UID`, which RFC 5545 does not allow,
+    // offers its own occurrences but not the overrides again (pre-release
+    // audit finding SEC-03: n such series offered m overrides n times).
+    if (!overridesOffered.add(e.uid)) continue;
     for (final override in seriesOverrides?.all ?? const <ICalEvent>[]) {
-      final rid = override.recurrenceId!.text;
-      if (placed.contains(rid)) continue;
       final date = override.start.localDate(localOf);
       if (inRange(date, horizonEnd)) {
-        offer(override, rid, date, override.start);
+        offer(override, override.recurrenceId!.text, date, override.start);
       }
     }
   }
@@ -1298,10 +1289,12 @@ class _Overrides {
 
 /// `UNTIL` as a key comparable with an occurrence written like [start]. A
 /// `DATE` `UNTIL` covers its whole day, and so does any `UNTIL` of an
-/// all-day series, on its written date (UTC for a `Z` one): RFC 5545 wants a
-/// `DATE` there, and a `Z` time read in this device's zone could move it a
-/// day earlier and drop the last occurrence (pre-release audit finding
-/// E1-11).
+/// all-day series, for which RFC 5545 wants a `DATE`: a floating one its
+/// written date, a `Z` one the later of its UTC date and its date in this
+/// device's zone. Calendars write the last day's UTC midnight there, which
+/// west of Greenwich falls the day before, or its local midnight, which east
+/// of it falls in UTC the day before; either way the last day is kept
+/// (pre-release audit finding E1-11).
 ///
 /// RFC 5545 §3.3.10 has `UNTIL` in UTC whenever `DTSTART` has a `TZID`, and
 /// calendar apps write it so; the occurrences are in that zone's wall-clock
@@ -1316,10 +1309,15 @@ int _untilKey(
   DateTime Function(DateTime utc) toLocal,
 ) {
   if (until.isDate || start.isDate) {
+    var last = until.writtenDate;
+    if (until.isUtc && !until.isDate) {
+      final local = until.localDate(toLocal);
+      if (local.isAfter(last)) last = local;
+    }
     return ICalDateValue(
-          year: until.year,
-          month: until.month,
-          day: until.day,
+          year: last.year,
+          month: last.month,
+          day: last.day,
         )._sortKey +
         235959;
   }

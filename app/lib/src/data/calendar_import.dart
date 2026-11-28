@@ -570,19 +570,16 @@ Future<void> undoCalendarImportDrafts(
   CompendiumRepositories repos,
   List<String> ids, {
   required DateTime now,
-}) async {
-  final untouched = [
-    for (final id in ids)
-      if (await repos.programs.getById(id) case final p?
-          when p.isUntouchedCalendarDraft)
-        id,
-  ];
-  await repos.transaction(() async {
-    for (final id in untouched) {
+}) => repos.transaction(() async {
+  // Read inside the transaction, so an edit cannot land between the check
+  // and the delete.
+  for (final id in ids) {
+    final p = await repos.programs.getById(id);
+    if (p != null && p.isUntouchedCalendarDraft) {
       await repos.programs.softDelete(id, at: now);
     }
-  });
-}
+  }
+});
 
 /// One program a calendar import updated: as it was, and the stamp written.
 class CalendarUpdateRecord {

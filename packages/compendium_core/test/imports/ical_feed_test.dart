@@ -1217,29 +1217,47 @@ void main() {
       expect(p.candidates, hasLength(n));
     });
 
-    test('a second series with the same UID is not offered, but its dates '
-        'are still known', () {
+    test('every series sharing a UID offers its own dates, even after a '
+        'cancelled one, and their overrides once', () {
       final p = plan(
         _cal([
           [
             'UID:s',
             'DTSTART;VALUE=DATE:20300601',
             'RRULE:FREQ=WEEKLY',
-            'SUMMARY:First',
+            'STATUS:CANCELLED',
+            'SUMMARY:Cancelled',
           ],
           [
             'UID:s',
             'DTSTART;VALUE=DATE:20300602',
             'RRULE:FREQ=WEEKLY',
-            'SUMMARY:Second',
+            'SUMMARY:Sunday',
+          ],
+          [
+            'UID:s',
+            'DTSTART;VALUE=DATE:20300604',
+            'RRULE:FREQ=WEEKLY',
+            'SUMMARY:Tuesday',
+          ],
+          [
+            'UID:s',
+            'RECURRENCE-ID;VALUE=DATE:20300618',
+            'DTSTART;VALUE=DATE:20300619',
+            'SUMMARY:Moved',
           ],
         ]),
       );
-      expect(p.candidates.map((c) => c.title).toSet(), {'First'});
+      final titles = [for (final c in p.candidates) c.title];
+      expect(titles.where((t) => t == 'Sunday'), hasLength(5));
+      // 18, 25 June, 2 and 9 July, less the 18th, which the override moves.
+      expect(titles.where((t) => t == 'Tuesday'), hasLength(3));
+      expect(titles.where((t) => t == 'Moved'), hasLength(1));
+      expect(titles, isNot(contains('Cancelled')));
       expect(
-        p.knownKeys,
-        contains(calendarEventKey('s', '20300616')),
-        reason: 'never a false "gone" for a program from the second',
+        [for (final c in p.candidates) c.date],
+        isNot(contains(utcDay(2030, 6, 18))),
+        reason: 'the moved occurrence is not offered as well',
       );
     });
   });
@@ -1389,6 +1407,17 @@ void main() {
           reason: 'UTC$hours',
         );
       }
+      // The last day's local midnight in a calendar two hours east of
+      // Greenwich, read there.
+      expect(
+        dates(
+          plan(
+            body.replaceFirst('20300618T000000Z', '20300617T220000Z'),
+            toLocal: (u) => u.add(const Duration(hours: 2)),
+          ),
+        ),
+        [utcDay(2030, 6, 16), utcDay(2030, 6, 17), utcDay(2030, 6, 18)],
+      );
     });
   });
 }
