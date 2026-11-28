@@ -408,6 +408,10 @@ void main() {
         find.byKey(ValueKey('event-rule-delete-${rules.first.id}')),
       );
       await tester.pumpAndSettle();
+      expect(
+        tester.takeAnnouncements().map((a) => a.message),
+        contains("Couldn't delete the rule. Try again."),
+      );
       final snack = find.byKey(const ValueKey('event-rule-delete-failed'));
       expect(snack, findsOneWidget);
       expect(
@@ -430,6 +434,12 @@ void main() {
         find.byKey(ValueKey('event-rule-${rules.first.id}-move-down')),
       );
       await tester.pumpAndSettle();
+      // Said aloud too: with a screen reader on, an Undo prompt still up
+      // never times out, and the snackbar would wait behind it.
+      expect(
+        tester.takeAnnouncements().map((a) => a.message),
+        contains("Couldn't move the rule. Try again."),
+      );
       final snack = find.byKey(const ValueKey('event-rule-move-failed'));
       expect(snack, findsOneWidget);
       expect(
