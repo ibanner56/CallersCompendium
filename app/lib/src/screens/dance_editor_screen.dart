@@ -866,6 +866,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                 DateFormatScope.of(context),
                 MaterialLocalizations.of(context),
                 l10n,
+                use24Hour: use24HourClockOf(context),
               ),
             ),
           ),

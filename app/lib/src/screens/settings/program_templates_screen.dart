@@ -974,12 +974,15 @@ class _ProgramTemplateEditorScreenState
       eventRuleIds: List.unmodifiable(_eventRuleIds),
     );
     final saving = _template.entries;
+    final messenger = ScaffoldMessenger.of(context);
+    final saveError = AppLocalizations.of(context).programTemplateSaveError;
     try {
       await saveProgramTemplate(
         RepositoriesScope.of(context).settings,
         _template,
         checkSlotRules: SlotRuleSearchCheck.added,
       );
+      _lastSaveFailed = false;
       // Saved: an edit this save carried has nothing left to undo.
       _editedFrom.removeWhere(
         (edited, _) => saving.any((entry) => identical(entry, edited)),
@@ -993,8 +996,24 @@ class _ProgramTemplateEditorScreenState
         stackTrace,
         source: 'program_templates_screen.save',
       );
+      // Say so, as the template list's own writes do, so an edit that did not
+      // save never looks saved. Once until a save succeeds: the name field
+      // saves on every keystroke, and one failing store would otherwise
+      // queue a message per letter.
+      if (!_lastSaveFailed) {
+        _lastSaveFailed = true;
+        messenger.showSnackBar(
+          SnackBar(
+            key: const ValueKey('program-template-save-error'),
+            content: Text(saveError),
+          ),
+        );
+      }
     }
   }
+
+  /// Whether the last save failed and said so ([_persist]).
+  bool _lastSaveFailed = false;
 
   /// A save was refused because a slot rule added or changed here names the
   /// saved search [goneId], which is no longer stored (#2529): nothing was
@@ -1331,6 +1350,10 @@ class _ProgramTemplateSlotsEditorState
                 // slot, so a screen reader can tell one row's buttons from
                 // the next (pre-release audit finding D1a-06).
                 final name = title.isNotEmpty ? title : ruleSubtitle ?? badge;
+                // The buttons also say the slot's position, since two slots
+                // can share a label, such as two Breaks (the maintainer's
+                // ruling, 2026-11-28: "Slot 3, Break: move up").
+                final position = index + 1;
                 void move(int to) {
                   setState(() {
                     final key = _entryKeys.removeAt(index);
@@ -1387,20 +1410,32 @@ class _ProgramTemplateSlotsEditorState
                       if (entry.isRule && widget.onEditRule != null)
                         IconButton(
                           key: ValueKey('program-template-rule-edit-$index'),
-                          tooltip: l10n.programTemplateSlotEditTooltip(name),
+                          tooltip: l10n.programTemplateSlotEditTooltip(
+                            position,
+                            name,
+                          ),
                           icon: const Icon(Icons.edit_outlined),
                           onPressed: () => widget.onEditRule!(index),
                         ),
                       ReorderMoveButtons(
                         keyPrefix: 'program-template-slot-$index',
                         name: name,
+                        moveUpTooltip: l10n.programTemplateSlotMoveUpTooltip(
+                          position,
+                          name,
+                        ),
+                        moveDownTooltip: l10n
+                            .programTemplateSlotMoveDownTooltip(position, name),
                         onMoveUp: index == 0 ? null : () => move(index - 1),
                         onMoveDown: index == widget.entries.length - 1
                             ? null
                             : () => move(index + 1),
                       ),
                       IconButton(
-                        tooltip: l10n.programTemplateSlotDeleteTooltip(name),
+                        tooltip: l10n.programTemplateSlotDeleteTooltip(
+                          position,
+                          name,
+                        ),
                         icon: const Icon(Icons.delete_outline),
                         onPressed: () {
                           setState(() => _entryKeys.removeAt(index));
