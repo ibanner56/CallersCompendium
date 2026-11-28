@@ -156,8 +156,9 @@ class DanceCardContent {
   /// Formation/level/mixer/status/phrase lines, already gated and labelled.
   final List<String> metaLines;
 
-  /// The meter and key line and the Barnes line, labelled, with their values
-  /// dialect-rendered (see [danceCardMusicLines]); empty when
+  /// The meter and key line and the Barnes line, labelled, with the meter
+  /// and key dialect-rendered and the Barnes reference as typed (see
+  /// [danceCardMusicLines]); empty when
   /// [DanceShareField.music] is deselected or the dance has none of them.
   final List<String> musicLines;
 

@@ -1572,16 +1572,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
           const SizedBox(height: AppSpacing.xxs),
           SelectableLine(
+            // As typed, as the title is: a Barnes reference names a book and
+            // often a tune, whose name the discouraged-term conversion would
+            // reword (the maintainer, decision sheet question 18).
             child: Text(
-              canonicalDiscouragedTerms
-                  ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                      dance.barnesReference,
-                      dialect,
-                    )
-                  : _proseRenderer.renderFreeText(
-                      dance.barnesReference,
-                      dialect,
-                    ),
+              dance.barnesReference,
               key: const ValueKey('dance-barnes-reference'),
             ),
           ),

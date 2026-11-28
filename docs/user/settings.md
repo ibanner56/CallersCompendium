@@ -599,7 +599,8 @@ role names and wording the app uses when it describes dances.
 - **Auto-convert all discouraged terms** (on by default) — show supported
   discouraged terms in canonical wording across read-only dance details,
   shorthands, notes, Perform mode, and exports. Saved text and entry fields are
-  unchanged.
+  unchanged, and a dance's title, other titles and Barnes reference always show
+  as you typed them.
 - **Open dance details in canonical terms** — when this and **Canonical figure
   text** are both on, dance details open in canonical wording. While
   **Canonical figure text** is off, this preference is kept but has no effect.

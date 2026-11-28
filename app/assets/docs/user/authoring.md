@@ -980,7 +980,10 @@ another where there is not.
   when it is not in them. It sits beside **Meter** and **Key**, or under them
   on a narrow screen. Changing a
   dance to another type clears it when you save. The dance's detail view shows it under
-  **Barnes books**, and its Perform card as *Barnes: BIII p. 92*.
+  **Barnes books**, and its Perform card as *Barnes: BIII p. 92*. It shows as you
+  typed it, as the title does, everywhere, printed and shared cards included:
+  **Auto-convert all discouraged terms** leaves it alone, so a tune named in
+  it, such as *Ladies of London*, keeps its name.
 
 ### Notes
 
