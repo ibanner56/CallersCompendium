@@ -4428,6 +4428,10 @@ void main() {
         ),
         (Formation(FormationShape.threeCoupleLongways), FormationShape.triplet),
         (
+          Formation(FormationShape.threeCoupleLongways, improper: true),
+          FormationShape.triplet,
+        ),
+        (
           Formation(FormationShape.fourCoupleLongways),
           FormationShape.quadruplet,
         ),
@@ -4494,6 +4498,28 @@ void main() {
         addTearDown(controller.dispose);
 
         controller.setForm(DanceForm.contra);
+        controller.setFormationShape(FormationShape.dupleProper);
+        controller.setForm(DanceForm.ecd);
+        expect(
+          controller.buildDance().formation,
+          const Formation(FormationShape.dupleMinor),
+        );
+      });
+
+      test('a contra duple proper chosen after a three-couple set with '
+          'Starts improper went to contra goes back proper', () async {
+        // The kept checkbox of a triplet must not override what a duple
+        // contra shape says.
+        final repos = openTestRepositories();
+        final controller = await openSaved(
+          repos,
+          DanceForm.ecd,
+          const Formation(FormationShape.threeCoupleLongways, improper: true),
+        );
+        addTearDown(controller.dispose);
+
+        controller.setForm(DanceForm.contra);
+        expect(controller.formationShape, FormationShape.triplet);
         controller.setFormationShape(FormationShape.dupleProper);
         controller.setForm(DanceForm.ecd);
         expect(
