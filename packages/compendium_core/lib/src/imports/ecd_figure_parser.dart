@@ -726,6 +726,8 @@ final List<_VerbPhrase> _verbPhrases = [
   _v('turn single', 'turn_single'),
   _v('cloverleaf turn single', 'turn_single', {'cloverleaf': true}),
   _v('turn alone', 'turn_alone'),
+  // User-ruled 2026-11-27: turn around is turn alone, in every grammar.
+  _v('turn around', 'turn_alone'),
   _v('hand turn', 'turn'),
   _v('turn', 'turn'),
   _v('two hand turn', 'turn', {'hand': 'two'}),

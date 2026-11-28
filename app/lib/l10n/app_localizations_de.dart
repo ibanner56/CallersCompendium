@@ -766,6 +766,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Einstellungen der Gerätesynchronisierung konnten nicht gelesen werden, daher können die hier angezeigten Einstellungen veraltet sein, und die Gerätesynchronisierung kann ausgeschaltet sein, obwohl du sie eingeschaltet hast. Starte die App neu, um es erneut zu versuchen.';
 
   @override
+  String get syncRestoredCopyNotice =>
+      'Die Gerätesynchronisierung ist ausgeschaltet, weil diese Bibliothek aus einer Gerätesicherung wiederhergestellt wurde. Schalte sie unter Einstellungen ▸ Experimentell ▸ Gerätesynchronisierung wieder ein, dann synchronisiert dieses Gerät als neues Gerät und nicht als das Gerät, von dem die Sicherung stammt.';
+
+  @override
   String get settingsSyncFailureUnreachable =>
       'Der Synchronisierungsserver war nicht erreichbar.';
 

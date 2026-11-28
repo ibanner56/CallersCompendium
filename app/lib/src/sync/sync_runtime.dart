@@ -21,7 +21,9 @@ import 'sync_invalidation.dart';
 /// A missing sync ID is also the disabled state. The device identifier belongs
 /// to one attachment: it is generated when the first coordinator for that
 /// attachment is built, erased when the device detaches, and never taken from a
-/// peer or a backup.
+/// peer or a backup file. One a device backup copied is erased at start-up on
+/// Android and iOS before this runs, for a backup this build or a later one
+/// took (`checkRestoredCopy`, spec §3.3).
 ///
 /// The endpoint is the one recorded at pairing, which always writes it before
 /// the sync ID; a missing endpoint is therefore also the disabled state.
