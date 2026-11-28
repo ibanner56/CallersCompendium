@@ -257,6 +257,49 @@ void main() {
     });
   }
 
+  testWidgets("a dialog opened from the stage gets the stage theme's ring", (
+    tester,
+  ) async {
+    // Perform's exit dialog and its sheets are shown from a context under the
+    // stage theme, which a dialog route captures.
+    final appTheme = AppTheme.fromScheme(GalleryPalettes.tokyoNightLight);
+    await pump(
+      tester,
+      PerformStageTheme(
+        enabled: true,
+        child: Builder(
+          builder: (context) => Center(
+            child: TextButton(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  content: const Text('Leave?'),
+                  actions: [
+                    TextButton(onPressed: () {}, child: const Text('Stay')),
+                  ],
+                ),
+              ),
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      ),
+      theme: appTheme,
+    );
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tabTo(tester, find.widgetWithText(TextButton, 'Stay'));
+    final painter = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((p) => p.painter)
+        .whereType<FocusRingPainter>()
+        .single;
+    expect(
+      painter.color,
+      AppTheme.highContrast.extension<AppThemeExtension>()!.focusRing,
+    );
+  });
+
   testWidgets('off the stage the ring keeps the app theme', (tester) async {
     final appTheme = AppTheme.fromScheme(GalleryPalettes.tokyoNightLight);
     final button = IconButton(icon: const Icon(Icons.add), onPressed: () {});

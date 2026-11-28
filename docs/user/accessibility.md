@@ -83,7 +83,9 @@ lighting — without changing the theme you use everywhere else. The **Stage the
 toggle stays in Perform's toolbar even on a phone, so it's always one reach away,
 and its tooltip says which state you're in: *Stage theme on — tap to use app
 theme*, or *Stage theme off — tap for dark stage*. Your choice is remembered, so
-once you've set it for the hall you call in, it's there next time.
+once you've set it for the hall you call in, it's there next time. With the stage
+theme on, the keyboard focus outline in Perform, and in its dialogs and sheets, is
+the stage's own bright yellow, whichever theme you use elsewhere.
 
 ## Using a screen reader
 
