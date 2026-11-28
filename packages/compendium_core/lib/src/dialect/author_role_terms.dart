@@ -109,22 +109,29 @@ bool _isLarksRobinsChoreographer(String name) {
 }
 
 /// The people one author name credits: [name] split at `&`, `+`, `/`, `;`
-/// and the words "and" and "with", then at commas when every part names a
-/// person in two or more words ("Rachel Smith, Bob Fifer"), but not when a
-/// comma puts a family name first ("Fifer, Rachel") or adds a year ("Rae
-/// Fifer, 2019").
+/// and the words "and" and "with", then into its comma pieces. A piece of two
+/// or more name words is a person ("Rachel Smith, Bob Fifer", "Bob Fifer,
+/// Rachel"). A piece of one word is a family name put first, and the next
+/// piece is its given names ("Fifer, Rachel", "Fifer, Rachel (Rae)", "Bob
+/// Smith, Fifer, Rachel"). A piece with no name word (a year, "Rae Fifer,
+/// 2019") belongs to no one.
 List<String> _credits(String name) {
   final credits = <String>[];
   for (final part in name.split(_creditSeparator)) {
-    // A piece with no name word (a year) belongs to no one.
-    final named = [
-      for (final p in part.split(','))
-        if (_words(p).any(_isNameWord)) p,
-    ];
-    final eachAPerson =
-        named.length > 1 &&
-        named.every((p) => _words(p).where(_isNameWord).length >= 2);
-    credits.addAll(eachAPerson ? named : [part]);
+    String? familyFirst;
+    for (final piece in part.split(',')) {
+      final words = _words(piece).where(_isNameWord).length;
+      if (words == 0) continue;
+      if (familyFirst != null) {
+        credits.add('$familyFirst $piece');
+        familyFirst = null;
+      } else if (words == 1) {
+        familyFirst = piece;
+      } else {
+        credits.add(piece);
+      }
+    }
+    if (familyFirst != null) credits.add(familyFirst);
   }
   return credits;
 }
