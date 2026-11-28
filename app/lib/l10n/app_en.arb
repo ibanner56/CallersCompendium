@@ -6789,6 +6789,34 @@
       }
     }
   },
+  "exportPhrasesOfBars": "{phrases, plural, =1{1 phrase} other{{phrases} phrases}} of {bars}",
+  "@exportPhrasesOfBars": {
+    "description": "On a printed card, a run of an English dance's phrases that have no names: {phrases} of them, each {bars} long ({bars} is already a count of bars with its unit, such as \"8 bars\"), so 4*8*3 prints \"4 phrases of 8 bars\".",
+    "placeholders": {
+      "phrases": {
+        "type": "int",
+        "example": "4"
+      },
+      "bars": {
+        "type": "String",
+        "example": "8 bars"
+      }
+    }
+  },
+  "exportBarsOfBeats": "{bars} of {beats, plural, =1{1 beat} other{{beats} beats}}",
+  "@exportBarsOfBeats": {
+    "description": "On a printed card, a phrase's bars with the beats to the bar, for an English tune whose phrases differ in meter: {bars} is a count of bars with its unit, such as \"4 bars\", and {beats} the beats in each bar, as in \"4 bars of 3 beats\".",
+    "placeholders": {
+      "bars": {
+        "type": "String",
+        "example": "4 bars"
+      },
+      "beats": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "exportNamedPhraseSeparator": ", ",
   "@exportNamedPhraseSeparator": {
     "description": "Between two phrases' lengths inside exportNamedPhrases, such as the comma and space in \"A 4 bars, B 8 bars\". Use the locale's list separator; keep any trailing space it needs."
@@ -6823,6 +6851,20 @@
     "placeholders": {
       "max": {
         "type": "int"
+      }
+    }
+  },
+  "danceEditorBarsSpanRangeError": "Enter from {min} to {max} bars",
+  "@danceEditorBarsSpanRangeError": {
+    "description": "Error under the Bars for all field of an English sequence when the text is less than the smallest span it takes: {min} is half a bar (½), or 1 where the tune is in triple time and half a bar is refused, and {max} the most whole bars it takes.",
+    "placeholders": {
+      "min": {
+        "type": "String",
+        "example": "½"
+      },
+      "max": {
+        "type": "int",
+        "example": "32"
       }
     }
   },
@@ -9218,9 +9260,9 @@
   "@performProgression": {
     "description": "Tooltip on the progression marker icon shown beside a progressing figure on the perform-mode card."
   },
-  "performFigureSemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}, {beats, plural, =1{1 beat} other{{beats} beats}}{hasNote, select, yes{, note: {note}} other{}}",
+  "performFigureSemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}, {timing}{hasNote, select, yes{, note: {note}} other{}}",
   "@performFigureSemantic": {
-    "description": "Screen-reader label for one figure row on the perform-mode card: the figure text, an optional import-gap note, an optional progression marker, the beat count, and an optional caller note.",
+    "description": "Screen-reader label for one figure row on the perform-mode card: the figure text, an optional import-gap note, an optional progression marker, the count, and an optional caller note. {timing} is the count as the screen shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
       "main": {
         "type": "String",
@@ -9238,9 +9280,9 @@
         "type": "String",
         "example": "no"
       },
-      "beats": {
-        "type": "int",
-        "example": "16"
+      "timing": {
+        "type": "String",
+        "example": "4 bars"
       },
       "hasNote": {
         "type": "String",
@@ -13408,17 +13450,17 @@
       }
     }
   },
-  "danceEditorCompoundExpandsTo": "Becomes {count, plural, =1{1 figure} other{{count} figures}} ({beats, plural, =1{1 beat} other{{beats} beats}}) when the dance is saved.",
+  "danceEditorCompoundExpandsTo": "Becomes {count, plural, =1{1 figure} other{{count} figures}} ({timing}) when the dance is saved.",
   "@danceEditorCompoundExpandsTo": {
-    "description": "Under a custom figure being edited in a dance: how many figures, and how many beats, it is replaced by when the dance is saved.",
+    "description": "Under a custom figure being edited in a dance: how many figures it is replaced by, and how long they are when the dance is saved. {timing} is the count as the screen shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
       "count": {
         "type": "int",
         "example": "4"
       },
-      "beats": {
-        "type": "int",
-        "example": "8"
+      "timing": {
+        "type": "String",
+        "example": "4 bars"
       }
     }
   },
@@ -13430,9 +13472,9 @@
   "@danceEditorIncompleteFigure": {
     "description": "Shown on a dance's figure row (AUTH-2) that saving would leave out because it is not complete: a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, a group holding such a group, or a row with no move that holds something other than a note. Matches the Warnings entry validationIncompleteFigure. 'Save' is the editor's Save button (commonSave)."
   },
-  "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 beat} other{{beats} beats}}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figure {position} of {total}.",
+  "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {timing}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figure {position} of {total}.",
   "@danceEditorFigureSummarySemantic": {
-    "description": "Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position.",
+    "description": "Composite screen-reader label for a figure row, including optional import-gap, progression, count, and note details plus row position. {timing} is the count as the screen shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
       "main": {
         "type": "String",
@@ -13454,9 +13496,9 @@
         "type": "String",
         "example": "yes"
       },
-      "beats": {
-        "type": "int",
-        "example": "16"
+      "timing": {
+        "type": "String",
+        "example": "4 bars"
       },
       "hasNote": {
         "type": "String",
@@ -13612,17 +13654,17 @@
       }
     }
   },
-  "danceEditorSequenceGroupSemantic": "Sequence group, {count, plural, =1{1 figure} other{{count} figures}} in order, {beats, plural, =1{1 beat} other{{beats} beats}} in total.",
+  "danceEditorSequenceGroupSemantic": "Sequence group, {count, plural, =1{1 figure} other{{count} figures}} in order, {timing} in total.",
   "@danceEditorSequenceGroupSemantic": {
-    "description": "Screen-reader label for a sequence group's expanded editor region. The beat count is the total of its figures' own counts.",
+    "description": "Screen-reader label for a sequence group's expanded editor region. The count is the total of its figures' own counts, or the span the sequence states. {timing} is the group's count as its row shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
       "count": {
         "type": "int",
         "example": "3"
       },
-      "beats": {
-        "type": "int",
-        "example": "16"
+      "timing": {
+        "type": "String",
+        "example": "16 beats"
       }
     }
   },
@@ -13711,12 +13753,13 @@
       }
     }
   },
-  "danceEditorModifierGroupSemantic": "Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {beats, plural, =1{1 beat} other{{beats} beats}}.",
+  "danceEditorModifierGroupSemantic": "Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {timing}.",
   "@danceEditorModifierGroupSemantic": {
-    "description": "Accessibility label for a modifier group. Placeholders stay declared beats, then count: that order is the generated method's parameter order, and its caller passes them positionally.",
+    "description": "Accessibility label for a modifier group. Placeholders stay declared timing, then count: that order is the generated method's parameter order, and its caller passes them positionally. {timing} is the group's count as its row shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
-      "beats": {
-        "type": "num"
+      "timing": {
+        "type": "String",
+        "example": "16 beats"
       },
       "count": {
         "type": "num"
@@ -13771,17 +13814,17 @@
       }
     }
   },
-  "danceEditorMeanwhileGroupSemantic": "Meanwhile group, {count, plural, =1{1 concurrent figure} other{{count} concurrent figures}}, {beats, plural, =1{1 shared beat} other{{beats} shared beats}}.",
+  "danceEditorMeanwhileGroupSemantic": "Meanwhile group, {count, plural, =1{1 concurrent figure} other{{count} concurrent figures}}, sharing {timing}.",
   "@danceEditorMeanwhileGroupSemantic": {
-    "description": "Screen-reader label for a meanwhile group's expanded editor region, making explicit that the beat count is SHARED across all sides, not per side.",
+    "description": "Screen-reader label for a meanwhile group's expanded editor region, making explicit that the count is SHARED across all sides, not per side. {timing} is the group's count as its row shows it, such as \"16 beats\", or \"4 bars\" for an English dance.",
     "placeholders": {
       "count": {
         "type": "int",
         "example": "2"
       },
-      "beats": {
-        "type": "int",
-        "example": "16"
+      "timing": {
+        "type": "String",
+        "example": "16 beats"
       }
     }
   },
@@ -13922,6 +13965,44 @@
       "beats": {
         "type": "int",
         "example": "4"
+      }
+    }
+  },
+  "danceEditorBarTotal": "Total: {total} / {expected} {expectedHalfBars, plural, =1{bar} =2{bar} other{bars}}",
+  "@danceEditorBarTotal": {
+    "description": "Summary of an English dance's figures in bars versus the phrase structure's bars: {total} and {expected} are counts as written, such as 32 or 31½; {expectedHalfBars} is {expected} in half bars, which picks the plural (1 is half a bar, 2 is one bar).",
+    "placeholders": {
+      "total": {
+        "type": "String",
+        "example": "8"
+      },
+      "expected": {
+        "type": "String",
+        "example": "32"
+      },
+      "expectedHalfBars": {
+        "type": "int",
+        "example": "64"
+      }
+    }
+  },
+  "danceEditorOverByBars": "Over by {count}",
+  "@danceEditorOverByBars": {
+    "description": "Under the total: an English dance's figures are longer than its phrase structure by {count}, a count of bars with its unit, such as \"4 bars\" or \"½ bar\".",
+    "placeholders": {
+      "count": {
+        "type": "String",
+        "example": "4 bars"
+      }
+    }
+  },
+  "danceEditorUnderByBars": "Under by {count}",
+  "@danceEditorUnderByBars": {
+    "description": "Under the total: an English dance's figures are shorter than its phrase structure by {count}, a count of bars with its unit, such as \"4 bars\" or \"½ bar\".",
+    "placeholders": {
+      "count": {
+        "type": "String",
+        "example": "4 bars"
       }
     }
   },

@@ -152,6 +152,7 @@ class BarsField extends StatefulWidget {
     required this.onChanged,
     this.allowsUntimed = false,
     this.emptyHint,
+    this.minHalfBars = 0,
     this.maxBeats = 64,
   });
 
@@ -170,6 +171,12 @@ class BarsField extends StatefulWidget {
   /// What an empty field says, with [allowsUntimed]; "no timing of its own"
   /// when null.
   final String? emptyHint;
+
+  /// The smallest count the field takes, in half bars: 1 for a sequence's
+  /// span, which a count of 0 would leave its untimed steps no time, as
+  /// [BeatsField.minBeats] is for a square's (pre-release audit finding
+  /// GAPE-03).
+  final int minHalfBars;
 
   /// The largest count the field takes, in beats.
   final int maxBeats;
@@ -192,7 +199,7 @@ class _BarsFieldState extends State<BarsField> {
 
   int? _beatsOf(String text) {
     final halfBars = parseHalfBars(text);
-    if (halfBars == null) return null;
+    if (halfBars == null || halfBars < widget.minHalfBars) return null;
     return widget.timing.beatsForHalfBars(widget.startBeat, halfBars);
   }
 
@@ -271,7 +278,23 @@ class _BarsFieldState extends State<BarsField> {
             }
           } else {
             final halfBars = parseHalfBars(trimmed);
-            if (halfBars == null ||
+            if (halfBars != null && halfBars < widget.minHalfBars) {
+              // The least it takes: half a bar, or a whole one where half a
+              // bar is refused, as in triple time.
+              final least =
+                  widget.minHalfBars.isOdd &&
+                      timing.beatsForHalfBars(start, widget.minHalfBars) == null
+                  ? widget.minHalfBars + 1
+                  : widget.minHalfBars;
+              error = l10n.danceEditorBarsSpanRangeError(
+                least.isEven
+                    ? '${least ~/ 2}'
+                    : least == 1
+                    ? '½'
+                    : '${least ~/ 2}½',
+                timing.maxBarsWithin(start, widget.maxBeats),
+              );
+            } else if (halfBars == null ||
                 timing.doubledBeatsForHalfBars(start, halfBars) >
                     widget.maxBeats * 2) {
               error = l10n.danceEditorBarsRangeError(

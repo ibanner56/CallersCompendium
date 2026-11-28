@@ -68,9 +68,11 @@ class _NamePickerState extends State<NamePicker> {
     return MultiSelectDropdown(
       fieldKey: widget.fieldKey,
       semanticLabel: widget.sheetSemanticLabel,
-      valueText: widget.selectedIds
-          .map((id) => widget.namesById[id] ?? id)
-          .join(', '),
+      // A name stored family name first keeps its comma, so the names are
+      // then set apart with semicolons (pre-release audit finding A2-06).
+      valueText: joinPersonNames(
+        widget.selectedIds.map((id) => widget.namesById[id] ?? id),
+      ),
       decoration: InputDecoration(hintText: l10n.danceEditorChooseHint),
       panelBuilder: (context, placement) => _NamePickerPanel(
         owner: this,
