@@ -1,7 +1,8 @@
 # Backup & portability
 
 Caller's Compendium keeps everything on your own device — there's no
-cloud account, and nothing leaves your device unless you send it. That's
+cloud account, and nothing leaves your device unless you send it, or your
+device's [own backup](#your-devices-own-backup) copies it. That's
 good for privacy and for working offline at a hall with spotty signal, but
 it also means you keep your own safety copy. A backup is a single file that
 holds your whole library, ready to bring back if a device is lost,
@@ -260,6 +261,11 @@ round trip — what you save is what you get back:
 Your collection, programs, dialects, themes, and settings all arrive
 intact.
 
+If you set up the new phone or tablet by copying everything across from the
+old one, your device may already have brought the app's data with it, calendar
+address and Device Sync settings included: see
+[Your device's own backup](#your-devices-own-backup).
+
 ## Backup reminders
 
 If you'd like a nudge to stay current, the **Backup & restore** section
@@ -285,6 +291,40 @@ nothing to manage — it's an extra safety net across updates.
 
 This snapshot is a bonus, not a replacement. Your own exported backups are
 the copies you can move between devices and store wherever you like.
+
+## Your device's own backup
+
+Your phone, tablet or computer can also back up the app along with your other
+apps. That copy is made by your device's system, not by Caller's Compendium,
+and it is not the same as a backup file you export here.
+
+- **Android.** The app does not opt out of Android's backup. If backup to your
+  Google account is turned on in your phone's settings, Android can copy the
+  app's data to your Google account, and puts it back when you reinstall the
+  app or set up a new phone from that backup. Moving to a new phone with
+  Android's transfer from the old one can copy it too.
+- **iPhone and iPad.** The app doesn't exclude its data from Apple's backup, so
+  an iCloud or computer backup of the device can copy it, and so can moving to
+  a new iPhone or iPad from the old one. Restoring the device from that backup
+  puts the data back.
+
+That copy is the app's stored data, so it includes what an
+exported backup leaves out: your [calendar address](./settings.md#calendar),
+everything about [Device Sync](./settings.md#device-sync), half-finished edits
+you hadn't saved, and the [diagnostics log](./settings.md#diagnostics). A phone
+set up from it already has your calendar address. When the app can tell the
+copy was restored, it forgets the old device's identity the first time it opens
+there and, if Device Sync was on, turns it off with a message; when you turn it
+back on, the phone connects as a device of its own (see
+[Device Sync](./settings.md#device-sync)). It can't tell for a backup made
+before the app had been opened on a version later than 0.10.0: from one of
+those, Device Sync stays as it was in the copy, under the old device's identity.
+Device Sync isn't built for two devices sharing one identity.
+
+Whether your device makes these copies is set in your device's own backup
+settings; the app has no setting for it. Uninstalling the app doesn't delete a
+copy already made. We never receive these copies; see the
+[privacy policy](https://ibanner56.github.io/CallersCompendium/privacy/).
 
 ## Backups vs. sharing vs. importing
 

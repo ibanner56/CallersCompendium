@@ -6280,10 +6280,10 @@ abstract class AppLocalizations {
   /// **'Couldn\'t show this part of the app'**
   String get crashFallbackTitle;
 
-  /// Body text in the friendly crash fallback widget explaining that details were saved locally only.
+  /// Body text in the friendly crash fallback widget explaining that the details were saved to a log on this device that the app never sends anywhere. Not 'never leaves your device': the device's own backup (Android backup, iCloud) can copy the app's data, the log included.
   ///
   /// In en, this message translates to:
-  /// **'This part of the app hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device. Go back and try again.'**
+  /// **'This part of the app hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that the app never sends anywhere. Go back and try again.'**
   String get crashFallbackBody;
 
   /// Button label in the crash fallback widget after copying error details to the clipboard.
