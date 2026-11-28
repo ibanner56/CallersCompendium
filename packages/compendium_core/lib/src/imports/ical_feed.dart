@@ -867,7 +867,8 @@ class CalendarImportPlan {
   /// Every event the feed holds and does not cancel, whatever its date or
   /// the title filter (#2354): single events and overrides at any date, and
   /// a readable series' occurrences from 31 days back to a day past the
-  /// window, less those its `EXDATE` removes. A program whose key is here is
+  /// window, or past day [iCalRepeatHorizonDays] if that is later, less those
+  /// its `EXDATE` removes. A program whose key is here is
   /// not gone, wherever its event or its one occurrence moved. A series'
   /// occurrence is known by its `UID` and its written date and time, so a
   /// series moved to another day or time, or split "this and following" (a
@@ -1030,6 +1031,9 @@ CalendarImportPlan planCalendarImport(
   final day0 = DateTime.utc(today.year, today.month, today.day);
   final windowEnd = _addMonths(day0, windowMonths);
   final horizonEnd = day0.add(const Duration(days: iCalRepeatHorizonDays));
+  final walkEnd = (windowEnd.isAfter(horizonEnd) ? windowEnd : horizonEnd).add(
+    const Duration(days: 1),
+  );
   final filter = titleFilter?.trim().toLowerCase();
 
   // Overrides, by series UID and the recurrence id they replace.
@@ -1137,12 +1141,13 @@ CalendarImportPlan planCalendarImport(
       continue;
     }
     // One walk per series, over everything either use below needs: from 31
-    // days back (the known keys) to a day past the window.
+    // days back (the known keys) to a day past the later of the window (the
+    // known keys) and day [iCalRepeatHorizonDays] (the offers).
     final until = rule.until;
     final untilKey = until == null ? null : _untilKey(until, e.start, localOf);
     final walk = rule.datesThrough(
       e.start.writtenDate,
-      windowEnd.add(const Duration(days: 1)),
+      walkEnd,
       from: day0.subtract(const Duration(days: 31)),
       beforeOrAtUntil: (d) =>
           untilKey == null || e.start.onDate(d)._sortKey <= untilKey,
@@ -1204,9 +1209,9 @@ CalendarImportPlan planCalendarImport(
   // never taken for gone. (A whole series moved, re-ruled or split gets new
   // keys; see [CalendarImportPlan.knownKeys].)
   // Single events and overrides at any date, here; a readable series'
-  // occurrences from 31 days back to a day past the window (a program's own
-  // date can have been edited away from its occurrence's), less the dates
-  // its `EXDATE` removes, in the series loop above, from the same walk as
+  // occurrences from 31 days back to a day past the window or day 30, if
+  // later (a program's own date can have been edited away from its
+  // occurrence's), less the dates its `EXDATE` removes, in the series loop above, from the same walk as
   // its offers: a deleted occurrence is gone. A moved one is an override,
   // known by its own recurrence id.
   for (final e in feed.events) {

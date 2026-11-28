@@ -1070,6 +1070,22 @@ void main() {
       }
     });
 
+    test('a series is read 30 days ahead even when the window is shorter', () {
+      // One walk serves the offers and the known keys: it must reach the
+      // later of the window's end and day 30.
+      for (final months in [0, 1]) {
+        final p = plan(
+          _cal([
+            ['UID:d', 'DTSTART;VALUE=DATE:20300101', 'RRULE:FREQ=DAILY'],
+          ]),
+          windowMonths: months,
+          on: DateTime(2031, 2, 1),
+        );
+        expect(p.candidates, hasLength(31), reason: '$months months');
+        expect(dates(p).last, utcDay(2031, 3, 3), reason: '$months months');
+      }
+    });
+
     test('moving the clock forward a week offers the newly in-range '
         'occurrences', () {
       final body = _cal([
