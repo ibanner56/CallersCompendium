@@ -83,7 +83,11 @@ lighting — without changing the theme you use everywhere else. The **Stage the
 toggle stays in Perform's toolbar even on a phone, so it's always one reach away,
 and its tooltip says which state you're in: *Stage theme on — tap to use app
 theme*, or *Stage theme off — tap for dark stage*. Your choice is remembered, so
-once you've set it for the hall you call in, it's there next time.
+once you've set it for the hall you call in, it's there next time. With the stage
+theme on, the keyboard focus outline in Perform, and in its dialogs and sheets, is
+the stage's own bright yellow, whichever theme you use elsewhere. On an **Undo**
+message, in any theme, the outline takes the message's own accent color, so it
+stands out from the message's background.
 
 ## Using a screen reader
 
@@ -101,6 +105,9 @@ work, the app announces changes you'd otherwise have to see:
   know how many matches or selected items you have.
 - Moving a [slot](./glossary.md#slot) or a [figure](./glossary.md#figure) is
   announced as it happens.
+- With event rules on (**Settings ▸ Experimental ▸ Event rules**), the program
+  builder announces its Rules summary, such as "1 rule not met", when it
+  appears and whenever the number changes.
 - A [dance](./glossary.md#dance)'s figure list, the
   [program](./glossary.md#program) [matrix](./glossary.md#matrix) grid, and dance
   details all read as structured, spoken-friendly text. For example, a figure
@@ -151,6 +158,11 @@ and Linux and **Cmd** on a Mac:
   Dances your filters hide are not selected. Pressing it again leaves everything
   selected.
 - **Ctrl-,** (**Cmd-,**) opens **Settings**.
+- **Ctrl-Z** (**Cmd-Z**), while an **Undo** message is showing, presses its
+  **Undo**, wherever the keyboard focus is. In a text field it undoes your
+  typing instead, and in the dance editor it undoes your last edit, as it
+  always has. It does nothing while a dialog covers the message, or once
+  you've moved to another tab.
 - **Esc**, or **Ctrl-W** (**Cmd-W**), goes back. If a menu, a list of
   suggestions, or a dialog you could close by clicking outside it is open, it
   closes that first (a dialog holding text you have typed stays open, so that
@@ -269,8 +281,10 @@ A few smaller settings and behaviors round out the experience:
   stays on screen: 2, 5, 10 (the default) or 15 seconds, or **Until I close
   it**. Whatever you choose, the message also stays while you point at it with
   a mouse or move to its **Undo** button with the keyboard, and its full time
-  starts again when you move away. With a screen reader running, it stays until
-  you act on it or close it.
+  starts again when you move away. Each key you press also starts its full time
+  again, so it doesn't go while you're tabbing toward it; and you needn't tab
+  there at all: **Ctrl-Z** (**Cmd-Z** on a Mac) presses its **Undo**. With a
+  screen reader running, it stays until you act on it or close it.
 - **Meaning is never carried by color alone.** Statuses and special slots — like
   an [alt](./glossary.md#alt) — always include an icon and a text label as well as
   color, so nothing depends on being able to distinguish hues. That holds for the

@@ -15024,8 +15024,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'View, add, edit, reorder and delete your rules.';
 
   @override
-  String get eventRulesEmpty =>
-      'No rules yet. A rule uses one of your saved searches to say which dances it means.';
+  String get eventRulesEmptyTitle => 'No rules yet';
+
+  @override
+  String get eventRulesEmptyBody =>
+      'A rule uses one of your saved searches to say which dances it means. Choose New rule… to add one.';
+
+  @override
+  String get eventRulesLoadError =>
+      'Couldn\'t load your rules. Nothing was changed. Try again.';
+
+  @override
+  String get eventRuleDeleteFailed => 'Couldn\'t delete the rule. Try again.';
+
+  @override
+  String get eventRuleMoveFailed => 'Couldn\'t move the rule. Try again.';
 
   @override
   String get eventRulesNewRule => 'New rule…';

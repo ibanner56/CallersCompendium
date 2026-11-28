@@ -1,6 +1,8 @@
 // Settings ▸ Experimental ▸ Event rules (#2340): the switch, off by default,
 // Manage rules once it is on, the rules manager (add, edit, delete with Undo)
 // and the saved-search delete guard naming the rules that use the search.
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +13,8 @@ import 'package:compendium_app/src/screens/settings/collection_section.dart';
 import 'package:compendium_app/src/screens/settings/event_rules_screen.dart';
 import 'package:compendium_app/src/screens/settings/experimental_section.dart';
 import 'package:compendium_app/src/widgets/app_bar_text_action.dart';
+import 'package:compendium_app/src/widgets/empty_state.dart';
+import 'package:compendium_app/src/widgets/load_error_view.dart';
 
 import '../support/dropdown.dart';
 import '../support/l10n_harness.dart';
@@ -30,6 +34,7 @@ Future<ValueNotifier<bool>> _pump(
   CompendiumRepositories repos,
   Widget home, {
   bool enabled = false,
+  bool settle = true,
 }) async {
   await tester.binding.setSurfaceSize(const Size(800, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -46,7 +51,11 @@ Future<ValueNotifier<bool>> _pump(
       home: home,
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    await tester.pump();
+  }
   return on;
 }
 
@@ -250,8 +259,8 @@ void main() {
     await _pump(tester, repos, const EventRulesScreen(), enabled: true);
     expect(find.byKey(const ValueKey('event-rules-empty')), findsOneWidget);
 
-    // Add.
-    await tester.tap(find.byKey(const ValueKey('event-rules-new')));
+    // Add, from the empty state's own button.
+    await tester.tap(find.byKey(const ValueKey('event-rules-empty-add')));
     await tester.pumpAndSettle();
     await pickDropdownEntry(
       tester,
@@ -315,6 +324,175 @@ void main() {
     await tester.pumpAndSettle();
     await pumpUntilFound(tester, find.text('Two Beckets'));
     expect((await repos.eventRules.listAll()).single.id, rule.id);
+  });
+
+  // Audit F-05: the manager uses the shared patterns the other managers do.
+  group('Manage rules, shared patterns', () {
+    Future<List<EventRule>> seedRules(CompendiumRepositories repos) async {
+      final search = await repos.savedSearches.create(
+        name: 'Becket',
+        spec: _spec(),
+      );
+      return [
+        for (final name in ['A', 'B'])
+          await repos.eventRules.create(
+            savedSearchId: search.id,
+            quantifier: EventRuleQuantifier.atMost,
+            count: 1,
+            scope: EventRuleScope.wholeProgram,
+            nickname: name,
+          ),
+      ];
+    }
+
+    testWidgets('empty, it shows the shared empty state with its own New '
+        'rule button, and no floating one', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, const EventRulesScreen(), enabled: true);
+      final empty = find.byKey(const ValueKey('event-rules-empty'));
+      expect(tester.widget(empty), isA<EmptyState>());
+      expect(
+        find.byKey(const ValueKey('event-rules-empty-add')),
+        findsOneWidget,
+      );
+      expect(find.byType(FloatingActionButton), findsNothing);
+    });
+
+    testWidgets('in a short window (a phone in landscape) New rule folds to '
+        'its icon, named by its tooltip', (tester) async {
+      final repos = openTestRepositories();
+      await seedRules(repos);
+      await _pump(tester, repos, const EventRulesScreen(), enabled: true);
+      await pumpUntilFound(tester, find.text('B'));
+      FloatingActionButton fab() => tester.widget<FloatingActionButton>(
+        find.byKey(const ValueKey('event-rules-new')),
+      );
+      expect(fab().isExtended, isTrue);
+
+      // The window, not just the surface: a short window is read from it.
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 360);
+      addTearDown(tester.view.reset);
+      await tester.pumpAndSettle();
+      expect(fab().isExtended, isFalse);
+      expect(fab().tooltip, 'New rule…');
+    });
+
+    testWidgets('a failed read of the rules says so with Try again, not a '
+        'spinner that never ends', (tester) async {
+      final repos = openTestRepositories();
+      await seedRules(repos);
+      // The rules table is gone, as a damaged database's can be.
+      await repos.db.customStatement('DROP TABLE event_rules');
+      await _pump(tester, repos, const EventRulesScreen(), enabled: true);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(LoadErrorView), findsOneWidget);
+      expect(
+        find.text("Couldn't load your rules. Nothing was changed. Try again."),
+        findsOneWidget,
+      );
+      expect(find.byType(FloatingActionButton), findsNothing);
+      // Try again reads again: with the table back (empty), the list's empty
+      // state shows in place of the error.
+      await repos.db.createMigrator().createTable(repos.db.eventRules);
+      await tester.tap(find.byKey(const ValueKey('load-error-retry')));
+      await pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('event-rules-empty')),
+      );
+      expect(find.byType(LoadErrorView), findsNothing);
+    });
+
+    testWidgets('a rules event still reading its search names when the '
+        'watch fails does not hide the error', (tester) async {
+      final db = openWidgetTestDatabase();
+      final settings = _HeldSavedSearchReadsSettings(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      await seedRules(repos);
+      // The first rules event waits on its saved-search names read.
+      settings.hold = Completer<void>();
+      await _pump(
+        tester,
+        repos,
+        const EventRulesScreen(),
+        enabled: true,
+        settle: false,
+      );
+      // The watch fails meanwhile.
+      await repos.db.customStatement('DROP TABLE event_rules');
+      repos.db.markTablesUpdated([repos.db.eventRules]);
+      await pumpUntilFound(tester, find.byType(LoadErrorView));
+      expect(settings.hold!.isCompleted, isFalse);
+      // Then the earlier event's read finishes: the error stays.
+      settings.hold!.complete();
+      settings.hold = null;
+      await tester.pumpAndSettle();
+      expect(find.byType(LoadErrorView), findsOneWidget);
+      expect(find.text('A'), findsNothing);
+    });
+
+    testWidgets('a failed delete says the rule was not deleted', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final rules = await seedRules(repos);
+      await _pump(tester, repos, const EventRulesScreen(), enabled: true);
+      await pumpUntilFound(tester, find.text('B'));
+      await repos.db.customStatement('DROP TABLE event_rules');
+      await tester.tap(
+        find.byKey(ValueKey('event-rule-delete-${rules.first.id}')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.takeAnnouncements().map((a) => a.message),
+        contains("Couldn't delete the rule. Try again."),
+      );
+      final snack = find.byKey(const ValueKey('event-rule-delete-failed'));
+      expect(snack, findsOneWidget);
+      expect(
+        find.descendant(
+          of: snack,
+          matching: find.text("Couldn't delete the rule. Try again."),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('event-rule-undo')), findsNothing);
+    });
+
+    testWidgets('a failed move says so and puts the rule back', (tester) async {
+      final repos = openTestRepositories();
+      final rules = await seedRules(repos);
+      await _pump(tester, repos, const EventRulesScreen(), enabled: true);
+      await pumpUntilFound(tester, find.text('B'));
+      await repos.db.customStatement('DROP TABLE event_rules');
+      await tester.tap(
+        find.byKey(ValueKey('event-rule-${rules.first.id}-move-down')),
+      );
+      await tester.pumpAndSettle();
+      // Said aloud too: with a screen reader on, an Undo prompt still up
+      // never times out, and the snackbar would wait behind it.
+      expect(
+        tester.takeAnnouncements().map((a) => a.message),
+        contains("Couldn't move the rule. Try again."),
+      );
+      final snack = find.byKey(const ValueKey('event-rule-move-failed'));
+      expect(snack, findsOneWidget);
+      expect(
+        find.descendant(
+          of: snack,
+          matching: find.text("Couldn't move the rule. Try again."),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester.getTopLeft(find.text('A')).dy,
+        lessThan(tester.getTopLeft(find.text('B')).dy),
+      );
+    });
   });
 
   testWidgets('deleting a saved search a rule uses is refused, naming the '
@@ -433,7 +611,7 @@ void main() {
     ) async {
       await repos.savedSearches.create(name: 'Becket', spec: _spec());
       await _pump(tester, repos, const EventRulesScreen(), enabled: true);
-      await tester.tap(find.byKey(const ValueKey('event-rules-new')));
+      await tester.tap(find.byKey(const ValueKey('event-rules-empty-add')));
       await tester.pumpAndSettle();
       await pumpUntilFound(
         tester,
@@ -538,7 +716,7 @@ void main() {
       spec: _spec(),
     );
     await _pump(tester, repos, const EventRulesScreen(), enabled: true);
-    await tester.tap(find.byKey(const ValueKey('event-rules-new')));
+    await tester.tap(find.byKey(const ValueKey('event-rules-empty-add')));
     await tester.pumpAndSettle();
     await pickDropdownEntry(
       tester,
@@ -579,7 +757,7 @@ void main() {
     final repos = openTestRepositories();
     await repos.savedSearches.create(name: 'Becket', spec: _spec());
     await _pump(tester, repos, const EventRulesScreen(), enabled: true);
-    await tester.tap(find.byKey(const ValueKey('event-rules-new')));
+    await tester.tap(find.byKey(const ValueKey('event-rules-empty-add')));
     await tester.pumpAndSettle();
     await pickDropdownEntry(
       tester,
@@ -1116,4 +1294,18 @@ void main() {
       expect(find.byType(EventRuleEditorScreen), findsOneWidget);
     });
   });
+}
+
+/// Settings whose saved-search reads wait on [hold] while it is set.
+class _HeldSavedSearchReadsSettings extends SettingsRepository {
+  _HeldSavedSearchReadsSettings(super.db);
+
+  Completer<void>? hold;
+
+  @override
+  Future<List<String>> keysWithPrefix(String prefix) async {
+    final wait = hold;
+    if (wait != null && prefix == savedSearchKeyPrefix) await wait.future;
+    return super.keysWithPrefix(prefix);
+  }
 }

@@ -457,7 +457,9 @@ Map<String, SlotRuleMarker> eventRuleSlotMarkers(
 /// The Rules strip on the Build tab (#2340): how many applied rules the
 /// program does not meet, and how many need attention; expanded, each rule's
 /// title (its nickname, else its sentence; a nickname has its sentence beneath
-/// it) and the dances that break it. It never blocks anything.
+/// it) and the dances that break it. It never blocks anything. Its summary
+/// is a live region, so a screen reader is told when the strip appears or
+/// its count changes.
 class EventRulesStrip extends StatelessWidget {
   const EventRulesStrip({
     super.key,
@@ -491,7 +493,14 @@ class EventRulesStrip extends StatelessWidget {
       child: ExpansionTile(
         key: const PageStorageKey('program-rules-strip-tile'),
         leading: Icon(eventRuleWarningIcon, color: theme.colorScheme.error),
-        title: Text(summary, key: const ValueKey('program-rules-summary')),
+        // A live region, as the builder's warnings are: the strip arrives
+        // when an edit, a sync or a newly applied rule makes the program
+        // break a rule, away from where the caller is, and a screen reader
+        // says so then; it speaks again whenever the count changes.
+        title: Semantics(
+          liveRegion: true,
+          child: Text(summary, key: const ValueKey('program-rules-summary')),
+        ),
         childrenPadding: const EdgeInsets.fromLTRB(
           AppSpacing.md,
           0,

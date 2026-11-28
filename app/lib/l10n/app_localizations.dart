@@ -21837,11 +21837,35 @@ abstract class AppLocalizations {
   /// **'View, add, edit, reorder and delete your rules.'**
   String get eventRulesManageSubtitle;
 
-  /// Shown in the event rules manager when there are no rules (#2340).
+  /// Heading of the event rules manager's empty state, shown when there are no rules (#2340).
   ///
   /// In en, this message translates to:
-  /// **'No rules yet. A rule uses one of your saved searches to say which dances it means.'**
-  String get eventRulesEmpty;
+  /// **'No rules yet'**
+  String get eventRulesEmptyTitle;
+
+  /// Body of the event rules manager's empty state, under eventRulesEmptyTitle and above a New rule… button (eventRulesNewRule), whose label it quotes (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'A rule uses one of your saved searches to say which dances it means. Choose New rule… to add one.'**
+  String get eventRulesEmptyBody;
+
+  /// Shown in the event rules manager, with a Try again button, when the rules cannot be read.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your rules. Nothing was changed. Try again.'**
+  String get eventRulesLoadError;
+
+  /// Snackbar in the event rules manager when deleting a rule fails; the rule is still there.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete the rule. Try again.'**
+  String get eventRuleDeleteFailed;
+
+  /// Snackbar in the event rules manager when moving a rule up or down fails; the rule goes back to where it was.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t move the rule. Try again.'**
+  String get eventRuleMoveFailed;
 
   /// Button in the rules manager, and the pinned first line of a program's rule picker, that opens the rule editor for a new rule (#2340).
   ///

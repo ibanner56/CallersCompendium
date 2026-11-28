@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -11,10 +12,13 @@ import '../../search/event_rule_check.dart' show EventRuleSearchGone;
 import '../../theme/app_spacing.dart';
 import '../../utils/confirm_delete.dart';
 import '../../utils/undo_snack_bar.dart';
+import '../../widgets/adaptive_fab.dart';
 import '../../widgets/app_bar_text_action.dart';
 import '../../widgets/app_dropdown_field.dart';
 import '../../widgets/confirm_discard_changes.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/event_rule_text.dart';
+import '../../widgets/load_error_view.dart';
 import '../../widgets/reorder_move_buttons.dart';
 
 /// The names of the readable saved searches, by id, read again with each
@@ -29,6 +33,12 @@ Future<Map<String, String>> _savedSearchNames(
 /// **Manage rules** (#2340): the caller's event rules, to view, add, edit,
 /// reorder (#2341) and delete (with Undo). Reached from Settings ▸ Experimental ▸ Event rules,
 /// and from Settings ▸ Program while the feature is on.
+///
+/// It follows the other managers (the venue manager's shape): New rule floats
+/// through [adaptiveExtendedFab], so it folds to its icon in a short window;
+/// an empty list is an [EmptyState] with its own New rule button, and the
+/// floating one waits until there is a rule; a failed read of the rules is a
+/// [LoadErrorView] with Try again; and a failed delete or move says so.
 class EventRulesScreen extends StatefulWidget {
   const EventRulesScreen({super.key});
 
@@ -39,6 +49,9 @@ class EventRulesScreen extends StatefulWidget {
 class _EventRulesScreenState extends State<EventRulesScreen> {
   StreamSubscription<List<EventRule>>? _subscription;
   List<EventRule>? _rules;
+
+  /// The rules' read failed: shown in place of the list until Try again.
+  bool _loadFailed = false;
   Map<String, String> _searchNames = const {};
 
   /// Whether [_searchNames] is the latest read's. After a failed read it is
@@ -47,13 +60,24 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
   /// needing attention for its search until a read succeeds.
   bool _searchNamesKnown = false;
 
+  /// Moves on with each failure of the rules' watch and each Try again. A
+  /// rules event still reading its search names when either happens is
+  /// dropped when the read ends, so it cannot clear the error view (or show
+  /// a failed watch's rules) after the fact.
+  int _watchGeneration = 0;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_subscription != null) return;
+    _subscribe();
+  }
+
+  void _subscribe() {
     final repos = RepositoriesScope.of(context);
     _subscription = repos.eventRules.watchAll().listen(
       (rules) async {
+        final generation = _watchGeneration;
         // A failed read of the saved search names still lists the rules,
         // named with the names last read (or none), rather than never
         // listing them; it flags no rule for its search.
@@ -67,19 +91,36 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
             source: 'event_rules_screen.search_names',
           );
         }
-        if (!mounted) return;
+        if (!mounted || generation != _watchGeneration) return;
         setState(() {
           _rules = rules;
+          _loadFailed = false;
           _searchNamesKnown = names != null;
           if (names != null) _searchNames = names;
         });
       },
-      onError: (Object error, StackTrace stackTrace) => logCaughtError(
-        error,
-        stackTrace,
-        source: 'event_rules_screen.rules_watch',
-      ),
+      onError: (Object error, StackTrace stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'event_rules_screen.rules_watch',
+        );
+        _watchGeneration++;
+        if (mounted) setState(() => _loadFailed = true);
+      },
     );
+  }
+
+  /// Try again after a failed read. The watch may have ended with the error,
+  /// so it is opened afresh rather than waited on.
+  void _retry() {
+    unawaited(_subscription?.cancel());
+    _watchGeneration++;
+    setState(() {
+      _rules = null;
+      _loadFailed = false;
+    });
+    _subscribe();
   }
 
   @override
@@ -102,42 +143,70 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
     final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
     try {
       await repos.eventRules.delete(rule.id);
-      showUndoSnackBar(
-        messenger,
-        key: const ValueKey('event-rule-undo-snackbar'),
-        actionKey: const ValueKey('event-rule-undo'),
-        message: l10n.eventRuleDeletedSnack,
-        undoLabel: l10n.commonUndo,
-        undoFailedMessage: l10n.commonUndoFailed,
-        accessibleNavigation: accessibleNavigation,
-        onUndo: () => repos.eventRules.restore(rule.id),
-      );
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'event_rules_screen._delete');
+      if (mounted) _announceFailure(l10n.eventRuleDeleteFailed);
+      if (!messenger.mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('event-rule-delete-failed'),
+          content: Text(l10n.eventRuleDeleteFailed),
+        ),
+      );
+      return;
     }
+    showUndoSnackBar(
+      messenger,
+      key: const ValueKey('event-rule-undo-snackbar'),
+      actionKey: const ValueKey('event-rule-undo'),
+      message: l10n.eventRuleDeletedSnack,
+      undoLabel: l10n.commonUndo,
+      undoFailedMessage: l10n.commonUndoFailed,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () => repos.eventRules.restore(rule.id),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final rules = _rules;
+    final rules = _loadFailed ? null : _rules;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsExperimentalEventRulesHeader)),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const ValueKey('event-rules-new'),
-        onPressed: _edit,
-        icon: const Icon(Icons.add),
-        label: Text(l10n.eventRulesNewRule),
-      ),
-      body: rules == null
+      // The floating New rule is for a list: the empty state carries its own
+      // button, so it waits until there is a rule.
+      floatingActionButton: rules == null || rules.isEmpty
+          ? null
+          : adaptiveExtendedFab(
+              context,
+              key: const ValueKey('event-rules-new'),
+              heroTag: 'event-rules-new',
+              onPressed: _edit,
+              icon: const Icon(Icons.add),
+              label: l10n.eventRulesNewRule,
+            ),
+      body: _loadFailed
+          ? LoadErrorView(
+              icon: LoadErrorView.errorGlyph(context),
+              message: l10n.eventRulesLoadError,
+              onRetry: _retry,
+            )
+          : rules == null
           ? const Center(child: CircularProgressIndicator())
           : rules.isEmpty
-          ? Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Text(
-                l10n.eventRulesEmpty,
-                key: const ValueKey('event-rules-empty'),
-              ),
+          ? EmptyState(
+              key: const ValueKey('event-rules-empty'),
+              icon: EmptyState.glyph(context, Icons.rule),
+              title: l10n.eventRulesEmptyTitle,
+              body: l10n.eventRulesEmptyBody,
+              actions: [
+                FilledButton.icon(
+                  key: const ValueKey('event-rules-empty-add'),
+                  onPressed: _edit,
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.eventRulesNewRule),
+                ),
+              ],
             )
           // The caller's order (#2341): drag a rule by its handle, or move it
           // with Move up / Move down, never drag alone (the Matrix columns
@@ -169,11 +238,23 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
     );
   }
 
+  /// Says a failure aloud as well as in its snackbar. The snackbar waits
+  /// behind an Undo prompt still up, which never times out with a screen
+  /// reader on, so the screen-reader user would otherwise hear nothing. It is
+  /// queued, not shown at once, so that prompt's Undo is not lost.
+  void _announceFailure(String message) {
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      message,
+      Directionality.of(context),
+    );
+  }
+
   /// Moves the rule at [from] in [rules] to [to]: on screen at once, then
   /// stored ([EventRuleRepository.reorder]), which the list's watch shows.
   /// With [announce], a screen reader hears where it landed (Move up / Move
   /// down keep their focus while the row moves). If the write fails, the list
-  /// goes back to [rules], the order still stored.
+  /// goes back to [rules], the order still stored, and a snackbar says so.
   Future<void> _move(
     List<EventRule> rules,
     int from,
@@ -187,11 +268,23 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
     setState(() => _rules = order);
     final repos = RepositoriesScope.of(context);
     final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await repos.eventRules.reorder([for (final r in order) r.id]);
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'event_rules_screen._move');
-      if (mounted) setState(() => _rules = rules);
+      if (mounted) {
+        setState(() => _rules = rules);
+        _announceFailure(l10n.eventRuleMoveFailed);
+      }
+      if (messenger.mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            key: const ValueKey('event-rule-move-failed'),
+            content: Text(l10n.eventRuleMoveFailed),
+          ),
+        );
+      }
       return;
     }
     if (announce && mounted) {

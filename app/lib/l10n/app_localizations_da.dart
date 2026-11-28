@@ -15083,8 +15083,21 @@ class AppLocalizationsDa extends AppLocalizations {
       'Se, tilføj, rediger, omarranger og slet dine regler.';
 
   @override
-  String get eventRulesEmpty =>
-      'Ingen regler endnu. En regel bruger en af dine gemte søgninger til at sige, hvilke danse den gælder.';
+  String get eventRulesEmptyTitle => 'Ingen regler endnu';
+
+  @override
+  String get eventRulesEmptyBody =>
+      'En regel bruger en af dine gemte søgninger til at sige, hvilke danse den gælder. Vælg Ny regel… for at tilføje en.';
+
+  @override
+  String get eventRulesLoadError =>
+      'Kunne ikke indlæse dine regler. Intet blev ændret. Prøv igen.';
+
+  @override
+  String get eventRuleDeleteFailed => 'Kunne ikke slette reglen. Prøv igen.';
+
+  @override
+  String get eventRuleMoveFailed => 'Kunne ikke flytte reglen. Prøv igen.';
 
   @override
   String get eventRulesNewRule => 'Ny regel…';

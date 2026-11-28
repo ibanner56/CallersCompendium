@@ -4,8 +4,9 @@ import 'package:flutter/scheduler.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_theme_extension.dart';
 
-/// Draws the theme's keyboard-focus ring ([AppThemeExtension.focusRing],
-/// [AppThemeExtension.focusRingWidth]) around whatever has keyboard focus.
+/// Draws the keyboard-focus ring ([AppThemeExtension.focusRing],
+/// [AppThemeExtension.focusRingWidth]) around whatever has keyboard focus, in
+/// the focused widget's own theme.
 ///
 /// Material's own focus cue is the theme's `focusColor`, a translucent fill
 /// that changes the focused pixels by roughly 1.2:1 — too faint to see across
@@ -17,6 +18,16 @@ import '../theme/app_theme_extension.dart';
 /// widget, *outside* its bounds: the ring's pixels were the canvas before, so
 /// its contrast is the ring colour against the surface tiers, which
 /// `palette_contrast_test.dart` holds to 3:1 for every scheme.
+///
+/// The colour and width come from the [Theme] nearest the focused widget, not
+/// from the layer's: a subtree can wear a theme of its own over a canvas of
+/// its own. Perform's stage mode (`PerformStageTheme`) dresses its page,
+/// dialogs and sheets in the dark High contrast theme whatever the app theme
+/// is, so a control there gets that theme's ochre ring; the app theme's
+/// primary, tuned for its own canvas, can fall under 3:1 on the stage
+/// (`focus_ring_layer_test.dart`). A control inside a [SnackBar], which is
+/// drawn on the inverse surface, is ringed in the theme's inverse accent
+/// instead.
 ///
 /// The ring shows only in [FocusHighlightMode.traditional] (keyboard
 /// traversal), as Material's own focus highlight does. It is not drawn for:
@@ -54,6 +65,9 @@ class FocusRingLayerState extends State<FocusRingLayer> {
   Rect? get ringRect => _rect;
   Rect? _rect;
   Rect? _clip;
+
+  /// The focused widget's own ring: its theme's colour and width.
+  ({Color color, double width})? _style;
 
   @override
   void initState() {
@@ -96,14 +110,16 @@ class FocusRingLayerState extends State<FocusRingLayer> {
     final target = _target();
     final rect = target?.$1;
     final clip = target?.$2;
-    if (rect == _rect && clip == _clip) return;
+    final style = target?.$3;
+    if (rect == _rect && clip == _clip && style == _style) return;
     setState(() {
       _rect = rect;
       _clip = clip;
+      _style = style;
     });
   }
 
-  (Rect, Rect)? _target() {
+  (Rect, Rect, ({Color color, double width})?)? _target() {
     if (FocusManager.instance.highlightMode != FocusHighlightMode.traditional) {
       return null;
     }
@@ -150,12 +166,57 @@ class FocusRingLayerState extends State<FocusRingLayer> {
       scrollable = Scrollable.maybeOf(scrollable.context);
     }
     if (clip.isEmpty || !clip.overlaps(rect)) return null;
-    return (rect, clip);
+    // The nearest Theme's data, read without making the focused widget
+    // depend on it. `null` (no theme of its own above it, or one without the
+    // app's extension) falls back to the layer's theme in [build].
+    final theme = context.findAncestorWidgetOfExactType<Theme>()?.data;
+    final ext = theme?.extension<AppThemeExtension>();
+    if (theme == null || ext == null) return (rect, clip, null);
+    // A snackbar is drawn on the inverse surface, so its controls get the
+    // inverse accent, which `palette_contrast_test.dart` holds to 3:1 there:
+    // the canvas's ring is lost on it (1.3:1 in High contrast and on the
+    // stage).
+    // The snackbar's card is its outermost Material below the SnackBar (a
+    // button inside has a Material of its own, nearer the focus).
+    Element? card;
+    var inSnackBar = false;
+    context.visitAncestorElements((element) {
+      if (element.widget is SnackBar) {
+        inSnackBar = true;
+        return false;
+      }
+      if (element.widget is Material) card = element;
+      return true;
+    });
+    final cardBox = inSnackBar ? card?.renderObject : null;
+    if (cardBox case final RenderBox box when box.attached && box.hasSize) {
+      // Clipped to the card, as to a viewport, so a ring round a control at
+      // its edge (a 3 px ring round Undo in a one-line snackbar) is not drawn
+      // over the page behind, where the inverse accent is not tuned to show.
+      // The painter widens the clip by the ring's reach; take that off here.
+      final reach = FocusRingLayer.gap + ext.focusRingWidth;
+      clip = clip.intersect(
+        MatrixUtils.transformRect(
+          box.getTransformTo(layer),
+          Offset.zero & box.size,
+        ).deflate(reach),
+      );
+      if (clip.isEmpty) return null;
+    }
+    return (
+      rect,
+      clip,
+      (
+        color: inSnackBar ? theme.colorScheme.inversePrimary : ext.focusRing,
+        width: ext.focusRingWidth,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final ext = AppThemeExtension.of(context);
+    final style = _style ?? (color: ext.focusRing, width: ext.focusRingWidth);
     final rect = _rect;
     final clip = _clip;
     return Stack(
@@ -170,8 +231,8 @@ class FocusRingLayerState extends State<FocusRingLayer> {
                 painter: FocusRingPainter(
                   rect: rect,
                   clip: clip,
-                  color: ext.focusRing,
-                  width: ext.focusRingWidth,
+                  color: style.color,
+                  width: style.width,
                 ),
               ),
             ),

@@ -14394,9 +14394,25 @@
   "@eventRulesManageSubtitle": {
     "x-sourceSha256": "e3201fa38d2cc62d010cbcd6d873777c0e5034d2c8c0a7c95b31fe0ab26ebe57"
   },
-  "eventRulesEmpty": "Ingen regler endnu. En regel bruger en af dine gemte søgninger til at sige, hvilke danse den gælder.",
-  "@eventRulesEmpty": {
-    "x-sourceSha256": "3e6f22b9afd7db701d5f8741327bb290a4c1d0153bb03d774729b4ec697b75ab"
+  "eventRulesEmptyTitle": "Ingen regler endnu",
+  "@eventRulesEmptyTitle": {
+    "x-sourceSha256": "d29cf782366d138c1caa5421be061a9bd8a9d6607c3a6b8ca9f0d5ea986e5db8"
+  },
+  "eventRulesEmptyBody": "En regel bruger en af dine gemte søgninger til at sige, hvilke danse den gælder. Vælg Ny regel… for at tilføje en.",
+  "@eventRulesEmptyBody": {
+    "x-sourceSha256": "c8c922348a950f211fff1f9082d6c080d9a9177e9b4aafdba21b09fdf4025650"
+  },
+  "eventRulesLoadError": "Kunne ikke indlæse dine regler. Intet blev ændret. Prøv igen.",
+  "@eventRulesLoadError": {
+    "x-sourceSha256": "de39c42c3186347986451402e7e3204f779611f5962ca734c73b3e1a18a390c2"
+  },
+  "eventRuleDeleteFailed": "Kunne ikke slette reglen. Prøv igen.",
+  "@eventRuleDeleteFailed": {
+    "x-sourceSha256": "38f5cce45721fdc140146228b8afba21fce0bdfd9aef46e9337a211d1525f361"
+  },
+  "eventRuleMoveFailed": "Kunne ikke flytte reglen. Prøv igen.",
+  "@eventRuleMoveFailed": {
+    "x-sourceSha256": "838a24e89e0977cacbe775caba43859768ee91bccc3b3353131320dd2ef44232"
   },
   "eventRulesNewRule": "Ny regel…",
   "@eventRulesNewRule": {
