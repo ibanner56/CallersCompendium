@@ -25,7 +25,9 @@ import '../theme/app_theme_extension.dart';
 /// dialogs and sheets in the dark High contrast theme whatever the app theme
 /// is, so a control there gets that theme's ochre ring; the app theme's
 /// primary, tuned for its own canvas, can fall under 3:1 on the stage
-/// (`focus_ring_layer_test.dart`).
+/// (`focus_ring_layer_test.dart`). A control inside a [SnackBar], which is
+/// drawn on the inverse surface, is ringed in the theme's inverse accent
+/// instead.
 ///
 /// The ring shows only in [FocusHighlightMode.traditional] (keyboard
 /// traversal), as Material's own focus highlight does. It is not drawn for:
@@ -167,14 +169,22 @@ class FocusRingLayerState extends State<FocusRingLayer> {
     // The nearest Theme's data, read without making the focused widget
     // depend on it. `null` (no theme of its own above it, or one without the
     // app's extension) falls back to the layer's theme in [build].
-    final ext = context
-        .findAncestorWidgetOfExactType<Theme>()
-        ?.data
-        .extension<AppThemeExtension>();
+    final theme = context.findAncestorWidgetOfExactType<Theme>()?.data;
+    final ext = theme?.extension<AppThemeExtension>();
+    if (theme == null || ext == null) return (rect, clip, null);
+    // A snackbar is drawn on the inverse surface, so its controls get the
+    // inverse accent, which `palette_contrast_test.dart` holds to 3:1 there:
+    // the canvas's ring is lost on it (1.3:1 in High contrast and on the
+    // stage).
+    final inSnackBar =
+        context.findAncestorWidgetOfExactType<SnackBar>() != null;
     return (
       rect,
       clip,
-      ext == null ? null : (color: ext.focusRing, width: ext.focusRingWidth),
+      (
+        color: inSnackBar ? theme.colorScheme.inversePrimary : ext.focusRing,
+        width: ext.focusRingWidth,
+      ),
     );
   }
 

@@ -7,6 +7,7 @@
     ],
     "fixed": [
       "With the stage theme on in Perform, the keyboard focus outline is now the stage's own bright yellow in Perform and in its dialogs and sheets. With a light app theme it could be faint, or with a dark accent almost invisible, on the dark stage.",
+      "The keyboard focus outline round an Undo message's buttons is now drawn in the message's own accent color. In every theme it used to be hard to see against the message's background.",
       "An Undo message no longer runs out while you're tabbing toward it: each key you press starts its time again.",
       "With event rules on, the program builder's Rules summary (such as \"1 rule not met\") is announced by a screen reader when it appears and when the number changes.",
       "Manage rules (Settings ▸ Experimental ▸ Event rules) now folds its New rule button to its icon on a phone in landscape, shows a proper empty page with its own New rule button, says when your rules can't be loaded and offers Try again instead of loading forever, and says when a delete or a move didn't work."

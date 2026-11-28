@@ -85,7 +85,9 @@ and its tooltip says which state you're in: *Stage theme on — tap to use app
 theme*, or *Stage theme off — tap for dark stage*. Your choice is remembered, so
 once you've set it for the hall you call in, it's there next time. With the stage
 theme on, the keyboard focus outline in Perform, and in its dialogs and sheets, is
-the stage's own bright yellow, whichever theme you use elsewhere.
+the stage's own bright yellow, whichever theme you use elsewhere. On an **Undo**
+message, in any theme, the outline takes the message's own accent color, so it
+stands out from the message's background.
 
 ## Using a screen reader
 
