@@ -745,8 +745,10 @@ final RegExp _bareFallBackWithWho = RegExp(
 );
 
 /// Whether [incoming] and [fallingBack] are the two roles. The incoming side
-/// may be a role among numbered neighbours (`prevRole2s`, from `N0 Women …`),
-/// which counts as its role; the falling-back side must be a plain role, so a
+/// may be a role among numbered neighbours (`prevRole2s`, typed as `prev
+/// role2s …`; the Caller's Box's `N0 Women form long wave …` is the role
+/// acting by itself, so it reads as `role2s` with the note `with N0`), which
+/// counts as its role; the falling-back side must be a plain role, so a
 /// numbered one is never folded away.
 bool _areComplementaryRoles(String incoming, String fallingBack) {
   final a = _baseRole(incoming);
@@ -1283,18 +1285,20 @@ FigureMatch? _tcbCast(String scrubbed) {
 /// * The counterpart **already names neighbours** — a numbered set (`N2 Men
 ///   roll away prev neighbor`) or the current ones by number (`… N1`, `… N`,
 ///   `… neighbor 1`): the same set as the number is read as written; another
-///   set makes the number name the role (`who: nextRole1s`), or, for `N3`
-///   and `N4`, which have no role token, the note `N3 role1s`. No note
-///   contradicts the counterpart.
-/// * **Only the two role1s or role2s take part** (`N2 Men allemande left
-///   3/4`) — no dancer param besides `who` is set or given a default by its
-///   move or alias, even `unspecified`: `who` is that
+///   set means the number names the role, which, the role acting by itself,
+///   is noted in the source's notation (`N2 role1s`). No note contradicts
+///   the counterpart.
+/// * **The two role1s or role2s do it together** (`N2 Men allemande left
+///   3/4`): the move is one of [_togetherMoves], and no dancer param besides
+///   `who` is set or given a default by its move or alias, even
+///   `unspecified`: `who` is that
 ///   role among those neighbours (`nextRole1s`; `N0 Women …` is
 ///   `prevRole2s`), with no note. The token comes from [seriesDancerWords],
 ///   so only a number the vocabulary has a role token for (`N0`, `N2`) reads
 ///   this way.
-/// * Anything else (`N1`, `N3`, `N4` alone; a figure another dancer takes
-///   part in, such as a bare `N2 Men roll away`, done with partners; or a
+/// * Anything else (`N1`, `N3`, `N4` alone; the role acting by itself, such
+///   as `N2 Men turn alone`; a figure another dancer takes part in, such as a
+///   bare `N2 Men roll away`, done with partners; or a
 ///   remainder whose re-read does not put the token in `who`) is read as
 ///   `Men allemande left 3/4 [with N3]`: `who: role1s`, with the number kept
 ///   as the note in the source's words (`with N3`).
@@ -1315,11 +1319,11 @@ FigureMatch? _tcbCast(String scrubbed) {
 /// this entry returns. On the fallback reading the result must still carry
 /// the number as its note, or the line stays custom rather than losing it.
 /// *(User-ruled 2026-11-27: a bare `N2 Men roll away`, done with partners,
-/// keeps the note reading; a solo move such as `N2 Men turn alone` takes the
-/// role token; a counterpart's default counts, so a bare `N2 Men cross
+/// keeps the note reading; a counterpart's default counts, so a bare `N2 Men cross
 /// trails` is `who2: nextNeighbors`. Which numbers, declining annotated
 /// remainders, and falling back rather than going custom when neither
-/// reading applies: agent's call.)*
+/// reading applies: agent's call. User-ruled 2026-11-28: the role token only
+/// when the pair does the figure together — see [_togetherMoves].)*
 FigureMatch? _tcbNumberedRolePair(String scrubbed) {
   final m = _numberedRolePairRe.firstMatch(scrubbed);
   if (m == null || scrubbed.contains('[') || scrubbed.contains('(')) {
@@ -1385,10 +1389,11 @@ FigureMatch? _readNumberedRolePair(
   // The rest already names the counterpart's neighbours (`N2 Men roll away
   // next neighbor`, `… prev neighbor`, `… N1`). The same set says the number
   // twice, so the line is read as written; another set cannot be the one the
-  // number names, so the number names the role (`who: nextRole1s`, `whom:
-  // prevNeighbors`), or, for a number with no role token, the note names the
-  // role in the source's own notation (`N3 role1s`). Either way no `with …`
-  // note contradicts the counterpart. *(Agent's call, on the maintainer's
+  // number names, so the number names the role. A figure with a counterpart
+  // is never one a same-role pair does together (no move in [_togetherMoves]
+  // has one), so the role token never applies: the note names the role in
+  // the source's own notation (`N2 role1s`), and no `with …` note
+  // contradicts the counterpart. *(Agent's call, on the maintainer's
   // 2026-11-27 ask to fix the contradiction.)*
   final named =
       withNeighbor == null ||
@@ -1401,15 +1406,6 @@ FigureMatch? _readNumberedRolePair(
         );
   if (withNeighbor != null && named != null) {
     if (named.value == numbered) return withNeighbor;
-    if (_numberedRoleToken(numbered, pair) case (final ordinal, final token)) {
-      final inner = read('$ordinal $pair $rest');
-      if (inner != null &&
-          !inner.forceCustom &&
-          inner.params['who'] == token &&
-          inner.params[named.key] == named.value) {
-        return inner;
-      }
-    }
     return _withLeadingNote(withNeighbor, '$number $pair');
   }
   if (_numberedRoleToken(numbered, pair) case (final ordinal, final token)) {
@@ -1417,7 +1413,8 @@ FigureMatch? _readNumberedRolePair(
     if (inner != null &&
         !inner.forceCustom &&
         inner.params['who'] == token &&
-        !_namesAnotherDancer(inner)) {
+        !_namesAnotherDancer(inner) &&
+        _doneTogether(inner)) {
       return inner;
     }
   }
@@ -1432,6 +1429,38 @@ FigureMatch? _readNumberedRolePair(
   }
   return inner;
 }
+
+/// The moves in which the two dancers `who` names do something **together**,
+/// meeting each other: only then does the role token name *which* pair meets
+/// (`N2 Men allemande` is the next larks, `nextRole1s`). When the role acts by
+/// itself (`N2 Men turn alone`, `… shift left`, `… roll away neighbor`) it is
+/// all the larks acting, which pair does not matter, and the line reads as the
+/// role with the number kept as the note *(user-ruled 2026-11-28, replacing
+/// the 2026-11-27 ruling that a solo move takes the token)*. Aliases count as
+/// their target (`see_saw` is a `do_si_do`). *(Which moves are listed:
+/// agent's call.)*
+const Set<String> _togetherMoves = {
+  'swing',
+  'allemande',
+  'two_hand_turn',
+  'do_si_do',
+  'shoulder_round',
+  'box_the_gnat',
+  'pull_by',
+  'pass_through',
+  'chain',
+  'california_twirl',
+  // Taxonomy: star through mirrors california twirl, and box circulate is
+  // modelled on box the gnat; in each the `who` pair meets.
+  'star_through',
+  'box_circulate',
+  'balance',
+};
+
+/// Whether [match]'s move is one of [_togetherMoves], through its alias.
+bool _doneTogether(FigureMatch match) => _togetherMoves.contains(
+  contraTaxonomy.aliases[match.moveId]?.targetMove ?? match.moveId,
+);
 
 /// The one counterpart param ([_counterpartParams]) of [match] that names a
 /// neighbour set the line wrote out, as (param, set), or `null`: a numbered

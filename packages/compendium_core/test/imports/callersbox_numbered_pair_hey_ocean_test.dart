@@ -115,29 +115,40 @@ void main() {
       'an explicit current neighbour is kept, and the number names the role',
       () {
         // The counterpart is the current neighbours as written, so N2 cannot
-        // name them: it names the larks (2026-11-27, no contradicting note).
+        // name them: it names the larks, who roll away by themselves, so the
+        // note says so in the source's notation (no contradicting note).
         for (final line in [
           'N2 role1s roll away N1',
           'N2 role1s roll away N',
           'N2 role1s roll away neighbor 1',
         ]) {
           final f = _parse(line);
-          expect(f.params['who'], 'nextRole1s', reason: line);
+          expect(f.params['who'], 'role1s', reason: line);
           expect(f.params['whom'], 'neighbors', reason: line);
-          expect(f.note, isNull, reason: line);
+          expect(f.note, 'N2 role1s', reason: line);
         }
       },
     );
 
     test('a numbered role still folds with the other role\'s fall back', () {
       final figures = parseFigureLines(
-        'N0 role2s form long wave in center || role1s fall back',
+        'prev role2s form long wave in center || role1s fall back',
         frontEnd: tcbFigureFrontEnd,
       );
       expect(figures, hasLength(1));
       expect(figures.single.move, 'form_a_long_wave');
       expect(figures.single.params['who'], 'prevRole2s');
       expect(figures.single.params['out'], isTrue);
+      // The Caller's Box's own wording: the robins form the wave by
+      // themselves, so the number is a note, and the line still folds.
+      final tcb = parseFigureLines(
+        'N0 role2s form long wave in center || role1s fall back',
+        frontEnd: tcbFigureFrontEnd,
+      ).single;
+      expect(tcb.move, 'form_a_long_wave');
+      expect(tcb.params['who'], 'role2s');
+      expect(tcb.params['out'], isTrue);
+      expect(tcb.note, contains('with N0'));
       // A numbered falling-back side is never folded away.
       for (final line in [
         'role2s form long wave in center || next role1s fall back',
@@ -148,13 +159,54 @@ void main() {
       }
     });
 
-    test('a solo move takes the role token', () {
-      // User-ruled 2026-11-27: only the larks take part, so they are the
-      // next larks.
-      final f = _parse('N2 role1s turn alone');
-      expect(f.move, 'turn_alone');
-      expect(f.params['who'], 'nextRole1s');
-      expect(f.note, isNull);
+    test(
+      'the role acting by itself keeps the role, with the number a note',
+      () {
+        // User-ruled 2026-11-28: the role token only for a pair doing the
+        // figure together; larks acting by themselves are all the larks.
+        const cases = {
+          'N2 role1s turn alone': 'turn_alone',
+          'N2 role1s shift left': 'shift',
+          'N0 role2s form long wave in center': 'form_a_long_wave',
+        };
+        for (final MapEntry(key: line, value: move) in cases.entries) {
+          final f = _parse(line);
+          expect(f.move, move, reason: line);
+          expect(
+            f.params['who'],
+            line.contains('role1s') ? 'role1s' : 'role2s',
+            reason: line,
+          );
+          expect(
+            f.note,
+            line.startsWith('N0') ? 'with N0' : 'with N2',
+            reason: line,
+          );
+        }
+      },
+    );
+
+    test('a pair doing the figure together takes the role token', () {
+      const cases = {
+        'N2 role1s allemande left 3/4': 'nextRole1s',
+        'N0 role2s swing': 'prevRole2s',
+        'N2 role1s seesaw': 'nextRole1s',
+        'N2 role2s trade by right': 'nextRole2s',
+        'N2 role1s pull by right': 'nextRole1s',
+        'N2 role2s balance': 'nextRole2s',
+        'N2 role1s gypsy right': 'nextRole1s',
+        'N2 role1s california twirl': 'nextRole1s',
+        'N2 role1s two hand turn': 'nextRole1s',
+        'N2 role2s box the gnat': 'nextRole2s',
+        'N2 role2s swat the flea': 'nextRole2s',
+        'N2 role1s star through': 'nextRole1s',
+        'N2 role2s box circulate': 'nextRole2s',
+      };
+      for (final MapEntry(key: line, value: who) in cases.entries) {
+        final f = _parse(line);
+        expect(f.params['who'], who, reason: line);
+        expect(f.note, isNull, reason: line);
+      }
     });
 
     test('a chain takes the role named, among those neighbours', () {
@@ -199,26 +251,33 @@ void main() {
         expect(f.params['who'], line.contains('role1s') ? 'role1s' : 'role2s');
         expect(f.note, isNull, reason: line);
       }
-      // Another set cannot be the one the number names, so it names the role.
+      // Another set cannot be the one the number names, so it names the role;
+      // a roll away is not done together, so the note names it.
       final prev = _parse('N2 role1s roll away prev neighbor');
-      expect(prev.params['who'], 'nextRole1s');
+      expect(prev.params['who'], 'role1s');
       expect(prev.params['whom'], 'prevNeighbors');
-      expect(prev.note, isNull);
+      expect(prev.note, 'N2 role1s');
       // A number with no role token names the role in the note instead.
       final third = _parse('N3 role1s roll away prev neighbor');
       expect(third.params['who'], 'role1s');
       expect(third.params['whom'], 'prevNeighbors');
       expect(third.note, 'N3 role1s');
       final next = _parse('N0 role1s roll away next neighbor');
-      expect(next.params['who'], 'prevRole1s');
+      expect(next.params['who'], 'role1s');
       expect(next.params['whom'], 'nextNeighbors');
-      expect(next.note, isNull);
+      expect(next.note, 'N0 role1s');
     });
 
     test('a numbered turn around is the role turning alone', () {
-      final f = _parse('N2 role1s turn around');
-      expect(f.move, 'turn_alone');
-      expect(f.params['who'], 'nextRole1s');
+      for (final line in [
+        'N2 role1s turn around',
+        'role1s turn around [with N2]',
+      ]) {
+        final f = _parse(line);
+        expect(f.move, 'turn_alone', reason: line);
+        expect(f.params['who'], 'role1s', reason: line);
+        expect(f.note, 'with N2', reason: line);
+      }
     });
 
     test('a promenade destination is not a neighbour the figure is with', () {

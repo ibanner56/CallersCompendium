@@ -1142,8 +1142,8 @@
 {"in":"the annotated `turn around` variants ARE swept in","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"the annotated `turn around` variants ARE swept in\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Partner swing; women turn around (cw)","scrub":"Partner swing; role2s turn around (cw)","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"partners\"}},{\"schemaVersion\":1,\"move\":\"turn_alone\",\"params\":{\"who\":\"role2s\"},\"note\":\"cw\"}]"}
 {"in":"role2s turn around (cw)","fanOut":"[{\"schemaVersion\":1,\"move\":\"turn_alone\",\"params\":{\"who\":\"role2s\"},\"note\":\"cw\"}]"}
-{"in":"Partner swing; men turn around [with N2]","scrub":"Partner swing; role1s turn around [with N2]","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"partners\"}},{\"schemaVersion\":1,\"move\":\"turn_alone\",\"params\":{\"who\":\"nextRole1s\"}}]"}
-{"in":"role1s turn around [with N2]","fanOut":"[{\"schemaVersion\":1,\"move\":\"turn_alone\",\"params\":{\"who\":\"nextRole1s\"}}]"}
+{"in":"Partner swing; men turn around [with N2]","scrub":"Partner swing; role1s turn around [with N2]","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"partners\"}},{\"schemaVersion\":1,\"move\":\"turn_alone\",\"params\":{\"who\":\"role1s\"},\"note\":\"with N2\"}]"}
+{"in":"role1s turn around [with N2]","fanOut":"[{\"schemaVersion\":1,\"move\":\"turn_alone\",\"params\":{\"who\":\"role1s\"},\"note\":\"with N2\"}]"}
 {"in":"Partner swing; women turn around (by left)","scrub":"Partner swing; role2s turn around (by left)","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"partners\"}},{\"schemaVersion\":1,\"move\":\"turn_alone\",\"params\":{\"who\":\"role2s\"},\"note\":\"by left\"}]"}
 {"in":"role2s turn around (by left)","fanOut":"[{\"schemaVersion\":1,\"move\":\"turn_alone\",\"params\":{\"who\":\"role2s\"},\"note\":\"by left\"}]"}
 {"in":"the prefix rule still excludes the wrong-subject wordings","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"the prefix rule still excludes the wrong-subject wordings\"},\"customOrigin\":\"importGap\"}]"}
