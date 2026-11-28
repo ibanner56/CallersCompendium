@@ -56,7 +56,8 @@ void main() {
 
     test('the site\'s own role words read as the four role tokens', () async {
       // User-ruled 2026-11-26: N2 men, N2 women, N0 men and N0 women each read
-      // as their gender-free counterpart when only that role takes part.
+      // as their gender-free counterpart when the pair does the figure
+      // together, as an allemande is (user-ruled 2026-11-28).
       const expected = {
         '(8) N2 men allemande left 1': 'nextRole1s',
         '(8) N2 women allemande right 1': 'nextRole2s',
