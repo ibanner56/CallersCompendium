@@ -357,7 +357,11 @@ void main() {
       );
       // And the ring is drawn on the snackbar, not partly over the page
       // behind it, where the inverse accent is not tuned to show.
-      final outer = painter.rect.inflate(FocusRingLayer.gap + painter.width);
+      final reach = FocusRingLayer.gap + painter.width;
+      // What is painted: the ring, cut to the painter's widened clip.
+      final outer = painter.rect
+          .inflate(reach)
+          .intersect(painter.clip.inflate(reach));
       final card = tester.getRect(
         find
             .ancestor(

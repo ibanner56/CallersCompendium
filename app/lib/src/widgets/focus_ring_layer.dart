@@ -176,8 +176,33 @@ class FocusRingLayerState extends State<FocusRingLayer> {
     // inverse accent, which `palette_contrast_test.dart` holds to 3:1 there:
     // the canvas's ring is lost on it (1.3:1 in High contrast and on the
     // stage).
-    final inSnackBar =
-        context.findAncestorWidgetOfExactType<SnackBar>() != null;
+    // The snackbar's card is its outermost Material below the SnackBar (a
+    // button inside has a Material of its own, nearer the focus).
+    Element? card;
+    var inSnackBar = false;
+    context.visitAncestorElements((element) {
+      if (element.widget is SnackBar) {
+        inSnackBar = true;
+        return false;
+      }
+      if (element.widget is Material) card = element;
+      return true;
+    });
+    final cardBox = inSnackBar ? card?.renderObject : null;
+    if (cardBox case final RenderBox box when box.attached && box.hasSize) {
+      // Clipped to the card, as to a viewport, so a ring round a control at
+      // its edge (a 3 px ring round Undo in a one-line snackbar) is not drawn
+      // over the page behind, where the inverse accent is not tuned to show.
+      // The painter widens the clip by the ring's reach; take that off here.
+      final reach = FocusRingLayer.gap + ext.focusRingWidth;
+      clip = clip.intersect(
+        MatrixUtils.transformRect(
+          box.getTransformTo(layer),
+          Offset.zero & box.size,
+        ).deflate(reach),
+      );
+      if (clip.isEmpty) return null;
+    }
     return (
       rect,
       clip,
