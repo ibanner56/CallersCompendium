@@ -55,7 +55,9 @@ Usage::
     python3 tools/site/render_user_docs.py --check         # temp dir, no writes
 
 ``--out`` is erased and rewritten, so it must be a new or empty directory, or
-sit **below** ``build/`` or a temp directory — never one of those roots itself.
+sit **below** ``build/`` or a temp directory — never one of those roots itself,
+and, when the checkout itself lives under the temp directory, never a path in
+the checkout outside ``build/`` or a directory that holds the checkout.
 
 Exit codes: 0 = rendered, 1 = broken links or images, 2 = bad input.
 """
@@ -854,7 +856,8 @@ def _guard_out_dir(out: Path) -> None:
 
     ``build_site`` wipes ``out`` before writing, so this is an **allow-list**,
     not a blocklist: the directory must not exist yet, be empty, or sit
-    **strictly below** ``build/`` or the system temp directory.
+    **strictly below** ``build/`` or the system temp directory (but not inside
+    this checkout, which may itself live under the temp directory).
 
     Strictly below matters. Those two roots are *containers* of build outputs,
     never outputs themselves: ``--out build`` would wipe every other build
@@ -884,14 +887,20 @@ def _guard_out_dir(out: Path) -> None:
     if not resolved.is_dir():
         _fail(f"--out exists and is not a directory: {resolved}")
 
+    # The temp root's allowance stops at the checkout: a clone that itself
+    # lives under the temp directory would otherwise let `--out app`, or a
+    # directory holding the clone, through. Inside it only build/ is disposable.
+    repo = REPO_ROOT.resolve()
+    in_checkout = resolved == repo or repo in resolved.parents or resolved in repo.parents
     for root in safe_roots:
-        if root in resolved.parents:
+        if root in resolved.parents and (root == safe_roots[0] or not in_checkout):
             return
     if not any(resolved.iterdir()):
         return  # empty: safe to replace
     _fail(
         f"refusing to erase {resolved}: --out must be a new or empty "
-        f"directory, or sit below build/ or a temp directory."
+        f"directory, or sit below build/ or a temp directory (outside this "
+        f"checkout, unless below its build/)."
     )
 
 

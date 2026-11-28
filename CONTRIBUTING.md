@@ -83,10 +83,14 @@ session working for them under any account, does not need them.
   shot is from — a screenshot of a different platform or of a debug banner over
   the area under review demonstrates nothing.
 
-When no device or simulator is available, a golden rendered with
-`fvm flutter test --update-goldens` is acceptable evidence if it covers the
-whole surface that changed; say in the body that it is a golden, and at which
-surface size.
+When no device or simulator is available, a golden image is acceptable
+evidence if it covers the whole surface that changed. The repository has no
+golden tests, so write a temporary one: pump the changed surface at a stated
+size, call `loadBundledFonts()` (`app/test/support/real_fonts.dart`) first so
+the text is drawn in the app's fonts rather than the test font's boxes, and end
+with `matchesGoldenFile`. `fvm flutter test --update-goldens <that test>` writes
+the image. Attach it, say in the body that it is a golden and at which surface
+size, and do not commit the test or the image.
 
 ### Versioned formats: bank changes in the unreleased vNext
 Five version numbers mark formats other installs depend on:
@@ -201,6 +205,15 @@ CI checks less here than for a bump. The constant does not move, so neither
 `check_schema_migration.py`, `check_version_history.py` nor
 `check_version_bump_policy.py` notices the change.
 The migration test and the ledger entry are on you.
+
+**Check again after every sync, and before you merge.** The day vNext is
+tagged, these steps edit a version users have: their databases are already
+stamped `N`, `onUpgrade` never re-runs the step, and the first query on the new
+column fails for every upgraded install. A branch started before the tag does
+not know. Re-run the check
+[above](#versioned-formats-bank-changes-in-the-unreleased-vnext); if the latest
+tag now carries head's number, bump instead. No gate refuses an edit to a
+released version's step, dump or schema class.
 
 Only someone running a build from `main` can have a database already stamped
 vNext. `onUpgrade` does not re-run the step for it, so

@@ -54,16 +54,18 @@ whose only record is on a branch loses its provenance with it. So:
   PR and cite its path there. Copy it byte-for-byte if anything cites it by
   `file:line`.
 - A `file.dart:N` line citation in `docs/**/*.md` goes stale whenever lines are
-  added above it. Prefer a stable anchor (a symbol or widget key) where one
-  exists. `python3 tools/ci/check_doc_line_citations.py` counts citations that
-  now land on a blank line, a comment or past the end of the file, or whose path
-  no longer resolves (missing, or no longer unique), against
-  `tools/ci/doc_line_citations_ceiling.json` (`docs/dev/audits/` is excluded:
-  dated records). The ceiling is exact: a new stale citation fails, and so does
-  a cleanup that does not lower the ceiling in the same PR. It runs in
-  `_checks.yml` (code PRs can move cited lines) and in its own
-  `.github/workflows/doc-line-citations.yml` (`ci.yml` skips `_checks.yml` for
-  a Markdown-only PR); the latter is not a required check.
+  added above it, usually by sliding onto another line of code, which nothing
+  can tell from the right one. Cite a symbol (`` `_tagsForMany` in
+  `dance_repository.dart` ``) or the file instead.
+  `python3 tools/ci/check_doc_line_citations.py` counts every backticked
+  `file.dart:N` citation against `tools/ci/doc_line_citations_ceiling.json`,
+  which is 0 (`docs/dev/audits/` is excluded: dated records). The ceiling is
+  exact: a new line citation fails, and so would a cleanup that did not lower
+  the ceiling in the same PR. It runs in
+  `_checks.yml` and in its own `.github/workflows/doc-line-citations.yml`
+  (`ci.yml` skips `_checks.yml` for a Markdown-only PR); the latter is not a
+  required check. Since every citation counts, only a Markdown change can move
+  the count; the workflows' comments still describe the older rule.
 - To say where work was done, cite the merged PR (`#N`) or a commit SHA that
   is on `main`, not the branch it was built on. A GitHub link pins such a SHA
   or `main`, never a branch. A SHA that exists only on a branch is a branch
