@@ -1,0 +1,9 @@
+{
+  "id": "s31-phrase-edits-keep-bars",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "In an English dance, every phrase edit that changes how the figures are counted in bars now keeps each figure's length in bars, as a Meter edit already did: a phrase's Bars or whether it plays Once or Twice, where the phrases differ in beats to the bar; removing the last named phrase of a dance with no Meter; and Name the phrases on a structure whose parts don't group. When a count can't keep its bars exactly, none changes and the message says so; its Undo takes back the edit and the counts together."
+    ]
+  }
+}

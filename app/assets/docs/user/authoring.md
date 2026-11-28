@@ -743,8 +743,15 @@ Counts left like that still mean the bars you entered them in, so typing the
 Meter back leaves them as they were, until you change one of them. A phrase's
 beats to the bar work the same way: changing a named phrase's **Beats per
 bar**, or typing a structure such as `4*8*3` with no Meter, keeps each figure's
-bars, counted in the bars of the phrase it falls in. Changing only a phrase's
-bars, or whether it plays once or twice, changes no count.
+bars, counted in the bars of the phrase it falls in. So does any other phrase
+edit that changes how the figures are counted in bars: where the phrases
+differ in beats to the bar, a phrase's **Bars** or whether it plays **Once**
+or **Twice** moves the bars the later figures fall in; removing the last named
+phrase of a dance with no **Meter** falls back to two beats a bar; and **Name
+the phrases** on a structure whose parts don't group gives every phrase the
+first part's beats. Each keeps the figures' bars, or says it couldn't, with
+the same message and **Undo**. Changing a phrase's bars or plays when every
+phrase has the same beats to the bar changes no count.
 A Meter given while the dance was another type is
 applied to the phrases the same way when you make it English, unless it states
 the same beats to the bar as it did when you changed the dance from English

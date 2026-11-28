@@ -951,21 +951,114 @@ void main() {
       expect(controller.warnings, isEmpty);
     });
 
-    test("a named phrase's Bars changes no count", () async {
+    // The maintainer's ruling, 2026-11-28: any edit that changes bar timing
+    // keeps the figures' bars, as the beats to the bar does.
+    test(
+      "a named phrase's Bars, where the phrases differ in beats to the "
+      'bar, keeps the bars of the figures it moves into another phrase',
+      () async {
+        final repos = openTestRepositories();
+        final controller = await openDance(
+          repos,
+          phraseStructure: 'A:2*4*3 + B:1*8*2',
+          figures: [
+            for (var i = 0; i < 2; i++)
+              testFigure(move: 'ecd_set', params: {'beats': 12}),
+            for (var i = 0; i < 2; i++)
+              testFigure(move: 'ecd_set', params: {'beats': 8}),
+          ],
+        );
+        addTearDown(controller.dispose);
+        // A grows to 8 bars of 3: the two figures of 4 bars of 2 now fall in
+        // A, and stay 4 bars there.
+        controller.setPhraseStructureText('A:2*8*3 + B:1*8*2');
+        expect(counts(controller), [12, 12, 12, 12]);
+        expect(
+          controller.figureBarsChange?.outcome,
+          FigureBarsRescale.rescaled,
+        );
+      },
+    );
+
+    test("a named phrase's Bars, where every phrase has the same beats to "
+        'the bar, changes no count', () async {
       final repos = openTestRepositories();
       final controller = await openDance(
         repos,
-        phraseStructure: 'A:2*4*3 + B:1*8*2',
+        phraseStructure: 'A:2*4*3 + B:1*8*3',
         figures: [
-          for (var i = 0; i < 2; i++)
+          for (var i = 0; i < 4; i++)
             testFigure(move: 'ecd_set', params: {'beats': 12}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      controller.setPhraseStructureText('A:2*8*3 + B:1*8*3');
+      expect(counts(controller), List.filled(4, 12));
+      expect(controller.figureBarsChange, isNull);
+    });
+
+    test('Once or Twice, where the phrases differ in beats to the bar, keeps '
+        'the bars, and the notice\'s Undo takes back the edit and the counts '
+        'in one step', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        phraseStructure: 'A:1*4*3 + B:1*8*2',
+        figures: [
+          testFigure(move: 'ecd_set', params: {'beats': 12}),
           for (var i = 0; i < 2; i++)
             testFigure(move: 'ecd_set', params: {'beats': 8}),
         ],
       );
       addTearDown(controller.dispose);
-      controller.setPhraseStructureText('A:2*8*3 + B:1*8*2');
-      expect(counts(controller), [12, 12, 8, 8]);
+      // A played twice: the next figure, 4 bars of 2 in B, falls in A.
+      controller.setPhraseStructureText('A:2*4*3 + B:1*8*2', typed: false);
+      expect(counts(controller), [12, 12, 8]);
+      final change = controller.figureBarsChange!;
+      expect(change.outcome, FigureBarsRescale.rescaled);
+      expect(controller.canUndoFigureBarsChange(change), isTrue);
+      expect(controller.undoFigureBarsChange(change), isTrue);
+      expect(controller.phraseController.text, 'A:1*4*3 + B:1*8*2');
+      expect(counts(controller), [12, 8, 8]);
+    });
+
+    test('removing the last named phrase of a dance with no Meter keeps the '
+        'bars in the two beats it falls back to', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        phraseStructure: 'A:1*8*3',
+        figures: [
+          for (var i = 0; i < 2; i++)
+            testFigure(move: 'ecd_set', params: {'beats': 12}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      controller.setPhraseStructureText('', typed: false);
+      expect(counts(controller), [8, 8]);
+      expect(controller.figureBarsChange?.beatsPerBar, 2);
+    });
+
+    test('naming phrases that flatten to the first part\'s beats keeps the '
+        'bars, or says it could not', () async {
+      final repos = openTestRepositories();
+      final controller = await openDance(
+        repos,
+        phraseStructure: '1*8*3 + 1*8*2',
+        figures: [
+          for (var i = 0; i < 2; i++)
+            testFigure(move: 'ecd_set', params: {'beats': 12}),
+          for (var i = 0; i < 2; i++)
+            testFigure(move: 'ecd_set', params: {'beats': 8}),
+          testFigure(move: 'ecd_set', params: {'beats': 1}),
+        ],
+      );
+      addTearDown(controller.dispose);
+      // Half a bar of 2/2 cannot be whole beats in 3/2: nothing moves, and
+      // the notice says so.
+      controller.setPhraseStructureText('A:1*8*3 + B:1*8*3', typed: false);
+      expect(counts(controller), [12, 12, 8, 8, 1]);
+      expect(controller.figureBarsChange?.outcome, FigureBarsRescale.notExact);
     });
 
     test('a structure typed under a stated Meter, which keeps the bar '
@@ -1062,8 +1155,10 @@ void main() {
       controller.setPhraseStructureText('A:1*4*3 + B:1*4*2');
       final left = controller.figureBarsChange!;
       expect(left.outcome, FigureBarsRescale.notExact);
-      // Its bars only, then a Meter the phrases do not follow.
-      controller.setPhraseStructureText('A:1*1*3 + B:1*4*2');
+      // A Meter the phrases do not follow. (A phrase's Bars here once
+      // changed no count either; since the maintainer's ruling, 2026-11-28,
+      // it keeps the bars like any edit that changes bar timing: see the
+      // Bars tests above.)
       typeMeter(controller, '3/4');
       typeMeter(controller, '2/4');
       expect(counts(controller), [3, 8]);
