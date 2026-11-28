@@ -189,6 +189,28 @@ void main() {
         form: DanceForm.square,
       );
     }
+    // A start word beside a shape word does not hide the shape.
+    for (final words in const [
+      'Sicilian circle, improper',
+      'Longways, proper',
+    ]) {
+      expectFormation(
+        {'Type': 'Square', 'FormationOther': words},
+        FormationShape.other,
+        detail: words,
+        form: DanceForm.square,
+      );
+      final text = mapCallersCompanionDance(
+        CcDanceRecord(name: 'T', type: 'Square', formation: words),
+      ).dance;
+      expect(text.formation, Formation(FormationShape.other, detail: words));
+    }
+    expectFormation(
+      {'Type': 'Square', 'FormationOther': 'Big circle, improper'},
+      FormationShape.circle,
+      detail: 'Big circle, improper',
+      form: DanceForm.square,
+    );
     expectFormation(
       {'Type': 'Square', 'ContraForm': 'Improper', 'Direction': 'Rev'},
       FormationShape.square,

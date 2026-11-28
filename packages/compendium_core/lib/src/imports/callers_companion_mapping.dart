@@ -1675,12 +1675,24 @@ Formation _mapSquareDanceFormation(
   }
   final named = _mapEcdShape(record, usr, <ImportIssue>[]).shape;
   // A start alone is a duple minor, or a duple shape ECD has no twin for.
+  // `_mapFormation` reads a start word before a shape word, so words such as
+  // "Sicilian circle, improper" read as a start too; their shape word still
+  // names the shape: a big circle's circle, or `other`.
   if (const {
     FormationShape.dupleMinor,
     FormationShape.dupleIndecent,
     FormationShape.reverseProgressionImproper,
   }.contains(named)) {
-    return set;
+    if (!_namesShapeBesidesStart(words)) return set;
+    final value = words.toLowerCase();
+    final bigCircle =
+        value.contains('circle') &&
+        !value.contains('sicilian') &&
+        classifyFormationSetName(value) == null;
+    return Formation(
+      bigCircle ? FormationShape.circle : FormationShape.other,
+      detail: set.detail,
+    );
   }
   return Formation(FormationShape.other, detail: set.detail);
 }
