@@ -2046,4 +2046,55 @@ void main() {
       },
     );
   });
+
+  // The machine strings a share file or backup can carry (#2340, #2354):
+  // anything longer than 128 code units is dropped, never refusing the
+  // program (pre-release audit finding TESTS-10).
+  test('a calendar fingerprint, flag, placeholder search id or event rule id '
+      'over 128 code units reads as absent', () {
+    Program program({required int length}) {
+      final s = 'x' * length;
+      return Program(
+        id: 'p1',
+        title: 'Program',
+        calendarEventFingerprint: s,
+        calendarFlag: s,
+        eventRuleIds: [s, 'short-rule'],
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            text: 'Becket',
+            placeholderSearchId: s,
+          ),
+        ],
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      );
+    }
+
+    Program roundTrip(Program p) {
+      final result = decodeArchive(
+        jsonEncode({
+          'schemaVersion': archiveSchemaVersion,
+          'exportedAt': '2026-04-05T00:00:00.000Z',
+          'programs': [archiveProgramToJson(p)],
+        }),
+      );
+      expect(result.hasErrors, isFalse, reason: 'the program is not refused');
+      return result.archive.programs.single;
+    }
+
+    final atCap = roundTrip(program(length: 128));
+    expect(atCap.calendarEventFingerprint, hasLength(128));
+    expect(atCap.calendarFlag, hasLength(128));
+    expect(atCap.eventRuleIds, ['x' * 128, 'short-rule']);
+    expect(atCap.slots.single.placeholderSearchId, hasLength(128));
+
+    final over = roundTrip(program(length: 129));
+    expect(over.calendarEventFingerprint, isNull);
+    expect(over.calendarFlag, isNull);
+    expect(over.eventRuleIds, ['short-rule']);
+    expect(over.slots.single.placeholderSearchId, isNull);
+  });
 }
