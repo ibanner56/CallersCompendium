@@ -118,7 +118,9 @@ files: write a fresh head database (step 2 below), dump it over
 4). `drift_dev schema generate` rewrites every version's class, so check that
 those below head come out byte-identical and commit only head's. Earlier
 versions are fixed: each dump records the shape its version had when it was
-last head, and nothing amends them.
+last head, and nothing amends them. For a version a release tag carries,
+`tools/ci/check_schema_migration.py` enforces it: such a dump may change only
+to semantically equal JSON, and such a schema class not at all.
 
 ## Regenerating
 

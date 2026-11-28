@@ -212,8 +212,11 @@ stamped `N`, `onUpgrade` never re-runs the step, and the first query on the new
 column fails for every upgraded install. A branch started before the tag does
 not know. Re-run the check
 [above](#versioned-formats-bank-changes-in-the-unreleased-vnext); if the latest
-tag now carries head's number, bump instead. No gate refuses an edit to a
-released version's step, dump or schema class.
+tag now carries head's number, bump instead. `check_schema_migration.py`
+refuses a change to a released version's dump (unless its JSON is unchanged in
+meaning, as a regeneration leaves it) or schema class, and exits 2 when no
+release tag is fetched. No gate sees an edit to the released `if (from < N)`
+step itself.
 
 Only someone running a build from `main` can have a database already stamped
 vNext. `onUpgrade` does not re-run the step for it, so

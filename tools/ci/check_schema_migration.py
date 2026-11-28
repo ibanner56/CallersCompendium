@@ -15,6 +15,18 @@ It also refuses to let a *retired* schema version come back: any per-version
 fixture, generator, dump or schema class below ``kMinSupportedSchemaVersion``
 fails the gate, whether or not the version changed in the same PR.
 
+And it refuses an edit to a *released* version (audit H-07; the maintainer's
+answer to the audit's question 50, 2026-11-28). A drift schema dump or a
+generated schema class for a version at or below the newest ``v*`` release
+tag's ``kCompendiumSchemaVersion`` describes databases users already have:
+they are stamped with that number, so ``onUpgrade`` never re-runs its step,
+and an "amend vNext" edit made after the tag silently breaks every upgraded
+install. Such a dump may change only when its JSON is semantically equal (a
+regeneration that reorders or reformats it); a schema class may not change at
+all, so regenerating released classes is merged by hand. With no release tag
+fetched the gate exits 2, like ``check_version_bump_policy.py``. It cannot see
+an edit to the ``if (from < N)`` step in ``database.dart`` itself.
+
   * ``packages/compendium_core/test/storage/migration_test.dart``,
   * any file under ``packages/compendium_core/test/storage/fixtures/``, or
   * any file under ``packages/compendium_core/drift_schemas/`` — the generated
@@ -34,15 +46,19 @@ Usage:
 merge commit, so the diff is the PR's net effect vs its base).
 
 Exit codes: 0 = OK (no bump, or bump with evidence), 1 = bump without evidence,
-2 = usage / git error, including a base or head ref that does not resolve to a
-commit -- which must never be mistaken for "nothing to check".
+a revived retired version or an edit to a released one, 2 = usage / git error,
+including a base or head ref that does not resolve to a commit or no release
+tag -- which must never be mistaken for "nothing to check".
 """
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
+
+from check_version_bump_policy import latest_release_tag
 
 DB_PATH = "packages/compendium_core/lib/src/storage/database.dart"
 MIGRATION_TEST = "packages/compendium_core/test/storage/migration_test.dart"
@@ -112,6 +128,38 @@ def _below_floor(paths: list[str], floor: int) -> list[str]:
         p for p in paths
         if (v := _artefact_version(p)) is not None and v < floor
     )
+
+
+def _released_edits(
+    paths: list[str], base: str, head: str, released: int
+) -> list[str]:
+    """Changed dumps and schema classes of versions at or below [released].
+
+    A dump whose JSON at [head] equals its JSON at [base] is a regeneration
+    and is let through; one that is new, or no longer parses, is not.
+    """
+    refused = []
+    for p in sorted(paths):
+        m = _VERSIONED_ARTEFACT_RE.search(p)
+        if not m or not (m.group("d") or m.group("s")):
+            continue  # fixtures and generators are not the released schema
+        if int(m.group("d") or m.group("s")) > released:
+            continue
+        if m.group("d") and _same_json(p, base, head):
+            continue
+        refused.append(p)
+    return refused
+
+
+def _same_json(path: str, base: str, head: str) -> bool:
+    before = _git("show", f"{base}:{path}")
+    after = _git("show", f"{head}:{path}")
+    if before.returncode != 0 or after.returncode != 0:
+        return False
+    try:
+        return json.loads(before.stdout) == json.loads(after.stdout)
+    except ValueError:
+        return False
 
 
 def _const_int(source: str, name: str) -> int | None:
@@ -196,6 +244,30 @@ def main(argv: list[str]) -> int:
                 + ". Versions below the floor have no migration path to head "
                 "(see the schema floor on CompendiumDatabase); delete them or "
                 "raise the floor deliberately.",
+                code=1,
+            )
+
+    # Released versions are frozen whatever else the PR does (audit H-07).
+    tag = latest_release_tag()
+    if tag is None:
+        _fail(
+            "no v* release tag found. Fetch tags (checkout fetch-depth: 0, or "
+            "`git fetch --tags`); without one the gate cannot tell a released "
+            "schema version from the unreleased vNext.",
+        )
+    released = _schema_version_at(tag)
+    if released is not None:
+        edited = _released_edits(_changed_paths(base, head), base, head, released)
+        if edited:
+            _fail(
+                f"this PR changes the schema of a released version: release "
+                f"tag {tag} ships schema {released}, which these belong to: "
+                + ", ".join(edited)
+                + ". Databases are already stamped with that "
+                "number, so onUpgrade will never re-run its step: bump the "
+                "schema instead (CONTRIBUTING.md, \"Adding to an unreleased "
+                "version\"). A dump may change only to semantically equal "
+                "JSON; regenerating a released schema class is merged by hand.",
                 code=1,
             )
 

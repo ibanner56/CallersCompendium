@@ -283,7 +283,9 @@ mechanical; a diff that violates one is a hard fail, not an opinion:
 - **schema-gate / version-history** — a schema or taxonomy bump must ship its
   required entries and never ride a PATCH release; the version ledger must gain
   the matching entry (schema, contra and ECD taxonomy, and sync wire version
-  each have one).
+  each have one). A released schema version's dump may change only to
+  semantically equal JSON, and its schema class not at all; it cannot see an
+  edit to a released `if (from < N)` step.
 - **changelog-gate** — pending fragments must be compiled and consumed at release.
 - **l10n / user-docs** — ARB parity/coverage; `docs/user` is the single source of
   the in-app bundle.

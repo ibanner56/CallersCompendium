@@ -94,7 +94,10 @@ def run_gate(repo: Path, base: str = "HEAD~1") -> subprocess.CompletedProcess:
     )
 
 
-def build_repo(repo: Path) -> Path:
+def build_repo(repo: Path, *, tag: bool = True) -> Path:
+    """A base commit at schema 9, tagged as a release unless [tag] is false.
+    The gate refuses to run without a release tag, so every scenario that is
+    not about tags has one."""
     git(repo, "init", "-q", "-b", "main")
     git(repo, "config", "user.email", "gate@example.invalid")
     git(repo, "config", "user.name", "gate")
@@ -102,13 +105,17 @@ def build_repo(repo: Path) -> Path:
     write(repo, MIGRATION_TEST, "// migration tests\n")
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "base")
+    if tag:
+        git(repo, "tag", "-a", "v0.1.0-beta", "-m", "release")
     return repo
 
 
-def scenario(changes: dict[str, str]) -> subprocess.CompletedProcess:
+def scenario(
+    changes: dict[str, str], *, tag: bool = True
+) -> subprocess.CompletedProcess:
     """Commits `changes` on top of a fresh base repo and runs the gate."""
     with tempfile.TemporaryDirectory() as tmp_name:
-        repo = build_repo(Path(tmp_name))
+        repo = build_repo(Path(tmp_name), tag=tag)
         for relative, contents in changes.items():
             write(repo, relative, contents)
         git(repo, "add", "-A")
@@ -328,11 +335,120 @@ def test_unknown_refs() -> None:
         )
 
 
+# --------------------------------------------------------------------------
+# A released version's dump and schema class are frozen (audit H-07).
+# --------------------------------------------------------------------------
+
+RELEASED = 12
+RELEASED_DUMP = (
+    "packages/compendium_core/drift_schemas/generated/drift_schema_v12.json"
+)
+RELEASED_SCHEMA = "packages/compendium_core/test/storage/generated/schema_v12.dart"
+VNEXT_DUMP = (
+    "packages/compendium_core/drift_schemas/generated/drift_schema_v13.json"
+)
+DUMP = '{"version": "1.2.0", "entities": [{"id": 0, "name": "dances"}]}\n'
+
+
+def test_released_versions() -> None:
+    print("released schema versions:")
+    # The tag ships schema 12 and main is already at vNext 13, so v12's dump
+    # and schema class are what users' databases were stamped with.
+    vnext = {RELEASED_DUMP: DUMP, RELEASED_SCHEMA: "// v12\n", VNEXT_DUMP: DUMP}
+
+    def released_at_12(changes: dict[str, str]) -> subprocess.CompletedProcess:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            repo = Path(tmp_name)
+            git(repo, "init", "-q", "-b", "main")
+            git(repo, "config", "user.email", "gate@example.invalid")
+            git(repo, "config", "user.name", "gate")
+            write(repo, DB_PATH, database_source(RELEASED))
+            write(repo, MIGRATION_TEST, "// migration tests\n")
+            git(repo, "add", "-A")
+            git(repo, "commit", "-q", "-m", "release")
+            git(repo, "tag", "-a", "v0.1.0-beta", "-m", "release")
+            write(repo, DB_PATH, database_source(13))
+            for relative, contents in vnext.items():
+                write(repo, relative, contents)
+            git(repo, "add", "-A")
+            git(repo, "commit", "-q", "-m", "vNext")
+            for relative, contents in changes.items():
+                write(repo, relative, contents)
+            git(repo, "add", "-A")
+            git(repo, "commit", "-q", "-m", "change")
+            return run_gate(repo)
+
+    result = released_at_12(
+        {RELEASED_DUMP: DUMP.replace('"dances"', '"dances", "x": 1')}
+    )
+    check(
+        "an edit to a released dump fails",
+        result.returncode == 1,
+        f"exit={result.returncode}: {result.stdout + result.stderr}",
+    )
+    check(
+        "the failure names the released path and the tag",
+        "drift_schema_v12.json" in result.stdout and "v0.1.0-beta" in result.stdout,
+        result.stdout + result.stderr,
+    )
+
+    result = released_at_12({RELEASED_SCHEMA: "// v12, edited\n"})
+    check(
+        "an edit to a released schema class fails",
+        result.returncode == 1,
+        f"exit={result.returncode}: {result.stdout + result.stderr}",
+    )
+
+    regenerated = (
+        '{\n  "entities": [\n    {"name": "dances", "id": 0}\n  ],\n'
+        '  "version": "1.2.0"\n}\n'
+    )
+    result = released_at_12({RELEASED_DUMP: regenerated})
+    check(
+        "a released dump regenerated to equal JSON passes",
+        result.returncode == 0,
+        f"exit={result.returncode}: {result.stdout + result.stderr}",
+    )
+
+    result = released_at_12(
+        {VNEXT_DUMP: DUMP.replace('"dances"', '"dances", "x": 1')}
+    )
+    check(
+        "an edit to the unreleased vNext dump passes",
+        result.returncode == 0,
+        f"exit={result.returncode}: {result.stdout + result.stderr}",
+    )
+
+    result = released_at_12({RELEASED_DUMP: "not json\n"})
+    check(
+        "a released dump that no longer parses fails",
+        result.returncode == 1,
+        f"exit={result.returncode}: {result.stdout + result.stderr}",
+    )
+
+
+def test_release_tag_required() -> None:
+    print("release tag:")
+    result = scenario({MIGRATION_TEST: "// edited\n"}, tag=False)
+    check(
+        "no release tag exits 2",
+        result.returncode == 2,
+        f"exit={result.returncode}: {result.stdout + result.stderr}",
+    )
+    check(
+        "the failure says to fetch tags",
+        "fetch" in (result.stdout + result.stderr).lower(),
+        result.stdout + result.stderr,
+    )
+
+
 def main() -> int:
     test_accepted()
     test_rejected()
     test_floor()
     test_unknown_refs()
+    test_released_versions()
+    test_release_tag_required()
     print()
     if FAILURES:
         for failure in FAILURES:

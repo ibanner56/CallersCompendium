@@ -330,9 +330,10 @@ relies on (§2). Update this section when that tag is cut.
 ## 10. Post-release
 - [ ] Open PRs that amend an unreleased version (vNext of the schema, a
   taxonomy or the wire format) now amend a shipped one, if this tag carries
-  that number. Tell each author to rebase into a bump instead. No gate tells
-  an edit to a released `if (from < N)` step, dump or schema class from an
-  amend of vNext ([CONTRIBUTING.md](../../CONTRIBUTING.md#adding-to-an-unreleased-version)).
+  that number. Tell each author to rebase into a bump instead.
+  `check_schema_migration.py` now refuses their change to the released dump
+  or schema class, but no gate sees an edit to the released `if (from < N)`
+  step itself ([CONTRIBUTING.md](../../CONTRIBUTING.md#adding-to-an-unreleased-version)).
 - [ ] Roadmap updated (what shipped, what's still open).
 - [ ] Known-issues list published with the release.
 - [ ] Feedback channel for testers is stated in the release notes.
