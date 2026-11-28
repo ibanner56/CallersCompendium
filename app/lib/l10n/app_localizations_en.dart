@@ -4045,7 +4045,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'This part of the app hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device. Go back and try again.';
+      'This part of the app hit an unexpected error. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that the app never sends anywhere. Go back and try again.';
 
   @override
   String get crashFallbackCopied => 'Copied';

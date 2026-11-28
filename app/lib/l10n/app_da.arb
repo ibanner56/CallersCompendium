@@ -4100,9 +4100,9 @@
   "@crashFallbackTitle": {
     "x-sourceSha256": "8f57c66fd319b8791131188ba4d99ec2acfbfa4c163fa2619b636df3550dd244"
   },
-  "crashFallbackBody": "Denne del af appen stødte på en uventet fejl. Detaljerne blev gemt i en lokal diagnostiklog (Indstillinger ▸ Diagnostik), der aldrig forlader din enhed. Gå tilbage og prøv igen.",
+  "crashFallbackBody": "Denne del af appen stødte på en uventet fejl. Detaljerne blev gemt i en lokal diagnostiklog (Indstillinger ▸ Diagnostik), som appen aldrig sender nogen steder hen. Gå tilbage og prøv igen.",
   "@crashFallbackBody": {
-    "x-sourceSha256": "cd6f68c73b3c2787820f5718ad32da5f46fb8cbc3a2118cabd52661160020182"
+    "x-sourceSha256": "3bed66f33c77d41cd2da4526321ed13f64a936c5f8e7bfc22ef01ecfc92b0d90"
   },
   "crashFallbackCopied": "Kopieret",
   "@crashFallbackCopied": {

@@ -1649,7 +1649,9 @@ class CallersBoxAdapter implements SourceAdapter {
   /// that already states its `center` or `centerHand` refuses a balance that
   /// decodes to a different one (`null`): they describe different waves.
   /// `sides` is not compared, because a balance writes the forming line's
-  /// `with N2` dancers as `N`.
+  /// `with N2` dancers as `N`. What an undecoded line says after the balance
+  /// itself becomes the figure's note ([_balanceWaveLeftover]), or refuses
+  /// the fold when the wave cannot hold it.
   static Figure? _foldTrailingBalanceIntoWave(Figure wave, Figure balance) {
     if (wave.params['balance'] == true) return null;
     // Dancer-prefix mismatch guard (#872): if the balance line names a specific
@@ -1677,8 +1679,8 @@ class CallersBoxAdapter implements SourceAdapter {
     // A bare long wave takes only what the balance states in long-wave
     // terms: a decoded long-wave hold, or a generic `Balance [the] [long]
     // wave[s]` with nothing else. Any other word — a dancer prefix, `for
-    // all`, an undecoded annotation, a wave of four's holds — would be
-    // dropped by the fold, so the balance stays text (#2331).
+    // all`, an undecoded annotation, a wave of four's holds — says more than
+    // the bare wave can hold, so the balance stays text (#2331).
     if (_isTcbLongWave(wave) &&
         decoded?.move != 'form_long_waves' &&
         !_isGenericBalanceWaveLine(balance)) {
@@ -1696,8 +1698,9 @@ class CallersBoxAdapter implements SourceAdapter {
     }
     // A custom balance line whose annotation does not decode (`Balance wave of
     // four (SRNR,1CL)` — `SRN` and `1C` are not modelled codes) would lose
-    // that annotation in the fold: only decoded params and a decoded note are
-    // carried over. Refuse, so the line stays custom with its text intact.
+    // that annotation in the fold: an annotation is carried over only as
+    // decoded params and a decoded note. Refuse, so the line stays custom
+    // with its text intact.
     if (decoded == null && balance.isCustom && _hasAnnotation(balance)) {
       return null;
     }
@@ -1718,7 +1721,21 @@ class CallersBoxAdapter implements SourceAdapter {
         return null;
       }
     }
-    final balanceNote = decoded?.note ?? balance.note;
+    // A balance line that says more than the balance itself (`Balance long
+    // wave in center and slide left`) decodes to nothing, and the fold would
+    // otherwise keep only `balance: true`: the words after the balance are
+    // kept as a note instead (the maintainer's ruling, 2026-11-28: lose no
+    // word of the source). A line the wave cannot hold all of stays text.
+    String? leftover;
+    if (decoded == null && balance.isCustom) {
+      final rest = _balanceWaveLeftover(wave, balance);
+      if (rest == null) return null;
+      leftover = rest.isEmpty ? null : rest;
+    }
+    final balanceNote = combineFigureNotes(
+      leftover,
+      decoded?.note ?? balance.note,
+    );
     return wave.copyWith(
       params: {
         ...wave.params,
@@ -1733,6 +1750,56 @@ class CallersBoxAdapter implements SourceAdapter {
       note: combineFigureNotes(wave.note, balanceNote),
     );
   }
+
+  /// What a custom balance-wave line says after the balance of [wave]
+  /// itself: `''` when nothing, or `null` when the line says something about
+  /// the wave that [wave] cannot hold, so the fold must refuse.
+  ///
+  /// The head taken off is one fixed phrase ([_balanceWaveHead]): a dancer,
+  /// `balance`, `[the|a] [long|short|ocean] wave[s] [of four]`, then
+  /// `in [the] center`. Each part but the dancer must be something [wave]
+  /// states: `long` only on a long wave, `short` or `of four` only on a short
+  /// wave or pass the ocean, `in center` only on the centre wave. The dancer
+  /// is the fold's dancer guard's to judge: it compares it with a `who`, and
+  /// a move without one (`pass_the_ocean`) takes the balance as it always has
+  /// (callersbox_wave_balance_test.dart pins that). A
+  /// line whose head is not that phrase, or whose rest is longer than a `;`
+  /// clause's note may be ([kMaxClauseNote], so the combined note's own cap
+  /// never cuts it), also refuses. The rest loses only the punctuation that
+  /// joined it: `Balance long wave in center and slide left` leaves `and
+  /// slide left`; `Balance wave of four, then slide left` leaves `then slide
+  /// left`.
+  static String? _balanceWaveLeftover(Figure wave, Figure balance) {
+    final match = _balanceWaveHead.firstMatch(_customText(balance));
+    if (match == null) return null;
+    final move = wave.move;
+    final isLong = move == 'form_a_long_wave' || move == 'form_long_waves';
+    final size = match.group(2)?.toLowerCase();
+    if (size == 'long' && !isLong) return null;
+    if ((size == 'short' || match.group(3) != null) && isLong) return null;
+    if (match.group(4) != null && move != 'form_a_long_wave') return null;
+    final rest = match
+        .group(5)!
+        .replaceFirst(RegExp(r'^[\s,;:.!\-–—]+'), '')
+        .trimRight();
+    if (rest.length > kMaxClauseNote) return null;
+    return rest;
+  }
+
+  /// A balance-wave line's head: group 1 a dancer (with its comma), then
+  /// `balance`, an article, group 2 the wave's size, `wave[s]`, group 3
+  /// `of four`, group 4 `in [the] center`; group 5 is everything after it.
+  static final RegExp _balanceWaveHead = RegExp(
+    r'^(?:((?:role1s|role2s|ones|twos|threes|fours),?)\s+)?balance'
+    r'(?:\s+(?:the|a))?'
+    r'(?:\s+(long|short|ocean))?'
+    r'\s+waves?\b'
+    r'(\s+of\s+four\b)?'
+    r'(\s+in(?:\s+the)?\s+(?:center|centre)\b)?'
+    r'(.*)$',
+    caseSensitive: false,
+    dotAll: true,
+  );
 
   /// A TCB `form long wave` not yet balanced (#2331): a bare one
   /// ([_isBareLongWave]) or one whose line stated holds, `form long wave
@@ -1871,7 +1938,7 @@ class CallersBoxAdapter implements SourceAdapter {
     // that forms the centre wave and balances it (maintainer ruling
     // 2026-11-24: the bare `form long wave` before it is the same wave). Only
     // a line with nothing else on it names the role here: one with more words
-    // or an annotation would lose them in the fold, so it is refused.
+    // or an annotation is refused, below.
     final text = balance.isCustom ? _customText(balance) : '';
     // A role's in-centre balance with more on its line (`Men balance long
     // wave in center and slide left`) is refused by the fold and stays text.

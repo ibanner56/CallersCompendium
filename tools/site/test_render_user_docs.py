@@ -25,6 +25,9 @@ What it proves:
   keeps a cross-link from silently 404-ing on the site.
 * **Nothing escapes the output directory**, and no external JS/CSS/CDN
   reference is ever emitted.
+* **The hand-written pages say what the app says.** The home page and both
+  privacy-policy copies name the licence by the app's SPDX id and Perform mode
+  by its in-app name.
 """
 
 from __future__ import annotations
@@ -369,6 +372,57 @@ def test_chrome_links_are_covered_by_the_repo_url_gate() -> None:
         assert f'{rud.REPO_TREE_BASE}/docs/user"' in footer
         assert f'{rud.REPO_BLOB_BASE}/docs/user' not in footer
         assert f'{rud.REPO_BLOB_BASE}/LICENSE' in footer
+
+
+# The site's hand-written pages: the home page, and both copies of the privacy
+# policy. Unlike the guide pages, nothing renders them, so nothing else keeps
+# their wording in step with the app.
+_HAND_WRITTEN_SITE_PAGES = (
+    REPO_ROOT / "site" / "index.html",
+    REPO_ROOT / "site" / "privacy" / "index.html",
+    REPO_ROOT / "docs" / "dev" / "store-submission" / "privacy-policy.md",
+)
+
+
+def _app_licence_spdx() -> str:
+    source = (REPO_ROOT / "app" / "lib" / "src" / "app_metadata.dart").read_text(encoding="utf-8")
+    match = re.search(r"const String kAppLicenseSpdx = '([^']+)';", source)
+    assert match, "app_metadata.dart no longer declares kAppLicenseSpdx"
+    return match.group(1)
+
+
+def test_hand_written_site_pages_name_the_licence_as_the_app_does() -> None:
+    """Every AGPL licence name on these pages is the app's own SPDX id.
+
+    The renderer's source is checked too, because it writes the guide pages'
+    footer. None of these files credits ContraDB, whose licence is spelled
+    differently, so any other spelling here names this project's licence
+    wrongly.
+    """
+    spdx = _app_licence_spdx()
+    assert spdx.startswith("AGPL-"), spdx
+    for page in (*_HAND_WRITTEN_SITE_PAGES, Path(rud.__file__)):
+        names = re.findall(r"AGPL-[0-9A-Za-z.+-]*[0-9A-Za-z+]", page.read_text(encoding="utf-8"))
+        assert names, f"{page.relative_to(REPO_ROOT)} names no licence"
+        wrong = sorted(set(names) - {spdx})
+        assert not wrong, (
+            f"{page.relative_to(REPO_ROOT)} names the licence {wrong}; the app says {spdx}"
+        )
+
+
+def test_the_home_page_names_perform_mode_as_the_app_does() -> None:
+    """The home page and the site's README use the app's name for Perform mode."""
+    arb = (REPO_ROOT / "app" / "lib" / "l10n" / "app_en.arb").read_text(encoding="utf-8")
+    match = re.search(r'"settingsGeneralPerformanceHeader": "([^"]+)"', arb)
+    assert match, "app_en.arb no longer has settingsGeneralPerformanceHeader"
+    name = match.group(1)
+    home = (REPO_ROOT / "site" / "index.html").read_text(encoding="utf-8")
+    assert name in home, f"site/index.html never says {name!r}"
+    for page in (REPO_ROOT / "site" / "index.html", REPO_ROOT / "site" / "README.md"):
+        old_name = re.search(r"performance\s+mode", page.read_text(encoding="utf-8"), re.IGNORECASE)
+        assert not old_name, (
+            f"{page.relative_to(REPO_ROOT)} says {old_name.group(0)!r}; the app calls it {name!r}"
+        )
 
 
 def test_repo_url_gate_flags_a_wrong_kind_or_missing_path() -> None:

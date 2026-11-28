@@ -8,7 +8,7 @@
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 **Caller's Compendium** is a free, open-source, local-first dance organizer for
-contra dance callers. Keep your collection of dances, plan programs for your
+contra, English country and square dance callers. Keep your collection of dances, plan programs for your
 events, and call from a large-print, stage-ready view — on your computer,
 tablet, or phone, with or without an internet connection.
 
@@ -37,11 +37,15 @@ stay up to date.
 
 ## Features
 
-- **Collection** — Catalog dances with structured, searchable figures. Search by
+- **Collection** — Catalog contra dances, English country dances, and
+  traditional squares with structured, searchable figures, each form with its
+  own figure vocabulary and formations, and English dances with their bars,
+  meter and key. Search by
   title, author, type, formation, level, your own custom fields, or the
-  choreography itself — even "a chain, then a swing, in B2." Enter figures with
-  the structured editor or type them as free text, using your own shorthands,
-  and have them parsed into editable figures. Keep a step-by-step
+  choreography itself — even "a chain, then a swing, in B2" — and save the
+  searches you use again. Enter figures with
+  the structured editor or, for contra and English dances, type them as free
+  text, using your own shorthands, and have them parsed into editable figures. Keep a step-by-step
   **Walkthrough** on each dance, pre-filled from a reusable snippet library, and
   group your collection by category to find the right dance mid-evening. Select
   many dances to tag, rate, set the status of, or delete them together, and
@@ -49,8 +53,10 @@ stay up to date.
 - **Programs** — Build, duplicate, print, and email set lists for your events,
   with alternates, free-text slots, and reusable venues. A programming matrix,
   computed from the choreography, shows the shape and variety of your evening
-  at a glance. Start a program from a plain-text list of titles or from a
-  ContraDB event, and share a program together with every dance it uses.
+  at a glance. Start a program from one of your program templates, a
+  plain-text list of titles, a ContraDB event, or a gig in your online
+  calendar; put your programs in your calendar app as a calendar (`.ics`)
+  file; and share a program together with every dance it uses.
 - **Perform mode** — A large-print, high-contrast calling view with program
   navigation, on-the-fly adjustments, a screen that stays awake, full screen on
   a computer, and screen-reader-friendly figure text.
@@ -59,11 +65,14 @@ stay up to date.
   vocabulary, so search keeps working and your data stays portable. The app
   ships role-neutral presets (Larks/Robins by default, and Leads/Follows); you
   can build your own dialects, preview edits live, and switch dialects per gig.
-- **Imports** — Bring dances in from The Caller's Box and ContraDB by online
-  search, link, or ID, paste a list of titles, import a published collection,
-  migrate from Caller's Companion (its `.USR` library file), or open a
-  Caller's Compendium file. You see what an import will bring in before
-  anything reaches your collection.
+- **Imports and exports** — Bring dances in from The Caller's Box and ContraDB
+  by online search, link, or ID, paste a list of titles, import a published
+  collection, bring in your own spreadsheet (CSV) or a text or Markdown file of
+  dances you typed up, migrate from Caller's Companion (its `.USR` library
+  file), open a Caller's Compendium file, or point your camera at a dance's QR
+  code. You see what an import will bring in before anything reaches your
+  collection. Export dances or programs as a spreadsheet (CSV), or show a dance
+  as a QR code for another caller to scan.
 - **Device Sync** *(experimental, opt-in)* — Keep your library in step across
   your own devices, with no account and no sign-in. It is off until you turn it
   on; see [Device Sync](docs/user/settings.md#device-sync) in the Settings guide.

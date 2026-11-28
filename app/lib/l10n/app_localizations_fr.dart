@@ -4139,7 +4139,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Cette partie de l’application a rencontré une erreur inattendue. Les détails ont été enregistrés dans un journal de diagnostic local (Réglages ▸ Diagnostics) qui ne quitte jamais votre appareil. Revenez en arrière et réessayez.';
+      'Cette partie de l’application a rencontré une erreur inattendue. Les détails ont été enregistrés dans un journal de diagnostic local (Réglages ▸ Diagnostics) que l’application n’envoie jamais nulle part. Revenez en arrière et réessayez.';
 
   @override
   String get crashFallbackCopied => 'Copié';
