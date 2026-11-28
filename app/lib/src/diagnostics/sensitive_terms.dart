@@ -4,8 +4,16 @@ import 'dart:convert';
 
 import '../data/calendar_import_settings.dart'
     show kCalendarFeedUrlKey, kCalendarImportTitleFilterKey;
+import '../data/display_defaults.dart'
+    show
+        isProgramTemplateBreakText,
+        kDefaultProgramBandKey,
+        kDefaultProgramCallerKey,
+        kDefaultStartingProgramKey,
+        tryDecodeStartingProgramTemplate;
 import '../data/program_templates.dart'
     show kProgramTemplateKeyPrefix, tryDecodeProgramTemplate;
+import '../data/settings_keys.dart' show kSyncIdKey;
 
 /// Collects the user-content strings that the *default* (scrubbed) diagnostics
 /// export must redact (issue #458): dance / program / figure titles, a dance's
@@ -183,7 +191,9 @@ Future<Set<String>> collectSensitiveTerms(
       add(formatPayMinorUnits(pay, currency));
     }
     for (final slot in program.slots) {
-      add(slot.text);
+      // The break token is the app's own word, not the caller's: as a term
+      // it would blank "break" all through the stack text.
+      if (!isProgramTemplateBreakText(slot.text)) add(slot.text);
       add(slot.guestCaller);
     }
   }
@@ -342,6 +352,20 @@ Future<Set<String>> collectSensitiveTerms(
     if (value is Map) {
       add(value['name']);
       add(value['text']);
+      // Words typed into the Filters panel that the search keeps: a tune
+      // name, and a custom text field's value. Not every string in the
+      // value: most are enum names (a sort, a scope) that are not the
+      // caller's words and would blank common words in the stack text.
+      if (value['facets'] case final Map<Object?, Object?> facets) {
+        if (facets['tunes'] case final List<Object?> tunes) {
+          tunes.forEach(add);
+        }
+        if (facets['textValues'] case final Map<Object?, Object?> values) {
+          for (final filter in values.values) {
+            if (filter is Map) add(filter['value']);
+          }
+        }
+      }
     } else {
       add(value is String ? value : jsonEncode(value));
     }
@@ -360,10 +384,40 @@ Future<Set<String>> collectSensitiveTerms(
     }
     add(template.name);
     for (final entry in template.entries) {
-      add(entry.text);
+      if (!isProgramTemplateBreakText(entry.text)) add(entry.text);
     }
   }
+  // The legacy Starting program, shown as the first template until the
+  // caller first changes their templates, and kept after that.
+  final startingProgram = await repositories.settings.get(
+    kDefaultStartingProgramKey,
+  );
+  if (startingProgram != null) {
+    final entries = tryDecodeStartingProgramTemplate(startingProgram);
+    if (entries == null) {
+      add(
+        startingProgram is String
+            ? startingProgram
+            : jsonEncode(startingProgram),
+      );
+    } else {
+      for (final entry in entries) {
+        if (!isProgramTemplateBreakText(entry.text)) add(entry.text);
+      }
+    }
+  }
+  // The title filter is often one common word, and a term of three or more
+  // characters is matched anywhere, so "dance" would blank much of the stack
+  // text. Kept all the same, as a tag name is: the scrubbed export promises
+  // the caller's words are gone, and a report short on detail is the safer
+  // failure.
   add(await repositories.settings.get(kCalendarImportTitleFilterKey));
+  // The names a new program starts with: the caller's own, and a band's.
+  add(await repositories.settings.get(kDefaultProgramCallerKey));
+  add(await repositories.settings.get(kDefaultProgramBandKey));
+  // The Device Sync ID, which the registry classifies as personal data: a
+  // failed sync request can name it.
+  add(await repositories.settings.get(kSyncIdKey));
 
   // The calendar feed address (#2352). A private calendar's address embeds a
   // secret token, so the whole address goes in, and so does its scheme-less

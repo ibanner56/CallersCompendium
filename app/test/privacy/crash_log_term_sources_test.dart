@@ -38,7 +38,10 @@ library;
 import 'package:compendium_app/src/data/calendar_import_settings.dart'
     show kCalendarImportTitleFilterKey;
 import 'package:compendium_app/src/data/display_defaults.dart'
-    show ProgramTemplateEntry;
+    show
+        ProgramTemplateEntry,
+        encodeStartingProgramTemplate,
+        kDefaultStartingProgramKey;
 import 'package:compendium_app/src/data/program_templates.dart'
     show ProgramTemplate, encodeProgramTemplate, programTemplateKey;
 import 'package:compendium_app/src/diagnostics/sensitive_terms.dart';
@@ -174,9 +177,11 @@ bool _isFreeTextColumn(String column) {
   return !_notFreeText.containsKey(column);
 }
 
-/// TEXT columns that are not free text although their names do not say so,
-/// with the reason. Each holds a value from a closed set or a code, never
-/// the user's own words; [_isFreeTextColumn] requires every other one.
+/// TEXT columns [_isFreeTextColumn] does not require although their names do
+/// not say why, with the reason. Most hold a value from a closed set or a
+/// code, not the user's own words. Two, `dance_sources.page` and `number`,
+/// are free text left out on purpose: as terms their short values would do
+/// more harm than good. [_isFreeTextColumn] requires every other column.
 const Map<String, String> _notFreeText = {
   'dances.form': 'an enum name',
   'dances.formation_shape': 'an enum name',
@@ -248,7 +253,33 @@ const Map<String, String> _settingsSources = {
   'program template name': 'TERMSRC template name',
   'program template slot text': 'TERMSRC template slot note',
   'program template rule label': 'TERMSRC template rule label',
+  'saved search tune': 'TERMSRC saved search tune',
+  'saved search text field value': 'TERMSRC saved search field value',
+  'starting program slot text': 'TERMSRC starting program note',
   'calendar title filter': 'TERMSRC calendar title filter',
+  // The settings keys the registry classifies as personal data
+  // (_personalSettingsKeys).
+  'default caller': 'TERMSRC default caller',
+  'default band': 'TERMSRC default band',
+  'calendar address': 'https://termsrc-calendar.example/feed.ics',
+  'sync id': 'TERMSRC-sync-id',
+};
+
+/// Every settings key the registry classifies as personal or third-party data
+/// -> the [_settingsSources] entry [_populate] stores in it. Checked against
+/// the registry, so a new personal setting needs a term source.
+const Map<String, String> _personalSettingsKeys = {
+  'default_program_caller': 'default caller',
+  'default_program_band': 'default band',
+  'calendar_feed_url': 'calendar address',
+  'sync_id': 'sync id',
+};
+
+/// Personal settings keys with no term source, and why.
+const Map<String, String> _exemptPersonalSettingsKeys = {
+  'sync_last_used_fingerprint':
+      'salted, slow verifiers of store addresses, not text: no stored value '
+      'is the address itself, and as terms they would match nothing',
 };
 
 /// A compound parameter's name, which the user chose: stored in the payload
@@ -481,6 +512,33 @@ Future<void> _populate(CompendiumRepositories repos) async {
     kCalendarImportTitleFilterKey,
     _settingsSources['calendar title filter'],
   );
+  // A search's Filters-panel words: read from the stored value as it is.
+  await repos.settings.set('${savedSearchKeyPrefix}fixture-facets', {
+    'v': savedSearchFormatVersion,
+    'name': 'Fixture facets',
+    'facets': {
+      'tunes': [_settingsSources['saved search tune']],
+      'textValues': {
+        'f1': {
+          'op': 'contains',
+          'value': _settingsSources['saved search text field value'],
+        },
+      },
+    },
+  });
+  await repos.settings.set(
+    kDefaultStartingProgramKey,
+    encodeStartingProgramTemplate([
+      ProgramTemplateEntry(
+        text: _settingsSources['starting program slot text'],
+      ),
+      const ProgramTemplateEntry(text: Program.breakSlotText),
+    ]),
+  );
+  for (final MapEntry(key: key, value: source)
+      in _personalSettingsKeys.entries) {
+    await repos.settings.set(key, _settingsSources[source]);
+  }
   // ignore: unused_result
   await repos.eventRules.create(
     savedSearchId: 'fixture-search',
@@ -637,6 +695,51 @@ void main() {
             'The fixture stored each of these in settings and '
             'collectSensitiveTerms did not return it:\n  '
             '${uncollected.join('\n  ')}',
+      );
+    });
+
+    test('every personal settings key has a term source', () {
+      final personal = [
+        for (final entry in settingsClassifications.entries)
+          if (entry.value.term.isPersonalData ||
+              entry.value.subject == DataSubject.thirdParty)
+            entry.key,
+      ]..sort();
+      expect(
+        personal,
+        unorderedEquals([
+          ..._personalSettingsKeys.keys,
+          ..._exemptPersonalSettingsKeys.keys,
+        ]),
+        reason:
+            'The registry classifies these settings keys as personal or '
+            'third-party data. Read each new one in collectSensitiveTerms and '
+            'declare it in _personalSettingsKeys (or, with a reason, in '
+            '_exemptPersonalSettingsKeys); delete an entry the registry no '
+            'longer classifies that way.',
+      );
+    });
+
+    test('the break token is not a term', () async {
+      final repos = openTestRepositories();
+      await _populate(repos);
+      await repos.programs.create(
+        Program(
+          id: 'p-break',
+          title: 'Fixture with a break',
+          slots: [
+            ProgramSlot(id: 'pb1', position: 0, text: Program.breakSlotText),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      final terms = await collectSensitiveTerms(repos);
+
+      expect(
+        terms.map((t) => t.toLowerCase()),
+        isNot(contains(Program.breakSlotText.toLowerCase())),
       );
     });
 
