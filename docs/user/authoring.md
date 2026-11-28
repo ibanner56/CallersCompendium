@@ -881,12 +881,19 @@ another where there is not.
   longways set of no set number of couples), with a
   **Starts improper** chip under them: tap it on for a dance that starts
   improper, and leave it off for one that starts proper. A square offers **Square**, **Circle** for a big-circle dance such
-  as a running set, and **Other**. Changing the type to one whose list
-  doesn't have the dance's formation starts the formation over: on **Duple
-  minor** for English, **Improper** for contra, and **Square** for a square.
-  A formation both lists have, such as triple minor or longways between contra
-  and English or circle between English and square, is kept. Undo brings the
-  old formation back.
+  as a running set, and **Other**. Changing a saved dance's type between
+  contra and English keeps what its formation says, as **Convert English
+  dances** does: contra's **Improper** becomes **Duple minor** with **Starts
+  improper** on, **Proper** becomes **Duple minor** with it off, a triplet or
+  quadruplet becomes a three- or four-couple longways set, and a Becket
+  becomes **Longways** with *Becket* at the start of its detail. Changing it
+  back to contra maps those the other way. Any other formation is kept as it
+  is, even one the new type's list doesn't have. For a new dance, and for a
+  change to or from a square, a type whose list doesn't have the dance's
+  formation starts the formation over: on **Duple minor** for English,
+  **Improper** for contra, and **Square** for a square. A formation both lists
+  have, such as triple minor or longways between contra and English or circle
+  between English and square, is kept. Undo brings the old formation back.
 - **Progression** — how the dance progresses, such as **Single**. It sits
   beside **Type** and **Formation** where there is room.
 - **Rating** — your own star rating, with **Clear rating** to unset it. It
@@ -973,7 +980,10 @@ another where there is not.
   when it is not in them. It sits beside **Meter** and **Key**, or under them
   on a narrow screen. Changing a
   dance to another type clears it when you save. The dance's detail view shows it under
-  **Barnes books**, and its Perform card as *Barnes: BIII p. 92*.
+  **Barnes books**, and its Perform card as *Barnes: BIII p. 92*. It shows as you
+  typed it, as the title does, everywhere, printed and shared cards included:
+  **Auto-convert all discouraged terms** leaves it alone, so a tune named in
+  it, such as *Ladies of London*, keeps its name.
 
 ### Notes
 

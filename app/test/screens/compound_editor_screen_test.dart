@@ -1178,6 +1178,44 @@ void main() {
     expect(menuItem.onPressed, isNull, reason: 'the entry cannot be picked');
   });
 
+  testWidgets('an English figure\'s Who names its own kind when a dancers '
+      'parameter cannot fill it', (tester) async {
+    // The maintainer, decision sheet question 20: the reason must not read
+    // "its kind is dancers; this setting's is dancers", and a dancers
+    // parameter still cannot fill the list.
+    await pump(
+      tester,
+      initial: UserGlossaryEntry(
+        id: 'st2',
+        kindName: UserGlossaryEntryKind.compound.name,
+        name: 'set and turn single',
+        definition: 'Set, then turn single.',
+        description: '',
+        payload: CompoundDefinition(
+          params: const [CompoundParam(key: 'who', kind: ParamKind.dancerSet)],
+          figures: [
+            Figure(move: 'ecd_set', params: const {'beats': 4}),
+            Figure(move: 'ecd_turn_single', params: const {'beats': 4}),
+          ],
+          bindings: const [],
+          form: DanceForm.ecd.name,
+        ).toJson(),
+        createdAt: created,
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('compound-binding-0-who')));
+    await tester.pumpAndSettle();
+    final item = find.text(
+      'who (unavailable: its kind is dancers; this setting\'s is list of '
+      'dancers)',
+    );
+    expect(item, findsWidgets);
+    final menuItem = tester.widget<MenuItemButton>(
+      find.ancestor(of: item.last, matching: find.byType(MenuItemButton)).first,
+    );
+    expect(menuItem.onPressed, isNull, reason: 'the entry cannot be picked');
+  });
+
   testWidgets('an existing figure saves back unchanged in meaning, with its '
       'text stored canonically', (tester) async {
     final repos = await pump(tester, initial: twoPullBys());

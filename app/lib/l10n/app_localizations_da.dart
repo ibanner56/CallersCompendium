@@ -12669,6 +12669,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get compoundParamKindDancers => 'dansere';
 
   @override
+  String get compoundParamKindDancerList => 'liste af dansere';
+
+  @override
   String get compoundParamKindDancerPair => 'par af dansere';
 
   @override
