@@ -842,8 +842,9 @@ final Map<String, DataClassification> fieldClassifications = {
         'every request, does not exist on a device that does not sync, and '
         'would change with the store, silently switching the judgement off. '
         'The column is the maintainer\'s decision (audit decision sheet, '
-        'question 7); the construction and this classification are proposed '
-        'by Claude and await the maintainer\'s review.',
+        'question 7); the construction and this classification were proposed '
+        'by Claude and approved by the maintainer (audit decision sheet, '
+        'question 49, 2026-11-28).',
   ),
 
   // --------------------------------------------------------- program_slots --
