@@ -365,7 +365,7 @@ event again, once that device has pulled it. The startup import therefore
 waits, with Device Sync on, for that launch's sync pass, for at most
 `kCalendarStartupSyncWait`; a device that has not pulled the key (the other
 device has not pushed it yet, this one is offline or held back by *Sync only
-on WiFi*, or the wait ran out) can
+on Wi-Fi*, or the wait ran out) can
 still import the same event, and nothing merges the two
 programs. It is not shown anywhere, and share files drop it. A calendar
 import also sets `startMinute` and `endMinute` from a timed event (#2423): a

@@ -267,7 +267,7 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   ///
   /// A suppressed confirmation sends nothing and leaves the decision pending,
   /// and the controller deliberately does not notify — so this dialog stays
-  /// closed and the routing message and the *Sync only on WiFi* tile are
+  /// closed and the routing message and the *Sync only on Wi-Fi* tile are
   /// actually reachable behind it.
   Future<void> _confirmReplacement(SyncController controller) async {
     final messenger = ScaffoldMessenger.maybeOf(context);

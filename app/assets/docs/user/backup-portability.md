@@ -166,18 +166,19 @@ so you never lose what you already have by trying. A file too large to be a
 backup is refused the same way, with its size and the limit.
 
 > **Restoring on an older version of the app.** A backup that holds your own
-> Glossary figures or notes, or pay or a Perform dialect on any program, needs
+> Glossary figures, terms or notes, or pay or a Perform dialect on any program, needs
 > version 0.8.0 or later. Versions 0.5.2 to 0.7.0 refuse it as coming from a
 > newer version. That includes 0.6.0 and 0.7.0, which could read pay and Perform
 > dialects: a backup can't tell them apart from 0.5.2 to 0.5.4, which would
 > restore it without them. Versions before 0.5.2 don't check, and may restore it
 > without those details. Install the current version before you restore.
 >
-> The same goes for a backup that holds an English country dance formation
-> (such as duple minor), a dance marked improper, a dance's meter or key,
+> The same goes for a backup that holds an English country dance or square
+> formation (such as duple minor or a square set), a dance marked improper, a dance's meter or key,
 > who interpreted a dance and when, a dance's other titles or Barnes
-> reference, or a square's kind, repeat order, new partner, singing call or
-> free-form setting:
+> reference, a square's kind, repeat order, new partner, singing call or
+> free-form setting, a program with a start, end, beginner lesson or **Arrive
+> by** time, or a program with event rules applied to it:
 > versions without them refuse it as coming
 > from a newer version. A backup that holds an archived program, a program
 > imported from your calendar, an event rule, or a program slot that keeps a

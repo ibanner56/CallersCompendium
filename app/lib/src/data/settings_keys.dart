@@ -251,7 +251,7 @@ const String kSyncEnabledKey = 'sync_enabled';
 /// which is the point.
 const String kNoBackupMarkerWrittenKey = 'no_backup_marker_written';
 
-/// *Sync only on WiFi*. Absent means on (spec §6.12). Device-local, never
+/// *Sync only on Wi-Fi*. Absent means on (spec §6.12). Device-local, never
 /// synced and never in a backup file.
 const String kSyncWifiOnlyKey = 'sync_wifi_only';
 

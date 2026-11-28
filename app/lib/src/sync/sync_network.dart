@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-/// What the current connection means for a *Sync only on WiFi* decision
+/// What the current connection means for a *Sync only on Wi-Fi* decision
 /// (spec §6.12).
 enum SyncNetworkKind {
   /// WiFi, ethernet or another connection not billed per byte.

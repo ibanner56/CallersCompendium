@@ -64,14 +64,17 @@ The **General** section gathers everyday behavior into small groups.
   instead of fractions (¾). Screen-reader wording is unaffected, and so are
   printed and exported cards: PDFs, shared text and set-list cards always write
   turns as fractions.
-- **Confirm before delete** — adds a prompt before any delete you can undo: a
+- **Confirm before delete** — adds a prompt before these deletes you can undo: a
   dance or program from its **⋮** menu, from the dance or program screen, or
   from Collection's selection mode, and a venue, custom field, tag, author,
-  source, shorthand, dialect, custom theme, walkthrough snippet or matrix
-  column. The one exception is swiping a row in the Collection or Programs
-  list: that reveals a **Delete** button, and tapping it deletes with no
-  prompt, because the swipe plus the tap is already a deliberate two-step
-  action. These deletes offer **Undo** either way. When you delete a program,
+  source, shorthand, dialect, custom theme, walkthrough snippet, matrix
+  column, program template or saved search, and an event rule when Event
+  rules is on under **Settings ▸ Experimental**. Two undoable deletes never
+  ask: swiping a row in the Collection or Programs list reveals a **Delete**
+  button, and tapping it deletes with no prompt, because the swipe plus the tap
+  is already a deliberate two-step action; and removing a
+  difficulty level (see [Dance-authoring defaults](#dance-authoring-defaults))
+  asks nothing first. These deletes offer **Undo** either way. When you delete a program,
   the prompt also says how many dances lose it from their calling history. A
   dance already permanently deleted is not counted. A delete that can't be
   undone always asks first, whether this is on or off.
@@ -79,8 +82,11 @@ The **General** section gathers everyday behavior into small groups.
   delete or change something: **2**, **5**, **10** or **15 seconds**, or
   **Until I close it** (default **10 seconds**). It also stays while you point
   at it or move to it with the keyboard, and its time starts again when you
-  move away. With a screen reader running it always stays until you act on it
-  or close it.
+  move away. While it shows, **Ctrl-Z** (**Cmd-Z** on a Mac) presses its
+  **Undo**, wherever the keyboard focus is, except in a text field or the
+  dance editor, where it undoes your typing or your last edit; it does
+  nothing while a dialog covers the message. With a screen reader running the
+  message always stays until you act on it or close it.
 
 These are the highlights; the [Accessibility guide](./accessibility.md) gives you
 the full picture.
@@ -464,7 +470,7 @@ as draft programs.
   the app runs when it starts, so events another of your devices has already
   imported and synced aren't added again here. Both can still add a draft for
   the same event if that device hasn't synced them yet, or if this one can't
-  sync when it starts (offline, or on mobile data with **Sync only on WiFi**)
+  sync when it starts (offline, or on mobile data with **Sync only on Wi-Fi**)
   or takes longer than that.
 - **At startup** — what that run does with events not imported before:
   - **Report new events** (the default) — adds nothing. If there are new events,
@@ -1956,8 +1962,10 @@ your [own figures and terms, and your notes on built-in
 figures](#glossary-and-custom-figures), the Custom Figures setting, your
 shorthands for your own figures, and your [saved
 searches](./collection.md#save-a-search-and-use-it-again), your [event
-rules](#event-rules), and the [Weekends and series](#weekends-and-series)
-switch. They start syncing only once every device
+rules](#event-rules), your [program templates](#program-defaults), the
+[Suggestions](#suggestions) settings, your [Swap a dance](#perform-mode)
+choices, and the [Weekends and series](#weekends-and-series) switch. They start
+syncing only once every device
 connected to your store has an up-to-date app. Until then changes to them
 aren't sent to your other devices, and nothing already on a device is removed;
 you can keep using and editing them on each device.

@@ -263,12 +263,13 @@ A few smaller settings and behaviors round out the experience:
   without animating. On iPhone and iPad you can still swipe in from the edge of
   the screen to go back. Turning it off stops the app removing its own animations, but
   cannot restore animations your device's setting has already shortened.
-- **Confirm before delete** (**Settings ▸ General**) adds a prompt before any
-  delete you can undo: a dance or a program from its **⋮** menu, from its own
+- **Confirm before delete** (**Settings ▸ General**) adds a prompt before these
+  deletes you can undo: a dance or a program from its **⋮** menu, from its own
   screen, or from Collection's selection mode, and a venue, custom field, tag,
   author, source, shorthand, dialect, custom theme, walkthrough snippet,
   matrix column, program template or saved search, and an event rule when
-  Event rules is on under **Settings ▸ Experimental**. It does not cover the swipe shortcut: swiping a row in the
+  Event rules is on under **Settings ▸ Experimental**. It does not cover
+  removing a difficulty level, which never asks, or the swipe shortcut: swiping a row in the
   Collection or Programs list reveals a **Delete** button, and tapping that
   button deletes straight away. If you want every delete to ask first, use the
   **⋮** menu rather than the swipe. Regardless of this setting, those deletes
