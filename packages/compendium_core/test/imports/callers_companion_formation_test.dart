@@ -181,10 +181,18 @@ void main() {
       form: DanceForm.square,
     );
     // A start alone names no shape: still a square set, the start kept.
+    for (final start in const ['Improper', 'Proper', 'Indecent']) {
+      expectFormation(
+        {'Type': 'Square', 'ContraForm': start},
+        FormationShape.square,
+        detail: start,
+        form: DanceForm.square,
+      );
+    }
     expectFormation(
-      {'Type': 'Square', 'ContraForm': 'Improper'},
+      {'Type': 'Square', 'ContraForm': 'Improper', 'Direction': 'Rev'},
       FormationShape.square,
-      detail: 'Improper',
+      detail: 'Improper; Rev',
       form: DanceForm.square,
     );
   });

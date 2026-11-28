@@ -840,6 +840,17 @@ void main() {
           expect(formation.shape, formationOf(shapeFrom).shape, reason: own);
           expect(formation.detail, contains(own), reason: own);
         }
+        // A start word beside the shape does not hide it: no square set, and
+        // the words are kept. (Which shape `_mapFormation` reads a start and
+        // a shape together as is its own question.)
+        for (final own in const [
+          'Sicilian circle, improper; square through to start',
+          'Longways, proper; square through',
+        ]) {
+          final formation = formationOf(own);
+          expect(formation.shape, isNot(FormationShape.square), reason: own);
+          expect(formation.detail, contains(own), reason: own);
+        }
         // A Becket's detail names the shape; the description's own words
         // are kept beside it.
         final becket = formationOf('Becket, square through to start');

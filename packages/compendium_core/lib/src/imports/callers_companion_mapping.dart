@@ -1674,24 +1674,31 @@ Formation _mapSquareDanceFormation(
     return set;
   }
   final named = _mapEcdShape(record, usr, <ImportIssue>[]).shape;
-  if (named == FormationShape.dupleMinor) return set;
+  // A start alone is a duple minor, or a duple shape ECD has no twin for.
+  if (const {
+    FormationShape.dupleMinor,
+    FormationShape.dupleIndecent,
+    FormationShape.reverseProgressionImproper,
+  }.contains(named)) {
+    return set;
+  }
   return Formation(FormationShape.other, detail: set.detail);
 }
 
 /// Whether [text] names a formation shape, not only a start: "Sicilian
-/// circle" or "longways" does, "improper" or "proper" alone does not. It
-/// reads the words as `_mapFormation` does, anywhere in the text, so "Four
+/// circle" or "longways" does, whatever start word is beside it ("Sicilian
+/// circle, improper"), and "improper" or "proper" alone does not. It looks
+/// for the shape words `_mapFormation` reads, anywhere in the text, so "Four
 /// couples in a square; circle left to start" names a circle too.
 bool _namesShapeBesidesStart(String text) {
-  final shape = _mapFormation(text, <ImportIssue>[]).shape;
-  return switch (shape) {
-    FormationShape.other ||
-    FormationShape.dupleProper ||
-    FormationShape.dupleImproper ||
-    FormationShape.dupleIndecent => false,
-    _ => true,
-  };
+  final value = text.toLowerCase();
+  return classifyFormationSetName(value) != null ||
+      _ccShapeWord.hasMatch(value);
 }
+
+/// The shape words `_mapFormation` reads besides a set name, past which a
+/// start word ("proper", "improper", "indecent") names no shape.
+final RegExp _ccShapeWord = RegExp('becket|triple|sicilian|circle|longways');
 
 /// A formation text that starts by naming a square ("Square of four couples,
 /// proper").
