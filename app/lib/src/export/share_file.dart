@@ -81,9 +81,11 @@ XTypeGroup csvTypeGroup({bool? isLinux}) => XTypeGroup(
   mimeTypes: const [csvMimeType],
 );
 
-/// The folder, in the app's temporary folder, that the export menus and the
-/// phone backup stage a file in for the share sheet or a phone's save dialog
-/// ([writeBundleFile], `saveBackupToFile`). Named for this app: on Windows the
+/// The folder, in the app's temporary folder, that the export menus, the
+/// phone backup, the diagnostics log and the recovery copy stage a file in for
+/// the share sheet or a phone's save dialog ([writeBundleFile],
+/// `saveBackupToFile`, `saveDiagnosticsLog`, `prepareRecoveryCopy`). Named for
+/// this app: on Windows the
 /// temporary folder is shared by all of one user's programs. Not `share_plus`:
 /// on Android that plugin copies a shared file into a folder of that name in
 /// the cache, and refuses a file already in it ([clearSharePlusCopies]).

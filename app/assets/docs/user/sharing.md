@@ -636,8 +636,8 @@ none of them carries contact people in the first place.
 
 ### Files the app hands to the share sheet
 
-To share a dance or program file, a spreadsheet, a calendar file or a backup,
-the app first writes it to its own temporary folder and hands it to the share
+To share a dance or program file, a spreadsheet, a calendar file, a backup, a
+diagnostics log or a recovery copy of your data, the app first writes it to its own temporary folder and hands it to the share
 sheet from there. It isn't deleted the moment the share sheet closes, because
 the app you shared to may not have finished reading it yet. Instead it's
 deleted the next time you share one of these files, or the next time the app
