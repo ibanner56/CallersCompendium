@@ -805,8 +805,9 @@ emptied in Caller's Companion since is not applied; change it in the app.
 Each dance's **formation** comes across as Caller's Companion recorded it: a
 Becket keeps its direction (clockwise or counterclockwise), four facing four,
 triplets, triple minors and longways keep their shape, squares come across as
-square dances in a square set (one in a big circle keeps the circle, and what
-Caller's Companion said of the formation past "Square" is kept as its detail),
+square dances in a square set (one in a big circle keeps the circle, one in
+another formation, such as a hexagon, is described as that, and what Caller's
+Companion said of the formation past "Square" is kept as its detail),
 circle and scatter mixers are marked as mixers, and your own
 description of the starting position ("Long Waves, R-hand to Neighbor") is kept
 as the formation's detail. A square's repeat order comes across too, when

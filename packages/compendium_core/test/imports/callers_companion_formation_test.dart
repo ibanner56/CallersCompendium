@@ -167,10 +167,55 @@ void main() {
       );
       expect(dance.formation.improper, isFalse, reason: '$columns');
     }
-    expect(
-      map({'Type': 'Square', 'Formation': 'Hexagon'}).formation.detail,
-      'Hexagon',
+    // A family that names another shape is `other`, its words the detail.
+    expectFormation(
+      {'Type': 'Square', 'Formation': 'Hexagon'},
+      FormationShape.other,
+      detail: 'Hexagon',
+      form: DanceForm.square,
     );
+    expectFormation(
+      {'Type': 'Square', 'Formation': 'Four Facing Four'},
+      FormationShape.other,
+      detail: 'Four Facing Four',
+      form: DanceForm.square,
+    );
+    // A start alone names no shape: still a square set, the start kept.
+    expectFormation(
+      {'Type': 'Square', 'ContraForm': 'Improper'},
+      FormationShape.square,
+      detail: 'Improper',
+      form: DanceForm.square,
+    );
+  });
+
+  test("a square in a big circle keeps the source's words and start "
+      '(pre-release audit finding B-02)', () {
+    expectFormation(
+      {'Type': 'Square', 'FormationOther': 'Big circle, Kentucky running set'},
+      FormationShape.circle,
+      detail: 'Big circle, Kentucky running set',
+      form: DanceForm.square,
+    );
+    expect(
+      map({
+        'Type': 'Square',
+        'Formation': 'Circle',
+        'ContraForm': 'Improper',
+      }).formation.detail,
+      contains('Improper'),
+    );
+  });
+
+  test("a text export's square in a circle mixer is a mixer in a circle "
+      '(pre-release audit finding B-02)', () {
+    final dance = mapCallersCompanionDance(
+      CcDanceRecord(name: 'M', type: 'Square', formation: 'Circle mixer'),
+    ).dance;
+    expect(dance.form, DanceForm.square);
+    expect(dance.formation.shape, FormationShape.circle);
+    expect(dance.formation.detail, 'Circle mixer');
+    expect(dance.mixer, isTrue);
   });
 
   test("a square's SubType names its repeat order (ADR-007 §8.1)", () {

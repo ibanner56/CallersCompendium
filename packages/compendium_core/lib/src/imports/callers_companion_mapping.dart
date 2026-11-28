@@ -464,10 +464,8 @@ CcDanceMapping mapCallersCompanionDance(
 
   // Formation → FormationShape, preserving unmapped text as detail. An
   // English dance takes the ECD shape its contra shape names (ADR-006 W6). A
-  // square dance takes a square's shape (ADR-007 §8.1) as an English square
-  // set does: a square set, or a circle for a big circle, the source's other
-  // words the detail (pre-release audit finding B-02). It has no improper
-  // flag (`formHasImproperFlag`), so a stated start stays in the detail.
+  // square dance takes a square's shape (ADR-007 §8.1,
+  // [_mapSquareDanceFormation]; pre-release audit finding B-02).
   final formation = form == DanceForm.ecd
       ? _mapEcdFormation(
           record,
@@ -476,23 +474,19 @@ CcDanceMapping mapCallersCompanionDance(
           squareType: mappedForm == DanceForm.square,
         )
       : form == DanceForm.square
-      ? _mapEcdFormation(
-          record,
-          usr,
-          issues,
-          squareType: true,
-        ).copyWith(improper: false)
+      ? _mapSquareDanceFormation(record, usr, issues)
       : usr
       ? _mapFormationColumns(record, issues)
       : _mapFormation(record.formation, issues);
   // A CC mixer is a Type ("Circle Mixer", "Scatter Mixer") or a square's
   // SubType ("Mixer, H H S S"). An English circle mixer keeps the flag on
   // its circle, since ECD has no circle-mixer shape.
-  // The text export has no Type for it, so an English dance there is a mixer
-  // when its formation says so ("Circle mixer"), not for a circle alone.
+  // The text export has no mixer Type, so an English dance or a square there
+  // is a mixer when its formation says so ("Circle mixer"), not for a circle
+  // alone: neither has a circle-mixer shape to keep it in.
   final mixer = usr
       ? _isCcMixer(record)
-      : form == DanceForm.ecd &&
+      : (form == DanceForm.ecd || form == DanceForm.square) &&
             _ccMixerWord.hasMatch(_sanitizeLine(record.formation) ?? '');
   // A square's SubType also names its repeat order ("Keeper, H S H S"), the
   // way American Country Dances On-Line files its squares (ADR-007 §8.1),
@@ -1615,8 +1609,17 @@ Formation _mapEcdFormation(
     return formation.copyWith(detail: detail == null ? own : '$detail; $own');
   }
   // A square in a big circle keeps the circle, which squares use for it
-  // (ADR-007 §8.1).
-  if (formation.shape == FormationShape.circle) return formation;
+  // (ADR-007 §8.1), and what the source said of it ("Big circle, Kentucky
+  // running set", a start) stays in the detail, which the circle's own
+  // reading leaves empty (pre-release audit finding B-02).
+  if (formation.shape == FormationShape.circle) {
+    final detail = formation.detail;
+    final words = [?start, ?direction, if (text.isNotEmpty) text, ?own].where(
+      (w) => w.toLowerCase() != 'circle' && !(detail?.contains(w) ?? false),
+    );
+    if (words.isEmpty) return formation;
+    return formation.copyWith(detail: [?detail, ...words].join('; '));
+  }
   // Otherwise it is danced in a square set: ECD's square shape. What the
   // source said of its formation, past the word "Square" the shape now
   // carries, stays as the detail, so a formation the importer did not know
@@ -1644,8 +1647,41 @@ Formation _mapEcdFormation(
 /// A formation text that names a square ("Square", "Square set").
 final RegExp _ccSquareWord = RegExp(r'\bsquares?\b', caseSensitive: false);
 
+/// A square dance's formation, one of [squareFormationShapes] (ADR-007
+/// §8.1; pre-release audit finding B-02): a square set, as an English square
+/// set is read ([_mapEcdFormation]), when the source names a square or no
+/// shape at all (a blank formation, a start alone, a duple minor); a circle
+/// for a big circle; otherwise `other`, such as a hexagon, with the source's
+/// words as the detail. A square has no improper flag
+/// (`formHasImproperFlag`), so a stated start stays in the detail.
+Formation _mapSquareDanceFormation(
+  CcDanceRecord record,
+  bool usr,
+  List<ImportIssue> issues,
+) {
+  final set = _mapEcdFormation(
+    record,
+    usr,
+    issues,
+    squareType: true,
+  ).copyWith(improper: false);
+  if (set.shape != FormationShape.square) return set;
+  final family = usr ? (_sanitizeLine(record.formationFamily) ?? '') : '';
+  final words = usr
+      ? (_sanitizeLine(record.formationOther) ?? '')
+      : (_sanitizeLine(record.formation) ?? '');
+  if (family.toLowerCase() == 'square' || _ccSquareWord.hasMatch(words)) {
+    return set;
+  }
+  final named = _mapEcdShape(record, usr, <ImportIssue>[]).shape;
+  if (named == FormationShape.dupleMinor) return set;
+  return Formation(FormationShape.other, detail: set.detail);
+}
+
 /// Whether [text] names a formation shape, not only a start: "Sicilian
-/// circle" or "longways" does, "improper" or "proper" alone does not.
+/// circle" or "longways" does, "improper" or "proper" alone does not. It
+/// reads the words as `_mapFormation` does, anywhere in the text, so "Four
+/// couples in a square; circle left to start" names a circle too.
 bool _namesShapeBesidesStart(String text) {
   final shape = _mapFormation(text, <ImportIssue>[]).shape;
   return switch (shape) {
