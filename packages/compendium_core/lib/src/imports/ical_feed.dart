@@ -1289,12 +1289,12 @@ class _Overrides {
 
 /// `UNTIL` as a key comparable with an occurrence written like [start]. A
 /// `DATE` `UNTIL` covers its whole day, and so does any `UNTIL` of an
-/// all-day series, for which RFC 5545 wants a `DATE`: a floating one its
-/// written date, a `Z` one the later of its UTC date and its date in this
-/// device's zone. Calendars write the last day's UTC midnight there, which
-/// west of Greenwich falls the day before, or its local midnight, which east
-/// of it falls in UTC the day before; either way the last day is kept
-/// (pre-release audit finding E1-11).
+/// all-day series, for which RFC 5545 wants a `DATE`: a floating one on its
+/// written date, and so a `Z` one written at 00:00:00 or 23:59:59, the start
+/// or end of the last day in UTC, which west or east of Greenwich falls on
+/// another local date (pre-release audit finding E1-11). Any other `Z` time
+/// is an instant, such as the last day's local midnight in the calendar's
+/// zone, and covers its date in this device's zone.
 ///
 /// RFC 5545 §3.3.10 has `UNTIL` in UTC whenever `DTSTART` has a `TZID`, and
 /// calendar apps write it so; the occurrences are in that zone's wall-clock
@@ -1309,11 +1309,12 @@ int _untilKey(
   DateTime Function(DateTime utc) toLocal,
 ) {
   if (until.isDate || start.isDate) {
-    var last = until.writtenDate;
-    if (until.isUtc && !until.isDate) {
-      final local = until.localDate(toLocal);
-      if (local.isAfter(last)) last = local;
-    }
+    final dayEdge =
+        (until.hour == 0 && until.minute == 0 && until.second == 0) ||
+        (until.hour == 23 && until.minute == 59 && until.second == 59);
+    final last = until.isUtc && !until.isDate && !dayEdge
+        ? until.localDate(toLocal)
+        : until.writtenDate;
     return ICalDateValue(
           year: last.year,
           month: last.month,

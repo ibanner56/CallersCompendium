@@ -1255,6 +1255,11 @@ void main() {
       expect(titles.where((t) => t == 'Moved'), hasLength(1));
       expect(titles, isNot(contains('Cancelled')));
       expect(
+        p.knownKeys,
+        contains(calendarEventKey('s', '20300625')),
+        reason: "a later series' dates are known, so never a false \"gone\"",
+      );
+      expect(
         [for (final c in p.candidates) c.date],
         isNot(contains(utcDay(2030, 6, 18))),
         reason: 'the moved occurrence is not offered as well',
@@ -1414,6 +1419,16 @@ void main() {
           plan(
             body.replaceFirst('20300618T000000Z', '20300617T220000Z'),
             toLocal: (u) => u.add(const Duration(hours: 2)),
+          ),
+        ),
+        [utcDay(2030, 6, 16), utcDay(2030, 6, 17), utcDay(2030, 6, 18)],
+      );
+      // The last day's end in UTC gains no day east of Greenwich.
+      expect(
+        dates(
+          plan(
+            body.replaceFirst('20300618T000000Z', '20300618T235959Z'),
+            toLocal: (u) => u.add(const Duration(hours: 9)),
           ),
         ),
         [utcDay(2030, 6, 16), utcDay(2030, 6, 17), utcDay(2030, 6, 18)],
