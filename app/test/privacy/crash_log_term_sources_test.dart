@@ -24,8 +24,9 @@
 /// Shape follows `share_bundle_egress_test.dart` and the coverage ratchet in
 /// `packages/compendium_core/test/privacy/`: derive the required set from the
 /// real artefact (every TEXT column whose registry subject is `thirdParty` or
-/// whose category is personal data, plus [_alsoRequiredColumns] — see there
-/// for why the registry axis alone under-covers the export's actual promise),
+/// whose category is personal data, and every free-text TEXT column whatever
+/// its registry axes — see [_isFreeTextColumn] for why the registry axis alone
+/// under-covers the export's actual promise),
 /// declare how each is covered, reconcile the two with a paste-ready failure,
 /// and then prove the coverage is real by storing each declared value and
 /// asserting the collector returns it.
