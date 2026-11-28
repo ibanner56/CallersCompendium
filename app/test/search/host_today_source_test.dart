@@ -20,17 +20,35 @@ import '../support/source_scan.dart';
 
 /// Hosts that take today from a `SearchClock` of their own making
 /// (`const SearchClock().today()`) instead of the one they were given, by
-/// path, with why. Such a day is the caller's calendar day, so it is right in
-/// use, but a test cannot pin it to a fixed instant and zone. Each entry must
-/// still need it (see the staleness check).
-const _ownClockHosts = <String, String>{
-  'lib/src/screens/perform_swap_sheet.dart':
-      'reads event-rule contexts with today from const SearchClock(); found '
-      'when this scan began discovering hosts, not yet given an injected clock',
-  'lib/src/screens/program_editor_screen.dart':
-      'reads event-rule contexts with today from const SearchClock(); found '
-      'when this scan began discovering hosts, not yet given an injected clock',
+/// path, with how many such calls each holds and why. Such a day is the
+/// caller's calendar day, so it is right in use, but a test cannot pin it to a
+/// fixed instant and zone. The count is exact, so a new such call in a listed
+/// file fails as it would anywhere else, and one fewer means the entry needs
+/// updating.
+const _ownClockHosts = <String, (int, String)>{
+  'lib/src/screens/perform_swap_sheet.dart': (
+    1,
+    'reads event-rule contexts with today from const SearchClock(); found '
+        'when this scan began discovering hosts, not yet given an injected '
+        'clock',
+  ),
+  'lib/src/screens/program_editor_screen.dart': (
+    1,
+    'reads event-rule contexts with today from const SearchClock(); found '
+        'when this scan began discovering hosts, not yet given an injected '
+        'clock',
+  ),
 };
+
+/// A local or field holding a `SearchClock` the host made itself
+/// (`final clock = SearchClock();`, `final SearchClock _clock = const
+/// SearchClock();`), which `clock.today()` would then read as if it were the
+/// one the host was given. A parameter's default (`this.clock = const
+/// SearchClock()`) is not one: a test passes its own.
+final _ownClockField = RegExp(
+  r'\b(?:final|var|late|static)\s+(?:SearchClock\s+)?_?clock\s*=\s*'
+  r'(?:const\s+)?SearchClock\s*\(',
+);
 
 final _todayCall = RegExp(
   r'\b(buildCollectionFilter|readSavedSearchContext|SavedSearchSpec\s*\.\s*fromPanelState)\s*\(',
@@ -75,6 +93,10 @@ List<String> todayProblems(String source) {
       problems.add('$name(...) does not pass today from its clock');
     }
     if (now.hasMatch(args)) problems.add('$name(...) reads DateTime.now');
+  }
+
+  if (_ownClockField.hasMatch(code)) {
+    problems.add('keeps a SearchClock of its own making as its clock');
   }
 
   // `_today()` reads the injected clock and nothing else.
@@ -213,6 +235,34 @@ void run() {
       ]);
     });
 
+    test('positive control: a clock the host made itself is found, a '
+        "parameter's default is not", () {
+      const own = '''
+final clock = SearchClock();
+void run() {
+  buildCollectionFilter(ftsText: f(x), today: clock.today());
+}
+''';
+      expect(todayProblems(own), [
+        'keeps a SearchClock of its own making as its clock',
+      ]);
+      const field = '''
+final SearchClock _clock = const SearchClock();
+''';
+      expect(todayProblems(field), [
+        'keeps a SearchClock of its own making as its clock',
+      ]);
+      const given = '''
+class Host {
+  const Host({this.clock = const SearchClock()});
+  final SearchClock clock;
+}
+Future<void> f({SearchClock clock = const SearchClock()}) =>
+    readSavedSearchContext(repos, today: clock.today());
+''';
+      expect(todayProblems(given), isEmpty);
+    });
+
     test('the declaration of a function is not a call to it', () {
       const source = '''
 Future<SavedSearchContext> readSavedSearchContext(
@@ -247,18 +297,17 @@ Future<SavedSearchContext> readSavedSearchContext(
   for (final MapEntry(key: path, value: source) in hosts.entries) {
     test('$path takes today only from its SearchClock', () {
       final problems = todayProblems(source);
-      final allowed = _ownClockHosts.containsKey(path);
-      expect(
-        problems.where(
-          (p) => !(allowed && p.endsWith('takes today from a new SearchClock')),
-        ),
-        isEmpty,
-      );
-      if (allowed) {
+      bool ownClock(String p) =>
+          p.endsWith('takes today from a new SearchClock');
+      final allowed = _ownClockHosts[path]?.$1 ?? 0;
+      if (allowed == 0) {
+        expect(problems, isEmpty);
+      } else {
+        expect(problems.where((p) => !ownClock(p)), isEmpty);
         expect(
-          problems,
-          isNotEmpty,
-          reason: '$path no longer needs its _ownClockHosts entry',
+          problems.where(ownClock).length,
+          allowed,
+          reason: "update $path's _ownClockHosts count (or remove the entry)",
         );
       }
     });

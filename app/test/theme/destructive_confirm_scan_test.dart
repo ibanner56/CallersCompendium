@@ -12,9 +12,11 @@ import '../support/source_scan.dart';
 ///
 /// This list pins the confirmations whose label is not itself a destructive
 /// verb (Merge, Disconnect, Continue past an overwrite warning) as well as some
-/// that are. Every other dialog action whose label names a destructive verb is
-/// found by the discovery scan in `main`, so a confirmation added later is
-/// checked without being listed here.
+/// that are. Every other [AlertDialog] action whose label names a destructive
+/// verb, written in `actions:` or built into a local named there, is found by
+/// the discovery scan in `main`, so a confirmation added later is checked
+/// without being listed here. A button built by a helper function, or a
+/// dialog other than an [AlertDialog], is not.
 const _destructiveConfirms = <(String, String)>[
   (
     'lib/src/screens/settings/sync_devices_screen.dart',
@@ -86,6 +88,10 @@ const _notConfirmations = <String, String>{
   'lib/src/screens/program_editor_screen.dart#programsDraftDiscard':
       'a choice offered on opening (Restore an autosaved draft, the filled '
       'primary, or Discard it), not a confirmation of an action the user took',
+  'lib/src/widgets/confirm_discard_changes.dart#commonDiscard':
+      'Discard beside a safer filled button (Keep editing or Save): a '
+      'destructive text button in destructiveTextButtonStyle, the D-1 '
+      'exception in destructive_button_style.dart',
   'lib/src/widgets/batch_tag_dialog.dart#collectionBatchTagRemoveConfirm':
       'a picker\'s apply button (Add or Remove the ticked tags); the batch '
       'change it applies offers Undo',
@@ -108,6 +114,19 @@ final _button = RegExp(
   r'(?:\.(\w+))?\s*\(',
 );
 
+/// Whether [name] appears in [code] as an identifier on its own (not a member,
+/// part of a longer name, or a call).
+bool _namedIn(String code, String name) =>
+    RegExp('(?<![\\w.])${RegExp.escape(name)}(?![\\w(])').hasMatch(code);
+
+/// A local holding a button call: `final name = TextButton(`. Group 1 is the
+/// name, group 2 the button call's start (`TextButton(`).
+final _hoistedButton = RegExp(
+  r'(?:final|var)\s+(\w+)\s*=\s*'
+  r'((?:FilledButton|TextButton|OutlinedButton|ElevatedButton)'
+  r'(?:\.\w+)?\s*\()',
+);
+
 /// Every button in the `actions:` of every [AlertDialog] in [source], whose
 /// label reads one of [l10nKeys] (directly or through `??`, a conditional or
 /// a wrapping widget: every key named in its `child` / `label` counts).
@@ -126,8 +145,19 @@ List<DialogAction> dialogActionsIn(
     ).where((a) => a.name == 'actions').firstOrNull;
     if (actions == null) continue;
     final region = code.substring(actions.start, actions.end);
-    for (final b in _button.allMatches(region)) {
-      final open = actions.start + b.end - 1;
+    // Each button call written in `actions:`, and each one built into a local
+    // first (`final discardButton = TextButton(...)`) and named there.
+    final calls = <(int, Match)>[
+      for (final b in _button.allMatches(region)) (actions.start + b.start, b),
+      for (final d in _hoistedButton.allMatches(code))
+        if (_namedIn(region, d.group(1)!))
+          (
+            d.end - d.group(2)!.length,
+            _button.matchAsPrefix(code, d.end - d.group(2)!.length)!,
+          ),
+    ];
+    for (final (at, b) in calls) {
+      final open = at + b.group(0)!.length - 1;
       final all = callArgs(source, open, code: code);
       final args = {
         for (final a in all)
@@ -146,7 +176,7 @@ List<DialogAction> dialogActionsIn(
       final variant = b.group(2);
       found.add((
         path: path,
-        line: lineAt(source, actions.start + b.start),
+        line: lineAt(source, at),
         key: args['key'] ?? '',
         labelKeys: keys,
         destructiveFilled:
@@ -260,17 +290,20 @@ showDialog(builder: (ctx) => AlertDialog(
       style: destructiveFilledButtonStyle(scheme),
       child: Text(l10n.thingReset),
     ),
+    hoisted,
   ],
 ));
+final hoisted = TextButton(child: Text(l10n.commonDelete));
+final unused = TextButton(child: Text(l10n.commonDelete));
 ''';
     final found = dialogActionsIn('x.dart', source, keys);
-    expect([for (final a in found) a.line], [4, 6, 13, 19]);
+    expect([for (final a in found) a.line], [4, 6, 13, 19, 26]);
     expect(
       [
         for (final a in found.where(_destructive))
           (a.line, a.destructiveFilled),
       ],
-      [(6, false), (19, false)],
+      [(6, false), (19, false), (26, false)],
     );
     expect(found[1].key, "const ValueKey('plain-delete')");
     expect(found[2].destructiveFilled, isTrue);
