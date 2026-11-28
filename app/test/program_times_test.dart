@@ -554,4 +554,19 @@ void main() {
       expect(_summaryTimes(tester), isNull);
     });
   });
+
+  group('ProgramTimes.endsNextDay', () {
+    // The same rule as Program.endsNextDay: only an end strictly earlier
+    // than the start is the next day; an end equal to the start is the same
+    // day.
+    test('an end equal to the start is not the next day', () {
+      const times = ProgramTimes(start: 20 * 60, end: 20 * 60);
+      expect(times.endsNextDay, isFalse);
+      expect(times.endsNextDay, times.applyTo(_program()).endsNextDay);
+    });
+
+    test('an end earlier than the start is the next day', () {
+      expect(const ProgramTimes(start: 20 * 60, end: 60).endsNextDay, isTrue);
+    });
+  });
 }

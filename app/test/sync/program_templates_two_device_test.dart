@@ -210,6 +210,75 @@ void main() {
       expect(templates.defaultId, isNull, reason: device.deviceId);
     }
   });
+  group('a key synced in before the order key is left as the peer wrote it '
+      'by the first local edit', () {
+    // materializeProgramTemplates copies the Starting program while the order
+    // key is missing. A peer's migrated template or default can arrive
+    // without that key (written by itself, or ahead of it); the copy must not
+    // write over either. Each check reads B right after its own edit, before
+    // any sync, so a later sync cannot hide an overwrite.
+    setUp(() async {
+      await a.repositories.settings.set(
+        kDefaultStartingProgramKey,
+        encodeStartingProgramTemplate(const [
+          ProgramTemplateEntry(text: 'Opener'),
+        ]),
+      );
+      await settle();
+    });
+
+    Future<void> firstLocalEditOnB() => saveProgramTemplate(
+      b.repositories.settings,
+      const ProgramTemplate(id: 'family', name: 'Family'),
+    );
+
+    test('the migrated template', () async {
+      await write(
+        a,
+        const ProgramTemplate(
+          id: kMigratedStartingProgramTemplateId,
+          name: 'Renamed on A',
+          entries: [ProgramTemplateEntry(text: 'Edited on A')],
+        ),
+      );
+      await settle();
+      expect(
+        await b.repositories.settings.contains(kProgramTemplateOrderKey),
+        isFalse,
+      );
+
+      await firstLocalEditOnB();
+
+      final migrated = (await templatesOf(
+        b,
+      )).byId(kMigratedStartingProgramTemplateId)!;
+      expect(migrated.name, 'Renamed on A');
+      expect(migrated.entries, const [
+        ProgramTemplateEntry(text: 'Edited on A'),
+      ]);
+    });
+
+    test('the default', () async {
+      await a.repositories.settings.set(
+        kProgramTemplateDefaultKey,
+        kProgramTemplateBlankDefault,
+        at: tick(),
+      );
+      await settle();
+      expect(
+        await b.repositories.settings.contains(kProgramTemplateOrderKey),
+        isFalse,
+      );
+
+      await firstLocalEditOnB();
+
+      expect(
+        await b.repositories.settings.get(kProgramTemplateDefaultKey),
+        kProgramTemplateBlankDefault,
+      );
+    });
+  });
+
   test('a migrated template deleted on one device stays deleted when '
       'another device opens templates before pulling', () async {
     await a.repositories.settings.set(
