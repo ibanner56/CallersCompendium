@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,16 +30,20 @@ import '../theme/app_spacing.dart';
 /// - the prompt **stays while a mouse hovers it or keyboard focus is inside
 ///   it** (the Undo button, or the close button), and its full time starts
 ///   again once the pointer and focus have both left.
-/// - **every key press starts its full time again**, so a keyboard user
-///   tabbing toward Undo is not timed out mid-reach, however many stops lie
-///   between the control that acted and the prompt (forty-odd on a long
-///   list); its time runs out only once they have pressed nothing for that
-///   long.
-/// - **Ctrl-Z (Cmd-Z) presses its Undo** from anywhere, so a keyboard user
-///   need not reach it at all: a key that nothing nearer the focus takes
-///   ([FocusManager.addLateKeyEventHandler]). A text field keeps Ctrl-Z for
-///   its own typing, and a page that binds the key itself (the dance
-///   editor's own undo) keeps it too. Only the most recent prompt answers it.
+/// - **every key press starts its full time again** while the prompt is on
+///   screen, so a keyboard user tabbing toward Undo is not timed out
+///   mid-reach, however many stops lie between the control that acted and
+///   the prompt (forty-odd on a long list); its time runs out only once they
+///   have pressed nothing for that long. A prompt on a tab or pane that is not
+///   showing is not waited for.
+/// - **the platform's undo key presses its Undo** (Cmd-Z on Apple platforms,
+///   Ctrl-Z elsewhere), so a keyboard user need not reach it at all: a key
+///   that nothing nearer the focus takes
+///   ([FocusManager.addLateKeyEventHandler]). A text field keeps the key for
+///   its own typing, and a page that binds it itself (the dance editor's own
+///   undo) keeps it too. Only the most recent prompt answers it, and only
+///   once it has come in and is on screen, not hidden on another tab or
+///   behind a dialog.
 /// - no time limit at all when assistive technology is active
 ///   ([accessibleNavigation]: screen-reader users keep as long as they need to
 ///   reach the action) or when the user chose "Until I close it"; such a prompt
@@ -141,6 +146,12 @@ class _UndoPromptHold {
 
   bool get _held => _holders.isNotEmpty;
 
+  /// Whether a copy of the prompt has come in and is on screen, on top
+  /// ([_UndoPromptContentState._onScreen]).
+  bool get onScreen => _copies.any(
+    (copy) => copy is _UndoPromptContentState && copy._onScreen(),
+  );
+
   /// The copy [who] has been built and has come in: the prompt is showing, so
   /// its time runs.
   void attach(Object who) {
@@ -220,19 +231,33 @@ class _UndoPromptKeys {
   /// another messenger, does not answer the key.
   static _UndoPromptKeys? _current;
 
-  static const _undoKeys = [
-    SingleActivator(LogicalKeyboardKey.keyZ, control: true),
-    SingleActivator(LogicalKeyboardKey.keyZ, meta: true),
-  ];
+  /// The platform's own undo key, as a text field binds it: Cmd-Z on Apple
+  /// platforms, Ctrl-Z elsewhere. A text field leaves the other one through,
+  /// so it is not the prompt's either.
+  static SingleActivator get _undoKey => switch (defaultTargetPlatform) {
+    TargetPlatform.macOS || TargetPlatform.iOS => const SingleActivator(
+      LogicalKeyboardKey.keyZ,
+      meta: true,
+    ),
+    _ => const SingleActivator(LogicalKeyboardKey.keyZ, control: true),
+  };
 
   final ScaffoldMessengerState messenger;
   final _UndoPromptHold hold;
   final VoidCallback undo;
   bool _disposed = false;
 
-  /// Sees every key before anything handles it, and never claims one.
+  /// Sees every key before anything handles it, and never claims one. Only
+  /// a prompt on screen is waited for: one on a tab that is not showing runs
+  /// out as it would have.
   bool _onAnyKey(KeyEvent event) {
-    if (event is! KeyUpEvent) hold.keyPressed();
+    // The messenger went with a prompt still up (a split pane closing): its
+    // snackbars never report closing, so the handlers go here.
+    if (!messenger.mounted) {
+      dispose();
+      return false;
+    }
+    if (event is! KeyUpEvent && hold.onScreen) hold.keyPressed();
     return false;
   }
 
@@ -240,15 +265,21 @@ class _UndoPromptKeys {
   /// Ctrl-Z, or a page's, never reaches here.
   KeyEventResult _onUnhandledKey(KeyEvent event) {
     if (_disposed || !identical(_current, this)) return KeyEventResult.ignored;
-    final keyboard = HardwareKeyboard.instance;
-    if (!_undoKeys.any((key) => key.accepts(event, keyboard))) {
+    if (!messenger.mounted) {
+      dispose();
       return KeyEventResult.ignored;
     }
-    if (!messenger.mounted) return KeyEventResult.ignored;
+    if (!_undoKey.accepts(event, HardwareKeyboard.instance)) {
+      return KeyEventResult.ignored;
+    }
+    // Only a prompt the user can see, fully in: not one on a tab or pane that
+    // is not showing, nor behind a dialog, nor one still waiting for the
+    // last prompt to leave (which is then still the messenger's current
+    // snackbar).
+    if (!hold.onScreen) return KeyEventResult.ignored;
     dispose();
-    // As the Undo button does: the prompt closes, then the undo runs. This
-    // prompt is the head of the queue until it closes (the helper cleared
-    // the queue to show it), and it has not closed.
+    // As the Undo button does: the prompt closes, then the undo runs. A copy
+    // of this prompt has come in, so it is the head of the queue.
     messenger.hideCurrentSnackBar(reason: SnackBarClosedReason.action);
     undo();
     return KeyEventResult.handled;
@@ -372,6 +403,24 @@ class _UndoPromptContentState extends State<_UndoPromptContent> {
     _stopWaitingForEntrance();
     widget.hold.detach(this);
     super.dispose();
+  }
+
+  /// Whether this copy is what the user sees at its own place on screen: on
+  /// a showing route ([TickerMode]), and the first thing a tap at its centre
+  /// would reach, so not on a tab an [IndexedStack] keeps but does not show,
+  /// nor under a dialog's barrier.
+  bool _onScreen() {
+    if (!mounted || !_visible) return false;
+    final box = _findSnackBar()?.renderObject;
+    if (box is! RenderBox || !box.attached || !box.hasSize) return false;
+    final centre = box.localToGlobal(box.size.center(Offset.zero));
+    final result = HitTestResult();
+    WidgetsBinding.instance.hitTestInView(
+      result,
+      centre,
+      View.of(context).viewId,
+    );
+    return result.path.any((entry) => identical(entry.target, box));
   }
 
   void _report() =>

@@ -161,7 +161,8 @@ and Linux and **Cmd** on a Mac:
 - **Ctrl-Z** (**Cmd-Z**), while an **Undo** message is showing, presses its
   **Undo**, wherever the keyboard focus is. In a text field it undoes your
   typing instead, and in the dance editor it undoes your last edit, as it
-  always has.
+  always has. It does nothing while a dialog covers the message, or once
+  you've moved to another tab.
 - **Esc**, or **Ctrl-W** (**Cmd-W**), goes back. If a menu, a list of
   suggestions, or a dialog you could close by clicking outside it is open, it
   closes that first (a dialog holding text you have typed stays open, so that
