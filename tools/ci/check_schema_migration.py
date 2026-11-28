@@ -45,9 +45,13 @@ in ``drift_schemas/README.md``). Also this check's own: a tag whose
 never read as "nothing released" (every release tag has the constant).
 
 What it does not see: an edit to the ``if (from < N)`` step in
-``database.dart`` itself; and a deleted or renamed released dump, which
+``database.dart`` itself; and a deleted released dump, which
 ``schema_verification_test.dart`` (dumps exactly floor..head) catches instead,
-since retiring a version deletes its dumps legitimately.
+since retiring a version deletes its dumps legitimately. A released dump or
+schema class *moved* to another path is refused at its new path even when
+unchanged: the gate compares each path with the same path at base, not with a
+rename's source. Moving released files is rare enough to leave to the
+maintainer.
 
 Usage:
     check_schema_migration.py <base_ref> [head_ref]
@@ -279,7 +283,8 @@ def main(argv: list[str]) -> int:
             + ", ".join(edited)
             + ". Databases are already stamped with that number, so onUpgrade "
             "will never re-run its step: bump the schema instead "
-            "(CONTRIBUTING.md, \"Adding to an unreleased version\"). A dump "
+            "(CONTRIBUTING.md, \"Adding to an unreleased version\"). If the PR "
+            "only moves the file, keep it at its released path. A dump "
             "may change only to semantically equal JSON and a schema class not "
             "at all; a regeneration that changes either is wrong for a "
             "released version, so revert those files (drift_schemas/README.md, "

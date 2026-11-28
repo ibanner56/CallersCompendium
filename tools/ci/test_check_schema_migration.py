@@ -361,7 +361,10 @@ def test_released_versions() -> None:
     # and schema class are what users' databases were stamped with.
     vnext = {RELEASED_DUMP: DUMP, RELEASED_SCHEMA: "// v12\n", VNEXT_DUMP: DUMP}
 
-    def released_at_12(changes: dict[str, str]) -> subprocess.CompletedProcess:
+    def released_at_12(
+        changes: dict[str, str | None],
+    ) -> subprocess.CompletedProcess:
+        """Commits [changes] on top of vNext; a None value deletes the file."""
         with tempfile.TemporaryDirectory() as tmp_name:
             repo = Path(tmp_name)
             git(repo, "init", "-q", "-b", "main")
@@ -378,7 +381,10 @@ def test_released_versions() -> None:
             git(repo, "add", "-A")
             git(repo, "commit", "-q", "-m", "vNext")
             for relative, contents in changes.items():
-                write(repo, relative, contents)
+                if contents is None:
+                    (repo / relative).unlink()
+                else:
+                    write(repo, relative, contents)
             git(repo, "add", "-A")
             git(repo, "commit", "-q", "-m", "change")
             return run_gate(repo)
@@ -430,6 +436,16 @@ def test_released_versions() -> None:
     check(
         "a new dump for a released version fails",
         result.returncode == 1,
+        f"exit={result.returncode}: {result.stdout + result.stderr}",
+    )
+
+    # A pure move is refused too (the gate compares each path with the same
+    # path at base); this pins that documented limit rather than endorsing it.
+    moved = RELEASED_DUMP.replace("/generated/", "/moved/")
+    result = released_at_12({moved: DUMP, RELEASED_DUMP: None})
+    check(
+        "a released dump moved unchanged to a new path is refused there",
+        result.returncode == 1 and "moved/drift_schema_v12.json" in result.stdout,
         f"exit={result.returncode}: {result.stdout + result.stderr}",
     )
 
