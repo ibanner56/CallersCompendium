@@ -7,7 +7,8 @@
 // Mutations this catches: drop the `_ensureV42Schema` call, or the
 // `_ensureV42EventRules` call, from `beforeOpen`; or drop the step of
 // `_ensureV42EventRules` that adds `event_rules.nickname` (#2341) to a table
-// made before it joined v42.
+// made before it joined v42; or drop the `_ensureV42CalendarFeedDigest` call
+// (pre-release audit finding E1-01).
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/native.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
@@ -34,6 +35,7 @@ const _programColumns = [
   'calendar_written_at',
   'calendar_flag',
   'event_rule_ids',
+  'calendar_feed_digest',
 ];
 
 void main() {

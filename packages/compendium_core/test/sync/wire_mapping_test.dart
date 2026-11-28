@@ -912,6 +912,11 @@ const _valuePairs = <String, List<Object?>>{
   'programs.arrival_minute': [1110, 1111],
   'programs.calendar_written_at': _earlier,
   'programs.calendar_flag': ['cancelled', 'missing'],
+  // A salt and a digest in hex (E1-01): the codec drops anything else.
+  'programs.calendar_feed_digest': [
+    'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+    'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+  ],
   'program_slots.position': [0, 1],
   'program_slots.is_alt': [false, true],
   'program_slots.is_purged_dance': [false, true],
@@ -1233,6 +1238,7 @@ class _Fixture {
     calendarEventFingerprint: _str('programs.calendar_event_fingerprint'),
     calendarWrittenAt: _date('programs.calendar_written_at'),
     calendarFlag: _str('programs.calendar_flag'),
+    calendarFeedDigest: _str('programs.calendar_feed_digest'),
   );
 
   StoredUserGlossaryEntry glossaryEntry() => StoredUserGlossaryEntry(

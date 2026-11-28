@@ -5371,6 +5371,14 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseFigureBarsKept =>
+      'De tellen van de figuren zijn aangepast, zodat elke figuur haar maten houdt.';
+
+  @override
+  String get danceEditorPhraseFigureBarsNotKept =>
+      'Tellen niet aangepast: niet elke figuur kon haar maten precies houden, dus ze lezen nu in de maten van elke frase. Controleer ze.';
+
+  @override
   String get danceEditorSequenceSpanLabel => 'Maten voor alles';
 
   @override

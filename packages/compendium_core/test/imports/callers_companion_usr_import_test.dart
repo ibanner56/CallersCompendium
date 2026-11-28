@@ -1122,6 +1122,7 @@ void main() {
         'calendar_event_fingerprint',
         'calendar_written_at',
         'calendar_flag',
+        'calendar_feed_digest',
         'event_rule_ids',
       };
       expect(
@@ -1179,6 +1180,7 @@ void main() {
           calendarEventFingerprint: 'cal-fingerprint-1',
           calendarWrittenAt: DateTime.utc(2026, 7, 16),
           calendarFlag: calendarFlagCancelled,
+          calendarFeedDigest: 'cal-feed-digest-1',
           eventRuleIds: const ['rule-1', 'rule-2'],
         ),
       );

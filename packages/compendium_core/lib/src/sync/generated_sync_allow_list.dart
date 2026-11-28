@@ -73,6 +73,7 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
     'band',
     'calendarEventFingerprint',
     'calendarEventKey',
+    'calendarFeedDigest',
     'calendarFlag',
     'calendarWrittenAt',
     'caller',

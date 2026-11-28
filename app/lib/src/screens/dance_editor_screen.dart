@@ -250,48 +250,51 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       // The authors may have changed; a conversion this starts notifies
       // again, and the second pass finds nothing left to change.
       _syncEditorDialect();
-      _syncMeterBarsNotice();
+      _syncFigureBarsNotice();
       setState(_rebuildTagOptions);
     }
   }
 
-  /// The Meter edit [_meterBarsNotice] was shown for, so that each is shown
-  /// once.
-  MeterBarsChange? _meterBarsNoticeFor;
+  /// The edit [_figureBarsNotice] was shown for, so that each is shown once.
+  FigureBarsChange? _figureBarsNoticeFor;
 
-  /// The notice of what the latest Meter edit did to an English dance's
-  /// figure counts, while it is showing or waiting to (pre-release audit
-  /// finding A2-02).
-  _MeterBarsNotice? _meterBarsNotice;
+  /// The notice of what the latest Meter edit, or a phrase's beats to the
+  /// bar, did to an English dance's figure counts, while it is showing or
+  /// waiting to (pre-release audit finding A2-02; decision sheet questions 14
+  /// and 48).
+  _FigureBarsNotice? _figureBarsNotice;
 
-  /// Shows the notice for a Meter edit that changed or kept the figures'
-  /// counts ([DanceEditorController.meterBarsChange]), and puts it away once
-  /// its Undo would no longer take that edit back: a later edit, or an Undo
-  /// or Redo, moved the history on ([DanceEditorController.canUndoMeterChange]).
-  void _syncMeterBarsNotice() {
-    final change = _controller.meterBarsChange;
-    if (change != null && !identical(change, _meterBarsNoticeFor)) {
-      _meterBarsNoticeFor = change;
-      _showMeterBarsNotice(change);
-    } else if (_meterBarsNoticeFor case final shown?
-        when !_controller.canUndoMeterChange(shown)) {
-      _closeMeterBarsNotice();
+  /// Shows the notice for an edit that changed or kept the figures' counts
+  /// ([DanceEditorController.figureBarsChange]), and puts it away once its
+  /// Undo would no longer take that edit back: a later edit, or an Undo or
+  /// Redo, moved the history on
+  /// ([DanceEditorController.canUndoFigureBarsChange]).
+  void _syncFigureBarsNotice() {
+    final change = _controller.figureBarsChange;
+    if (change != null && !identical(change, _figureBarsNoticeFor)) {
+      _figureBarsNoticeFor = change;
+      _showFigureBarsNotice(change);
+    } else if (_figureBarsNoticeFor case final shown?
+        when !_controller.canUndoFigureBarsChange(shown)) {
+      _closeFigureBarsNotice();
     }
   }
 
-  void _showMeterBarsNotice(MeterBarsChange change) {
+  void _showFigureBarsNotice(FigureBarsChange change) {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final shown = _MeterBarsNotice(messenger);
+    final shown = _FigureBarsNotice(messenger);
     shown.controller = showUndoSnackBar(
       messenger,
       key: const ValueKey('meter-bars-notice'),
       actionKey: const ValueKey('meter-bars-notice-undo'),
-      message: switch (change.outcome) {
-        FigureBarsRescale.notExact => l10n.danceEditorMeterFigureBarsNotKept(
-          change.beatsPerBar,
-        ),
-        _ => l10n.danceEditorMeterFigureBarsKept(change.beatsPerBar),
+      message: switch ((change.outcome, change.beatsPerBar)) {
+        (FigureBarsRescale.notExact, final int perBar) =>
+          l10n.danceEditorMeterFigureBarsNotKept(perBar),
+        (FigureBarsRescale.notExact, null) =>
+          l10n.danceEditorPhraseFigureBarsNotKept,
+        (_, final int perBar) => l10n.danceEditorMeterFigureBarsKept(perBar),
+        (_, null) => l10n.danceEditorPhraseFigureBarsKept,
       },
       undoLabel: l10n.commonUndo,
       undoFailedMessage: l10n.commonUndoFailed,
@@ -301,22 +304,22 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         // The prompt has already closed itself; the Undo's own notification
         // must not close it again.
         shown.closed = true;
-        if (identical(_meterBarsNotice, shown)) _meterBarsNotice = null;
-        _controller.undoMeterChange(change);
+        if (identical(_figureBarsNotice, shown)) _figureBarsNotice = null;
+        _controller.undoFigureBarsChange(change);
       },
     );
-    _meterBarsNotice = shown;
+    _figureBarsNotice = shown;
     unawaited(
       shown.controller.closed.then((_) {
         shown.closed = true;
-        if (identical(_meterBarsNotice, shown)) _meterBarsNotice = null;
+        if (identical(_figureBarsNotice, shown)) _figureBarsNotice = null;
       }),
     );
   }
 
-  void _closeMeterBarsNotice() {
-    final shown = _meterBarsNotice;
-    _meterBarsNotice = null;
+  void _closeFigureBarsNotice() {
+    final shown = _figureBarsNotice;
+    _figureBarsNotice = null;
     shown?.close();
   }
 
@@ -431,7 +434,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // Its Undo is this editor's to run. Closed once the tree is unlocked
     // (closing can rebuild the messenger), and only while the messenger is
     // still there: not when the whole app is going.
-    if (_meterBarsNotice != null) scheduleMicrotask(_closeMeterBarsNotice);
+    if (_figureBarsNotice != null) scheduleMicrotask(_closeFigureBarsNotice);
     _formScroll.dispose();
     if (_dependenciesInitialized) {
       _unregisterShutdownFlush?.call();
@@ -1333,12 +1336,13 @@ class _RedoIntent extends Intent {
   const _RedoIntent();
 }
 
-/// One Meter notice ([_DanceEditorScreenState._showMeterBarsNotice]). A
-/// snackbar can only be closed while it is the one the messenger shows, and
-/// a new one waits behind the one going out, so a close asked for before the
-/// notice has come in is made when it does.
-class _MeterBarsNotice {
-  _MeterBarsNotice(this.messenger);
+/// One notice of what an edit did to the figures' counts
+/// ([_DanceEditorScreenState._showFigureBarsNotice]). A snackbar can only be
+/// closed while it is the one the messenger shows, and a new one waits behind
+/// the one going out, so a close asked for before the notice has come in is
+/// made when it does.
+class _FigureBarsNotice {
+  _FigureBarsNotice(this.messenger);
 
   final ScaffoldMessengerState messenger;
   late final ScaffoldFeatureController<SnackBar, SnackBarClosedReason>

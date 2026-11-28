@@ -134,6 +134,7 @@
     "calendarEventFingerprint": "backupSchemaVersionCalendarEventKeys",
     "calendarWrittenAt": "backupSchemaVersionCalendarEventKeys",
     "calendarFlag": "backupSchemaVersionCalendarEventKeys",
+    "calendarFeedDigest": "backupSchemaVersionCalendarEventKeys",
     "eventRuleIds": "archiveSchemaVersionEventRules",
     "slots": "baseline",
     "provenance": "baseline",

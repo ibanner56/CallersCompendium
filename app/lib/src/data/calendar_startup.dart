@@ -190,6 +190,7 @@ Future<CalendarStartupOutcome> runCalendarStartup(
     preview = await buildCalendarImportPreview(
       repos,
       body: body,
+      feedUrl: config.feedUrl!,
       settings: config,
       today: today,
       toLocal: toLocal,

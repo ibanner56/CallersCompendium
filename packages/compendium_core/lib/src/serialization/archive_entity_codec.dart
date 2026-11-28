@@ -347,6 +347,10 @@ Map<String, Object?> archiveProgramToJson(
   if (p.calendarWrittenAt != null)
     'calendarWrittenAt': archiveIso(p.calendarWrittenAt!),
   if (p.calendarFlag != null) 'calendarFlag': p.calendarFlag,
+  // Which calendar it came from (pre-release audit finding E1-01): only when
+  // set, stamped by the backup envelope, stripped from share files, like the
+  // key.
+  if (p.calendarFeedDigest != null) 'calendarFeedDigest': p.calendarFeedDigest,
   // The applied event rules (#2340): only when there are any, for the same
   // wire-hash reason, and stamped by the core archive version
   // (`archiveSchemaVersionEventRules`). Share files never carry them: the
@@ -414,6 +418,7 @@ const Map<String, Object?> omittedProgramDefaults = {
   'calendarEventFingerprint': null,
   'calendarWrittenAt': null,
   'calendarFlag': null,
+  'calendarFeedDigest': null,
   'eventRuleIds': <String>[],
 };
 
