@@ -62,9 +62,10 @@ whose only record is on a branch loses its provenance with it. So:
   which is 0 (`docs/dev/audits/` is excluded: dated records). The ceiling is
   exact: a new line citation fails, and so would a cleanup that did not lower
   the ceiling in the same PR. It runs in
-  `_checks.yml` (code PRs can move cited lines) and in its own
-  `.github/workflows/doc-line-citations.yml` (`ci.yml` skips `_checks.yml` for
-  a Markdown-only PR); the latter is not a required check.
+  `_checks.yml` and in its own `.github/workflows/doc-line-citations.yml`
+  (`ci.yml` skips `_checks.yml` for a Markdown-only PR); the latter is not a
+  required check. Since every citation counts, only a Markdown change can move
+  the count; the workflows' comments still describe the older rule.
 - To say where work was done, cite the merged PR (`#N`) or a commit SHA that
   is on `main`, not the branch it was built on. A GitHub link pins such a SHA
   or `main`, never a branch. A SHA that exists only on a branch is a branch

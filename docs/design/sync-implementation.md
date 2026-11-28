@@ -1710,15 +1710,17 @@ theoretical one.
   to remove, and this document had named the hazard here without acting on it.
   W18 still *writes* the scan — it is the unit with the context — but W17 owns
   it thereafter and it is W17's gate that keeps asserting it.
-- **Any unit adding a `shareable` field while the server is unreleased** trips
+- **Any unit adding a `shareable` field, settings key or key prefix, or a
+  record kind, while the server is unreleased** trips
   S3 and produces `422` for real users.
 - **Release-note fragments.** Independently mergeable PRs add distinct
   `changelog.d/<id>.json` files; compilation is release-only, eliminating the
   shared `## [Unreleased]` edit hotspot.
 
 **None of these is detectable by CI today**, and S3 is the one worth building a
-detector for: a PR adding a `shareable` field or a new record kind is
-mechanically recognisable from the registry diff, and recent history shows
+detector for: a PR adding a `shareable` field, settings key or key prefix, or a
+new record kind is mechanically recognisable from the field and settings
+registry diffs, and recent history shows
 ordinary feature PRs adding classified fields routinely. Everything else on this
 list is caught by review or not at all.
 

@@ -55,7 +55,9 @@ Usage::
     python3 tools/site/render_user_docs.py --check         # temp dir, no writes
 
 ``--out`` is erased and rewritten, so it must be a new or empty directory, or
-sit **below** ``build/`` or a temp directory — never one of those roots itself.
+sit **below** ``build/`` or a temp directory — never one of those roots itself,
+and, when the checkout itself lives under the temp directory, never a path in
+the checkout outside ``build/`` or a directory that holds the checkout.
 
 Exit codes: 0 = rendered, 1 = broken links or images, 2 = bad input.
 """
@@ -897,7 +899,8 @@ def _guard_out_dir(out: Path) -> None:
         return  # empty: safe to replace
     _fail(
         f"refusing to erase {resolved}: --out must be a new or empty "
-        f"directory, or sit below build/ or a temp directory."
+        f"directory, or sit below build/ or a temp directory (outside this "
+        f"checkout, unless below its build/)."
     )
 
 

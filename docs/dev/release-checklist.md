@@ -251,13 +251,13 @@ relies on (§2). Update this section when that tag is cut.
  mode), Advanced search, the Programs list, summary and builder (also with More details open, for its filterable
  drop-downs), Perform and its Adjust sheet, the Dance editor's first
  screenful, Dance detail (a long title, notes, a tag and a rating, scrolled to
- the end), each Settings section page (scrolled to the end), the Tags manager
- and Import review at 2.0× on 360 and 412 dp with the real fonts. Settings' Diagnostics
+ the end), each Settings section page (scrolled to the end), the Theme screen
+ that Appearance pushes, the Tags manager and Import review at 2.0× on 360 and 412 dp with the real fonts. Settings' Diagnostics
  page is swept by its own case there, with an in-memory crash log, because the
  app's on-disk one never settles in a widget test. The Settings sweep does not
  open the collapsed sections on the Defaults page, and does not reach the
- screens a Settings page pushes (the calling-card layout and matrix-column
- editors, sync pairing and devices). The sweep reports `RenderFlex` overflows,
+ other screens a Settings page pushes (the calling-card layout and
+ matrix-column editors, sync pairing and devices). The sweep reports `RenderFlex` overflows,
  which is what a fixed-height Column or Row around text produces; a fixed-height
  box that only clips one line of text raises none and is not caught. The editor's
  Type/Formation dropdowns are covered only by `dance_editor_narrow_test.dart`.

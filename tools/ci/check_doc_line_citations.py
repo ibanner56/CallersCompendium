@@ -5,7 +5,8 @@ A line citation (`` `appearance_section.dart:137` ``) goes stale whenever lines
 are added above it, and nothing moves it. It used to be counted only when it
 slid onto a blank line, a comment or past the end of the file, so one that slid
 onto a *different* line of code passed, and that is the ordinary way they drift
-(audit H-05: eight of the 31 left were wrong and the gate read 0). A line number
+(audit H-05: at least eight of the 31 the audit counted were wrong, and the
+gate read 0; 30 remained when they were converted). A line number
 cannot be checked for meaning, so every one now counts: cite a symbol
 (`` `_tagsForMany` in `dance_repository.dart` ``) or the file instead.
 
