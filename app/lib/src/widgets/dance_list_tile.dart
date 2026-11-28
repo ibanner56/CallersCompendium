@@ -200,7 +200,7 @@ class DanceListTile extends StatelessWidget {
               if (effectiveFields.contains(CollectionTileField.authors) &&
                   entry.authorNames.isNotEmpty)
                 Text(
-                  entry.authorNames.join(', '),
+                  joinPersonNames(entry.authorNames),
                   style: theme.textTheme.bodyMedium,
                 ),
               if (effectiveFields.contains(CollectionTileField.calledCount) &&

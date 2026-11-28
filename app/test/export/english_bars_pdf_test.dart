@@ -141,7 +141,11 @@ void main() {
     );
     expect(text, contains('6 bars'));
     expect(text, contains('4 bars'));
-    expect(text, isNot(contains('beats')));
+    // The phrase line names each phrase's beats to the bar (pre-release
+    // audit finding A2-05); nothing else is in beats.
+    const phrases = 'A 4 bars of 3 beats, B 8 bars of 2 beats';
+    expect(text, contains(phrases));
+    expect(text.replaceAll(phrases, ''), isNot(contains('beats')));
   });
 
   test('the dance PDF counts an English dance in bars', () async {

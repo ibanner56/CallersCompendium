@@ -425,6 +425,28 @@ void main() {
       expect(card(english(), authors: const []).creditLines, isEmpty);
     });
 
+    test('names stored family name first are set apart with semicolons '
+        '(pre-release audit finding A2-06)', () {
+      final d = english(composedOn: PartialDate(1951));
+      expect(
+        card(
+          d,
+          authors: const ['Sharp, Cecil', 'Shaw, Pat'],
+          interpreters: const ['Karpeles, Maud', 'Sharp, Cecil'],
+        ).creditLines,
+        [
+          'Sharp, Cecil; Shaw, Pat (1951)',
+          'Interpreted by Karpeles, Maud; Sharp, Cecil',
+        ],
+      );
+      expect(
+        card(english(), authors: const ['Pat Shaw', 'Tom Cook']).creditLines,
+        ['Pat Shaw, Tom Cook'],
+      );
+      expect(joinPersonNames(const ['Ito, Ken'], separator: '、'), 'Ito, Ken');
+      expect(joinPersonNames(const ['伊藤、健', '佐藤'], separator: '、'), '伊藤、健; 佐藤');
+    });
+
     test('credits are gated on the authors field', () {
       final d = english(composedOn: PartialDate(1951));
       final off = {...DanceShareField.all}..remove(DanceShareField.authors);

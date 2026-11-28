@@ -5316,6 +5316,14 @@
   "@exportNamedPhrases": {
     "x-sourceSha256": "6e23f847cf631cba44e5527430ca33c1bbc4601a0baa3b666316ec7100121909"
   },
+  "exportPhrasesOfBars": "{phrases, plural, =1{1 Phrase} other{{phrases} Phrasen}} à {bars}",
+  "@exportPhrasesOfBars": {
+    "x-sourceSha256": "a5fc6e852e22719b520ff09870833a509a26c2932c166d5be070e716834eab63"
+  },
+  "exportBarsOfBeats": "{bars} à {beats, plural, =1{1 Schlag} other{{beats} Schläge}}",
+  "@exportBarsOfBeats": {
+    "x-sourceSha256": "0a1d6b88d1e154c4f42490efb109a2798d5425b29e8e011eba70b73f73158ca0"
+  },
   "exportNamedPhraseSeparator": ", ",
   "@exportNamedPhraseSeparator": {
     "x-sourceSha256": "0a07f659461970d8d8dcefe4fff96a1745599810dc7d47391e95c803b7b2072c"
@@ -5339,6 +5347,10 @@
   "danceEditorBarsRangeError": "Ganze oder halbe Takte eingeben, bis {max}",
   "@danceEditorBarsRangeError": {
     "x-sourceSha256": "c1d6b8e804fee78f756507d4d4d8b7bc40c25df7ac2a78e4f5f4dfdf3f2209de"
+  },
+  "danceEditorBarsSpanRangeError": "Gib {min} bis {max} Takte ein",
+  "@danceEditorBarsSpanRangeError": {
+    "x-sourceSha256": "b1113edfbb721f2eb58504de35ed93a267c45d02a223dd6b55595a96e7271be8"
   },
   "danceEditorHalfBarRefused": "Nur ganze Takte bei {beatsPerBar} Schlägen pro Takt",
   "@danceEditorHalfBarRefused": {
@@ -6926,9 +6938,9 @@
   "@performProgression": {
     "x-sourceSha256": "f193d07c37765ecb1de9acb1af52d788851273a68ddd8b3791e4288c5e85ef77"
   },
-  "performFigureSemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, Progression} other{}}, {beats, plural, =1{1 Schlag} other{{beats} Schläge}}{hasNote, select, yes{, Notiz: {note}} other{}}",
+  "performFigureSemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, Progression} other{}}, {timing}{hasNote, select, yes{, Notiz: {note}} other{}}",
   "@performFigureSemantic": {
-    "x-sourceSha256": "8d80202ff6be06e607cc29eda341e32192b8990564c815166530272d593245a9"
+    "x-sourceSha256": "993f7be3aa91fb297d1a21d4908f7cf4bd231c154b2c9386b51720c5dfefe311"
   },
   "programsSelectTitle": "Programm auswählen",
   "@programsSelectTitle": {
@@ -9894,9 +9906,9 @@
   "@danceEditorCompoundSemantic": {
     "x-sourceSha256": "24498eb89526ea5fa53aab4ce10493fcb73caadfba10f08eb270271d88f317be"
   },
-  "danceEditorCompoundExpandsTo": "Wird beim Speichern des Tanzes zu {count, plural, =1{1 Figur} other{{count} Figuren}} ({beats, plural, =1{1 Schlag} other{{beats} Schläge}}).",
+  "danceEditorCompoundExpandsTo": "Wird beim Speichern des Tanzes zu {count, plural, =1{1 Figur} other{{count} Figuren}} ({timing}).",
   "@danceEditorCompoundExpandsTo": {
-    "x-sourceSha256": "e1e59e23f7602c299e99da09509da61d362a2d51216e964a0fdf7f0d85a6732d"
+    "x-sourceSha256": "6659b0dda494b4a7344193e7a6b1c4b05d0342a65903ec1044cfbb5704793685"
   },
   "danceEditorCompoundUnavailable": "Deine Figur kann nicht erweitert werden: Sie wurde gelöscht oder geändert, oder sie akzeptiert diese Werte nicht. Beim Speichern bleiben nur Name, Schläge, Notiz und Progressionsmarkierung erhalten.",
   "@danceEditorCompoundUnavailable": {
@@ -9906,9 +9918,9 @@
   "@danceEditorIncompleteFigure": {
     "x-sourceSha256": "a94c6fd28cd88d631dc65171fee6a1ec2665e1d82ac33275a06a7fc64d24b7f3"
   },
-  "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, Progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 Schlag} other{{beats} Schläge}}} other{}}{hasNote, select, yes{, Notiz: {note}} other{}}. Figur {position} von {total}.",
+  "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, Progression} other{}}{hasMove, select, yes{, {timing}} other{}}{hasNote, select, yes{, Notiz: {note}} other{}}. Figur {position} von {total}.",
   "@danceEditorFigureSummarySemantic": {
-    "x-sourceSha256": "e6e055515213aca43227e08180eedb9332836f9adc9dff767e7e5b0d47d55858"
+    "x-sourceSha256": "3914e9effeb040d5f8dfe8f4ec81609daa9d95a9cb8fd8dd73c985dd7357bbd4"
   },
   "danceEditorActivateToEditHint": "Aktivieren zum Bearbeiten",
   "@danceEditorActivateToEditHint": {
@@ -10002,9 +10014,9 @@
   "@danceEditorSequenceGroupLabel": {
     "x-sourceSha256": "7e4967a5972cb2a9a45945a1f8f1df5edaa478ec05637dd024badf9f3001a4a5"
   },
-  "danceEditorSequenceGroupSemantic": "Sequenz-Gruppe, {count, plural, =1{1 Figur} other{{count} Figuren}} nacheinander, insgesamt {beats, plural, =1{1 Schlag} other{{beats} Schläge}}.",
+  "danceEditorSequenceGroupSemantic": "Sequenz-Gruppe, {count, plural, =1{1 Figur} other{{count} Figuren}} nacheinander, insgesamt {timing}.",
   "@danceEditorSequenceGroupSemantic": {
-    "x-sourceSha256": "6c9161a37b5d51850e47b10e53cd288ec44e7216c6b5ac18fdbb93a8520cad11"
+    "x-sourceSha256": "379574cf8af029a03f56b50e36c660416498bcb03690cfd6d86663c1eda2ffd0"
   },
   "danceEditorSequenceTotalBeats": "{beats, plural, =1{Insgesamt 1 Schlag} other{Insgesamt {beats} Schläge}}",
   "@danceEditorSequenceTotalBeats": {
@@ -10042,9 +10054,9 @@
   "@danceEditorModifierGroupLabel": {
     "x-sourceSha256": "5fbaec7eb90bb422be9b4c33a4dc92db129cae61869384f857c3779a7d09d10b"
   },
-  "danceEditorModifierGroupSemantic": "Modifier-Gruppe, {count, plural, =1{1 Figur} other{{count} Figuren}}, {beats, plural, =1{1 Schlag} other{{beats} Schläge}}.",
+  "danceEditorModifierGroupSemantic": "Modifier-Gruppe, {count, plural, =1{1 Figur} other{{count} Figuren}}, {timing}.",
   "@danceEditorModifierGroupSemantic": {
-    "x-sourceSha256": "cd51d1dc40abb37be2cffa2a77bcd1e183374a5c89b26312f31a2223b03784f5"
+    "x-sourceSha256": "d79126e8fc54e0abbc294a089b0693e192bdfea17971172bc5cf2b47c33ed888"
   },
   "danceEditorAddModifierChild": "Modifier hinzufügen",
   "@danceEditorAddModifierChild": {
@@ -10078,9 +10090,9 @@
   "@danceEditorMeanwhileGroupLabel": {
     "x-sourceSha256": "182377025ac57fc5f2a7008a610a8c7a268dda54f8f347f02758ccdc58a73dc1"
   },
-  "danceEditorMeanwhileGroupSemantic": "Gleichzeitig-Gruppe, {count, plural, =1{1 gleichzeitige Figur} other{{count} gleichzeitige Figuren}}, {beats, plural, =1{1 geteilter Schlag} other{{beats} geteilte Schläge}}.",
+  "danceEditorMeanwhileGroupSemantic": "Gleichzeitig-Gruppe, {count, plural, =1{1 gleichzeitige Figur} other{{count} gleichzeitige Figuren}}, gemeinsam {timing}.",
   "@danceEditorMeanwhileGroupSemantic": {
-    "x-sourceSha256": "1e8c980ae2f65dceccb93859c9320eee887f40cd63dbbaba3c4b0e2490491f28"
+    "x-sourceSha256": "5db458c33f2241131c95a9250d7a50aad649320be1da2abdbf4e8967ea43cdcd"
   },
   "danceEditorMeanwhileSideLabel": "Seite {number}",
   "@danceEditorMeanwhileSideLabel": {
@@ -10153,6 +10165,18 @@
   "danceEditorUnderByBeats": "Um {beats} Schläge zu kurz",
   "@danceEditorUnderByBeats": {
     "x-sourceSha256": "2931d84e5fea1cad70a43acbef80c3039fe87f2242a58ee8a43148bb688e44a7"
+  },
+  "danceEditorBarTotal": "Gesamt: {total} / {expected} {expectedHalfBars, plural, =1{Takt} =2{Takt} other{Takte}}",
+  "@danceEditorBarTotal": {
+    "x-sourceSha256": "8d3acf824d9b296450f12d34ea96a84e1994e2f2f5b9d80a0539969339cebc76"
+  },
+  "danceEditorOverByBars": "Um {count} zu lang",
+  "@danceEditorOverByBars": {
+    "x-sourceSha256": "bc3aac712ae79358e1cb21192519b924200b9bab2ab89ae5365862f4f4975582"
+  },
+  "danceEditorUnderByBars": "Um {count} zu kurz",
+  "@danceEditorUnderByBars": {
+    "x-sourceSha256": "36100aa122206dfc32ee18932672652a3275e69ecf18a0fd727ad041d0185fd7"
   },
   "danceEditorLessTooltip": "Weniger",
   "@danceEditorLessTooltip": {
