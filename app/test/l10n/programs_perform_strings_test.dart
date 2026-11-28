@@ -162,24 +162,33 @@ void main() {
       'walkthrough 3:00 (on plan)',
     );
 
-    // Compound figure a11y label: import-gap text and note flow through
-    // placeholders (the import-gap message itself stays owned by a later layer)
-    // while progression and the beat count are localised inline.
+    // Compound figure a11y label: import-gap text, the count (in beats, or
+    // bars for an English dance, as the row shows it) and note flow through
+    // placeholders (the import-gap message itself stays owned by a later
+    // layer) while progression is localised inline.
     expect(
       l10n.performFigureSemantic(
         'partners swing',
         'no',
         '',
         'no',
-        16,
+        l10n.danceFigureBeats(16),
         'no',
         '',
       ),
       'partners swing, 16 beats',
     );
     expect(
-      l10n.performFigureSemantic('balance', 'no', '', 'yes', 8, 'yes', 'clap'),
-      'balance, progression, 8 beats, note: clap',
+      l10n.performFigureSemantic(
+        'balance',
+        'no',
+        '',
+        'yes',
+        l10n.danceFigureBars('4', 8),
+        'yes',
+        'clap',
+      ),
+      'balance, progression, 4 bars, note: clap',
     );
     expect(
       l10n.performFigureSemantic(
@@ -187,7 +196,7 @@ void main() {
         'yes',
         'Custom figure',
         'no',
-        4,
+        l10n.danceFigureBeats(4),
         'no',
         '',
       ),

@@ -762,8 +762,13 @@ number of half bars where it falls shows in beats. The count is stored in
 beats when you enter it, so a figure that ends up in another phrase, because a
 figure before it was lengthened or removed, is read there: in the bars of that
 phrase, or in beats where it no longer comes to whole or half bars. The dance's page and Perform show bars too, and so
-do the dance's warnings, its calling card, and its figures when you share, copy
-or print it, alone or with a program. A calling card prints bare numbers, so if
+do the dance's warnings, the running **Total** under the figures (see
+[Keep an eye on the beats](#keep-an-eye-on-the-beats)), a screen reader
+reading a figure, its calling card, and its figures when you share, copy
+or print it, alone or with a program. A printed or shared card gives an
+English dance's phrase structure in words: named phrases as *AAB (A 4 bars,
+B 8 bars)*, with the beats to the bar where the phrases differ in meter
+(*A 4 bars of 3 beats*), and phrases with no names as *4 phrases of 8 bars*. A calling card prints bare numbers, so if
 any count on it is not a whole number of half bars, the whole card stays in
 beats.
 
@@ -772,7 +777,8 @@ bars 1–4". Fill in **Bars for all** at the top of the sequence, and leave the
 **Bars** of any figure in it empty to give that figure no timing of its own.
 Leave **Bars for all** empty and the sequence adds up its figures' bars, as a
 contra sequence does; emptying it gives each figure with no bars its move's
-usual length. A figure that leaves the sequence, by ungrouping it or turning
+usual length. **Bars for all** takes at least half a bar, or a whole bar where
+half a bar is refused, as in triple time; 0 would leave its figures no time. A figure that leaves the sequence, by ungrouping it or turning
 it into another kind of group, takes its usual length too. If every figure has bars of its own and they don't add
 up to **Bars for all**, or the figures with bars already fill it, the sequence
 and the dance's warnings say so. Changing the dance to a contra puts its
@@ -810,7 +816,10 @@ still** row, such as those a new dance starts with, isn't counted.
 
 Under the figure list the app shows a running **Total** against what the dance's
 [phrase structure](./glossary.md#phrase-structure) expects, and says **Over by**
-or **Under by** when the two disagree. It is a nudge, not a rule — you can save a
+or **Under by** when the two disagree. An English dance's Total and its
+difference are in bars, as its figures are, wherever both the figures and the
+phrase structure come to whole or half bars from the top; otherwise they are in
+beats. It is a nudge, not a rule — you can save a
 dance whose beats do not add up, and sometimes that is the honest transcription.
 A saved dance whose beats do not add up shows the same warning above its figures
 on the dance's page, because the section labels (A1, A2, B1, B2) are then worked
@@ -854,12 +863,18 @@ another where there is not.
   takes you straight to the figures: it opens the first figure still to
   fill, ready for you to type its move, or starts the first one. On a dance
   you're editing, or a new one whose figures are all set, the key is
-  **Done**.
+  **Done**. Saving with no title, even from the bottom of the figures, goes
+  back to the top and says **Title is required**, as it says of a phrase
+  structure that doesn't read.
 - **Authors** — the [author](./glossary.md#author) or authors of the dance.
   Tap the field to open the list of people: check each author, type in the
   search box to narrow the list, or choose **Create** to add someone new. The
   pencil beside a name edits that person's details. **Interpreted by** works
-  the same way, and so does **Tags**, without the pencil.
+  the same way, and so does **Tags**, without the pencil. The closed field
+  lists the names you chose, set apart with commas, or with semicolons when a
+  name has a comma of its own, such as *Sharp, Cecil; Shaw, Pat*; the
+  collection list, the dance page, Perform and printed cards join authors and
+  interpreters the same way.
 - For an **English (ECD)** dance, the credits for its original and its
   interpretation come next, each as names with a year beside them: **Authors**
   with **Composed**, then **Interpreted by** with **Interpreted in**. Many

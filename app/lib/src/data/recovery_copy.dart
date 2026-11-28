@@ -5,10 +5,11 @@ import 'dart:ui' show Rect;
 import 'package:compendium_core/compendium_core.dart'
     show EgressClass, classifySettingsKey, fieldClassifications;
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sqlite3/sqlite3.dart' as sql;
 
+import '../export/share_file.dart'
+    show clearShareStaging, shareStagingDirectory;
 import 'backup_service.dart' show isBackupEligibleSettingKey;
 
 /// A copy of a library that is too old for this version to open (below the
@@ -109,15 +110,22 @@ void _writeRecoveryCopySync(String sourcePath, String destinationPath) {
 const String kRecoveryCopyFileName = 'compendium-recovery-copy.sqlite';
 
 /// Writes a recovery copy of [source], named [kRecoveryCopyFileName], into
-/// [workDir] (by default a folder in the app's temporary directory, private to
-/// the app), ready for [shareRecoveryCopyFile]. A later copy overwrites it.
+/// [workDir], ready for [shareRecoveryCopyFile]. By default that is the share
+/// staging folder in the app's temporary directory ([shareStagingDirectory]),
+/// emptied first: the copy is the whole library, so like every shared file it
+/// is deleted at the next share or the next start, not left there. A later
+/// copy replaces it.
 Future<File> prepareRecoveryCopy({
   required File source,
   Directory? workDir,
 }) async {
-  final dir =
-      workDir ??
-      Directory(p.join((await getTemporaryDirectory()).path, 'recovery_copy'));
+  final Directory dir;
+  if (workDir != null) {
+    dir = workDir;
+  } else {
+    dir = await shareStagingDirectory();
+    await clearShareStaging(stagingDirectory: () async => dir);
+  }
   return writeRecoveryCopy(
     source: source,
     destination: File(p.join(dir.path, kRecoveryCopyFileName)),

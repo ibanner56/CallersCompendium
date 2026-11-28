@@ -68,4 +68,19 @@ void main() {
       );
     });
   });
+
+  test('names stored family name first are set apart with semicolons '
+      '(pre-release audit finding A2-06)', () {
+    expect(
+      authorsWithYearLabel(en, [
+        'Sharp, Cecil',
+        'Shaw, Pat',
+      ], PartialDate(1951)),
+      'Sharp, Cecil; Shaw, Pat (1951)',
+    );
+    expect(
+      interpretersWithYearLabel(en, ['Karpeles, Maud', 'Sharp, Cecil'], null),
+      'Interpreted by Karpeles, Maud; Sharp, Cecil',
+    );
+  });
 }

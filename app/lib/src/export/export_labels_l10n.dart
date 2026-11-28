@@ -26,6 +26,8 @@ DanceExportLabels danceExportLabels(AppLocalizations l10n) => DanceExportLabels(
   bars: l10n.danceFigureBars,
   namedPhrases: l10n.exportNamedPhrases,
   namedPhraseSeparator: l10n.exportNamedPhraseSeparator,
+  phrasesOfBars: l10n.exportPhrasesOfBars,
+  barsOfBeats: l10n.exportBarsOfBeats,
   labelSeparator: l10n.exportLabelSeparator,
   pageOf: l10n.exportPageOfPages,
   // The dance detail screen's own credit and tune-detail lines, so a card

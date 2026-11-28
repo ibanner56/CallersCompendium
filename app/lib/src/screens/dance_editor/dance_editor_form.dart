@@ -1159,7 +1159,11 @@ class DanceEditorForm extends StatelessWidget {
   /// [_setupOpenWhenNewMinWidth] wide, which has them all still to fill, and
   /// folded on an existing dance or a phone. Its fields stay mounted while it is folded,
   /// so their validators still run on save, which opens it to show an error
-  /// (DanceEditorScreen); they leave the focus order while it is folded.
+  /// (DanceEditorScreen); they leave the focus order while it is folded. The
+  /// list lets go of the panel, with Title, once it is scrolled far enough
+  /// away: Save then checks Title and the phrase structure on the draft and,
+  /// if either is wrong, scrolls back to the top so the fields can show
+  /// their messages.
   ///
   /// Inside, the fields sit side by side where the form is wide enough
   /// ([FieldGrid]) and one under another where it is not.
@@ -1397,21 +1401,11 @@ class DanceEditorForm extends StatelessWidget {
             hintText: l10n.danceEditorPhraseStructureHint,
           ),
           onChanged: (_) => controller.onPhraseChanged(),
-          validator: (value) {
-            try {
-              final structure = PhraseStructure.parse(value ?? '');
-              // Named phrases are for English dances only (Hudson, 20
-              // November 2026).
-              if (structure.isNamed && !controller.offersNamedPhrases) {
-                return l10n.validationPhraseNamedEnglishOnly;
-              }
-              return null;
-            } on FormatException catch (e) {
-              // diagnostics: silent — FormatException is the expected signal from PhraseStructure.parse
-              // for invalid user input; this is intentional validation control flow, not an unexpected error
-              return phraseStructureErrorMessage(l10n, e);
-            }
-          },
+          validator: (value) => phraseStructureFieldError(
+            l10n,
+            value ?? '',
+            offersNamedPhrases: controller.offersNamedPhrases,
+          ),
         ),
       if (!controller.isFreeForm)
         LingoDiscouragedHint(
@@ -1910,5 +1904,27 @@ class CodeUnitLimitInputFormatter extends TextInputFormatter {
         offset: newValue.selection.end.clamp(0, text.length),
       ),
     );
+  }
+}
+
+/// Why the phrase-structure field's [text] cannot be saved, or null when it
+/// can: the field's own validator, which Save also asks of the draft when
+/// the list has let go of the field (DanceEditorScreen).
+String? phraseStructureFieldError(
+  AppLocalizations l10n,
+  String text, {
+  required bool offersNamedPhrases,
+}) {
+  try {
+    final structure = PhraseStructure.parse(text);
+    // Named phrases are for English dances only (Hudson, 20 November 2026).
+    if (structure.isNamed && !offersNamedPhrases) {
+      return l10n.validationPhraseNamedEnglishOnly;
+    }
+    return null;
+  } on FormatException catch (e) {
+    // diagnostics: silent — FormatException is the expected signal from PhraseStructure.parse
+    // for invalid user input; this is intentional validation control flow, not an unexpected error
+    return phraseStructureErrorMessage(l10n, e);
   }
 }

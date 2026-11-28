@@ -81,9 +81,11 @@ XTypeGroup csvTypeGroup({bool? isLinux}) => XTypeGroup(
   mimeTypes: const [csvMimeType],
 );
 
-/// The folder, in the app's temporary folder, that the export menus and the
-/// phone backup stage a file in for the share sheet or a phone's save dialog
-/// ([writeBundleFile], `saveBackupToFile`). Named for this app: on Windows the
+/// The folder, in the app's temporary folder, that the export menus, the
+/// phone backup, the diagnostics log and the recovery copy stage a file in for
+/// the share sheet or a phone's save dialog ([writeBundleFile],
+/// `saveBackupToFile`, `saveDiagnosticsLog`, `prepareRecoveryCopy`). Named for
+/// this app: on Windows the
 /// temporary folder is shared by all of one user's programs. Not `share_plus`:
 /// on Android that plugin copies a shared file into a folder of that name in
 /// the cache, and refuses a file already in it ([clearSharePlusCopies]).
@@ -179,6 +181,41 @@ Future<void> clearLeftoverSharedFiles({
   );
   if (platform == TargetPlatform.android) {
     await clearSharePlusCopies(cacheDirectory: temporaryDirectory);
+  }
+  if (platform == TargetPlatform.android || platform == TargetPlatform.iOS) {
+    await _deleteUnstagedDiagnosticsLogs(temporaryDirectory);
+  }
+}
+
+/// The name an exported diagnostics log is shared under
+/// (`diagnosticsLogFileName`).
+final RegExp _diagnosticsLogName = RegExp(
+  r'^caller-compendium-diagnostics-\d{8}-\d{6}\.log$',
+);
+
+/// Deletes the diagnostics logs earlier versions shared from the top of the
+/// temporary folder and never deleted, before they were staged in
+/// [kShareStagingFolderName]. Only on a phone or tablet, the only place they
+/// were shared from (a computer saves the log where the user chooses). Only
+/// files directly in the folder, with exactly that name. Never throws.
+Future<void> _deleteUnstagedDiagnosticsLogs(
+  ShareTempDirProvider temporaryDirectory,
+) async {
+  try {
+    final dir = await temporaryDirectory();
+    await for (final entry in dir.list(followLinks: false)) {
+      if (entry is! File ||
+          !_diagnosticsLogName.hasMatch(p.basename(entry.path))) {
+        continue;
+      }
+      try {
+        await entry.delete();
+      } on FileSystemException {
+        // diagnostics: silent — left for the next start
+      }
+    }
+  } on Exception {
+    // diagnostics: silent — no temporary folder, or it could not be listed; the next start tries again
   }
 }
 

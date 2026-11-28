@@ -5355,6 +5355,28 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String exportPhrasesOfBars(int phrases, String bars) {
+    String _temp0 = intl.Intl.pluralLogic(
+      phrases,
+      locale: localeName,
+      other: '$phrases phrases',
+      one: '1 phrase',
+    );
+    return '$_temp0 de $bars';
+  }
+
+  @override
+  String exportBarsOfBeats(String bars, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats temps',
+      one: '1 temps',
+    );
+    return '$bars à $_temp0';
+  }
+
+  @override
   String get exportNamedPhraseSeparator => ', ';
 
   @override
@@ -5381,6 +5403,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String danceEditorBarsRangeError(int max) {
     return 'Saisissez des mesures entières ou des demi-mesures, jusqu’à $max';
+  }
+
+  @override
+  String danceEditorBarsSpanRangeError(String min, int max) {
+    return 'Saisissez de $min à $max mesures';
   }
 
   @override
@@ -7089,7 +7116,7 @@ class AppLocalizationsFr extends AppLocalizations {
     String importGap,
     String importGapText,
     String progression,
-    int beats,
+    String timing,
     String hasNote,
     String note,
   ) {
@@ -7101,17 +7128,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'yes': ', progression',
       'other': '',
     });
-    String _temp2 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats temps',
-      one: '1 temps',
-    );
-    String _temp3 = intl.Intl.selectLogic(hasNote, {
+    String _temp2 = intl.Intl.selectLogic(hasNote, {
       'yes': ', note : $note',
       'other': '',
     });
-    return '$main$_temp0$_temp1, $_temp2$_temp3';
+    return '$main$_temp0$_temp1, $timing$_temp2';
   }
 
   @override
@@ -10297,20 +10318,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String danceEditorCompoundExpandsTo(int count, int beats) {
+  String danceEditorCompoundExpandsTo(int count, String timing) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count figures',
       one: '1 figure',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats temps',
-      one: '1 temps',
-    );
-    return 'Devient $_temp0 ($_temp1) à l’enregistrement de la danse.';
+    return 'Devient $_temp0 ($timing) à l’enregistrement de la danse.';
   }
 
   @override
@@ -10328,7 +10343,7 @@ class AppLocalizationsFr extends AppLocalizations {
     String importGapText,
     String progression,
     String hasMove,
-    int beats,
+    String timing,
     String hasNote,
     String note,
     int position,
@@ -10342,21 +10357,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'yes': ', progression',
       'other': '',
     });
-    String _temp2 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats temps',
-      one: '1 temps',
-    );
-    String _temp3 = intl.Intl.selectLogic(hasMove, {
-      'yes': ', $_temp2',
+    String _temp2 = intl.Intl.selectLogic(hasMove, {
+      'yes': ', $timing',
       'other': '',
     });
-    String _temp4 = intl.Intl.selectLogic(hasNote, {
+    String _temp3 = intl.Intl.selectLogic(hasNote, {
       'yes': ', note : $note',
       'other': '',
     });
-    return '$main$_temp0$_temp1$_temp3$_temp4. Figure $position sur $total.';
+    return '$main$_temp0$_temp1$_temp2$_temp3. Figure $position sur $total.';
   }
 
   @override
@@ -10449,20 +10458,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String danceEditorSequenceGroupSemantic(int count, int beats) {
+  String danceEditorSequenceGroupSemantic(int count, String timing) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count figures',
       one: '1 figure',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats temps',
-      one: '1 temps',
-    );
-    return 'Groupe de séquence, $_temp0 dans l’ordre, $_temp1 au total.';
+    return 'Groupe de séquence, $_temp0 dans l’ordre, $timing au total.';
   }
 
   @override
@@ -10518,20 +10521,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String danceEditorModifierGroupSemantic(num beats, num count) {
+  String danceEditorModifierGroupSemantic(String timing, num count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count figures',
       one: '1 figure',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats temps',
-      one: '1 temps',
-    );
-    return 'Groupe de modificateurs, $_temp0, $_temp1.';
+    return 'Groupe de modificateurs, $_temp0, $timing.';
   }
 
   @override
@@ -10570,20 +10567,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String danceEditorMeanwhileGroupSemantic(int count, int beats) {
+  String danceEditorMeanwhileGroupSemantic(int count, String timing) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count figures simultanées',
       one: '1 figure simultanée',
     );
-    String _temp1 = intl.Intl.pluralLogic(
-      beats,
-      locale: localeName,
-      other: '$beats temps partagés',
-      one: '1 temps partagé',
-    );
-    return 'Groupe simultané, $_temp0, $_temp1.';
+    return 'Groupe simultané, $_temp0, partageant $timing.';
   }
 
   @override
@@ -10666,6 +10657,32 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String danceEditorUnderByBeats(int beats) {
     return 'Manque de $beats temps';
+  }
+
+  @override
+  String danceEditorBarTotal(
+    String total,
+    String expected,
+    int expectedHalfBars,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      expectedHalfBars,
+      locale: localeName,
+      other: 'mesures',
+      two: 'mesure',
+      one: 'mesure',
+    );
+    return 'Total : $total / $expected $_temp0';
+  }
+
+  @override
+  String danceEditorOverByBars(String count) {
+    return 'Dépassement de $count';
+  }
+
+  @override
+  String danceEditorUnderByBars(String count) {
+    return 'Manque de $count';
   }
 
   @override

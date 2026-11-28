@@ -95,6 +95,24 @@ void main() {
     expect(shared, ['${staging.path}/b.json']);
   });
 
+  test('a diagnostics log is staged in the staging folder, and the file '
+      'staged before it is deleted', () async {
+    status = ShareResultStatus.success;
+    final staging = Directory('${temp.path}/$kShareStagingFolderName')
+      ..createSync();
+    final older = File('${staging.path}/programs.csv')..writeAsStringSync('x');
+    final shared = <String>[];
+    shareFilesViaSheet = (params) async {
+      shared.addAll(params.files!.map((f) => f.path));
+      return ShareResult('', status);
+    };
+
+    expect(await saveDiagnosticsLog('log', 'l.log'), isTrue);
+
+    expect(older.existsSync(), isFalse);
+    expect(shared, ['${staging.path}/l.log']);
+  });
+
   test('a dismissed share sheet does not stamp last_backup_at', () async {
     final repos = openTestRepositories();
     status = ShareResultStatus.dismissed;

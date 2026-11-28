@@ -517,11 +517,14 @@ class _CompoundShorthandEditorScreenState
                   Padding(
                     padding: const EdgeInsets.only(top: AppSpacing.sm),
                     child: Text(
+                      // A shorthand belongs to no dance, so it counts beats.
                       l10n.danceEditorCompoundExpandsTo(
                         expanded.length,
-                        CompoundDefinition.beatsOf(
-                          expanded,
-                          shippedTaxonomies.anyForm,
+                        l10n.danceFigureBeats(
+                          CompoundDefinition.beatsOf(
+                            expanded,
+                            shippedTaxonomies.anyForm,
+                          ),
                         ),
                       ),
                       key: const ValueKey('compound-shorthand-expands'),

@@ -123,3 +123,24 @@ bool hasInvalidFieldUnder(GlobalKey<FormState> formKey, Key key) {
   (formContext as Element).visitChildren(visit);
   return found;
 }
+
+/// Whether a widget keyed by [key] is built inside the [Form] keyed by
+/// [formKey]. A lazy list lets go of an item scrolled far enough away, and
+/// with it the fields it holds: `validate()` then cannot ask them, so a page
+/// asks this first and brings the item back before validating.
+bool isBuiltUnder(GlobalKey<FormState> formKey, Key key) {
+  final formContext = formKey.currentContext;
+  if (formContext == null) return false;
+  var found = false;
+  void visit(Element element) {
+    if (found) return;
+    if (element.widget.key == key) {
+      found = true;
+      return;
+    }
+    element.visitChildren(visit);
+  }
+
+  (formContext as Element).visitChildren(visit);
+  return found;
+}

@@ -246,7 +246,8 @@ To update your data on a computer:
 1. On the phone or tablet, choose **Share a copy of your data** and save the
    file somewhere you can reach from a computer, such as a cloud drive or an
    email to yourself. It's named `compendium-recovery-copy.sqlite`. It holds
-   your whole library, venue contacts included, so keep it private. It leaves
+   your whole library, venue contacts included, so keep it private. The app
+   deletes its own copy the next time you share a file or open the app. It leaves
    out what has to stay on the device: unsaved edits, Device Sync settings and
    the app's own bookkeeping, and also any setting this version doesn't
    recognize, so you may have to choose a few settings again at the end. If you
