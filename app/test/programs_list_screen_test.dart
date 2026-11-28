@@ -195,6 +195,57 @@ void _templateChooserTests() {
     await tester.pumpAndSettle();
     expect(choices, [const ProgramTemplateChoice.blank()]);
   });
+
+  // Pre-release audit finding D1a-03: New program awaits the template read
+  // before it opens anything, so a second activation in that gap must not
+  // run it again.
+  testWidgets('a double tap on New program opens the builder once', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final choices = await pumpCapturing(tester, repos);
+    final button = find.byKey(const ValueKey('empty-new-program'));
+    // The second tap lands before the first one's settings read returns: no
+    // frame, no route and no barrier in between.
+    await tester.tap(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(choices, [const ProgramTemplateChoice.useDefault()]);
+
+    // Once the first has finished, New program works again.
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(choices, hasLength(2));
+  });
+
+  testWidgets('with two templates, a double tap on New program asks once', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await seed(repos, 2);
+    final choices = await pumpCapturing(tester, repos);
+    final button = find.byKey(const ValueKey('empty-new-program'));
+    await tester.tap(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey('program-template-chooser'),
+        skipOffstage: false,
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('program-template-choice-t1')));
+    await tester.pumpAndSettle();
+    expect(choices, [const ProgramTemplateChoice.template('t1')]);
+    expect(
+      find.byKey(
+        const ValueKey('program-template-chooser'),
+        skipOffstage: false,
+      ),
+      findsNothing,
+    );
+  });
 }
 
 void main() {

@@ -11,7 +11,8 @@ library;
 
 import 'dart:ui' show Locale, PlatformDispatcher;
 
-import 'package:flutter/material.dart' show MaterialLocalizations;
+import 'package:flutter/material.dart'
+    show BuildContext, MaterialLocalizations, MediaQuery;
 import 'package:intl/intl.dart' show DateFormat, Intl;
 
 import '../../l10n/app_localizations.dart';
@@ -348,16 +349,29 @@ String formatEventDateTime(
   return '$date $time';
 }
 
-/// Formats a time of day, given as minutes after midnight (`0`–`1439`), in
-/// the app language's 12- or 24-hour form: `7:30 PM` in English, `19:30` in
-/// German (#2350).
+/// Formats a program time, given as minutes after midnight (`0`–`1439`), in
+/// the clock the time picker shows (#2350): with [use24Hour] the 24-hour
+/// form (`19:30`), else the app language's own 12- or 24-hour form (`7:30 PM`
+/// in English, `19:30` in German).
 ///
-/// The same `DateFormat.jm` path [formatEventDateTime] uses for its time, so
-/// a program's times read like every other time in the app. The minutes are a
-/// wall-clock time at the hall, with no time zone, so no conversion is made.
-String formatTimeOfDay(int minuteOfDay, AppLocalizations l10n) => DateFormat.jm(
-  l10n.localeName,
-).format(DateTime(2000, 1, 1, minuteOfDay ~/ 60, minuteOfDay % 60));
+/// Pass [use24Hour] from [use24HourClockOf]: the device's 24-hour setting,
+/// which Material's time picker follows too (`showAppTimePicker`), so a time
+/// picked on a 24-hour dial is not then shown with AM/PM (the maintainer's
+/// ruling on pre-release audit finding D1a-02). The minutes are a wall-clock
+/// time at the hall, with no time zone, so no conversion is made.
+String formatTimeOfDay(
+  int minuteOfDay,
+  AppLocalizations l10n, {
+  required bool use24Hour,
+}) =>
+    (use24Hour
+            ? DateFormat.Hm(l10n.localeName)
+            : DateFormat.jm(l10n.localeName))
+        .format(DateTime(2000, 1, 1, minuteOfDay ~/ 60, minuteOfDay % 60));
+
+/// Whether the device is set to the 24-hour clock, for [formatTimeOfDay].
+bool use24HourClockOf(BuildContext context) =>
+    MediaQuery.alwaysUse24HourFormatOf(context);
 
 /// Returns the fixed zero-padded pattern for [date] under [setting], or `null`
 /// for [DateFormatPref.system] and any invalid custom pattern (which have no

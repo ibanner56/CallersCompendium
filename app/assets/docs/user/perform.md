@@ -222,7 +222,8 @@ If you never tap the button, nothing changes: the cues follow the clock exactly
 as described above. The mark belongs to the slot you are on, so it clears when
 you move to another slot, swap in an alternate or jump to a slot (the same
 moments the per-slot timer restarts), and it survives reordering or inserting
-slots around the one you are reading. It is session-only: it is kept when you
+slots around the one you are reading, and
+[swapping the dance](#swap-a-dance) you are calling. It is session-only: it is kept when you
 leave and re-enter Perform within the same session, but it is never saved to
 your program or your dances.
 
@@ -370,7 +371,10 @@ to swap it in. The dances show at once, without markers, and the markers
 appear as soon as the check is done.
 
 Tap a dance to swap it in. The slot keeps its note, guest caller and planned
-times; only the dance changes. The dance you swap in is the one being called,
+times; only the dance changes. Swapping the dance you are calling also keeps
+the slot's timers: the per-slot clock keeps counting from when you reached
+the slot, and a dance-start mark you made stays on, so tap the dance-start
+button twice to mark the new dance's start instead. The dance you swap in is the one being called,
 so it takes the planned slot, which counts as called the way any planned dance
 does, and the one you swapped out stays in the program as an unmarked
 [alternate](./glossary.md#alt), which does not count (see

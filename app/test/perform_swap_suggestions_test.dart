@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/suggestions_scope.dart';
 import 'package:compendium_app/src/screens/perform_adjust_sheet.dart';
 import 'package:compendium_app/src/search/collection_data.dart';
+import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 
 import 'support/l10n_harness.dart';
@@ -147,9 +148,11 @@ List<ProgramSlot> _slots() => [
   ProgramSlot(id: 's5', position: 6, danceId: 'd5'),
 ];
 
-Program _program() => Program(
+Program _program({String? venueId, String? venue}) => Program(
   id: 'p1',
   title: 'Spring Dance',
+  venueId: venueId,
+  venue: venue,
   slots: _slots(),
   createdAt: _now,
   updatedAt: _now,
@@ -189,6 +192,9 @@ Future<_Harness> _pump(
   required bool inPerformSwap,
   List<Dance>? candidates,
   _Ranker? ranker,
+  Program? program,
+  List<Venue> venues = const [],
+  Dialect Function(DanceForm form)? dialectForForm,
 }) async {
   tester.view.physicalSize = const Size(1400, 3000);
   tester.view.devicePixelRatio = 1;
@@ -197,6 +203,9 @@ Future<_Harness> _pump(
   final repos = CompendiumRepositories(db, contraTaxonomy);
   for (final d in [..._programDances, ...(candidates ?? _candidates)]) {
     await repos.dances.create(d);
+  }
+  for (final venue in venues) {
+    await repos.venues.upsert(venue);
   }
   final data = await CollectionData.load(repos);
   final enabled = ValueNotifier<bool>(suggestions);
@@ -218,11 +227,12 @@ Future<_Harness> _pump(
       ),
       home: Scaffold(
         body: PerformAdjustSheet(
-          program: _program(),
+          program: program ?? _program(),
           currentGroupIndex: 1,
           currentSlotId: 's1',
           data: data,
           dialect: Dialect.larksRobins,
+          dialectForForm: dialectForForm,
           enrichment: SearchEnrichment.empty,
           rankSuggestions: spy.call,
           onEdited: edits.add,
@@ -301,6 +311,94 @@ List<String> _scorerOrder(
 ).order.map((r) => r.danceId).toList();
 
 void main() {
+  // Pre-release audit finding D1b-01: a reason named the venue from the
+  // program's typed venue text, not the linked venue its history was
+  // counted for.
+  group('a venue reason names the linked venue', () {
+    for (final typed in [null, 'Old Hall']) {
+      testWidgets('typed venue: $typed', (tester) async {
+        final h = await _pump(
+          tester,
+          suggestions: true,
+          inPerformSwap: true,
+          program: _program(venueId: 'v1', venue: typed),
+          venues: [Venue(id: 'v1', name: 'The Grange')],
+        );
+        await _openSwap(tester, 'adjust-swap-current');
+        expect(h.ranker.requests.last.hasVenue, isTrue);
+        final picker = tester.widget<CollectionPicker>(
+          _inSwap(find.byType(CollectionPicker)),
+        );
+        expect(picker.programContext?.venueLabel, 'The Grange');
+
+        await tester.tap(_inSwap(find.byKey(const ValueKey('picker-why-a'))));
+        await tester.pumpAndSettle();
+        final rows = [
+          for (final text in tester.widgetList<Text>(
+            find.descendant(
+              of: find.byKey(const ValueKey('suggestion-why-dialog')),
+              matching: find.byType(Text),
+            ),
+          ))
+            ?text.data,
+        ];
+        expect(rows, contains('Never called at The Grange'));
+        expect(rows.where((r) => r.contains('a saved venue')), isEmpty);
+        expect(rows.where((r) => r.contains('Old Hall')), isEmpty);
+      });
+    }
+
+    testWidgets('a link that no longer resolves falls back to the typed '
+        'venue', (tester) async {
+      await _pump(
+        tester,
+        suggestions: true,
+        inPerformSwap: true,
+        program: _program(venueId: 'gone', venue: 'Old Hall'),
+      );
+      await _openSwap(tester, 'adjust-swap-current');
+      final picker = tester.widget<CollectionPicker>(
+        _inSwap(find.byType(CollectionPicker)),
+      );
+      expect(picker.programContext?.venueLabel, 'Old Hall');
+    });
+  });
+
+  // Pre-release audit finding D1b-04: the swap sheet's reasons name a
+  // column by the program matrix's rule (#2451), as the builder's do.
+  testWidgets("a reason names a figure in its column's dialect", (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      suggestions: true,
+      inPerformSwap: true,
+      dialectForForm: (form) =>
+          form == DanceForm.ecd ? Dialect.leadsFollows : Dialect.larksRobins,
+    );
+    await _openSwap(tester, 'adjust-swap-current');
+    final picker = tester.widget<CollectionPicker>(
+      _inSwap(find.byType(CollectionPicker)),
+    );
+    final forColumn = picker.suggestionDialectForColumn;
+    expect(forColumn, isNotNull);
+    // An English figure reads in English's dialect, though the swapped
+    // dance is a contra.
+    expect(
+      forColumn!(
+        const MatrixColumn(moveId: 'ecd_set', kind: MatrixColumnKind.known),
+      ),
+      same(Dialect.leadsFollows),
+    );
+    // A contra figure reads in the dialect of the program's dances: contra.
+    expect(
+      forColumn(
+        const MatrixColumn(moveId: 'circle', kind: MatrixColumnKind.known),
+      ),
+      same(Dialect.larksRobins),
+    );
+  });
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('with either setting off the swap sheet is as #2346 ships it', () {

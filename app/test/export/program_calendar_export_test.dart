@@ -119,11 +119,13 @@ void main() {
     List<Program> programs, {
     bool includeAddress = false,
     Map<String, Venue>? venues,
+    bool use24Hour = false,
   }) => buildProgramsCalendar(
     l10n,
     programs,
     venuesById: venues ?? {'v1': _venue},
     includeAddress: includeAddress,
+    use24Hour: use24Hour,
     now: _now,
   );
 
@@ -288,6 +290,18 @@ void main() {
       ).replaceAll('\u202f', ' ');
       expect(ics, contains(r'Lesson 7:00 PM · Arrive by 6:30 PM'));
       expect(ics, isNot(contains('8–11 pm')));
+    });
+
+    test("on a 24-hour device the notes' times are 24-hour (D1a-02)", () {
+      final ics = _plain(
+        build([
+          _program(lesson: 1140, arrival: 1110, end: 1350),
+        ], use24Hour: true),
+      );
+      expect(
+        ics,
+        contains(r'Lesson 19:00 · Dance until 22:30 · Arrive by 18:30'),
+      );
     });
   });
 

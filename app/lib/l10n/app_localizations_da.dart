@@ -2668,12 +2668,6 @@ class AppLocalizationsDa extends AppLocalizations {
       'Caller-note (valgfri)';
 
   @override
-  String get settingsDefaultsStartingProgramMoveUp => 'Flyt op';
-
-  @override
-  String get settingsDefaultsStartingProgramMoveDown => 'Flyt ned';
-
-  @override
   String get settingsDefaultsStartingProgramUnavailableDance =>
       'Denne dans er ikke længere tilgængelig';
 
@@ -12669,6 +12663,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get compoundParamKindDancers => 'dansere';
 
   @override
+  String get compoundParamKindDancerList => 'liste af dansere';
+
+  @override
   String get compoundParamKindDancerPair => 'par af dansere';
 
   @override
@@ -15503,6 +15500,16 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleBadge => 'Slotregel';
+
+  @override
+  String programTemplateSlotEditTooltip(String name) {
+    return 'Rediger $name';
+  }
+
+  @override
+  String programTemplateSlotDeleteTooltip(String name) {
+    return 'Slet $name';
+  }
 
   @override
   String programTemplateSlotRuleSubtitle(String name) {

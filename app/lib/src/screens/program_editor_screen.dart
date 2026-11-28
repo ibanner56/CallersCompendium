@@ -4561,7 +4561,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final times = danceTimesText(
       startMinute: _times.start,
       endMinute: _times.end,
-      formatTime: (m) => formatTimeOfDay(m, l10n),
+      formatTime: (m) =>
+          formatTimeOfDay(m, l10n, use24Hour: use24HourClockOf(context)),
       labels: programExportLabels(l10n),
     );
     final title = _titleController.text.trim();
@@ -5459,7 +5460,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             child: Text(
               minute == null
                   ? l10n.programsNoTimeSet
-                  : formatTimeOfDay(minute, l10n),
+                  : formatTimeOfDay(
+                      minute,
+                      l10n,
+                      use24Hour: use24HourClockOf(context),
+                    ),
               key: ValueKey('program-time-${field.name}-value'),
             ),
           ),

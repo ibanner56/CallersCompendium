@@ -158,39 +158,47 @@ CalendarTimeOfDay? _timeOfDay(int? minuteOfDay) => minuteOfDay == null
 
 /// The lesson and arrival times, and an end time that has no start, as one
 /// line for an event's description, such as "Lesson 7:00 PM · Arrive by
-/// 6:30 PM", in the words and clock of the program summary; `null` when none
-/// of them is set.
+/// 6:30 PM", in the words and clock of the program summary ([use24Hour], the
+/// device's clock); `null` when none of them is set.
 ///
 /// The end is here only when there is no start: such a program is an all-day
 /// event, so without this line ("Dance until 10:30 PM") its end would appear
 /// nowhere in the event. With a start, the end is in the event's times.
-String? programCalendarScheduleLine(AppLocalizations l10n, Program program) {
+String? programCalendarScheduleLine(
+  AppLocalizations l10n,
+  Program program, {
+  required bool use24Hour,
+}) {
+  String format(int minute) =>
+      formatTimeOfDay(minute, l10n, use24Hour: use24Hour);
   final endOnly = program.startMinute == null
       ? danceTimesText(
           startMinute: null,
           endMinute: program.endMinute,
-          formatTime: (m) => formatTimeOfDay(m, l10n),
+          formatTime: format,
           labels: programExportLabels(l10n),
         )
       : null;
   final parts = [
     if (program.lessonMinute case final lesson?)
-      l10n.programsSummaryLessonTime(formatTimeOfDay(lesson, l10n)),
+      l10n.programsSummaryLessonTime(format(lesson)),
     ?(endOnly == null ? null : l10n.programsSummaryDanceTime(endOnly)),
     if (program.arrivalMinute case final arrival?)
-      l10n.programsSummaryArriveBy(formatTimeOfDay(arrival, l10n)),
+      l10n.programsSummaryArriveBy(format(arrival)),
   ];
   return parts.isEmpty ? null : parts.join(' · ');
 }
 
 bool _present(String? s) => s != null && s.trim().isNotEmpty;
 
-/// The `.ics` text for [programs], each through [programCalendarEvent].
+/// The `.ics` text for [programs], each through [programCalendarEvent], its
+/// notes' times in the device's clock ([use24Hour]).
 String buildProgramsCalendar(
   AppLocalizations l10n,
   Iterable<Program> programs, {
   required Map<String, Venue> venuesById,
   required bool includeAddress,
+  required bool use24Hour,
   DateTime? now,
 }) => programsToICalendar([
   for (final program in programs)
@@ -200,7 +208,11 @@ String buildProgramsCalendar(
         venuesById: venuesById,
         includeAddress: includeAddress,
         statusLabel: programStatusLabel(l10n, program.status),
-        scheduleLine: programCalendarScheduleLine(l10n, program),
+        scheduleLine: programCalendarScheduleLine(
+          l10n,
+          program,
+          use24Hour: use24Hour,
+        ),
       ),
 ], now: now ?? clock.now());
 
@@ -279,6 +291,7 @@ class CalendarExportDelivery {
       programs,
       venuesById: venuesById,
       includeAddress: includeAddress,
+      use24Hour: use24HourClockOf(context),
     );
     const source = 'program_calendar_export.export';
     switch (choice) {
