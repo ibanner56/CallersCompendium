@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:compendium_app/src/widgets/empty_state.dart';
 import 'package:compendium_app/src/widgets/load_error_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/l10n_harness.dart';
+import 'support/source_scan.dart';
 
 Widget _app(Widget child) => MaterialApp(
   localizationsDelegates: testLocalizationsDelegates,
@@ -98,17 +97,65 @@ void main() {
   test('only the shared widget draws the whole-screen error glyph', () {
     // A whole-screen load failure uses LoadErrorView, which carries the one
     // Retry/Back wording; a hand-built column drifts from it.
-    final handBuilt = RegExp(r'Icon\(\s*Icons\.error_outline,\s*size: 48');
     final offenders = <String>[
-      for (final entity in Directory('lib/src').listSync(recursive: true))
-        if (entity is File &&
-            entity.path.endsWith('.dart') &&
-            !entity.path
-                .replaceAll(r'\', '/')
-                .endsWith('widgets/load_error_view.dart') &&
-            handBuilt.hasMatch(entity.readAsStringSync()))
-          entity.path,
+      for (final (path, source) in dartSources('lib/src'))
+        if (!path.endsWith('widgets/load_error_view.dart'))
+          for (final line in handBuiltErrorGlyphLines(source)) '$path:$line',
     ];
     expect(offenders, isEmpty);
   });
+
+  test('the error glyph scan reads the Icon call, not a line of it', () {
+    expect(handBuiltErrorGlyphLines('Icon(Icons.error_outline, size: 48)'), [
+      1,
+    ]);
+    // Arguments in another order, across lines, or a nearby size.
+    expect(
+      handBuiltErrorGlyphLines(
+        'x\nconst Icon(\n  Icons.error_outline,\n  color: c,\n  size: 56,\n)',
+      ),
+      [2],
+    );
+    expect(
+      handBuiltErrorGlyphLines('Icon(size: 48.0, Icons.error_outline_rounded)'),
+      [1],
+    );
+    // An inline glyph, another icon, or prose is not the whole-screen glyph.
+    expect(
+      handBuiltErrorGlyphLines(
+        'Icon(Icons.error_outline, size: 18, color: c)\n'
+        'Icon(Icons.error_outline)\n'
+        'Icon(Icons.info_outline, size: 48)\n'
+        '// Icon(Icons.error_outline, size: 48)\n'
+        "Text('Icon(Icons.error_outline, size: 48)')\n",
+      ),
+      isEmpty,
+    );
+  });
+}
+
+final RegExp _iconCall = RegExp(r'(?<![\w.])Icon\s*\(');
+final RegExp _errorIcon = RegExp(
+  r'^Icons\s*\.\s*error_outline(?:_rounded|_outlined|_sharp)?$',
+);
+
+/// The 1-based lines of [source] that build the whole-screen error glyph by
+/// hand: an `Icon` of `Icons.error_outline` (or a variant) at a size of 32 or
+/// more, its arguments in any order and on any number of lines. The inline
+/// error glyphs beside a message are 16 to 24 px.
+List<int> handBuiltErrorGlyphLines(String source) {
+  final code = codeOnly(source);
+  return [
+    for (final m in _iconCall.allMatches(code))
+      if (_isLargeErrorGlyph(callArgs(source, m.end - 1, code: code)))
+        lineAt(source, m.start),
+  ];
+}
+
+bool _isLargeErrorGlyph(List<CallArg> args) {
+  final icon = args.where((a) => a.name == null).firstOrNull;
+  if (icon == null || !_errorIcon.hasMatch(icon.text)) return false;
+  final size = args.where((a) => a.name == 'size').firstOrNull;
+  final value = size == null ? null : double.tryParse(size.text);
+  return value != null && value >= 32;
 }

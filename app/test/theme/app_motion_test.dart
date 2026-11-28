@@ -8,6 +8,8 @@ import 'package:compendium_app/src/theme/app_motion.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/widgets/app_date_picker.dart';
 
+import '../support/source_scan.dart';
+
 /// Reduce motion reaches page transitions, expansion tiles,
 /// dialogs and bottom sheets.
 void main() {
@@ -111,36 +113,61 @@ void main() {
 
   // There is no theme hook for a dialog's or sheet's animation, so the guard
   // is on the call sites: every one under lib/ passes the style.
-  test('every showDialog / showModalBottomSheet passes AppMotion.styleFor', () {
-    const required = {
-      'showDialog': 'animationStyle',
-      'showModalBottomSheet': 'sheetAnimationStyle',
-    };
-    final call = RegExp(
-      r'(?<![\w.])(showDialog|showModalBottomSheet)\s*(<[^()]*?>)?\s*\(',
-    );
+  test('every dialog and sheet passes AppMotion.styleFor', () {
     final missing = <String>[];
     var seen = 0;
-    for (final file in Directory('lib').listSync(recursive: true)) {
-      if (file is! File || !file.path.endsWith('.dart')) continue;
-      final src = file.readAsStringSync();
-      for (final m in call.allMatches(src)) {
-        final lineStart = src.lastIndexOf('\n', m.start) + 1;
-        if (src.substring(lineStart, m.start).trimLeft().startsWith('//')) {
-          continue;
-        }
-        seen++;
-        final args = _topLevelArgs(src, m.end - 1);
-        final name = required[m.group(1)]!;
-        final value = args[name];
-        if (value == null || !value.startsWith('AppMotion.styleFor(')) {
-          final line = '\n'.allMatches(src.substring(0, m.start)).length + 1;
-          missing.add('${file.path}:$line ${m.group(1)} without $name');
-        }
-      }
+    for (final (path, source) in dartSources('lib')) {
+      final found = motionProblems(source);
+      seen += found.calls;
+      missing.addAll([for (final p in found.problems) '$path:$p']);
     }
     expect(seen, greaterThan(100), reason: 'the scan found too few calls');
     expect(missing, isEmpty);
+  });
+
+  test('the motion scan reads each opener in any shape', () {
+    expect(
+      motionProblems(
+        'showDialog<void>(\n'
+        '  context: context,\n'
+        "  builder: (_) => Text('animationStyle: AppMotion.styleFor('),\n"
+        ');\n'
+        '// showDialog(context: context)\n',
+      ).problems,
+      ['1 showDialog without animationStyle'],
+    );
+    expect(
+      motionProblems(
+        'showAdaptiveDialog(context: c, builder: b);\n'
+        'Navigator.push(c, DialogRoute(context: c, builder: b));\n'
+        'ModalBottomSheetRoute(builder: b, isScrollControlled: true);\n',
+      ).problems,
+      [
+        '1 showAdaptiveDialog without animationStyle',
+        '2 DialogRoute without animationStyle',
+        '3 ModalBottomSheetRoute without sheetAnimationStyle',
+      ],
+    );
+    expect(
+      motionProblems(
+        'showGeneralDialog(context: c, pageBuilder: p);\n'
+        'showCupertinoModalPopup(context: c, builder: b);\n',
+      ).problems,
+      [
+        '1 showGeneralDialog takes no AnimationStyle',
+        '2 showCupertinoModalPopup takes no AnimationStyle',
+      ],
+    );
+    final clean = motionProblems(
+      'showModalBottomSheet(\n'
+      '  context: c,\n'
+      '  sheetAnimationStyle: AppMotion.styleFor(context),\n'
+      '  builder: b,\n'
+      ');\n'
+      'showDialog(builder: b, animationStyle: AppMotion.styleFor(context));\n',
+    );
+    expect(clean.problems, isEmpty);
+    expect(clean.calls, 2);
   });
 
   for (final (reduce, instant) in [(true, true), (false, false)]) {
@@ -238,46 +265,52 @@ void main() {
   });
 }
 
-/// The named arguments of the call whose `(` is at [open], at the call's own
-/// nesting depth only, mapped to their source text. Walks delimiters (and
-/// skips string literals), so a multi-line or nested argument is read whole.
-Map<String, String> _topLevelArgs(String src, int open) {
-  final args = <String, String>{};
-  var depth = 0;
-  var argStart = open + 1;
-  String? quote;
-  void finish(int end) {
-    final arg = src.substring(argStart, end).trim();
-    final named = RegExp(r'^(\w+)\s*:\s*([\s\S]*)$').firstMatch(arg);
-    if (named != null) args[named.group(1)!] = named.group(2)!.trim();
-  }
+/// The openers that take a reduce-motion style, by the argument that carries
+/// it.
+const _styled = {
+  'showDialog': 'animationStyle',
+  'showAdaptiveDialog': 'animationStyle',
+  'DialogRoute': 'animationStyle',
+  'showModalBottomSheet': 'sheetAnimationStyle',
+  'ModalBottomSheetRoute': 'sheetAnimationStyle',
+};
 
-  for (var i = open; i < src.length; i++) {
-    final c = src[i];
-    if (quote != null) {
-      if (c == r'\') {
-        i++;
-      } else if (c == quote) {
-        quote = null;
-      }
+/// Openers with no AnimationStyle at all: a dialog or sheet opened through one
+/// animates whatever Reduce motion says, so the app does not call them.
+const _unstyled = {
+  'showGeneralDialog',
+  'RawDialogRoute',
+  'showCupertinoDialog',
+  'showCupertinoModalPopup',
+  'CupertinoDialogRoute',
+  'CupertinoModalPopupRoute',
+};
+
+final RegExp _opener = RegExp(
+  '(?<![\\w.])(${[..._styled.keys, ..._unstyled].join('|')})'
+  r'\s*(<[^()]*?>)?\s*\(',
+);
+
+/// How many dialog and sheet openers [source] calls, and `line problem` for
+/// each that does not pass `AppMotion.styleFor(...)` as its style (comments and
+/// strings are not code).
+({int calls, List<String> problems}) motionProblems(String source) {
+  final code = codeOnly(source);
+  final problems = <String>[];
+  var calls = 0;
+  for (final m in _opener.allMatches(code)) {
+    calls++;
+    final name = m.group(1)!;
+    final line = lineAt(source, m.start);
+    final arg = _styled[name];
+    if (arg == null) {
+      problems.add('$line $name takes no AnimationStyle');
       continue;
     }
-    if (c == "'" || c == '"') {
-      quote = c;
-    } else if (c == '/' && i + 1 < src.length && src[i + 1] == '/') {
-      i = src.indexOf('\n', i);
-    } else if ('([{'.contains(c)) {
-      depth++;
-    } else if (')]}'.contains(c)) {
-      depth--;
-      if (depth == 0) {
-        finish(i);
-        return args;
-      }
-    } else if (c == ',' && depth == 1) {
-      finish(i);
-      argStart = i + 1;
+    final value = namedArgs(source, m.end - 1, code: code)[arg];
+    if (value == null || !value.startsWith('AppMotion.styleFor(')) {
+      problems.add('$line $name without $arg');
     }
   }
-  return args;
+  return (calls: calls, problems: problems);
 }
