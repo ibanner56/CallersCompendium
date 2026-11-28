@@ -5,11 +5,13 @@ import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../export/share_file.dart'
+    show clearShareStaging, shareStagingDirectory;
 import 'backup_volume_channel.dart';
 import 'file_dialog_labels.dart';
+import 'picker_copy.dart';
 import 'picker_extensions.dart';
 
 /// Delivers a finished backup [json] to the user as a file named
@@ -270,7 +272,8 @@ Future<File> _createSecureSiblingTemp(File target) async {
 /// Returns `false` without writing anything if the user cancels the dialog.
 ///
 /// On mobile (iOS/Android) a backup is a "share to another app" action: this
-/// writes [json] to a temp file (via `path_provider`, also atomically) and
+/// writes [json] to a file in the share staging folder (atomically;
+/// [shareStagingDirectory], emptied before the next share and at start) and
 /// hands it to the OS share sheet (via `share_plus`), which returns when the
 /// sheet closes. Returns `false` if the sheet was dismissed without choosing a
 /// destination ([ShareResultStatus.dismissed]), so callers neither report an
@@ -291,11 +294,12 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
     return true;
   }
 
-  final dir = await getTemporaryDirectory();
-  // Create the directory first: this branch runs on mobile (iOS/Android), and
-  // on sandboxed platforms `getTemporaryDirectory()` can hand back a per-app
-  // subdirectory that doesn't exist yet — writing into a missing directory
-  // throws `PathNotFoundException`. Defensive I/O for the share-staging path.
+  // Staged in the one staging folder, emptied first, as every shared file is
+  // ([clearShareStaging]): the backup is the whole library, so it is not left
+  // in the temporary folder after the next share or the next start. Create the
+  // folder first: writing into a missing one throws `PathNotFoundException`.
+  final dir = await shareStagingDirectory();
+  await clearShareStaging(stagingDirectory: () async => dir);
   await dir.create(recursive: true);
   final file = File('${dir.path}/$suggestedFileName');
   await writeStringAtomically(file.path, json);
@@ -390,7 +394,7 @@ Future<void> writeStringToUserSelectedPath(String path, String contents) {
 Future<String?> pickBackupFile() async {
   final file = await openFile(acceptedTypeGroups: [backupJsonTypeGroup()]);
   if (file == null) return null;
-  return readBackupFile(file);
+  return readPickedFile(file, readBackupFile);
 }
 
 /// Reads [file]'s text for restore, refusing a file larger than [maxBytes]

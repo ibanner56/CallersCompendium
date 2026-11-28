@@ -139,9 +139,11 @@ class _CommandPaletteState extends State<CommandPalette> {
         : repos.dances.listIdsTitlesAndForms();
     final programsFuture = repos.programs.listIdsAndTitles();
     final formsFuture = repos.programs.formsByProgram();
+    final archivedFuture = repos.programs.archivedIds();
     final dances = await dancesFuture ?? const [];
     final programs = await programsFuture;
     final formsById = await formsFuture;
+    final archived = await archivedFuture;
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     final all = <CommandResult>[
@@ -159,9 +161,16 @@ class _CommandPaletteState extends State<CommandPalette> {
             kind: CommandResultKind.program,
             id: p.id,
             title: p.title,
-            subtitle: forms == null
-                ? l10n.commandPaletteProgramSubtitle
-                : '${l10n.commandPaletteProgramSubtitle} · $forms',
+            // An archived program is still found (decision 4 on #2218), and
+            // says so, as its tile on the Programs list does, so two programs
+            // of one title can be told apart (pre-release audit finding
+            // D1a-04). The subtitle is in the row's screen-reader label and
+            // in the highlight announcement too.
+            subtitle: [
+              l10n.commandPaletteProgramSubtitle,
+              ?forms,
+              if (archived.contains(p.id)) l10n.programsArchivedLabel,
+            ].join(' · '),
             icon: Icons.event_note_outlined,
             forms: forms,
           ),

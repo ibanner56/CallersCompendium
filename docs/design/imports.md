@@ -1896,8 +1896,10 @@ Which is which, derived from the code rather than from memory:
   (`_tcbDeclineToCustom`): a single-file circle amount that is not a
   fraction, and a per-role amount (`(M 1 & 1/2, W 2)`). `_tcbNumberedRolePair`
   (`N2 Men allemande …`, read as `next role1s allemande …` since taxonomy
-  v40 when only that role takes part; `N2 Men roll away neighbor`, done with
-  a neighbour, as `role1s roll away` with `whom: nextNeighbors`; otherwise as
+  v40 when the two larks (or robins) do the figure together; a turn alone
+  or shift by the role alone keeps the number as a note; `N2 Men roll away
+  neighbor`, done with a neighbour, as `role1s roll away` with `whom:
+  nextNeighbors`; otherwise as
   `Men allemande … [with N3]`) is the falls-through kind too, and so is
   `_tcbBracketedRolePair` (`Men allemande … [with N2]`, read as `N2 Men
   allemande …` would be read, clause by clause): the two share one reading,

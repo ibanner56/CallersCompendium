@@ -1312,9 +1312,14 @@ class SyncConflictComparison extends StatelessWidget {
             l10n,
           );
         case 'startMinute' || 'endMinute' || 'lessonMinute' || 'arrivalMinute':
-          // A program time: minutes after midnight, in the app language's
-          // clock (#2350). No time zone: it is the time on the hall's wall.
-          return formatTimeOfDay(value as int, l10n);
+          // A program time: minutes after midnight, in the device's clock
+          // as the time picker shows it (#2350). No time zone: it is the
+          // time on the hall's wall.
+          return formatTimeOfDay(
+            value as int,
+            l10n,
+            use24Hour: use24HourClockOf(context),
+          );
         case 'payMinorUnits':
           // The amount alone is ambiguous: show it with that version's own
           // currency, formatted by the currency's exponent.

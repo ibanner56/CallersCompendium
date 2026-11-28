@@ -2639,11 +2639,11 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       `N2 Women chain` is the next robins chaining), each with its role's
       hand from `chainHandForWho` (`nextRole2s` right, `prevRole1s` left).
       ContraDB does not write them. The Caller's Box importer produces them
-      from a neighbour number before a role when only that role takes part
-      (`N2 Men allemande left` is `nextRole1s`), so an imported dance can
-      hold one as well as a typed figure; the figure readers do read the
-      display's own words (`next larks`, `prev robins`)
-      back, through `role1s` and `role2s` in `seriesDancerWords`, so a
+      from a neighbour number before a role when the pair does the figure
+      together (`N2 Men allemande left` is `nextRole1s`), so an imported
+      dance can hold one as well as a typed figure; the figure readers do
+      read the display's own words (`next larks`, `prev robins`) back,
+      through `role1s` and `role2s` in `seriesDancerWords`, so a
       displayed figure reads back to its token (`figure_round_trip_test.dart`
       caught that gap). **Plural only**: the display writes a role in the
       plural, so `next lark` (singular) names no set and reads as it did

@@ -1008,6 +1008,20 @@ void main() {
     });
   });
 
+  test('archivedIds lists the live archived programs only', () async {
+    await repo.create(sampleProgram(id: 'live', title: 'Live'));
+    await repo.create(sampleProgram(id: 'old', title: 'Old'));
+    await repo.create(sampleProgram(id: 'gone', title: 'Gone'));
+    expect(await repo.archivedIds(), isEmpty);
+    final at = DateTime.utc(2026, 2, 1);
+    expect(await repo.archive('old', at: at), isTrue);
+    expect(await repo.archive('gone', at: at), isTrue);
+    await repo.softDelete('gone', at: at);
+    expect(await repo.archivedIds(), {'old'});
+    expect(await repo.unarchive('old', at: at), isTrue);
+    expect(await repo.archivedIds(), isEmpty);
+  });
+
   group('listIdsAndTitles', () {
     test(
       'returns id+title pairs ordered by title, excluding soft-deleted',

@@ -130,6 +130,71 @@ def test_docstring_only_examples_name_real_steps() -> None:
         assert not unknown, f"usage example names unknown step(s): {sorted(unknown)}"
 
 
+def test_failed_step_keeps_the_start_of_its_output() -> None:
+    """Regression: a failed step printed only its last 12 lines, so an error
+    at the start of a long output, such as the cause before a stack trace, was
+    discarded and three sessions could not tell why core-tests had failed
+    (the maintainer's decision, 2026-11-28: keep the start as well as the end;
+    no retry). The full output goes to a file whose path is printed."""
+    # Split literals: the failure detail echoes the command, so a marker
+    # written whole here would be found in the command, not the output.
+    # stderr is written first and the child is unbuffered (-u), so only a real
+    # merge in write order puts it before the noise: joining stdout and stderr
+    # afterwards would put it last.
+    script = (
+        "import sys\n"
+        "print('stderr ' + 'first', file=sys.stderr)\n"
+        "print('ROOT ' + 'CAUSE: the first line')\n"
+        "for i in range(200): print(f'noise {i}')\n"
+        "sys.exit(3)\n"
+    )
+    step = preflight.Step(
+        "noisy", "fails with its cause first", ((sys.executable, "-u", "-c", script),)
+    )
+    status, detail = preflight.run_step(step)
+    match = re.search(r"full output: (.+)$", detail, re.MULTILINE)
+    log = Path(match.group(1)) if match else None
+    try:
+        assert status == "FAIL", status
+        assert log is not None, detail
+        assert "ROOT CAUSE: the first line" in detail, detail
+        assert "noise 199" in detail, "the end is kept too"
+        assert "noise 100" not in detail, "the middle should be left to the log file"
+        text = log.read_text(encoding="utf-8")
+        assert "ROOT CAUSE" in text and "noise 100" in text, text[:200]
+        assert text.index("stderr first") < text.index("noise 0"), text[:200]
+    finally:
+        if log is not None:
+            log.unlink(missing_ok=True)
+
+
+def test_short_failed_output_is_shown_whole_with_no_log() -> None:
+    script = "print('only ' + 'line'); raise SystemExit(1)"
+    step = preflight.Step("short", "fails briefly", ((sys.executable, "-c", script),))
+    status, detail = preflight.run_step(step)
+    _command, output = detail.split("\n", 1)
+    assert status == "FAIL" and "only line" in output, detail
+    assert "full output:" not in detail, detail
+
+
+def test_an_unwritable_log_does_not_hide_the_failure() -> None:
+    script = "for i in range(100): print(f'line {i}')\nraise SystemExit(1)"
+    step = preflight.Step("nolog", "fails long", ((sys.executable, "-c", script),))
+    real = preflight.tempfile.mkstemp
+
+    def refuse(*_args, **_kwargs):
+        raise OSError(28, "No space left on device")
+
+    preflight.tempfile.mkstemp = refuse
+    try:
+        status, detail = preflight.run_step(step)
+    finally:
+        preflight.tempfile.mkstemp = real
+    assert status == "FAIL", status
+    assert "line 0" in detail and "line 99" in detail, detail
+    assert "could not be written" in detail, detail
+
+
 def test_default_test_jobs_halve_cores_capped_at_four() -> None:
     assert preflight.test_jobs({}, 16) == 4
     assert preflight.test_jobs({}, 8) == 4

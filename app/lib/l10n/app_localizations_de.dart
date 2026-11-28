@@ -2690,12 +2690,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Caller-Notiz (optional)';
 
   @override
-  String get settingsDefaultsStartingProgramMoveUp => 'Nach oben';
-
-  @override
-  String get settingsDefaultsStartingProgramMoveDown => 'Nach unten';
-
-  @override
   String get settingsDefaultsStartingProgramUnavailableDance =>
       'Dieser Tanz ist nicht mehr verfügbar';
 
@@ -15642,6 +15636,16 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleBadge => 'Slot-Regel';
+
+  @override
+  String programTemplateSlotEditTooltip(String name) {
+    return '$name bearbeiten';
+  }
+
+  @override
+  String programTemplateSlotDeleteTooltip(String name) {
+    return '$name löschen';
+  }
 
   @override
   String programTemplateSlotRuleSubtitle(String name) {

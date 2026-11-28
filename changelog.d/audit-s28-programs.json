@@ -1,0 +1,18 @@
+{
+  "id": "audit-s28-programs",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Deleting your Default template no longer leaves Blank program as the default without saying so: the first template left in your list takes its place until you choose another, so New program and calendar-import drafts still start from a template. Undo of the delete gives the old default back, unless you have added, duplicated or reordered templates since.",
+      "Tapping New program twice quickly opens one builder (or one Start from a template sheet), not two.",
+      "Search marks an archived program Archived, on screen and to a screen reader, so it can be told from a live program with the same title.",
+      "In a program template's slots, the Move up, Move down, Edit and Delete buttons name the slot they act on to a screen reader, and moving a slot says where it landed.",
+      "In Perform's Swap this dance, a suggestion's reason names the saved venue the program is linked to, not the venue text typed on the program, and names each figure as the program matrix names its column."
+    ]
+  },
+  "core": {
+    "added": [
+      "ProgramRepository.archivedIds: the ids of the live programs that are archived."
+    ]
+  }
+}
