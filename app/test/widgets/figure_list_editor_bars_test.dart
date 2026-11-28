@@ -552,7 +552,6 @@ void main() {
       tester,
     ) async {
       final handle = tester.ensureSemantics();
-      addTearDown(handle.dispose);
       await _pump(tester, [_step('ecd_lead', 12)]);
       expect(find.text('4 bars'), findsOneWidget);
       expect(
@@ -560,6 +559,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.bySemanticsLabel(RegExp(r'\b12 beats\b')), findsNothing);
+      handle.dispose();
     });
 
     testWidgets('the running total and the difference are in bars', (

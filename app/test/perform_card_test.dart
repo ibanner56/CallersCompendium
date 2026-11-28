@@ -992,7 +992,6 @@ void main() {
   testWidgets('a screen reader hears an English figure in the bars it shows '
       '(pre-release audit finding A2-04)', (tester) async {
     final handle = tester.ensureSemantics();
-    addTearDown(handle.dispose);
     final c = await _controllerWith(null);
     await tester.pumpWidget(
       MaterialApp(
@@ -1022,5 +1021,6 @@ void main() {
     expect(find.text('4 bars'), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp(r'\b4 bars\b')), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp(r'\bbeats?\b')), findsNothing);
+    handle.dispose();
   });
 }
