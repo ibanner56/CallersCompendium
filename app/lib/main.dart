@@ -2155,7 +2155,9 @@ class _CompendiumAppState extends State<CompendiumApp>
     }
     // A shared file stays staged until the next share, as the receiving app
     // may not have read it when the share sheet closed; delete what the last
-    // run left. Local and silent, like the sweeps above.
+    // run left. Once per process, not per bootstrap: a Retry or a reset may
+    // follow a share whose file is still being read. Local and silent, like
+    // the sweeps above.
     if (!kIsWeb) {
       unawaited(clearLeftoverSharedFiles(platform: defaultTargetPlatform));
     }

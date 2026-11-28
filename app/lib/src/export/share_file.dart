@@ -134,7 +134,8 @@ Future<void> clearShareStaging({ShareTempDirProvider? stagingDirectory}) async {
 /// Deletes the copies `share_plus` keeps on Android of the files last shared:
 /// it copies each shared file into a `share_plus` folder in the app's cache
 /// ([cacheDirectory]), and empties that folder only when the next share
-/// starts. Run once at start, when no share can be in flight. Never throws.
+/// starts. Run only at start ([clearLeftoverSharedFiles]), before any share
+/// of this process. Never throws.
 Future<void> clearSharePlusCopies({
   ShareTempDirProvider cacheDirectory = getTemporaryDirectory,
 }) => clearShareStaging(
@@ -142,15 +143,30 @@ Future<void> clearSharePlusCopies({
       Directory(p.join((await cacheDirectory()).path, 'share_plus')),
 );
 
+/// Whether [clearLeftoverSharedFiles] has run in this process.
+bool _leftoverSharedFilesCleared = false;
+
+/// Lets a test call [clearLeftoverSharedFiles] again as a fresh process would.
+@visibleForTesting
+void resetLeftoverSharedFilesClearedForTesting() =>
+    _leftoverSharedFilesCleared = false;
+
 /// Clears what earlier runs left staged for sharing: the staging folder
 /// ([clearShareStaging]) and, on Android, `share_plus`'s copies
 /// ([clearSharePlusCopies]). Not on Linux, where a file is never staged (it
 /// is saved instead, [isBundleShareUnsupported]) and the temporary folder is
-/// the system's shared one. Run once at start; never throws.
+/// the system's shared one. Never throws.
+///
+/// Only the first call in a process does anything. The app calls it when a
+/// bootstrap succeeds, and a Retry or a reset bootstraps again in the same
+/// process, possibly while a file shared moments before (a recovery copy
+/// shared before a reset) is still being read by the app it went to.
 Future<void> clearLeftoverSharedFiles({
   required TargetPlatform platform,
   ShareTempDirProvider temporaryDirectory = getTemporaryDirectory,
 }) async {
+  if (_leftoverSharedFilesCleared) return;
+  _leftoverSharedFilesCleared = true;
   if (platform == TargetPlatform.linux) return;
   await clearShareStaging(
     stagingDirectory: () =>

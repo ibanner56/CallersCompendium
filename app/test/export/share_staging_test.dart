@@ -80,6 +80,8 @@ void main() {
     late File staged;
     late File sharePlusCopy;
     setUp(() {
+      resetLeftoverSharedFilesClearedForTesting();
+      addTearDown(resetLeftoverSharedFilesClearedForTesting);
       staged = File(p.join(staging.path, 'backup.json'))
         ..createSync(recursive: true);
       sharePlusCopy = File(p.join(temp.path, 'share_plus', 'backup.json'))
@@ -107,6 +109,7 @@ void main() {
           TargetPlatform.windows,
         ]) {
           staged.createSync(recursive: true);
+          resetLeftoverSharedFilesClearedForTesting();
           await clearLeftoverSharedFiles(
             platform: platform,
             temporaryDirectory: () async => temp,
@@ -116,6 +119,26 @@ void main() {
         }
       },
     );
+
+    // A Retry or a reset bootstraps again in the same process, maybe while
+    // the app a file was just shared to is still reading it.
+    test('only the first call in a process clears anything', () async {
+      await clearLeftoverSharedFiles(
+        platform: TargetPlatform.android,
+        temporaryDirectory: () async => temp,
+      );
+      final justShared = File(p.join(temp.path, 'share_plus', 'recovery.db'))
+        ..createSync(recursive: true);
+      staged.createSync(recursive: true);
+
+      await clearLeftoverSharedFiles(
+        platform: TargetPlatform.android,
+        temporaryDirectory: () async => temp,
+      );
+
+      expect(justShared.existsSync(), isTrue);
+      expect(staged.existsSync(), isTrue);
+    });
 
     test('on Linux, where nothing is staged, touches nothing', () async {
       await clearLeftoverSharedFiles(
