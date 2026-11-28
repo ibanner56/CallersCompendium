@@ -95,18 +95,23 @@ def run_gate(repo: Path, base: str = "HEAD~1") -> subprocess.CompletedProcess:
 
 
 def build_repo(repo: Path, *, tag: bool = True) -> Path:
-    """A base commit at schema 9, tagged as a release unless [tag] is false.
-    The gate refuses to run without a release tag, so every scenario that is
-    not about tags has one."""
+    """A base commit at schema 9, after a release tagged at schema 8 unless
+    [tag] is false. The gate refuses to run without a release tag, so every
+    scenario that is not about tags has one. The tag ships 8, below every
+    retired (v9) artefact below, so the released-version check never refuses
+    those first and the floor cases still test the floor check."""
     git(repo, "init", "-q", "-b", "main")
     git(repo, "config", "user.email", "gate@example.invalid")
     git(repo, "config", "user.name", "gate")
-    write(repo, DB_PATH, database_source(9))
+    write(repo, DB_PATH, database_source(8))
     write(repo, MIGRATION_TEST, "// migration tests\n")
     git(repo, "add", "-A")
-    git(repo, "commit", "-q", "-m", "base")
+    git(repo, "commit", "-q", "-m", "release")
     if tag:
         git(repo, "tag", "-a", "v0.1.0-beta", "-m", "release")
+    write(repo, DB_PATH, database_source(9))
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "base")
     return repo
 
 
@@ -419,6 +424,15 @@ def test_released_versions() -> None:
         f"exit={result.returncode}: {result.stdout + result.stderr}",
     )
 
+    result = released_at_12(
+        {"packages/compendium_core/drift_schemas/generated/drift_schema_v11.json": DUMP}
+    )
+    check(
+        "a new dump for a released version fails",
+        result.returncode == 1,
+        f"exit={result.returncode}: {result.stdout + result.stderr}",
+    )
+
     result = released_at_12({RELEASED_DUMP: "not json\n"})
     check(
         "a released dump that no longer parses fails",
@@ -439,6 +453,30 @@ def test_release_tag_required() -> None:
         "the failure says to fetch tags",
         "fetch" in (result.stdout + result.stderr).lower(),
         result.stdout + result.stderr,
+    )
+
+    # A tag whose database.dart yields no schema version must not read as
+    # "nothing released", which would let every released dump change.
+    with tempfile.TemporaryDirectory() as tmp_name:
+        repo = Path(tmp_name)
+        git(repo, "init", "-q", "-b", "main")
+        git(repo, "config", "user.email", "gate@example.invalid")
+        git(repo, "config", "user.name", "gate")
+        write(repo, DB_PATH, "// no schemaVersion here\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", "release")
+        git(repo, "tag", "-a", "v0.1.0-beta", "-m", "release")
+        write(repo, DB_PATH, database_source(13))
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", "base")
+        write(repo, MIGRATION_TEST, "// edited\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", "change")
+        result = run_gate(repo)
+    check(
+        "an unreadable release tag exits 2",
+        result.returncode == 2,
+        f"exit={result.returncode}: {result.stdout + result.stderr}",
     )
 
 

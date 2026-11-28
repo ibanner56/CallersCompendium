@@ -11,22 +11,6 @@ This gate enforces the test/fixture half automatically. Given a base ref, it
 compares ``schemaVersion`` at base vs head; if it changed, it requires that the
 same diff also added or changed migration evidence:
 
-It also refuses to let a *retired* schema version come back: any per-version
-fixture, generator, dump or schema class below ``kMinSupportedSchemaVersion``
-fails the gate, whether or not the version changed in the same PR.
-
-And it refuses an edit to a *released* version (audit H-07; the maintainer's
-answer to the audit's question 50, 2026-11-28). A drift schema dump or a
-generated schema class for a version at or below the newest ``v*`` release
-tag's ``kCompendiumSchemaVersion`` describes databases users already have:
-they are stamped with that number, so ``onUpgrade`` never re-runs its step,
-and an "amend vNext" edit made after the tag silently breaks every upgraded
-install. Such a dump may change only when its JSON is semantically equal (a
-regeneration that reorders or reformats it); a schema class may not change at
-all, so regenerating released classes is merged by hand. With no release tag
-fetched the gate exits 2, like ``check_version_bump_policy.py``. It cannot see
-an edit to the ``if (from < N)`` step in ``database.dart`` itself.
-
   * ``packages/compendium_core/test/storage/migration_test.dart``,
   * any file under ``packages/compendium_core/test/storage/fixtures/``, or
   * any file under ``packages/compendium_core/drift_schemas/`` — the generated
@@ -38,6 +22,32 @@ an edit to the ``if (from < N)`` step in ``database.dart`` itself.
 If the version changed with no such evidence, CI fails. (It intentionally does
 NOT accept a mere edit to database.dart itself as evidence — the point is a
 migration *test*.)
+
+It also refuses to let a *retired* schema version come back: any per-version
+fixture, generator, dump or schema class below ``kMinSupportedSchemaVersion``
+fails the gate, whether or not the version changed in the same PR.
+
+And it refuses a change to a *released* version (audit H-07). A drift schema
+dump or a generated schema class for a version at or below the newest ``v*``
+release tag's ``kCompendiumSchemaVersion`` describes databases users already
+have: they are stamped with that number, so ``onUpgrade`` never re-runs its
+step, and an "amend vNext" edit made after the tag silently breaks every
+upgraded install. Two rules come from the maintainer's decision of 2026-11-28:
+such a dump may change only to semantically equal JSON (``json.loads`` equal:
+a regeneration that reformats it or reorders object keys; reordering a list,
+such as ``entities``, is a change), and with no release tag fetched the gate
+exits 2, like ``check_version_bump_policy.py``. A third is this check's own
+reading of that decision, not the maintainer's: a released schema *class* may
+not change at all, because it is generated from its dump, so a correct
+regeneration of a released version leaves it byte-identical (see "Regenerating"
+in ``drift_schemas/README.md``). Also this check's own: a tag whose
+``database.dart`` yields no schema version exits 2, so an unreadable tag is
+never read as "nothing released" (every release tag has the constant).
+
+What it does not see: an edit to the ``if (from < N)`` step in
+``database.dart`` itself; and a deleted or renamed released dump, which
+``schema_verification_test.dart`` (dumps exactly floor..head) catches instead,
+since retiring a version deletes its dumps legitimately.
 
 Usage:
     check_schema_migration.py <base_ref> [head_ref]
@@ -256,20 +266,26 @@ def main(argv: list[str]) -> int:
             "schema version from the unreleased vNext.",
         )
     released = _schema_version_at(tag)
-    if released is not None:
-        edited = _released_edits(_changed_paths(base, head), base, head, released)
-        if edited:
-            _fail(
-                f"this PR changes the schema of a released version: release "
-                f"tag {tag} ships schema {released}, which these belong to: "
-                + ", ".join(edited)
-                + ". Databases are already stamped with that "
-                "number, so onUpgrade will never re-run its step: bump the "
-                "schema instead (CONTRIBUTING.md, \"Adding to an unreleased "
-                "version\"). A dump may change only to semantically equal "
-                "JSON; regenerating a released schema class is merged by hand.",
-                code=1,
-            )
+    if released is None:
+        _fail(
+            f"could not read schemaVersion from {DB_PATH} at release tag {tag}; "
+            "refusing to treat it as shipping no schema.",
+        )
+    edited = _released_edits(_changed_paths(base, head), base, head, released)
+    if edited:
+        _fail(
+            f"this PR changes the schema of a released version: release tag "
+            f"{tag} ships schema {released}, which these belong to: "
+            + ", ".join(edited)
+            + ". Databases are already stamped with that number, so onUpgrade "
+            "will never re-run its step: bump the schema instead "
+            "(CONTRIBUTING.md, \"Adding to an unreleased version\"). A dump "
+            "may change only to semantically equal JSON and a schema class not "
+            "at all; a regeneration that changes either is wrong for a "
+            "released version, so revert those files (drift_schemas/README.md, "
+            "\"Regenerating\").",
+            code=1,
+        )
 
     if new is None:
         _fail(f"could not read schemaVersion from {DB_PATH} at {head}")
