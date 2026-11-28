@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/undo_prompt_duration_scope.dart';
 import '../diagnostics/error_log.dart';
@@ -27,8 +28,17 @@ import '../theme/app_spacing.dart';
 ///   ([UndoPromptDurationScope], read from [messenger]'s context).
 /// - the prompt **stays while a mouse hovers it or keyboard focus is inside
 ///   it** (the Undo button, or the close button), and its full time starts
-///   again once the pointer and focus have both left. A keyboard, switch or
-///   slow-reading user reaching for Undo is never timed out mid-reach.
+///   again once the pointer and focus have both left.
+/// - **every key press starts its full time again**, so a keyboard user
+///   tabbing toward Undo is not timed out mid-reach, however many stops lie
+///   between the control that acted and the prompt (forty-odd on a long
+///   list); its time runs out only once they have pressed nothing for that
+///   long.
+/// - **Ctrl-Z (Cmd-Z) presses its Undo** from anywhere, so a keyboard user
+///   need not reach it at all: a key that nothing nearer the focus takes
+///   ([FocusManager.addLateKeyEventHandler]). A text field keeps Ctrl-Z for
+///   its own typing, and a page that binds the key itself (the dance
+///   editor's own undo) keeps it too. Only the most recent prompt answers it.
 /// - no time limit at all when assistive technology is active
 ///   ([accessibleNavigation]: screen-reader users keep as long as they need to
 ///   reach the action) or when the user chose "Until I close it"; such a prompt
@@ -76,7 +86,9 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
   final chosen = duration ?? UndoPromptDurationScope.read(messenger.context);
   final timeout = accessibleNavigation ? null : chosen;
   final hold = _UndoPromptHold(messenger, timeout);
+  void undo() => unawaited(_runUndo(messenger, onUndo, undoFailedMessage));
   messenger.clearSnackBars();
+  final keys = _UndoPromptKeys(messenger, hold, undo);
   final controller = messenger.showSnackBar(
     SnackBar(
       key: key,
@@ -92,15 +104,15 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
       persist: true,
       onVisible: onVisible,
       showCloseIcon: timeout == null,
-      action: SnackBarAction(
-        key: actionKey,
-        label: undoLabel,
-        onPressed: () =>
-            unawaited(_runUndo(messenger, onUndo, undoFailedMessage)),
-      ),
+      action: SnackBarAction(key: actionKey, label: undoLabel, onPressed: undo),
     ),
   );
-  unawaited(controller.closed.then((_) => hold.close()));
+  unawaited(
+    controller.closed.then((_) {
+      hold.close();
+      keys.dispose();
+    }),
+  );
   return controller;
 }
 
@@ -164,6 +176,13 @@ class _UndoPromptHold {
     }
   }
 
+  /// A key was pressed somewhere: someone at a keyboard is still on their way,
+  /// so a running time starts again from the full time. A held or not yet
+  /// started time is left alone.
+  void keyPressed() {
+    if (_timer != null) _restart();
+  }
+
   void close() {
     _closed = true;
     _timer?.cancel();
@@ -184,6 +203,70 @@ class _UndoPromptHold {
     // A copy is built, and only the snackbar at the head of the queue is;
     // not closed means it is still that snackbar.
     messenger.hideCurrentSnackBar(reason: SnackBarClosedReason.timeout);
+  }
+}
+
+/// The keyboard's way to one Undo prompt, for as long as it shows: any key
+/// press starts its time again ([_UndoPromptHold.keyPressed]), and Ctrl-Z
+/// (Cmd-Z) that nothing nearer the focus took presses its Undo.
+class _UndoPromptKeys {
+  _UndoPromptKeys(this.messenger, this.hold, this.undo) {
+    _current = this;
+    HardwareKeyboard.instance.addHandler(_onAnyKey);
+    FocusManager.instance.addLateKeyEventHandler(_onUnhandledKey);
+  }
+
+  /// The prompt shown last. An earlier one still closing, or one shown by
+  /// another messenger, does not answer the key.
+  static _UndoPromptKeys? _current;
+
+  static const _undoKeys = [
+    SingleActivator(LogicalKeyboardKey.keyZ, control: true),
+    SingleActivator(LogicalKeyboardKey.keyZ, meta: true),
+  ];
+
+  final ScaffoldMessengerState messenger;
+  final _UndoPromptHold hold;
+  final VoidCallback undo;
+  bool _disposed = false;
+
+  /// Sees every key before anything handles it, and never claims one.
+  bool _onAnyKey(KeyEvent event) {
+    if (event is! KeyUpEvent) hold.keyPressed();
+    return false;
+  }
+
+  /// Called only for a key no focus node handled: a text field's own
+  /// Ctrl-Z, or a page's, never reaches here.
+  KeyEventResult _onUnhandledKey(KeyEvent event) {
+    if (_disposed || !identical(_current, this)) return KeyEventResult.ignored;
+    final keyboard = HardwareKeyboard.instance;
+    if (!_undoKeys.any((key) => key.accepts(event, keyboard))) {
+      return KeyEventResult.ignored;
+    }
+    // A text field with nothing to undo lets the key through; it is still
+    // the field's key, not the prompt's.
+    final focused = FocusManager.instance.primaryFocus?.context;
+    if (focused != null &&
+        focused.findAncestorWidgetOfExactType<EditableText>() != null) {
+      return KeyEventResult.ignored;
+    }
+    if (!messenger.mounted) return KeyEventResult.ignored;
+    dispose();
+    // As the Undo button does: the prompt closes, then the undo runs. This
+    // prompt is the head of the queue until it closes (the helper cleared
+    // the queue to show it), and it has not closed.
+    messenger.hideCurrentSnackBar(reason: SnackBarClosedReason.action);
+    undo();
+    return KeyEventResult.handled;
+  }
+
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    HardwareKeyboard.instance.removeHandler(_onAnyKey);
+    FocusManager.instance.removeLateKeyEventHandler(_onUnhandledKey);
+    if (identical(_current, this)) _current = null;
   }
 }
 
