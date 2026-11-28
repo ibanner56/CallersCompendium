@@ -94,7 +94,10 @@ current floor is missing. Its file name is derived from
 fixture for the new floor is captured** from the new floor release's tag; the
 recipe and generator are `tool/fixture_generators/generate_release_fixture.dart`.
 Retiring the old floor deletes the old fixture, as for any below-floor artefact.
-(A second fixture, `v38.sqlite` from `v0.6.0-beta`, covered the release the
+A second fixture, `v41.sqlite` from `v0.10.0-beta` (generator
+`tool/fixture_generators/generate_release_fixture_v41.dart`), holds the figures
+and data only v0.9 and v0.10 could write; see "Floor fixtures" in
+`docs/design/storage.md`. (An earlier second fixture, `v38.sqlite` from `v0.6.0-beta`, covered the release the
 below-floor bridge sent older collections through until the floor passed v38.)
 
 ## Adding a version

@@ -25,6 +25,17 @@
 // run against the release's tag (recipe in its header); their digests are in
 // `docs/design/storage.md`.
 //
+// A second fixture, `v41.sqlite`, comes from `v0.10.0-beta`, the release
+// nearly every upgrading user is on, by its own generator
+// (`generate_release_fixture_v41.dart`). The floor fixture proves the schema
+// steps from the floor keep a v0.8 database's rows; it cannot hold what only
+// v0.9 and v0.10 could write (the figures and params of contra taxonomy v38 and
+// v39, pass by and pass through as separate moves, English and square dances,
+// program pay, container titles), so it cannot show that today's taxonomy and
+// migrations still read those. The v41 fixture's assertions read every value
+// its generator seeds, and check each figure resolves to the move and the
+// effective params today's taxonomy gives it.
+//
 // The floor fixture's file name is derived from [kMinSupportedSchemaVersion],
 // so raising the floor fails the existence guard until a fixture for the new
 // floor has been captured from that release's tag. The assertions below describe
@@ -289,6 +300,253 @@ Future<void> _migratesAndKeepsItsData(
   );
 }
 
+/// The instant every row of the v41 generator's seed is stamped with.
+final _v41SeededAt = DateTime.utc(2026, 11, 20, 12);
+
+/// [_migratesAndKeepsItsData] for `v41.sqlite`, written by `v0.10.0-beta` from
+/// `generate_release_fixture_v41.dart`'s seed: what only v0.9.x and v0.10.0
+/// could write, read back with today's code.
+Future<void> _v41MigratesAndKeepsItsData(Directory dir, File source) async {
+  expect(
+    source.existsSync(),
+    isTrue,
+    reason:
+        'missing v41.sqlite: capture it from v0.10.0-beta with '
+        'tool/fixture_generators/generate_release_fixture_v41.dart',
+  );
+  final path = p.join(dir.path, p.basename(source.path));
+  await source.copy(path);
+
+  final pre = sqlite3.sqlite3.open(path);
+  expect(pre.select('PRAGMA user_version').first.columnAt(0), 41);
+  expect(pre.select('SELECT count(*) FROM dances').first.columnAt(0), 3);
+  expect(
+    pre
+        .select(
+          'SELECT count(*) FROM settings '
+          "WHERE key = '__taxonomy_v39_canonical_rebuild_done__'",
+        )
+        .first
+        .columnAt(0),
+    1,
+    reason: 'the fixture must come from a real v0.10.0 startup',
+  );
+  pre.close();
+
+  final db = CompendiumDatabase(NativeDatabase(File(path)));
+  final repos = CompendiumRepositories(db, contraTaxonomy);
+  await repos.ensureMigrated();
+  final tax = contraTaxonomy;
+
+  // --- the v0.9/v0.10 figures ----------------------------------------------
+  final dance = (await repos.dances.getById('d-v10'))!;
+  expect(dance.title, 'Eights and Passes');
+  expect(dance.authorIds, ['c-kaynor']);
+  expect(dance.form, DanceForm.contra);
+  expect(dance.createdAt, _v41SeededAt);
+  expect(dance.updatedAt, _v41SeededAt);
+  final figures = figuresOf(dance);
+  expect(figures, hasLength(14));
+  // As stored: the release's own ids and params, unchanged by the open.
+  expect(figures.take(13).map(_moveAndParams).toList(), [
+    'long_lines {"beats":8}',
+    'forward_and_back {"formation":"linesOfThree","goBack":false,"beats":4}',
+    'figure_8 {"who":"ones","where":"below","lead":"onesRole1",'
+        '"fraction":"other","amount":1.5,"double":true,"beats":24}',
+    'poussette {"who":"role2s","whom":"partners","fraction":"other",'
+        '"amount":1.25,"direction":"counterclockwise"}',
+    'hey_for_three {"who":"threesRole1","whom":"foursRole2",'
+        '"shoulder":"left","beats":16}',
+    'starburst {"direction":"clockwise","travel":2,"who":"role2s",'
+        '"whom":"partners"}',
+    'trade_the_wave {"sides":"neighbors","center":"role2s",'
+        '"centerHand":"left","axis":"along","balance":true,"beats":8}',
+    'pass_by {"who":"partners","shoulder":"left"}',
+    'pass_by {}',
+    'pass_through {"where":"across"}',
+    'pass_through {}',
+    'circle {"direction":"right","places":"unspecified"}',
+    'circular_hey {"who":"thirdCorners","who2":"opposites","changes":3}',
+  ]);
+  // Every figure is valid for today's taxonomy: no param it carries became
+  // unknown or out of range.
+  for (final f in figures.take(13)) {
+    expect(
+      tax
+          .validateFigure(f)
+          .where((i) => i.severity == ValidationSeverity.error)
+          .map((i) => i.code),
+      isEmpty,
+      reason: '${f.move} must still validate',
+    );
+  }
+  // What each figure means today: the move it resolves to, and the params it
+  // has once aliases' pins and defaults apply. Pass by and pass through were
+  // two moves at v0.10; taxonomy v40 made them one, told apart by `passType`,
+  // and each stored figure must keep what it meant.
+  (String, Object?) meaning(Figure f, String key) =>
+      (tax.resolve(f.move)!.id, tax.effectiveParams(f)[key]);
+  expect(meaning(figures[0], 'formation'), ('forward_and_back', 'longLines'));
+  expect(meaning(figures[1], 'formation'), (
+    'forward_and_back',
+    'linesOfThree',
+  ));
+  expect(tax.effectiveParams(figures[2])['amount'], 1.5);
+  expect(tax.effectiveParams(figures[2])['double'], isTrue);
+  expect(tax.effectiveParams(figures[3])['amount'], 1.25);
+  expect(meaning(figures[4], 'who'), ('hey_for_three', 'threesRole1'));
+  expect(meaning(figures[5], 'travel'), ('starburst', 2));
+  expect(meaning(figures[6], 'centerHand'), ('trade_the_wave', 'left'));
+  for (final (i, passType, who, where, shoulder) in [
+    (7, 'by', 'partners', 'unspecified', 'left'),
+    (8, 'by', 'neighbors', 'unspecified', 'right'),
+    (9, 'through', 'unspecified', 'across', 'right'),
+    (10, 'through', 'unspecified', 'along', 'right'),
+  ]) {
+    final f = figures[i];
+    final effective = tax.effectiveParams(f);
+    expect(
+      (
+        tax.resolve(f.move)!.id,
+        effective['passType'],
+        effective['who'],
+        effective['where'],
+        effective['shoulder'],
+      ),
+      ('pass_through', passType, who, where, shoulder),
+      reason: 'figure $i (${f.move}) must mean what it meant at v0.10',
+    );
+    expect(tax.resolvedMoveId(f), f.move);
+  }
+  expect(tax.effectiveParams(figures[11])['places'], 'unspecified');
+  expect(meaning(figures[12], 'who2'), ('circular_hey', 'opposites'));
+  final meanwhile = figures[13];
+  expect(meanwhile.move, meanwhileMove);
+  expect(meanwhile.params['beats'], 8);
+  expect(meanwhile.params[containerTitleKey], 'Flutterwheel');
+  final sides = (meanwhile.params['figures'] as List<Object?>).cast<Figure>();
+  expect(sides.map((f) => f.move), [sequenceMove, 'swing']);
+  expect(sides[1].params, {'who': 'twos'});
+  expect(sides[0].params[containerTitleKey], 'Ones go');
+  expect(
+    (sides[0].params['figures'] as List<Object?>).cast<Figure>().map(
+      _moveAndParams,
+    ),
+    ['balance {"who":"ones"}', 'swing {"who":"ones"}'],
+  );
+
+  // --- English and square dances --------------------------------------------
+  final ecd = (await repos.dances.getById('d-ecd'))!;
+  expect(ecd.title, 'Hole in the Wall');
+  expect(ecd.form, DanceForm.ecd);
+  // Head's ECD migration is opt-in: an English dance stored before it keeps
+  // its contra shape and moves, and reads as proper.
+  expect(ecd.formation.shape, FormationShape.dupleProper);
+  expect(ecd.formation.improper, isFalse);
+  expect(ecd.phraseStructure.raw, '4*8*3');
+  expect(ecd.callingNotes, 'Waltz time, 3/4.');
+  expect(ecd.composedOn, PartialDate(1695));
+  expect(figuresOf(ecd).map(_moveAndParams), [
+    'pass_through {"where":"along"}',
+    'long_lines {"beats":8}',
+  ]);
+  final square = (await repos.dances.getById('d-square'))!;
+  expect(square.title, 'Grand Square Thing');
+  expect(square.form, DanceForm.square);
+  expect(square.formation.shape, FormationShape.other);
+  expect(square.formation.detail, 'square set');
+  expect(square.progression, Progression.none);
+  expect(square.mixer, isTrue);
+  expect(figuresOf(square).map(_moveAndParams), [
+    'forward_and_back {"formation":"headCouples"}',
+  ]);
+
+  // --- program with pay -----------------------------------------------------
+  final gig = (await repos.programs.getById('p-gig'))!;
+  expect(gig.title, 'Greenfield Gig');
+  expect(gig.eventDate, DateTime.utc(2026, 11, 14));
+  expect(gig.venue, 'Town Hall');
+  expect(gig.venueId, 'v-hall');
+  expect(gig.caller, 'Alex Caller');
+  expect(gig.band, 'Hot Pickles');
+  expect(gig.status, ProgramStatus.performed);
+  expect(gig.hideAlternates, isTrue);
+  expect(gig.dialectName, 'Gender-free (larks/robins)');
+  expect(gig.payMinorUnits, 25050);
+  expect(gig.payCurrency, 'USD');
+  expect(gig.createdAt, _v41SeededAt);
+  expect(gig.updatedAt, _v41SeededAt);
+  expect(gig.slots.map((s) => (s.id, s.position, s.danceId, s.isAlt)), [
+    ('g-1', 0, 'd-v10', false),
+    ('g-2', 1, 'd-ecd', true),
+  ]);
+  expect(gig.slots[0].performedAt, DateTime.utc(2026, 11, 14, 20));
+  expect(gig.slots[1].performedAt, isNull);
+
+  // --- venue, author, glossary ----------------------------------------------
+  final hall = (await repos.venues.getById('v-hall'))!;
+  expect(
+    (
+      hall.name,
+      hall.address1,
+      hall.city,
+      hall.stateProv,
+      hall.country,
+      hall.sponsor,
+      hall.price,
+      hall.contact2Name,
+      hall.contact2Phone,
+    ),
+    (
+      'Town Hall',
+      '1 Main St',
+      'Greenfield',
+      'MA',
+      'US',
+      'Friends of Contra',
+      r'$12',
+      'Robin Hood',
+      '555-0100',
+    ),
+  );
+  expect((await repos.choreographers.getById('c-kaynor'))!.name, 'Kaynor, Bob');
+  final compound = (await repos.userGlossary.getById('ug-compound'))!;
+  expect(compound.kind, UserGlossaryEntryKind.compound);
+  expect(compound.name, 'Pass and eight');
+  expect(compound.definition, 'A pass by then a long figure 8.');
+  expect(compound.keywords, ['passeight']);
+  expect(compound.createdAt, _v41SeededAt);
+  // Decoded by today's taxonomy, which refuses a template figure it cannot
+  // validate: the pass by and the figure 8's amount must still be valid.
+  final definition = decodeCompoundDefinition(compound.payload, tax);
+  expect(definition, isNotNull);
+  expect(definition!.figures.map(_moveAndParams), [
+    'pass_by {"who":"neighbors"}',
+    'figure_8 {"fraction":"other","amount":2}',
+  ]);
+  expect(
+    definition.bindings.map((b) => (b.figureIndex, b.slotKey, b.paramKey)),
+    [(0, 'who', 'who')],
+  );
+  expect(
+    (await repos.figureNotes.get('pass_by'))?.notes,
+    'Watch the shoulder.',
+  );
+
+  expect(await repos.dances.searchText('passes'), ['d-v10']);
+  await db.close();
+
+  final raw = sqlite3.sqlite3.open(path);
+  addTearDown(raw.close);
+  expect(
+    raw.select('PRAGMA user_version').first.columnAt(0),
+    kCompendiumSchemaVersion,
+  );
+  expect(raw.select('PRAGMA foreign_key_check'), isEmpty);
+  expect(raw.select('PRAGMA integrity_check').first.columnAt(0), 'ok');
+  expect(raw.select('SELECT count(*) FROM dances').first.columnAt(0), 3);
+}
+
 void main() {
   late Directory dir;
 
@@ -344,5 +602,10 @@ void main() {
         stampedAt: kMinSupportedSchemaVersion,
       );
     });
+  });
+
+  test('v0.10.0-beta fixture (v41) opens, migrates to head and keeps the '
+      'figures, pay and dances only v0.9 and v0.10 could write', () async {
+    await _v41MigratesAndKeepsItsData(dir, await _fixture(41));
   });
 }

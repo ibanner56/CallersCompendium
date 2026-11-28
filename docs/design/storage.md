@@ -216,7 +216,9 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
   representative rows. A schema snapshot carries structure only, so it cannot
   show that `onUpgrade` preserved data; `real_release_fixture_test.dart`
   opens the fixture, migrates it to head and reads the rows, FTS content,
-  links, provenance, program and settings back. See "Floor fixtures" below.
+  links, provenance, program and settings back. A second real fixture,
+  `v41.sqlite` from `v0.10.0-beta`, holds the data only v0.9 and v0.10 could
+  write. See "Floor fixtures" below.
 - A **schema floor** (`kMinSupportedSchemaVersion`): versions below it are
   retired — their migration steps, fixtures and `drift_schemas/generated/`
   dumps are
@@ -290,13 +292,23 @@ A drift schema snapshot has the tables but no rows, so the tests built on
 that destroys, truncates or reinterprets existing data (an
 `UPDATE dances SET figures_json = '[]'` at the top of `onUpgrade` leaves every
 one of them green). The fixtures below are databases written by the real
-release code, holding four dances (a fully populated one with figures including
+release code. The floor fixture holds four dances (a fully populated one with figures including
 a `meanwhile`, tags, an author, tunes, links, a source citation, a custom field
 and provenance; a plain one; a soft-deleted one; a diacritic-titled one), a
 program with three slots, a venue, choreographers, and the settings markers that
-release's startup wrote. They are not shipped user databases: they are what that
-release produces for this seed, which is the same code path a real collection
-went through.
+release's startup wrote. The `v41.sqlite` fixture, from `v0.10.0-beta`, holds
+what no v0.8 database can: a contra dance with one figure of each kind contra
+taxonomy v38 and v39 added (long lines, now an alias, and forward and back; a
+figure 8 and a poussette with an `other` fraction and its `amount`; a double
+figure 8; hey for three, starburst and trade the wave; the third and fourth
+couples' dancers, third corners and opposites; a circle with its distance
+unstated; a titled meanwhile around a titled sequence), pass by and pass
+through stored as the two moves they were before taxonomy v40 made them one;
+an English dance and a square dance; a performed program with pay, a dialect,
+hidden alternates and a performed slot; a venue; a glossary compound whose
+template holds a pass by and a figure 8 amount; and a figure note. They are not
+shipped user databases: they are what that release produces for this seed,
+which is the same code path a real collection went through.
 
 `real_release_fixture_test.dart` copies each one to a temporary directory, opens
 it with the current `CompendiumDatabase`, runs `ensureMigrated`, and asserts
@@ -320,23 +332,39 @@ indistinguishable from, because startup re-creates them.
 | Fixture | Written by | Schema | sha256 |
 | --- | --- | --- | --- |
 | `v40.sqlite` (the floor) | `v0.8.0-beta` (`e233ce40`) | 40 | `81f02295404f90d170533af19e99e8a92f0a26ea00259e5422f9d291a1017856` |
+| `v41.sqlite` | `v0.10.0-beta` (`311eca4e`) | 41 | `973be8f802e8864aa23ddd2485d980aa5ca9485436d699114c9d442db7958519` |
 
 The floor fixture's name is derived from the constant, so raising the floor
 without a new fixture fails the existence test, and a test fails if any
-`v*.sqlite` below the floor is left in the fixtures directory. (Until the floor
-reached v39 a second fixture, `v38.sqlite` from `v0.6.0-beta`, covered the
-release the below-floor bridge then sent v20–v34 collections through. It was
-retired with the versions below v39; the bridges since, `v0.9.2-beta` for
-v35–v38 and `v0.10.0-beta` for v39, write schema v41, which every supported
-build migrates from, so a fixture from either would add nothing the floor
-fixture does not. The v39 fixture, from `v0.7.0-beta`, was retired when the
-floor reached v40.) Neither guard stops someone deleting the test itself
-or editing both the constant and the expectations in the same PR: review still
-has to notice that.
+`v*.sqlite` below the floor is left in the fixtures directory. `v41.sqlite` is
+opened by name; raising the floor past v41 retires it with the other
+below-floor artefacts, and that guard then fails until it is deleted. (Until the
+floor reached v39 a second fixture, `v38.sqlite` from `v0.6.0-beta`, covered
+the release the below-floor bridge then sent v20–v34 collections through. It
+was retired with the versions below v39. The v39 fixture, from `v0.7.0-beta`,
+was retired when the floor reached v40.)
 
-Regenerate by running `tool/fixture_generators/generate_release_fixture.dart`
-from a checkout of the release tag (recipe in its header); the output is
-byte-reproducible on the same sqlite3 build, so the digest above can be
+For the *schema steps* a fixture from a release that writes v41 adds little:
+the floor fixture already runs every step from v40, including `from < 41`. It
+is there for the *data*. The floor fixture's dances use only swing, balance,
+circle, robins chain and one meanwhile, so nothing else showed that what v0.9
+and v0.10 could write — the figures and params of contra taxonomy v38 and v39,
+pass by and pass through before taxonomy v40 merged them, English and square
+dances, program pay — still reads with today's taxonomy and migrations. Its
+test checks each seeded figure both as stored and as today's taxonomy resolves
+it (move and effective params), and decodes the glossary compound with today's
+taxonomy.
+
+Neither guard stops someone deleting the test itself or editing both the
+constant and the expectations in the same PR: review still has to notice that.
+
+Regenerate by running the fixture's generator from a checkout of its release
+tag (recipe in each header): `tool/fixture_generators/generate_release_fixture.dart`
+for `v40.sqlite` at `v0.8.0-beta`, and
+`tool/fixture_generators/generate_release_fixture_v41.dart` for `v41.sqlite` at
+`v0.10.0-beta`. They are separate files because each is written against its own
+release's API, which the other's does not compile against. The output is
+byte-reproducible on the same sqlite3 build, so the digests above can be
 re-derived.
 
 ## Schema version history
