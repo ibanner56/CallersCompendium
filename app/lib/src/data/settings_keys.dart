@@ -209,13 +209,14 @@ const String kProgramMatrixColumnsKey = 'program_matrix_columns';
 
 /// Key used to persist the address of the store this device syncs with
 /// (`EgressClass.storeAddress`). It is generated or entered locally, never
-/// adopted from a peer, and never included in backups or sync record content.
+/// adopted from a peer, and never included in backup files or sync record
+/// content.
 const String kSyncIdKey = 'sync_id';
 
 /// The Athenaeum server this installation pairs and syncs with, chosen in the
 /// pairing form. Absent means not paired. Device-local, never synced
 /// (a synced endpoint would let one device silently redirect another) and
-/// never backed up.
+/// never in a backup file.
 const String kSyncEndpointKey = 'sync_endpoint';
 
 /// Key used to persist the current attachment's Device Sync routing
@@ -229,12 +230,15 @@ const String kSyncDeviceIdKey = 'sync_device_id';
 /// Device-local set of salted, slow verifiers for every store address this
 /// device has completed a publication against. Salted and slow so the marker
 /// cannot be turned back into the address it stands for. It is never included
-/// in backups or sync record content.
+/// in backup files or sync record content.
 const String kSyncLastUsedFingerprintKey = 'sync_last_used_fingerprint';
 
 /// Whether the user has turned Device Sync on. Absent means off. This is
-/// per-installation consent: it never syncs and never travels in a backup, so
-/// a restore on any device leaves sync off (spec §6.1).
+/// per-installation consent: it never syncs and never travels in a backup
+/// file, so restoring one leaves sync off (spec §6.1). A device backup copies
+/// it with the database; on Android and iOS start-up turns it off in a library
+/// restored from a backup this build or a later one took
+/// (`restored_copy_check.dart`, spec §3.3).
 const String kSyncEnabledKey = 'sync_enabled';
 
 /// `true` once this library has started on an Android or iOS build that keeps
@@ -248,16 +252,16 @@ const String kSyncEnabledKey = 'sync_enabled';
 const String kNoBackupMarkerWrittenKey = 'no_backup_marker_written';
 
 /// *Sync only on WiFi*. Absent means on (spec §6.12). Device-local, never
-/// synced and never backed up.
+/// synced and never in a backup file.
 const String kSyncWifiOnlyKey = 'sync_wifi_only';
 
 /// Per-device upload-budget toggle for imported dances (spec §6.1). Absent
-/// means off. Device-local, never synced and never backed up.
+/// means off. Device-local, never synced and never in a backup file.
 const String kSyncExcludeImportsKey = 'sync_exclude_imports';
 
 /// UTC ISO-8601 time of this installation's last completed sync pass, shown on
 /// the status surface and used for the approaching-expiry warning. Device-local,
-/// never synced and never backed up.
+/// never synced and never in a backup file.
 const String kSyncLastSuccessAtKey = 'sync_last_success_at';
 
 /// Key used to persist the Experimental "Repertoire" switch (#2357). Stored as

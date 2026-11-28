@@ -1747,7 +1747,10 @@ copy.
   devices, and they are not included in a backup file, so restoring a backup
   file never turns sync on. A device set up from your
   [device's own backup](./backup-portability.md#your-devices-own-backup) is
-  different: it keeps them, so sync stays on there if it was on.
+  different: the copy carries them. On a phone or tablet the app then turns
+  Device Sync off, as **A phone or tablet set up from a device backup** above
+  describes, unless an earlier version made that backup; on a computer, and
+  from such an earlier backup, sync stays as it was in the copy.
 - A few other settings depend on the screen they are used on, so they stay on
   each device too: **App language**, **Reduce motion**, **Auto-size Perform
   cards**, and Perform's stage theme and text size. Unlike the sync settings
