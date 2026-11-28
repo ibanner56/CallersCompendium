@@ -123,7 +123,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String appBootstrapEmailLink(String address) {
-    return 'E-Mail an $address';
+    return 'E-Mail an $address senden';
   }
 
   @override

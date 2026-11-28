@@ -724,20 +724,28 @@ void main() {
     await _pump(
       tester,
       repos,
-      payload: _archivePayload([
-        _dance(
-          'in1',
-          'English Refreshed',
-          figures: figure,
-          provenance: prov('ext1', 6),
-        ),
-        _dance(
-          'in2',
-          'Contra Refreshed',
-          figures: figure,
-          provenance: prov('ext2', 6),
-        ),
-      ]),
+      payload: _archivePayload(
+        [
+          _dance(
+            'in1',
+            'English Refreshed',
+            figures: figure,
+            provenance: prov('ext1', 6),
+          ),
+          _dance(
+            'in2',
+            'Contra Refreshed',
+            figures: figure,
+            provenance: prov('ext2', 6),
+          ).copyWith(authorIds: ['c1', 'c2']),
+          // No provenance: matched by title only, so it can be linked.
+          _dance('in3', 'Old English', figures: figure),
+        ],
+        choreographers: [
+          Choreographer(id: 'c1', name: 'Sharp, Cecil'),
+          Choreographer(id: 'c2', name: 'Shaw, Pat'),
+        ],
+      ),
     );
     await _toReview(tester);
     await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
@@ -759,6 +767,42 @@ void main() {
     const removes =
         '1 of them becomes another dance form and loses its Barnes reference '
         'or Starts improper mark, as its row says.';
+    expect(find.textContaining(removes), findsOneWidget);
+    // A name stored family name first keeps its comma, so the row's credit
+    // sets the names apart with a semicolon.
+    expect(
+      find.textContaining('By Sharp, Cecil; Shaw, Pat · '),
+      findsOneWidget,
+    );
+
+    // Import and edit asks first, and its question names the same removal.
+    await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('import-edit-overwrite-confirm')),
+        matching: find.textContaining(
+          'so its Barnes reference and its Starts improper mark will be '
+          'removed.',
+        ),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    // A link onto the same dance replaces it outright, so the overwrite
+    // warning counts it and the re-import count leaves it out, as it leaves
+    // out a retitle (the dance is counted once, as replaced).
+    await tester.tap(find.byKey(const ValueKey('import-row-2-link-english')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('import-overwrite-warning')),
+      findsOneWidget,
+    );
+    expect(find.textContaining(removes), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('import-row-2-skip')));
+    await tester.pumpAndSettle();
     expect(find.textContaining(removes), findsOneWidget);
 
     // Skipping the English row takes both away.

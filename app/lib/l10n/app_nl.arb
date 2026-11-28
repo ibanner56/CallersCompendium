@@ -132,11 +132,11 @@
   "@appBootstrapReleasesLink": {
     "x-sourceSha256": "aa932a0163205c8c118c750181bfdc29c51c68f28a545e66dfdf06cb25ce9fb9"
   },
-  "appBootstrapBugReportLink": "Een fout melden",
+  "appBootstrapBugReportLink": "Fout melden",
   "@appBootstrapBugReportLink": {
     "x-sourceSha256": "f75e0bd8ff2369251bc8767de55dd8c0bcb3efd1dbc34041bfca4058f9edf0ef"
   },
-  "appBootstrapEmailLink": "E-mail {address}",
+  "appBootstrapEmailLink": "E-mail sturen naar {address}",
   "@appBootstrapEmailLink": {
     "x-sourceSha256": "9e537fc54df73ab84fb572f70641a065b775dc49953e2538e1619efda013b3c4"
   },

@@ -121,11 +121,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get appBootstrapReleasesLink => 'Releases-pagina openen';
 
   @override
-  String get appBootstrapBugReportLink => 'Een fout melden';
+  String get appBootstrapBugReportLink => 'Fout melden';
 
   @override
   String appBootstrapEmailLink(String address) {
-    return 'E-mail $address';
+    return 'E-mail sturen naar $address';
   }
 
   @override

@@ -136,7 +136,7 @@
   "@appBootstrapBugReportLink": {
     "x-sourceSha256": "f75e0bd8ff2369251bc8767de55dd8c0bcb3efd1dbc34041bfca4058f9edf0ef"
   },
-  "appBootstrapEmailLink": "E-Mail an {address}",
+  "appBootstrapEmailLink": "E-Mail an {address} senden",
   "@appBootstrapEmailLink": {
     "x-sourceSha256": "9e537fc54df73ab84fb572f70641a065b775dc49953e2538e1619efda013b3c4"
   },

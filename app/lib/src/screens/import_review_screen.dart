@@ -1677,6 +1677,56 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     return group == null ? null : review.programLineIndexByGroup[group];
   }
 
+  /// [_reimportFormChanges] for [batch]: each re-import row's change of form,
+  /// read off the commit's own [withReimportedChoreography] through
+  /// [reimportFormChange], so the row says exactly what Import will do. The
+  /// targets are read in one batched [DanceRepository.getByIds], so a large
+  /// re-import does not wait on a read per row.
+  Future<Map<int, ReimportFormChange>> _computeReimportFormChanges(
+    ImportBatchResult batch,
+  ) async {
+    final targetIds = {
+      for (final record in batch.records)
+        if (record.verdict.kind == DedupeKind.reimport)
+          ?record.verdict.targetDanceId,
+    };
+    if (targetIds.isEmpty) return const {};
+    final targets = {
+      for (final dance in await _repos.dances.getByIds(targetIds))
+        dance.id: dance,
+    };
+    final changes = <int, ReimportFormChange>{};
+    for (var i = 0; i < batch.records.length; i++) {
+      final verdict = batch.records[i].verdict;
+      if (verdict.kind != DedupeKind.reimport) continue;
+      final target = targets[verdict.targetDanceId];
+      if (target == null) continue;
+      final change = reimportFormChange(target, batch.records[i].draft.dance);
+      if (change != null) changes[i] = change;
+    }
+    return changes;
+  }
+
+  /// Reads [_reimportFormChanges] again after Import and edit wrote one row,
+  /// which can change the form of a dance another row re-imports onto. A
+  /// failed read keeps the map it had: it is logged, and the commit it
+  /// follows has already succeeded.
+  Future<void> _refreshReimportFormChanges() async {
+    final batch = _batch;
+    if (batch == null) return;
+    try {
+      final changes = await _computeReimportFormChanges(batch);
+      if (!mounted || !identical(batch, _batch)) return;
+      setState(() => _reimportFormChanges = changes);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'import_review_screen.reimport_form_changes',
+      );
+    }
+  }
+
   /// Computes the issue #686 figure-level diff for every row whose verdict
   /// has a confident title+author match ([DedupeVerdict.hasConfidentMatch]),
   /// against that candidate's stored [Dance]. Rows with no confident match,
@@ -1689,25 +1739,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// comparison itself never depends on the dialect (see [diffFigures]'s doc
   /// comment); the dialect only shapes the display text of any lines actually
   /// rendered.
-  /// [_reimportFormChanges] for [batch]: each re-import row's change of form,
-  /// read off the commit's own [withReimportedChoreography] through
-  /// [reimportFormChange], so the row says exactly what Import will do.
-  Future<Map<int, ReimportFormChange>> _computeReimportFormChanges(
-    ImportBatchResult batch,
-  ) async {
-    final changes = <int, ReimportFormChange>{};
-    for (var i = 0; i < batch.records.length; i++) {
-      final verdict = batch.records[i].verdict;
-      final targetId = verdict.targetDanceId;
-      if (verdict.kind != DedupeKind.reimport || targetId == null) continue;
-      final target = await _repos.dances.getById(targetId);
-      if (target == null) continue;
-      final change = reimportFormChange(target, batch.records[i].draft.dance);
-      if (change != null) changes[i] = change;
-    }
-    return changes;
-  }
-
   Future<Map<int, FigureDiffResult>> _computeConfidentDiffs(
     ImportBatchResult batch,
   ) async {
@@ -2029,11 +2060,18 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   /// Asks before Import and edit writes onto [matchedTitle]'s dance. A
   /// re-import ([choice] is [_ActionKind.reimport]) says it replaces only the
-  /// choreography, plus the title and credit when its box is ticked; a link
-  /// says it replaces the dance.
-  Future<bool?> _confirmEditOverwrite(String matchedTitle, _RowChoice choice) {
+  /// choreography, plus the title and credit when its box is ticked, and
+  /// names what a change of the dance's form removes ([formChange], as the
+  /// row says it: the maintainer's ruling, 2026-11-28); a link says it
+  /// replaces the dance.
+  Future<bool?> _confirmEditOverwrite(
+    String matchedTitle,
+    _RowChoice choice, {
+    ReimportFormChange? formChange,
+  }) {
     final l10n = AppLocalizations.of(context);
     final reimport = choice.kind == _ActionKind.reimport;
+    final formNotice = reimport ? danceReimportNotice(l10n, formChange) : null;
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -2044,11 +2082,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               : l10n.importReviewEditOverwriteTitle,
         ),
         content: Text(
-          !reimport
-              ? l10n.importReviewEditOverwriteBody(matchedTitle)
-              : choice.alsoTitleAndCredit
-              ? l10n.importReviewEditReimportTitleAndCreditBody(matchedTitle)
-              : l10n.importReviewEditReimportBody(matchedTitle),
+          [
+            !reimport
+                ? l10n.importReviewEditOverwriteBody(matchedTitle)
+                : choice.alsoTitleAndCredit
+                ? l10n.importReviewEditReimportTitleAndCreditBody(matchedTitle)
+                : l10n.importReviewEditReimportBody(matchedTitle),
+            ?formNotice,
+          ].join('\n\n'),
         ),
         actions: [
           TextButton(
@@ -2091,6 +2132,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final confirmed = await _confirmEditOverwrite(
         '${_titlesById[targetId] ?? targetId}',
         choice,
+        formChange: _reimportFormChanges[i],
       );
       if (confirmed != true || !mounted) return;
     }
@@ -2195,6 +2237,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
       );
       if (!mounted) return;
+      // The write and the edit can change the form of a dance another row
+      // re-imports onto, so what those rows say it removes is read again.
+      await _refreshReimportFormChanges();
     } catch (e, stackTrace) {
       if (!mounted) return;
       if (kDebugMode) {

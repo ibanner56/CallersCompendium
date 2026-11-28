@@ -1213,7 +1213,7 @@ Before you commit, a note above the **Import** button says how many existing
 dances a re-import will update, how many of those will also take the file's
 title and credit, and how many will lose their Barnes reference or **Starts
 improper** mark because the incoming figures make an English dance another
-form. Each such row says which of the two it loses.
+form. Each such row says which of them it loses.
 
 A shared file carries the tags, custom fields and published sources its dances
 use. Those that only a re-imported or skipped dance needed are not added to
