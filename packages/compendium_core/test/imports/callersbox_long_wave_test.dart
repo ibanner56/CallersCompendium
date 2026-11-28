@@ -539,6 +539,60 @@ void main() {
     );
   });
 
+  group('a balance that says more keeps its other words as a note', () {
+    // The maintainer's ruling, 2026-11-28: `Balance long wave in center and
+    // slide left` after a bare `form long wave` keeps `and slide left`; the
+    // fold loses no word of the source.
+    test('a roleless in-center balance and slide, in one phrase', () async {
+      final figures = await _import({
+        'A1': [
+          '(4) Form long wave',
+          '(4) Balance long wave in center and slide left',
+          '(8) Men allemande left 1',
+        ],
+      });
+      expect(figures.map((f) => f.move), ['form_a_long_wave', 'allemande']);
+      expect(figures.first.params, {'beats': 8, 'balance': true});
+      expect(figures.first.note, 'and slide left');
+    });
+
+    test('the same after a forming line that says in center', () async {
+      final figures = await _import({
+        'A1': [
+          '(4) Form long wave in center',
+          '(4) Balance long wave in center and slide left',
+        ],
+      });
+      expect(figures.single.move, 'form_a_long_wave');
+      expect(figures.single.note, 'and slide left');
+    });
+
+    test('a wave of four, then slide, keeps the slide', () async {
+      final figures = await _import({
+        'A1': [
+          '(4) Form wave of four',
+          '(4) Balance wave of four, then slide left',
+        ],
+      });
+      expect(figures.single.move, 'form_short_waves');
+      expect(figures.single.params['balance'], isTrue);
+      expect(figures.single.note, 'then slide left');
+    });
+
+    for (final line in const [
+      '(4) Balance long wave in center',
+      '(4) Balance the long wave in the center.',
+    ]) {
+      test('"$line" says nothing more and adds no note', () async {
+        final figures = await _import({
+          'A1': ['(4) Form long wave', line],
+        });
+        expect(figures.single.move, 'form_a_long_wave');
+        expect(figures.single.note, isNull);
+      });
+    }
+  });
+
   group('a standalone balance with both hands', () {
     test('decodes to long waves (dance 12454 shape)', () async {
       final figures = await _import({

@@ -1718,7 +1718,16 @@ class CallersBoxAdapter implements SourceAdapter {
         return null;
       }
     }
-    final balanceNote = decoded?.note ?? balance.note;
+    // A balance line that says more than the balance itself (`Balance long
+    // wave in center and slide left`) decodes to nothing, and the fold would
+    // otherwise keep only `balance: true`: the words after the balance are
+    // kept as a note instead (the maintainer's ruling, 2026-11-28: lose no
+    // word of the source).
+    final leftover = decoded == null ? _balanceWaveLeftover(balance) : null;
+    final balanceNote = combineFigureNotes(
+      leftover,
+      decoded?.note ?? balance.note,
+    );
     return wave.copyWith(
       params: {
         ...wave.params,
@@ -1733,6 +1742,35 @@ class CallersBoxAdapter implements SourceAdapter {
       note: combineFigureNotes(wave.note, balanceNote),
     );
   }
+
+  /// What a custom balance-wave line says after the balance itself, or `null`
+  /// when it says nothing more: the line with its leading dancer, `balance`
+  /// and the wave's own words (`the long wave in the center`, `wave of four`)
+  /// taken off, and the punctuation that joined the rest. `Balance long wave
+  /// in center and slide left` leaves `and slide left`; `Balance wave of
+  /// four, then slide left` leaves `then slide left`.
+  static String? _balanceWaveLeftover(Figure balance) {
+    if (!balance.isCustom) return null;
+    final match = _balanceWaveHead.firstMatch(_customText(balance));
+    if (match == null) return null;
+    final rest = match
+        .group(1)!
+        .replaceFirst(RegExp(r'^[\s,;:.\-–—]+'), '')
+        .trimRight();
+    return rest.isEmpty || RegExp(r'^[.!]+$').hasMatch(rest) ? null : rest;
+  }
+
+  /// A balance-wave line's head: an optional dancer and comma, `balance`, any
+  /// run of the wave's own words, then `in [the] center`. Group 1 is everything
+  /// after it.
+  static final RegExp _balanceWaveHead = RegExp(
+    r'^(?:\S+,?\s+)?balance\b'
+    r'(?:\s+(?:the|a|long|short|ocean|wave|waves|of|four)\b)*'
+    r'(?:\s+in(?:\s+the)?\s+(?:center|centre)\b)?'
+    r'(.*)$',
+    caseSensitive: false,
+    dotAll: true,
+  );
 
   /// A TCB `form long wave` not yet balanced (#2331): a bare one
   /// ([_isBareLongWave]) or one whose line stated holds, `form long wave
