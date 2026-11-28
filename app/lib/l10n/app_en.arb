@@ -983,6 +983,10 @@
   "@settingsSyncStatusSettingsUnreadable": {
     "description": "Shown in the Device Sync section when the app failed to read its stored Device Sync settings. At startup, Device Sync stays off for that launch although the saved setting may say on. After restoring a backup, the app keeps the Device Sync state it had before the restore (which may be on), so what is shown may not match the restored settings. In both cases the user must be told rather than left to assume the screen is current. Not a sync failure: nothing was sent or lost."
   },
+  "syncRestoredCopyNotice": "Device Sync is off because this library was restored from a device backup. Turn it back on under Settings ▸ Experimental ▸ Device Sync and this device will sync as a new device, not the one the backup came from.",
+  "@syncRestoredCopyNotice": {
+    "description": "Message shown once at start-up when the app finds its library was restored from a device backup (Android Auto Backup or phone-to-phone transfer, an iCloud or computer backup, or iPhone-to-iPhone transfer) on a device where Device Sync was on. The app turned Device Sync off and dropped the old device's sync identity, so two devices never sync as one. 'Settings ▸ Experimental ▸ Device Sync' is where the toggle lives."
+  },
   "settingsSyncFailureUnreachable": "Couldn't reach the sync server.",
   "@settingsSyncFailureUnreachable": {
     "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the transport could not connect at all: DNS failure, refused or dropped connection, or a failed secure (TLS) handshake."

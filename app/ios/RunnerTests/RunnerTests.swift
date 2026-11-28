@@ -471,3 +471,53 @@ final class TextRecognizerTests: XCTestCase {
     XCTAssertEqual(text, "left right\nsecond")
   }
 }
+
+/// The device-backup marker behind the `no_backup` channel (sync-spec §3.3),
+/// in a throwaway directory rather than the app's Application Support.
+final class NoBackupMarkerTests: XCTestCase {
+  private var directory: URL!
+
+  override func setUpWithError() throws {
+    try super.setUpWithError()
+    directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("NoBackupMarkerTests-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+  }
+
+  override func tearDownWithError() throws {
+    if let directory {
+      try? FileManager.default.removeItem(at: directory)
+    }
+    directory = nil
+    try super.tearDownWithError()
+  }
+
+  private func isExcludedFromBackup() throws -> Bool? {
+    try directory.appendingPathComponent(NoBackupMarker.fileName)
+      .resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup
+  }
+
+  /// A new installation has no marker; once written, it exists and is
+  /// excluded from backup.
+  func testWriteCreatesAMarkerExcludedFromBackup() throws {
+    XCTAssertFalse(NoBackupMarker.exists(in: directory))
+
+    try NoBackupMarker.write(in: directory)
+
+    XCTAssertTrue(NoBackupMarker.exists(in: directory))
+    XCTAssertEqual(try isExcludedFromBackup(), true)
+  }
+
+  /// A marker that is already there but would be backed up is excluded by
+  /// the next write, and keeps its content.
+  func testWriteExcludesAnExistingMarker() throws {
+    let url = directory.appendingPathComponent(NoBackupMarker.fileName)
+    try Data([7]).write(to: url)
+    XCTAssertNotEqual(try isExcludedFromBackup(), true)
+
+    try NoBackupMarker.write(in: directory)
+
+    XCTAssertEqual(try isExcludedFromBackup(), true)
+    XCTAssertEqual(try Data(contentsOf: url), Data([7]))
+  }
+}

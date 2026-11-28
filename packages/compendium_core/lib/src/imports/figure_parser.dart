@@ -2086,12 +2086,13 @@ _Match? _chain(List<String> w) {
   }
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  // chain's `who` domain is role1s/role2s only. An explicit dancer set outside
-  // that domain (e.g. "partners chain") must NOT be silently dropped to the
+  // chain's `who` domain is a role, or since v40 a role among the previous or
+  // next neighbours (`nextRole2s`). An explicit dancer set outside that
+  // domain (e.g. "partners chain") must NOT be silently dropped to the
   // taxonomy default — that would misrepresent the source — so reject the
   // match and let it fall back to custom. No explicit dancer → leave `who`
   // unset so the taxonomy default (role2s) applies.
-  if (who2 != null && who2 != 'role1s' && who2 != 'role2s') return null;
+  if (who2 != null && chainHandForWho(who2) == null) return null;
   // v28 (#976): populate `hand` ONLY when a role token was actually read for
   // `who` (`who2 != null`) — never when `who` is left unset for the taxonomy
   // default to fill at read time, per #976 §6.1.3: deriving a hand from OUR
@@ -2689,13 +2690,24 @@ _Match? _slice(List<String> w) {
   return _Match('slice', {'slice': side});
 }
 
-/// Tier A: TCB writes "Turn alone" / "Ones turn alone" (dance ids 25, 2). An
-/// optional dancer set (before or after "turn alone") maps to `who`; otherwise
-/// the taxonomy default (everyone) applies.
+/// Tier A: TCB writes "Turn alone" / "Ones turn alone" (dance ids 25, 2), and
+/// "Women turn around", which is the same move *(user-ruled 2026-11-27)*. An
+/// optional dancer set maps to `who`; otherwise the taxonomy default
+/// (everyone) applies. After `turn alone` the set may also follow the phrase;
+/// after `turn around` it may not, because a dancer there is the one turned
+/// around (`turn around your partner`), not the one turning, so such a line
+/// stays text.
 _Match? _turnAlone(List<String> w) {
+  // `turn around` must end the clause: anything after it is what is turned
+  // around. Checked before [_takeDancer], which takes a set from anywhere.
+  final around =
+      w.length >= 2 && w[w.length - 2] == 'turn' && w[w.length - 1] == 'around';
   final who = _takeDancer(w);
-  if (!_consumePhrase(w, ['turn', 'alone'])) return null;
-  final who2 = who ?? _takeDancer(w);
+  final alone = _consumePhrase(w, ['turn', 'alone']);
+  if (!alone && !(around && _consumePhrase(w, ['turn', 'around']))) {
+    return null;
+  }
+  final who2 = who ?? (alone ? _takeDancer(w) : null);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('turn_alone', {'who': ?who2});

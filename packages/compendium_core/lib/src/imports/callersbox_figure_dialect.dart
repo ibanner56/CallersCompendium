@@ -304,8 +304,8 @@ final RegExp _amountAlternativeParenRe = RegExp(
 ///   every unapproved `form <formation>` label). Exact approved formation labels
 ///   use the note fallback, and `fall back` is consumed only after an approved
 ///   parent move. The note is the
-///   SCRUBBED clause, so it is canonical (`; women turn around` is stored as
-///   `role2s turn around`) and the renderer re-expresses it in the reader's
+///   SCRUBBED clause, so it is canonical (`; face women` is stored as
+///   `face role2s`) and the renderer re-expresses it in the reader's
 ///   dialect (#715/#717) — never a raw gendered term.
 /// - **A LEADING clause never note-ifies.** A note belongs *to* a figure, so
 ///   when the FIRST clause fails there is nothing to hang it on without
@@ -611,28 +611,11 @@ const int _maxNoteFallbackClauses = 8;
 ///   deliberately, the whole `cast up/down/back to place` family. A cast is a
 ///   move, never commentary: since taxonomy v40 (#770) such a clause reads as
 ///   a `cast` figure of its own, so it must not be swept into a note.
-/// - **`role2s turn around` — 132**, and **`role1s turn around` — 96.** Matched
-///   by [_turnAroundClause], a PREFIX rule mirroring [_facingClause], so the 17
-///   annotated variants (`… (cw)`, `… [with n2]`, `… (by left)`) come with them
-///   — 221 sole-blocker lines in total. The subject-less `turn around
-///   (by right)` and the differently-subjected `role2 one and role1 two turn
-///   around` are still excluded.
-///
-///   Read those carefully: the comparison is against the **post-scrub**
-///   role tokens, NOT the source words `women`/`men`. Eligibility is evaluated
-///   after [scrubFigureText] *deliberately*: it lets the rule be stated once in
-///   the canonical role vocabulary instead of enumerating every gendered
-///   spelling a source might use — the same reason the recognizers themselves
-///   match on `role1`/`role2` rather than on dialect words.
-///
-///   The consequence is what makes the note useful. The clause TCB writes as
-///   `Women turn around` (in any casing) arrives here as `role2s turn around`
-///   and is stored on the figure in exactly that form, so the renderer can
-///   re-express it per dialect (#715/#717) — "robins turn around" under
-///   larks/robins, "follows turn around" under leads/follows. Rewriting these
-///   to `women`/`men` would therefore break twice: it would match nothing, AND
-///   it would store a dialect-specific term the reader could never see
-///   re-expressed.
+/// - **`role2s turn around` (132) and `role1s turn around` (96) are NOT
+///   notes** since 2026-11-27: the maintainer ruled that `turn around` is
+///   turn alone, so such a clause is a `turn_alone` figure of its own, like a
+///   cast. Eligibility is still evaluated on the **post-scrub** text, so the
+///   rules here are stated once in the canonical role vocabulary.
 ///
 /// Length-bounded first (OWASP: untrusted import text), so a pathological
 /// clause cannot become an unbounded note. The longest eligible corpus clause is
@@ -641,7 +624,6 @@ bool _noteEligibleClause(String scrubbed) {
   if (scrubbed.isEmpty || scrubbed.length > kMaxClauseNote) return false;
   final normalized = scrubbed.toLowerCase();
   if (_facingClause.hasMatch(normalized)) return true;
-  if (_turnAroundClause.hasMatch(normalized)) return true;
   return _exactClauseNotes.contains(normalized);
 }
 
@@ -701,23 +683,6 @@ const int kMaxClauseNote = 120;
 /// A bare facing statement. `\b` is load-bearing: without it this would also
 /// claim `facing star …`, which is a structured move.
 final RegExp _facingClause = RegExp(r'^face\b', caseSensitive: false);
-
-/// A subject-bearing `turn around` statement, matched on the POST-SCRUB text
-/// (hence `role1s`/`role2s`, never `men`/`women` — see [_noteEligibleClause]).
-///
-/// A prefix rule, deliberately mirroring [_facingClause]: both families are
-/// verbatim prose in the note either way, so an annotated variant
-/// (`role2s turn around (cw)`, `role1s turn around [with n2]`) preserves
-/// exactly as much as the whole-custom line did. Accepting `face up [with n0]`
-/// while rejecting `role2s turn around (cw)` would be arbitrary.
-///
-/// `^` and `\b` are load-bearing — they keep out the two wordings that name no
-/// subject or a different one: `turn around (by right)` and
-/// `role2 one and role1 two turn around`.
-final RegExp _turnAroundClause = RegExp(
-  r'^role[12]s turn around\b',
-  caseSensitive: false,
-);
 
 /// Folds TCB's complementary `<who>` walk forward; form long wave ||
 /// `<other who>` fall back pair into the existing long-wave move. Every other
@@ -1312,11 +1277,15 @@ FigureMatch? _tcbCast(String scrubbed) {
 /// * Done **with a neighbour** — the rest of the line, read with the role as
 ///   its subject, has a counterpart param (`whom`, `who2`) naming the current
 ///   neighbours, as written or by default (`N2 Men roll away neighbor`, a
-///   bare `N2 Men cross trails`; an explicit `N`, `N1` or `neighbor 1` is
-///   left as written): the
-///   role stays `who` and that
-///   param becomes the numbered neighbours (`whom: nextNeighbors`). Any
-///   number `N0`–`N4` reads this way.
+///   bare `N2 Men cross trails`): the role stays `who` and that param
+///   becomes the numbered neighbours (`whom: nextNeighbors`). Any number
+///   `N0`–`N4` reads this way.
+/// * The counterpart **already names neighbours** — a numbered set (`N2 Men
+///   roll away prev neighbor`) or the current ones by number (`… N1`, `… N`,
+///   `… neighbor 1`): the same set as the number is read as written; another
+///   set makes the number name the role (`who: nextRole1s`), or, for `N3`
+///   and `N4`, which have no role token, the note `N3 role1s`. No note
+///   contradicts the counterpart.
 /// * **Only the two role1s or role2s take part** (`N2 Men allemande left
 ///   3/4`) — no dancer param besides `who` is set or given a default by its
 ///   move or alias, even `unspecified`: `who` is that
@@ -1413,6 +1382,36 @@ FigureMatch? _readNumberedRolePair(
     final numberedNeighbor = _withNumberedNeighbors(withNeighbor, numbered);
     if (numberedNeighbor != null) return numberedNeighbor;
   }
+  // The rest already names the counterpart's neighbours (`N2 Men roll away
+  // next neighbor`, `… prev neighbor`, `… N1`). The same set says the number
+  // twice, so the line is read as written; another set cannot be the one the
+  // number names, so the number names the role (`who: nextRole1s`, `whom:
+  // prevNeighbors`), or, for a number with no role token, the note names the
+  // role in the source's own notation (`N3 role1s`). Either way no `with …`
+  // note contradicts the counterpart. *(Agent's call, on the maintainer's
+  // 2026-11-27 ask to fix the contradiction.)*
+  final named =
+      withNeighbor == null ||
+          withNeighbor.forceCustom ||
+          withNeighbor.params['who'] != pair
+      ? null
+      : _namedCounterpart(
+          withNeighbor,
+          explicitCurrent: _explicitN1Re.hasMatch(rest),
+        );
+  if (withNeighbor != null && named != null) {
+    if (named.value == numbered) return withNeighbor;
+    if (_numberedRoleToken(numbered, pair) case (final ordinal, final token)) {
+      final inner = read('$ordinal $pair $rest');
+      if (inner != null &&
+          !inner.forceCustom &&
+          inner.params['who'] == token &&
+          inner.params[named.key] == named.value) {
+        return inner;
+      }
+    }
+    return _withLeadingNote(withNeighbor, '$number $pair');
+  }
   if (_numberedRoleToken(numbered, pair) case (final ordinal, final token)) {
     final inner = read('$ordinal $pair $rest');
     if (inner != null &&
@@ -1432,6 +1431,26 @@ FigureMatch? _readNumberedRolePair(
     return null;
   }
   return inner;
+}
+
+/// The one counterpart param ([_counterpartParams]) of [match] that names a
+/// neighbour set the line wrote out, as (param, set), or `null`: a numbered
+/// set (`prevNeighbors`), or the current `neighbors` when [explicitCurrent]
+/// says the line named them by number (`N1`, `N`, `neighbor 1`).
+MapEntry<String, String>? _namedCounterpart(
+  FigureMatch match, {
+  required bool explicitCurrent,
+}) {
+  final named = {
+    ...?seriesDancerWords['neighbor']?.values,
+    if (explicitCurrent) 'neighbors',
+  };
+  final found = [
+    for (final key in _counterpartParams)
+      if (match.params[key] case final String value when named.contains(value))
+        MapEntry(key, value),
+  ];
+  return found.length == 1 ? found.single : null;
 }
 
 /// The params that name who a figure is done **with** (`roll away whom`,
