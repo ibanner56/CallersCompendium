@@ -11,6 +11,7 @@ void main() {
   final now = DateTime.utc(2026, 7, 10);
 
   Dance dance({
+    DanceForm form = DanceForm.contra,
     String phraseStructure = '',
     bool mixer = false,
     DanceStatus status = DanceStatus.active,
@@ -18,6 +19,7 @@ void main() {
   }) => Dance(
     id: 'd1',
     title: 'Rory O\'More',
+    form: form,
     phraseStructure: phraseStructure,
     mixer: mixer,
     status: status,
@@ -66,6 +68,37 @@ void main() {
       expect(phrase('A:1*1*4'), 'Phrase: A (A 1 bar)');
       // Not named: printed as stored, as the formula the editor's rows write.
       expect(phrase(' 2*8*2 + 2*10*2 '), 'Phrase: 2*8*2 + 2*10*2');
+    });
+
+    test('an English dance prints an unnamed structure in words, and '
+        'phrases in different meters with their beats to the bar '
+        '(pre-release audit finding A2-05)', () {
+      String phrase(String stored, {DanceForm form = DanceForm.ecd}) =>
+          danceCardMetaLines(
+            dance(form: form, phraseStructure: stored),
+            formationLabel: '',
+            statusLabel: '',
+            labels: const DanceExportLabels(),
+            fields: {DanceShareField.phraseStructure},
+          ).single;
+      expect(phrase('4*8*3'), 'Phrase: 4 phrases of 8 bars');
+      expect(
+        phrase('2*8*2 + 1*16*2'),
+        'Phrase: 2 phrases of 8 bars, 1 phrase of 16 bars',
+      );
+      expect(
+        phrase('2*8*3 + 2*8*2'),
+        'Phrase: 2 phrases of 8 bars of 3 beats, 2 phrases of 8 bars of 2 '
+        'beats',
+      );
+      expect(
+        phrase('A:2*4*3 + B:1*8*2'),
+        'Phrase: AAB (A 4 bars of 3 beats, B 8 bars of 2 beats)',
+      );
+      // One meter throughout: no beats to the bar.
+      expect(phrase('A:2*8*3 + B:2*8*3'), 'Phrase: AABB (A 8 bars, B 8 bars)');
+      // A contra dance keeps the formula as stored.
+      expect(phrase('4*8*2', form: DanceForm.contra), 'Phrase: 4*8*2');
     });
 
     test('named phrases use the injected bars label', () {

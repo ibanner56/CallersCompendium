@@ -140,6 +140,56 @@ void main() {
       expect(staged.existsSync(), isTrue);
     });
 
+    // Earlier versions shared the log from the top of the temporary folder
+    // and never deleted it.
+    test('on a phone or tablet, deletes diagnostics logs earlier versions '
+        'left in the temporary folder, and nothing else', () async {
+      for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+        resetLeftoverSharedFilesClearedForTesting();
+        final oldLog = File(
+          p.join(
+            temp.path,
+            'caller-compendium-diagnostics-20261101-120000.log',
+          ),
+        )..writeAsStringSync('log');
+        final other = File(p.join(temp.path, 'caller-compendium-notes.log'))
+          ..writeAsStringSync('keep');
+        final nested = File(
+          p.join(
+            temp.path,
+            'sub',
+            'caller-compendium-diagnostics-20261101-120000.log',
+          ),
+        )..createSync(recursive: true);
+
+        await clearLeftoverSharedFiles(
+          platform: platform,
+          temporaryDirectory: () async => temp,
+        );
+
+        expect(oldLog.existsSync(), isFalse, reason: '$platform');
+        expect(other.existsSync(), isTrue, reason: '$platform');
+        expect(nested.existsSync(), isTrue, reason: '$platform');
+      }
+    });
+
+    test(
+      'on a computer, leaves a diagnostics log in the temporary folder',
+      () async {
+        final log = File(
+          p.join(
+            temp.path,
+            'caller-compendium-diagnostics-20261101-120000.log',
+          ),
+        )..writeAsStringSync('log');
+        await clearLeftoverSharedFiles(
+          platform: TargetPlatform.windows,
+          temporaryDirectory: () async => temp,
+        );
+        expect(log.existsSync(), isTrue);
+      },
+    );
+
     test('on Linux, where nothing is staged, touches nothing', () async {
       await clearLeftoverSharedFiles(
         platform: TargetPlatform.linux,

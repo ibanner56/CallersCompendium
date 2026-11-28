@@ -610,7 +610,10 @@ void main() {
       expect(text, contains('(6 bars)'));
       expect(text, contains('(4 bars)'));
       expect(text, contains('(2 bars)'));
-      expect(text, isNot(contains('beats')));
+      // No figure's count is in beats; the phrase line names each phrase's
+      // beats to the bar (pre-release audit finding A2-05).
+      expect(text, isNot(contains(RegExp(r'\(\d+ beats?\)'))));
+      expect(text, contains('A 4 bars of 3 beats, B 8 bars of 2 beats'));
     });
 
     test('a Meter that states one meter does not override phrases that '

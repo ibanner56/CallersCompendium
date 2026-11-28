@@ -502,6 +502,33 @@ void _dropDownGroup() {
     expect(find.byKey(const ValueKey('author-option-amy')), findsNothing);
   });
 
+  testWidgets('names stored family name first are set apart with '
+      'semicolons (pre-release audit finding A2-06)', (tester) async {
+    await setScreenSize(tester, const Size(1200, 900));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: NamePicker(
+            fieldKey: 'author',
+            selectedIds: const ['cs', 'ps'],
+            namesById: const {'cs': 'Sharp, Cecil', 'ps': 'Shaw, Pat'},
+            options: const [
+              (id: 'cs', name: 'Sharp, Cecil'),
+              (id: 'ps', name: 'Shaw, Pat'),
+            ],
+            onAdd: (_) {},
+            onRemove: (_) {},
+            onCreate: (_) async => null,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(fieldText(tester), 'Sharp, Cecil; Shaw, Pat');
+  });
+
   testWidgets('an empty field shows the Choose hint', (tester) async {
     await pumpHost(tester);
     expect(fieldText(tester), isEmpty);

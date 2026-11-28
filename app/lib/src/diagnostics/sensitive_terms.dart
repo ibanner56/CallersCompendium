@@ -1,16 +1,32 @@
 import 'package:compendium_core/compendium_core.dart';
 
-import '../data/calendar_import_settings.dart' show kCalendarFeedUrlKey;
+import 'dart:convert';
+
+import '../data/calendar_import_settings.dart'
+    show kCalendarFeedUrlKey, kCalendarImportTitleFilterKey;
+import '../data/display_defaults.dart'
+    show
+        isProgramTemplateBreakText,
+        kDefaultProgramBandKey,
+        kDefaultProgramCallerKey,
+        kDefaultStartingProgramKey,
+        tryDecodeStartingProgramTemplate;
+import '../data/program_templates.dart'
+    show kProgramTemplateKeyPrefix, tryDecodeProgramTemplate;
+import '../data/settings_keys.dart' show kSyncIdKey;
 
 /// Collects the user-content strings that the *default* (scrubbed) diagnostics
-/// export must redact (issue #458): dance / program / figure titles, notes,
-/// walkthroughs, free-text figure params, link labels, custom-field values and
-/// definitions, program notes, slot text and guest callers, band/caller/venue
-/// labels, tag names, difficulty-level labels, and every person / place /
-/// source field — venue names, websites, schedule/price text, addresses and
-/// contacts, choreographer names and locations, published-source authors and
-/// urls — plus the serialized records the Device Sync review and deletion
-/// queues hold.
+/// export must redact (issue #458): dance / program / figure titles, a dance's
+/// other titles, formation detail, meter, key, Barnes reference and square
+/// details, notes, walkthroughs, free-text figure params, link labels and
+/// addresses, custom-field values and definitions, program notes, slot text
+/// and guest callers, band/caller/venue labels, tag names, difficulty-level
+/// labels, event-rule nicknames, and every person / place / source field —
+/// venue names, websites, schedule/price text, addresses and contacts,
+/// choreographer names and locations, published-source authors and urls —
+/// plus the serialized records the Device Sync review and deletion queues
+/// hold, and the caller's words kept in settings: saved searches, program
+/// templates, the calendar address and its title filter.
 ///
 /// Since the scrubbed export withholds `errorMessage` except for the typed
 /// types in `CrashLogRecord.messageSafeErrorTypes` (whose message still passes
@@ -41,12 +57,15 @@ import '../data/calendar_import_settings.dart' show kCalendarFeedUrlKey;
 /// the registry's `thirdParty`/personal-data axis does not itself scope to: a
 /// hall's schedule text or a published source's URL is exactly as capable of
 /// reaching a failed statement's echoed parameters as a dance title is, and
-/// the same over-broad-crash-log risk applies. Every simple, always-populated
-/// free-text scalar column is added on that basis, whatever its registry
-/// subject — see `_alsoRequiredColumns` in the term-source test for the ones
-/// this reconciles against. A JSON-blob column (`figures_json`, `tunes_json`)
-/// is deliberately not in that set: its content is already covered above,
-/// through the decoded `Figure`/tune records, not as a raw column read.
+/// the same over-broad-crash-log risk applies. Every free-text column is
+/// added on that basis, whatever its registry subject: the term-source test
+/// requires a source for every TEXT column that is not a key, an enum, a code
+/// or a JSON blob (`_isFreeTextColumn` there), so a new one cannot be
+/// forgotten. A JSON-blob column (`figures_json`, `tunes_json`) is
+/// deliberately not in that set: its content is already covered above,
+/// through the decoded `Figure`/tune records, not as a raw column read. The
+/// settings value column is such a blob too, so the settings that hold the
+/// caller's own words are read by key below, and that test names them.
 ///
 /// **Fail-closed (OWASP).** This deliberately does NOT swallow read errors. If
 /// any source can't be read, the returned future *fails* so the caller aborts
@@ -97,11 +116,24 @@ Future<Set<String>> collectSensitiveTerms(
 
   for (final dance in await repositories.dances.listAll(includeDeleted: true)) {
     add(dance.title);
+    add(dance.formation.detail);
     add(dance.hook);
     add(dance.callingNotes);
     add(dance.walkthrough);
+    add(dance.meter);
+    add(dance.musicalKey);
+    // Each other title, and the column's one-per-line form, which is what a
+    // failed statement echoes.
+    for (final title in dance.alternateTitles) {
+      add(title);
+    }
+    add(alternateTitlesColumnText(dance.alternateTitles));
+    add(dance.barnesReference);
+    add(dance.repeatOrderText);
+    add(dance.newPartnerText);
     for (final link in dance.links) {
       add(link.label);
+      add(link.url);
     }
     switch (dance.tunesSource) {
       case DecodedTunes(:final tunes):
@@ -159,13 +191,22 @@ Future<Set<String>> collectSensitiveTerms(
       add(formatPayMinorUnits(pay, currency));
     }
     for (final slot in program.slots) {
-      add(slot.text);
+      // The break token is the app's own word, not the caller's: as a term
+      // it would blank "break" all through the stack text.
+      if (!isProgramTemplateBreakText(slot.text)) add(slot.text);
       add(slot.guestCaller);
     }
   }
 
   for (final tag in await repositories.tags.listAll()) {
     add(tag.name);
+  }
+
+  // An event rule's nickname (#2340): a name the caller types.
+  for (final rule in await repositories.eventRules.listAll(
+    includeDeleted: true,
+  )) {
+    add(rule.nickname);
   }
 
   for (final def in await repositories.customFieldDefs.listAll()) {
@@ -297,6 +338,86 @@ Future<Set<String>> collectSensitiveTerms(
   for (final row in await repositories.syncLocal.listRetainedSyncFields()) {
     add(row.payload);
   }
+
+  // The caller's own words kept in settings values (pre-release audit finding
+  // PRIV-07): a saved search's name and search text (#2325), a program
+  // template's name and its slots' notes and rule labels (#2337, #2338), and
+  // the calendar import's title filter. Read leniently: a value that does not
+  // decode is still the caller's, so it goes in as stored, as an undecodable
+  // figures list does.
+  for (final key in await repositories.settings.keysWithPrefix(
+    savedSearchKeyPrefix,
+  )) {
+    final value = await repositories.settings.get(key);
+    if (value is Map) {
+      add(value['name']);
+      add(value['text']);
+      // Words typed into the Filters panel that the search keeps: a tune
+      // name, and a custom text field's value. Not every string in the
+      // value: most are enum names (a sort, a scope) that are not the
+      // caller's words and would blank common words in the stack text.
+      if (value['facets'] case final Map<Object?, Object?> facets) {
+        if (facets['tunes'] case final List<Object?> tunes) {
+          tunes.forEach(add);
+        }
+        if (facets['textValues'] case final Map<Object?, Object?> values) {
+          for (final filter in values.values) {
+            if (filter is Map) add(filter['value']);
+          }
+        }
+      }
+    } else {
+      add(value is String ? value : jsonEncode(value));
+    }
+  }
+  for (final key in await repositories.settings.keysWithPrefix(
+    kProgramTemplateKeyPrefix,
+  )) {
+    final value = await repositories.settings.get(key);
+    final template = tryDecodeProgramTemplate(
+      key.substring(kProgramTemplateKeyPrefix.length),
+      value,
+    );
+    if (template == null) {
+      add(value is String ? value : jsonEncode(value));
+      continue;
+    }
+    add(template.name);
+    for (final entry in template.entries) {
+      if (!isProgramTemplateBreakText(entry.text)) add(entry.text);
+    }
+  }
+  // The legacy Starting program, shown as the first template until the
+  // caller first changes their templates, and kept after that.
+  final startingProgram = await repositories.settings.get(
+    kDefaultStartingProgramKey,
+  );
+  if (startingProgram != null) {
+    final entries = tryDecodeStartingProgramTemplate(startingProgram);
+    if (entries == null) {
+      add(
+        startingProgram is String
+            ? startingProgram
+            : jsonEncode(startingProgram),
+      );
+    } else {
+      for (final entry in entries) {
+        if (!isProgramTemplateBreakText(entry.text)) add(entry.text);
+      }
+    }
+  }
+  // The title filter is often one common word, and a term of three or more
+  // characters is matched anywhere, so "dance" would blank much of the stack
+  // text. Kept all the same, as a tag name is: the scrubbed export promises
+  // the caller's words are gone, and a report short on detail is the safer
+  // failure.
+  add(await repositories.settings.get(kCalendarImportTitleFilterKey));
+  // The names a new program starts with: the caller's own, and a band's.
+  add(await repositories.settings.get(kDefaultProgramCallerKey));
+  add(await repositories.settings.get(kDefaultProgramBandKey));
+  // The Device Sync ID, which the registry classifies as personal data: a
+  // failed sync request can name it.
+  add(await repositories.settings.get(kSyncIdKey));
 
   // The calendar feed address (#2352). A private calendar's address embeds a
   // secret token, so the whole address goes in, and so does its scheme-less

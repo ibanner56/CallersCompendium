@@ -995,4 +995,39 @@ void main() {
       );
     });
   });
+
+  testWidgets('a screen reader hears an English figure in the bars it shows '
+      '(pre-release audit finding A2-04)', (tester) async {
+    final handle = tester.ensureSemantics();
+    final c = await _controllerWith(null);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: FormationColorsScope(
+            controller: c,
+            child: PerformCard(
+              dance: _dance().copyWith(
+                form: DanceForm.ecd,
+                formation: const Formation(FormationShape.dupleMinor),
+                meter: '3/2',
+                figures: [
+                  Figure(move: 'ecd_set', params: const {'beats': 12}),
+                ],
+              ),
+              renderer: _renderer,
+              dialect: Dialect.larksRobins,
+              textScale: 1.0,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('4 bars'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'\b4 bars\b')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'\bbeats?\b')), findsNothing);
+    handle.dispose();
+  });
 }
