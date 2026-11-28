@@ -521,6 +521,31 @@ void main() {
     );
   });
 
+  // The maintainer's ruling, 2026-11-28: a time the app stamps follows the
+  // device's 24-hour setting.
+  testWidgets('when a version changed is shown in the device\'s 24-hour '
+      'clock when the device uses it', (tester) async {
+    late String shown;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        ),
+        home: Builder(
+          builder: (context) {
+            shown = syncConflictWhen(context, DateTime(2026, 7, 15, 15, 4));
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+    expect(shown, endsWith(' 15:04'));
+    expect(shown, isNot(contains('PM')));
+  });
+
   group('showing what differs', () {
     test('a reference to a merged-away record is not a difference', () {
       final l10n = lookupAppLocalizations(const Locale('en'));

@@ -214,6 +214,7 @@ String syncConflictWhen(BuildContext context, DateTime when) =>
       DateFormatScope.of(context),
       MaterialLocalizations.of(context),
       AppLocalizations.of(context),
+      use24Hour: use24HourClockOf(context),
     );
 
 /// The fields of [kind] a comparison shows, in reading order, with their
@@ -1318,6 +1319,7 @@ class SyncConflictComparison extends StatelessWidget {
             DateFormatScope.of(context),
             MaterialLocalizations.of(context),
             l10n,
+            use24Hour: use24HourClockOf(context),
           );
         case 'startMinute' || 'endMinute' || 'lessonMinute' || 'arrivalMinute':
           // A program time: minutes after midnight, in the device's clock

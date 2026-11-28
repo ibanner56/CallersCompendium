@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../app_metadata.dart'
     show kBugReportFormUrl, kProjectEmail, kSourceRepoUrl;
 import '../data/migration_error_labels.dart';
+import '../data/regional_formats.dart' show use24HourClockOf;
 import '../data/migration_guard.dart'
     show
         DatabaseBelowFloorError,
@@ -206,6 +207,7 @@ class AppBootstrap extends StatelessWidget {
                         l10n,
                         MaterialLocalizations.of(context),
                         copy,
+                        use24Hour: use24HourClockOf(context),
                       ),
                       textAlign: TextAlign.center,
                     ),

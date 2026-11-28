@@ -326,15 +326,18 @@ String formatEventDate(
 /// last ran, when a draft was saved), where the date alone does not say which of
 /// two edits is later. The date follows the Regional setting and, under the
 /// system default, the device's region, so a person who chose `2026-07-15`
-/// reads that here too, not a month name in the app's language. The time stays
-/// in the app's language: the hour and minute carry no words, and the AM/PM
-/// marker of a region's own language would put a second language in an English
-/// line.
+/// reads that here too, not a month name in the app's language. The time is in
+/// the app's language, in the device's clock: with [use24Hour] (pass
+/// [use24HourClockOf]) the 24-hour form, as [formatTimeOfDay] shows a program
+/// time (the maintainer's ruling, 2026-11-28), else the app language's own
+/// form. The AM/PM marker of a region's own language would put a second
+/// language in an English line, so the region does not choose it.
 String formatEventDateTime(
   DateTime when,
   DateFormatSetting setting,
   MaterialLocalizations material,
   AppLocalizations l10n, {
+  required bool use24Hour,
   Locale? platformLocale,
 }) {
   final local = when.toLocal();
@@ -345,7 +348,11 @@ String formatEventDateTime(
     l10n,
     platformLocale: platformLocale,
   );
-  final time = DateFormat.jm(l10n.localeName).format(local);
+  final time =
+      (use24Hour
+              ? DateFormat.Hm(l10n.localeName)
+              : DateFormat.jm(l10n.localeName))
+          .format(local);
   return '$date $time';
 }
 
