@@ -130,6 +130,48 @@ def test_docstring_only_examples_name_real_steps() -> None:
         assert not unknown, f"usage example names unknown step(s): {sorted(unknown)}"
 
 
+def test_failed_step_keeps_the_start_of_its_output() -> None:
+    """Regression: a failed step printed only its last 12 lines, so an error
+    at the start of a long output, such as the cause before a stack trace, was
+    discarded and three sessions could not tell why core-tests had failed
+    (the maintainer's decision, 2026-11-28: keep the start as well as the end;
+    no retry). The full output goes to a file whose path is printed."""
+    script = (
+        "import sys\n"
+        # Split literals: the failure detail echoes the command, so a marker
+        # written whole here would be found in the command, not the output.
+        "print('ROOT ' + 'CAUSE: the first line')\n"
+        "for i in range(200): print(f'noise {i}')\n"
+        "print('stderr ' + 'after the noise', file=sys.stderr)\n"
+        "sys.exit(3)\n"
+    )
+    step = preflight.Step("noisy", "fails with its cause first", ((sys.executable, "-c", script),))
+    status, detail = preflight.run_step(step)
+    assert status == "FAIL", status
+    assert "ROOT CAUSE: the first line" in detail, detail
+    assert "stderr after the noise" in detail, detail
+    assert "noise 100" not in detail, "the middle should be left to the log file"
+    match = re.search(r"full output: (\S+)", detail)
+    assert match, detail
+    log = Path(match.group(1))
+    try:
+        text = log.read_text(encoding="utf-8")
+        assert "ROOT CAUSE" in text and "noise 100" in text and "stderr after" in text
+        # stderr is merged as it is written, so the log keeps the real order.
+        assert text.index("noise 199") < text.index("stderr after the noise"), text[-200:]
+    finally:
+        log.unlink(missing_ok=True)
+
+
+def test_short_failed_output_is_shown_whole_with_no_log() -> None:
+    step = preflight.Step(
+        "short", "fails briefly", ((sys.executable, "-c", "print('only line'); raise SystemExit(1)"),)
+    )
+    status, detail = preflight.run_step(step)
+    assert status == "FAIL" and "only line" in detail, detail
+    assert "full output:" not in detail, detail
+
+
 def test_default_test_jobs_halve_cores_capped_at_four() -> None:
     assert preflight.test_jobs({}, 16) == 4
     assert preflight.test_jobs({}, 8) == 4
