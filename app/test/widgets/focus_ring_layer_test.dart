@@ -2,16 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
+import 'package:compendium_app/src/theme/app_theme_extension.dart';
+import 'package:compendium_app/src/theme/palette_schemes.dart';
+import 'package:compendium_app/src/theme/wcag.dart';
 import 'package:compendium_app/src/widgets/focus_ring_layer.dart';
 
 /// Keyboard focus draws the theme's focus ring round controls
 /// whose Material themes cannot draw one themselves.
 void main() {
-  Future<void> pump(WidgetTester tester, Widget body) async {
+  Future<void> pump(
+    WidgetTester tester,
+    Widget body, {
+    ThemeData? theme,
+  }) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light,
+        theme: theme ?? AppTheme.light,
         builder: (context, child) => FocusRingLayer(child: child!),
         home: Scaffold(body: body),
       ),
@@ -185,5 +193,84 @@ void main() {
     expect(tester.binding.hasScheduledFrame, isTrue);
     await tester.pump();
     expect(painter().rect, boundsOfFocused(tester));
+  });
+
+  // Perform's stage mode re-themes its own route (and its dialogs and sheets)
+  // in the dark stage theme, under whatever the app theme is. The ring is
+  // drawn over the stage's surfaces there, so its colour must be the one tuned
+  // for them, not the app theme's primary, which a light theme tunes for a
+  // light canvas.
+  for (final (name, appTheme) in <(String, ThemeData)>[
+    ('Light', AppTheme.light),
+    ('Tokyo Night Light', AppTheme.fromScheme(GalleryPalettes.tokyoNightLight)),
+    // A custom light theme with a dark accent: fine on white, near-black.
+    (
+      'a custom light theme with a near-black accent',
+      AppTheme.fromScheme(
+        ColorScheme.fromSeed(
+          seedColor: const Color(0xFF1A1A1A),
+        ).copyWith(primary: const Color(0xFF1A1A1A)),
+      ),
+    ),
+  ]) {
+    testWidgets('on the Perform stage under $name, the ring clears 3:1 on '
+        "every stage surface and is the stage theme's own", (tester) async {
+      final button = IconButton(icon: const Icon(Icons.add), onPressed: () {});
+      await pump(
+        tester,
+        PerformStageTheme(
+          enabled: true,
+          child: Builder(
+            builder: (context) => ColoredBox(
+              color: Theme.of(context).colorScheme.surface,
+              child: Center(child: button),
+            ),
+          ),
+        ),
+        theme: appTheme,
+      );
+      await tabTo(tester, find.byWidget(button));
+      final painter = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((p) => p.painter)
+          .whereType<FocusRingPainter>()
+          .single;
+      final stage = AppTheme.highContrast;
+      final stageExt = stage.extension<AppThemeExtension>()!;
+      final scheme = stage.colorScheme;
+      for (final (role, tier) in [
+        ('surface', scheme.surface),
+        ('surfaceContainerLowest', scheme.surfaceContainerLowest),
+        ('surfaceContainerLow', scheme.surfaceContainerLow),
+        ('surfaceContainer', scheme.surfaceContainer),
+        ('surfaceContainerHigh', scheme.surfaceContainerHigh),
+        ('surfaceContainerHighest', scheme.surfaceContainerHighest),
+      ]) {
+        expect(
+          Wcag.contrastRatio(painter.color, tier),
+          greaterThanOrEqualTo(Wcag.aaNonText),
+          reason: 'ring ${painter.color} on the stage $role $tier',
+        );
+      }
+      expect(painter.color, stageExt.focusRing);
+      expect(painter.width, stageExt.focusRingWidth);
+    });
+  }
+
+  testWidgets('off the stage the ring keeps the app theme', (tester) async {
+    final appTheme = AppTheme.fromScheme(GalleryPalettes.tokyoNightLight);
+    final button = IconButton(icon: const Icon(Icons.add), onPressed: () {});
+    await pump(
+      tester,
+      PerformStageTheme(enabled: false, child: Center(child: button)),
+      theme: appTheme,
+    );
+    await tabTo(tester, find.byWidget(button));
+    final painter = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((p) => p.painter)
+        .whereType<FocusRingPainter>()
+        .single;
+    expect(painter.color, appTheme.extension<AppThemeExtension>()!.focusRing);
   });
 }
