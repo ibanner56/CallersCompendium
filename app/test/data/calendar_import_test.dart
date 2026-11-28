@@ -4,6 +4,7 @@ import 'package:compendium_app/src/data/backup_document.dart';
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/calendar_import.dart';
 import 'package:compendium_app/src/data/calendar_import_settings.dart';
+import 'package:compendium_app/src/data/calendar_startup.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/event_rules_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
@@ -97,8 +98,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('preview and import', () {
-    test('new events are offered ticked; Import creates drafts; Undo (hard '
-        'delete of the ids) removes them', () async {
+    test('new events are offered ticked; Import creates drafts', () async {
       final repos = openTestRepositories();
       final preview = await _preview(
         repos,
@@ -117,9 +117,83 @@ void main() {
       expect(programs.map((p) => p.title), ['Contra A', 'Contra B']);
       expect(programs.every((p) => p.status == ProgramStatus.draft), isTrue);
       expect(programs.first.eventDate, DateTime.utc(2030, 6, 20));
+      expect(ids, [for (final p in programs) p.id]);
+    });
 
-      await repos.programs.hardDelete(ids);
-      expect(await repos.programs.listAll(includeDeleted: true), isEmpty);
+    test('Undo moves the untouched drafts to Recently deleted and keeps an '
+        'edited one, so a startup run adding drafts does not add them back '
+        '(pre-release audit finding E1-05)', () async {
+      final repos = openTestRepositories();
+      final body = _cal([
+        ['UID:a', 'DTSTART;VALUE=DATE:20300620', 'SUMMARY:Contra A'],
+        ['UID:b', 'DTSTART;VALUE=DATE:20300627', 'SUMMARY:Contra B'],
+      ]);
+      final ids = await _importAll(repos, await _preview(repos, body));
+      // The caller starts filling in B before pressing Undo.
+      final b = (await repos.programs.getById(ids[1]))!;
+      await repos.programs.update(
+        b.copyWith(notes: 'mine', updatedAt: _now.add(const Duration(hours: 1))),
+      );
+      await undoCalendarImportDrafts(
+        repos,
+        ids,
+        now: _now.add(const Duration(hours: 2)),
+      );
+      final all = await repos.programs.listAll(includeDeleted: true);
+      expect([
+        for (final p in all)
+          if (!p.isDeleted) p.title,
+      ], ['Contra B']);
+      expect([
+        for (final p in all)
+          if (p.isDeleted) p.title,
+      ], ['Contra A']);
+
+      await repos.settings.set(kCalendarImportOnStartupKey, true);
+      await repos.settings.set(
+        kCalendarStartupModeKey,
+        CalendarStartupMode.addDrafts.name,
+      );
+      await repos.settings.set(kCalendarFeedUrlKey, _feedUrl);
+      final next = await runCalendarStartup(
+        repos,
+        fetcher: (_) async => body,
+        now: _now.add(const Duration(days: 1)),
+        today: _today,
+        untitledTitle: 'Untitled event',
+        toLocal: (u) => u,
+      );
+      expect(next, isA<CalendarStartupQuiet>());
+      expect(await repos.programs.listAll(includeDeleted: true), hasLength(2));
+    });
+
+    test('a response cut off mid-file labels nothing gone (pre-release audit '
+        'finding E1-10)', () async {
+      final repos = openTestRepositories();
+      final whole = _cal([
+        ['UID:a1', 'DTSTART;VALUE=DATE:20300620', 'SUMMARY:First'],
+        ['UID:a2', 'DTSTART;VALUE=DATE:20300625', 'SUMMARY:Second'],
+      ]);
+      await _importAll(repos, await _preview(repos, whole));
+      final cut = whole.substring(0, whole.indexOf('UID:a2') + 4);
+      final preview = await _preview(repos, cut);
+      expect(preview.entries.map((e) => e.candidate.title), ['First']);
+      expect(preview.flagChanges, isEmpty);
+    });
+
+    test('past events do not use up the event cap (pre-release audit '
+        'finding E1-07)', () async {
+      final repos = openTestRepositories();
+      final preview = await _preview(
+        repos,
+        _cal([
+          for (var i = 0; i < iCalMaxEvents; i++)
+            ['UID:p$i', 'DTSTART;VALUE=DATE:20200101'],
+          ['UID:next', 'DTSTART;VALUE=DATE:20300620', 'SUMMARY:Next gig'],
+        ]),
+      );
+      expect(preview.truncated, isFalse);
+      expect(preview.entries.map((e) => e.candidate.title), ['Next gig']);
     });
 
     test('a second import of the same feed offers nothing new', () async {
@@ -676,6 +750,22 @@ void main() {
       );
       expect(body, contains('SUMMARY:Caé'));
       expect(body.contains('\uFFFD'), isFalse);
+    });
+
+    test('a fold after an old-Mac (bare CR) line end is undone', () async {
+      final body = await fetchCalendarFeed(
+        'https://calendar.example/a.ics',
+        client: client(
+          (_) => http.Response.bytes(
+            utf8.encode(
+              'BEGIN:VCALENDAR\rBEGIN:VEVENT\rUID:a\rDTSTART:20300620\r'
+              'SUMMARY:Contra\r  dance\rEND:VEVENT\rEND:VCALENDAR\r',
+            ),
+            200,
+          ),
+        ),
+      );
+      expect(body, contains('SUMMARY:Contra dance\rEND:VEVENT'));
     });
 
     test('an over-cap body is refused', () async {

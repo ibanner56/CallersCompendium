@@ -63,7 +63,9 @@ void main() {
   }
 
   testWidgets('opening the screen fetches nothing; Fetch fetches once; '
-      'Import creates the drafts and Undo removes them', (tester) async {
+      'Import creates the drafts and Undo moves them to Recently deleted', (
+    tester,
+  ) async {
     await withClock(fixed, () async {
       final repos = openTestRepositories();
       await repos.settings.set(kCalendarFeedUrlKey, _secret);
@@ -110,7 +112,13 @@ void main() {
       expect(find.text('2 draft programs added from your calendar.'), findsOne);
       await tester.tap(find.text('Undo'));
       await tester.pumpAndSettle();
-      expect(await repos.programs.listAll(includeDeleted: true), isEmpty);
+      expect(await repos.programs.listAll(), isEmpty);
+      // Not erased: an import at the next start skips events whose programs
+      // are in Recently deleted, so it does not add them back (pre-release
+      // audit finding E1-05).
+      final left = await repos.programs.listAll(includeDeleted: true);
+      expect(left.map((p) => p.title), unorderedEquals(['Contra A', 'Contra B']));
+      expect(left.every((p) => p.isDeleted), isTrue);
       expect(fetched, hasLength(1));
     });
   });

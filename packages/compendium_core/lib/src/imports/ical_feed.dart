@@ -200,6 +200,7 @@ class ICalFeed {
     this.skippedNoUid = 0,
     this.skippedNoStart = 0,
     this.truncated = false,
+    this.complete = true,
   });
 
   final List<ICalEvent> events;
@@ -213,6 +214,9 @@ class ICalFeed {
 
   /// Whether the feed had more than [iCalMaxEvents] events.
   final bool truncated;
+
+  /// Whether the document ended properly.
+  final bool complete;
 }
 
 /// Parses an iCalendar (RFC 5545) document.
@@ -222,7 +226,11 @@ class ICalFeed {
 /// level: other components (`VTIMEZONE`, `VTODO`, `VALARM` inside an event)
 /// are skipped. Throws [NotACalendarException] when there is no
 /// `BEGIN:VCALENDAR`.
-ICalFeed parseICalFeed(String body, {int maxEvents = iCalMaxEvents}) {
+ICalFeed parseICalFeed(
+  String body, {
+  int maxEvents = iCalMaxEvents,
+  DateTime? today,
+}) {
   final lines = _unfold(body);
   if (!lines.any((l) => l.trim().toUpperCase() == 'BEGIN:VCALENDAR')) {
     throw const NotACalendarException();

@@ -557,6 +557,13 @@ Future<void> undoCalendarUpdates(
   }
 }
 
+/// Undo for the drafts a calendar import created. STUB for the red run.
+Future<void> undoCalendarImportDrafts(
+  CompendiumRepositories repos,
+  List<String> ids, {
+  required DateTime now,
+}) => repos.programs.hardDelete(ids);
+
 /// One program a calendar import updated: as it was, and the stamp written.
 class CalendarUpdateRecord {
   const CalendarUpdateRecord({required this.before, required this.stamp});

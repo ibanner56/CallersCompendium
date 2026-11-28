@@ -259,8 +259,9 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
       undoFailedMessage: l10n.commonUndoFailed,
       accessibleNavigation: accessible,
       onUndo: () async {
-        await repos.programs.hardDelete(ids);
-        await undoCalendarUpdates(repos, before, now: clock.now().toUtc());
+        final at = clock.now().toUtc();
+        await undoCalendarImportDrafts(repos, ids, now: at);
+        await undoCalendarUpdates(repos, before, now: at);
       },
     );
     if (mounted) navigator.pop(ids);
