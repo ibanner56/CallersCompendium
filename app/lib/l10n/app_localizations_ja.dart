@@ -14917,13 +14917,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programTemplateSlotRuleBadge => 'スロットのルール';
 
   @override
-  String programTemplateSlotEditTooltip(String name) {
-    return '$nameを編集';
+  String programTemplateSlotEditTooltip(int position, String name) {
+    return 'スロット$position、$name：編集';
   }
 
   @override
-  String programTemplateSlotDeleteTooltip(String name) {
-    return '$nameを削除';
+  String programTemplateSlotDeleteTooltip(int position, String name) {
+    return 'スロット$position、$name：削除';
+  }
+
+  @override
+  String programTemplateSlotMoveUpTooltip(int position, String name) {
+    return 'スロット$position、$name：上に移動';
+  }
+
+  @override
+  String programTemplateSlotMoveDownTooltip(int position, String name) {
+    return 'スロット$position、$name：下に移動';
   }
 
   @override

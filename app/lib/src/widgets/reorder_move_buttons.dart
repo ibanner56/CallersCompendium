@@ -13,7 +13,8 @@ import '../../l10n/app_localizations.dart';
 ///
 /// Keys are `<keyPrefix>-move-up` and `<keyPrefix>-move-down`; [name] is the
 /// item's own label, so the tooltip and screen-reader label say which item
-/// moves.
+/// moves. A list whose items can share a label words its buttons itself, with
+/// the item's position ([moveUpTooltip], [moveDownTooltip]).
 class ReorderMoveButtons extends StatelessWidget {
   const ReorderMoveButtons({
     super.key,
@@ -21,12 +22,22 @@ class ReorderMoveButtons extends StatelessWidget {
     required this.name,
     required this.onMoveUp,
     required this.onMoveDown,
+    this.moveUpTooltip,
+    this.moveDownTooltip,
   });
 
   final String keyPrefix;
   final String name;
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
+
+  /// The Move up button's tooltip and screen-reader label, in place of
+  /// "Move [name] up".
+  final String? moveUpTooltip;
+
+  /// The Move down button's tooltip and screen-reader label, in place of
+  /// "Move [name] down".
+  final String? moveDownTooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -36,13 +47,13 @@ class ReorderMoveButtons extends StatelessWidget {
       children: [
         IconButton(
           key: ValueKey('$keyPrefix-move-up'),
-          tooltip: l10n.commonMoveItemUp(name),
+          tooltip: moveUpTooltip ?? l10n.commonMoveItemUp(name),
           icon: const Icon(Icons.arrow_upward),
           onPressed: onMoveUp,
         ),
         IconButton(
           key: ValueKey('$keyPrefix-move-down'),
-          tooltip: l10n.commonMoveItemDown(name),
+          tooltip: moveDownTooltip ?? l10n.commonMoveItemDown(name),
           icon: const Icon(Icons.arrow_downward),
           onPressed: onMoveDown,
         ),

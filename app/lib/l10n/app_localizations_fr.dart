@@ -15720,13 +15720,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programTemplateSlotRuleBadge => 'Règle de créneau';
 
   @override
-  String programTemplateSlotEditTooltip(String name) {
-    return 'Modifier $name';
+  String programTemplateSlotEditTooltip(int position, String name) {
+    return 'Créneau $position, $name : modifier';
   }
 
   @override
-  String programTemplateSlotDeleteTooltip(String name) {
-    return 'Supprimer $name';
+  String programTemplateSlotDeleteTooltip(int position, String name) {
+    return 'Créneau $position, $name : supprimer';
+  }
+
+  @override
+  String programTemplateSlotMoveUpTooltip(int position, String name) {
+    return 'Créneau $position, $name : déplacer vers le haut';
+  }
+
+  @override
+  String programTemplateSlotMoveDownTooltip(int position, String name) {
+    return 'Créneau $position, $name : déplacer vers le bas';
   }
 
   @override

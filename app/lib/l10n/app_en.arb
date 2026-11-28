@@ -20949,23 +20949,59 @@
   "@programTemplateSlotRuleBadge": {
     "description": "Screen-reader label of the icon on a slot rule in the program template editor, and its subtitle while the saved searches load, or when the latest read of them failed and its saved search was not among those last read; while it is the subtitle, the icon has no label of its own, so a screen reader reads it once (#2338)."
   },
-  "programTemplateSlotEditTooltip": "Edit {name}",
+  "programTemplateSlotEditTooltip": "Slot {position}, {name}: edit",
   "@programTemplateSlotEditTooltip": {
-    "description": "Tooltip and screen-reader label of the Edit button on a slot rule's row in the program template editor; {name} is the row's own label, so the buttons of one row can be told from the next (pre-release audit finding D1a-06).",
+    "description": "Tooltip and screen-reader label of the Edit button on a slot rule's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, so two slots with the same label (two Breaks) can be told apart (pre-release audit finding D1a-06; the maintainer's ruling, 2026-11-28).",
     "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "3"
+      },
       "name": {
         "type": "String",
         "example": "Easy opener"
       }
     }
   },
-  "programTemplateSlotDeleteTooltip": "Delete {name}",
+  "programTemplateSlotDeleteTooltip": "Slot {position}, {name}: delete",
   "@programTemplateSlotDeleteTooltip": {
-    "description": "Tooltip and screen-reader label of the Delete button on a slot's row in the program template editor (a dance, note, break or slot rule); {name} is the row's own label, such as the dance's title, so the buttons of one row can be told from the next (pre-release audit finding D1a-06).",
+    "description": "Tooltip and screen-reader label of the Delete button on a slot's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, as on its other buttons.",
     "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "3"
+      },
       "name": {
         "type": "String",
-        "example": "Chorus Jig"
+        "example": "Break"
+      }
+    }
+  },
+  "programTemplateSlotMoveUpTooltip": "Slot {position}, {name}: move up",
+  "@programTemplateSlotMoveUpTooltip": {
+    "description": "Tooltip and screen-reader label of the Move up button on a slot's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, as on its other buttons.",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "3"
+      },
+      "name": {
+        "type": "String",
+        "example": "Break"
+      }
+    }
+  },
+  "programTemplateSlotMoveDownTooltip": "Slot {position}, {name}: move down",
+  "@programTemplateSlotMoveDownTooltip": {
+    "description": "Tooltip and screen-reader label of the Move down button on a slot's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, as on its other buttons.",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "3"
+      },
+      "name": {
+        "type": "String",
+        "example": "Break"
       }
     }
   },

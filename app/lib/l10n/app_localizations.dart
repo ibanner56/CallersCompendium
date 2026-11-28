@@ -22377,17 +22377,29 @@ abstract class AppLocalizations {
   /// **'Slot rule'**
   String get programTemplateSlotRuleBadge;
 
-  /// Tooltip and screen-reader label of the Edit button on a slot rule's row in the program template editor; {name} is the row's own label, so the buttons of one row can be told from the next (pre-release audit finding D1a-06).
+  /// Tooltip and screen-reader label of the Edit button on a slot rule's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, so two slots with the same label (two Breaks) can be told apart (pre-release audit finding D1a-06; the maintainer's ruling, 2026-11-28).
   ///
   /// In en, this message translates to:
-  /// **'Edit {name}'**
-  String programTemplateSlotEditTooltip(String name);
+  /// **'Slot {position}, {name}: edit'**
+  String programTemplateSlotEditTooltip(int position, String name);
 
-  /// Tooltip and screen-reader label of the Delete button on a slot's row in the program template editor (a dance, note, break or slot rule); {name} is the row's own label, such as the dance's title, so the buttons of one row can be told from the next (pre-release audit finding D1a-06).
+  /// Tooltip and screen-reader label of the Delete button on a slot's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, as on its other buttons.
   ///
   /// In en, this message translates to:
-  /// **'Delete {name}'**
-  String programTemplateSlotDeleteTooltip(String name);
+  /// **'Slot {position}, {name}: delete'**
+  String programTemplateSlotDeleteTooltip(int position, String name);
+
+  /// Tooltip and screen-reader label of the Move up button on a slot's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, as on its other buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {position}, {name}: move up'**
+  String programTemplateSlotMoveUpTooltip(int position, String name);
+
+  /// Tooltip and screen-reader label of the Move down button on a slot's row in the program template editor. {position} is the slot's place in the list, counting from 1, and {name} the row's own label, as on its other buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {position}, {name}: move down'**
+  String programTemplateSlotMoveDownTooltip(int position, String name);
 
   /// Subtitle of a slot rule in the program template editor: the saved search that says which dances it means (#2338).
   ///

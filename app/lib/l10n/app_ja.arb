@@ -14754,13 +14754,21 @@
   "@programTemplateSlotRuleBadge": {
     "x-sourceSha256": "d3c802c982976b306a8676af4f5bc4811ecfbe9275f29e1ec1bab7a826d2f751"
   },
-  "programTemplateSlotEditTooltip": "{name}を編集",
+  "programTemplateSlotEditTooltip": "スロット{position}、{name}：編集",
   "@programTemplateSlotEditTooltip": {
-    "x-sourceSha256": "2313fe21ea84567f451e913cae39bd4ef9775a83458b23f3f440c2108e5363a1"
+    "x-sourceSha256": "75f7f529ed01f6c425886734edaa138df2b4d14a3b3ef367ab998db0a64d3125"
   },
-  "programTemplateSlotDeleteTooltip": "{name}を削除",
+  "programTemplateSlotDeleteTooltip": "スロット{position}、{name}：削除",
   "@programTemplateSlotDeleteTooltip": {
-    "x-sourceSha256": "3cf8146e529f1e4296d40d7ea32ffc63bc2647d416851ed43921bfedf3097cb3"
+    "x-sourceSha256": "482bf3c757428bc1b69a88488f99a26289afd806b32323131d13706dfa08f2bb"
+  },
+  "programTemplateSlotMoveUpTooltip": "スロット{position}、{name}：上に移動",
+  "@programTemplateSlotMoveUpTooltip": {
+    "x-sourceSha256": "67c4d607d116067555823f4eeaf1a94bec08604c446685b41f51713c037cef14"
+  },
+  "programTemplateSlotMoveDownTooltip": "スロット{position}、{name}：下に移動",
+  "@programTemplateSlotMoveDownTooltip": {
+    "x-sourceSha256": "c8689033ba4b637fc72f839aeaec1a6061f91f3e7b4bffcd0e1a01bb0fafcd85"
   },
   "programTemplateSlotRuleSubtitle": "保存した検索「{name}」から埋めます",
   "@programTemplateSlotRuleSubtitle": {
