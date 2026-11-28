@@ -8,7 +8,9 @@ hoisted them): the pattern must be a top-level or ``static`` declaration, built
 once, not a ``RegExp(`` sitting in a function body.
 
 Files checked (under ``packages/compendium_core/lib/src/imports/``):
-``dedupe.dart``, ``figure_parser.dart`` and every ``*_figure_dialect.dart``.
+``dedupe.dart``, ``figure_parser.dart``, the English Country Dance parser's
+``ecd_figure_parser.dart`` and ``ecd_bars.dart``, and every
+``*_figure_dialect.dart``.
 
 A ``RegExp(`` is **per-call** when, in the comment/string-masked source, any of
 these holds:
@@ -53,7 +55,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 IMPORTS_DIR = "packages/compendium_core/lib/src/imports"
-CHECKED_FILES = ("dedupe.dart", "figure_parser.dart")
+CHECKED_FILES = (
+    "dedupe.dart",
+    "figure_parser.dart",
+    "ecd_figure_parser.dart",
+    "ecd_bars.dart",
+)
 CHECKED_GLOBS = ("*_figure_dialect.dart",)
 
 # (repo-relative path, symbol) -> (max per-call RegExp( count, reason).

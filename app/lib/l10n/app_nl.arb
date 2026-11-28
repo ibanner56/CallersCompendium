@@ -11526,6 +11526,10 @@
   "@danceReimportTargetChanged": {
     "x-sourceSha256": "7213bdad9aa2abba7fd089889171b48ce5c3d80ecc5a5760c1881cf8c4a6125a"
   },
+  "danceReimportFormChangeNotice": "{dropped, select, both{Importeren wijzigt de dansvorm van deze dans in {form}, dus de Barnes-verwijzing en de markering Begint improper worden verwijderd.} barnes{Importeren wijzigt de dansvorm van deze dans in {form}, dus de Barnes-verwijzing wordt verwijderd.} improper{Importeren wijzigt de dansvorm van deze dans in {form}, dus de markering Begint improper wordt verwijderd.} other{Importeren wijzigt de dansvorm van deze dans in {form}.}}",
+  "@danceReimportFormChangeNotice": {
+    "x-sourceSha256": "d425b2974ae4956d338dc9f6899e1d2c1234daeb4b70842515997292eb6d3e8b"
+  },
   "publishedCollectionsTitle": "Gepubliceerde collecties",
   "@publishedCollectionsTitle": {
     "x-sourceSha256": "950ff774d5f3db217773cf01ce4ae60c38f9bfed26f61dd9fc93d95418ba25c0"

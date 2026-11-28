@@ -2305,8 +2305,9 @@ class CallersBoxAdapter implements SourceAdapter {
         : f.copyWith(note: combineFigureNotes(f.note, note));
   }
 
-  /// Returns the canonical note for exactly one supported, clause-final square
-  /// annotation, or `null` for no annotation and every unsupported shape.
+  /// Returns the note, in the source's words (`with N2`), for exactly one
+  /// supported, clause-final square annotation, or `null` for no annotation
+  /// and every unsupported shape.
   static String? _canonicalBalanceWaveBracketNote(String text) {
     // Stop after the second match: one is supported, while more than one
     // remains custom without allocating for every untrusted annotation.
@@ -2330,8 +2331,24 @@ class CallersBoxAdapter implements SourceAdapter {
     if (relation == null) return null;
     final who = resolveDancerSetPhrase(relation.group(2)!);
     if (who == null) return null;
-    return '${relation.group(1)!.toLowerCase()} $who';
+    // The source's words, not the dancer-set token (`nextNeighbors`), which
+    // the note would show raw; written as the dialect's bracket notes are.
+    final words = relation
+        .group(2)!
+        .trim()
+        .split(_bracketPhraseSpace)
+        .join(' ');
+    return '${relation.group(1)!.toLowerCase()} '
+        '${_bracketDancerCode.hasMatch(words) ? words.toUpperCase() : words}';
   }
+
+  static final RegExp _bracketPhraseSpace = RegExp(r'\s+');
+
+  /// A dancer code alone: a letter and a digit (`N2`, `m1`).
+  static final RegExp _bracketDancerCode = RegExp(
+    r'^[a-z][0-9]$',
+    caseSensitive: false,
+  );
 
   /// The comma-separated fields of a TCB annotation, lowercased and trimmed.
   static List<String> _splitAnnotation(String annotation) => annotation
