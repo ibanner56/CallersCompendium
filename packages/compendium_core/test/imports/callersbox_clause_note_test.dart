@@ -168,10 +168,11 @@ void main() {
           who: 'role2s',
           note: 'by left',
         ),
-        // The neighbour number names the next larks (#2569's rules).
+        // The larks turn alone by themselves, so the number is the note
+        // (user-ruled 2026-11-28).
         'Partner swing; men turn around [with N2]': (
-          who: 'nextRole1s',
-          note: null,
+          who: 'role1s',
+          note: 'with N2',
         ),
       };
       for (final MapEntry(key: line, value: want) in cases.entries) {

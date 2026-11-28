@@ -722,10 +722,25 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     return programs;
   }
 
+  /// Whether New program is between its tap and the builder (or chooser)
+  /// it opens: the template read comes first, and a second tap, click or
+  /// Enter in that gap would open a second one (pre-release audit finding
+  /// D1a-03).
+  bool _openingNewProgram = false;
+
   /// New program: asks which template to start from when there are two or
   /// more (#2337), then opens the builder. Dismissing the chooser cancels.
+  /// A second activation before the first has opened anything is ignored.
   Future<void> _openNewProgram() async {
-    final choice = await chooseProgramTemplate(context);
+    if (_openingNewProgram) return;
+    _openingNewProgram = true;
+    final ProgramTemplateChoice? chosen;
+    try {
+      chosen = await chooseProgramTemplate(context);
+    } finally {
+      _openingNewProgram = false;
+    }
+    final choice = chosen;
     if (choice == null || !mounted) return;
     if (widget.onCreateProgram != null) {
       widget.onCreateProgram!(choice);

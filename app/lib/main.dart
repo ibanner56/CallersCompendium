@@ -23,6 +23,7 @@ import 'src/data/archive_intake_labels.dart';
 import 'src/data/archive_intake_service.dart';
 import 'src/data/dance_link_intake.dart';
 import 'src/export/dance_code.dart' show DanceLinkException;
+import 'src/export/share_file.dart' show clearLeftoverSharedFiles;
 import 'src/data/backup_export_labels.dart';
 import 'src/data/backup_io.dart' show BackupSaver, saveBackupToFile;
 import 'src/data/backup_reminder.dart';
@@ -1532,6 +1533,16 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// Runs [_startupSequence], recording any failure in the crash log (source
   /// `main.bootstrap`) exactly once before rethrowing it to the recovery UI.
   Future<void> _runBootstrap() async {
+    // A shared file stays staged until the next share, as the receiving app
+    // may not have read it when the share sheet closed; delete what the last
+    // run left. Once per process (later calls do nothing), at the first
+    // attempt and not the first success: the recovery screen a failed
+    // bootstrap shows can share a recovery copy, and a Reset then bootstraps
+    // again while that copy may still be being read. It reads no database.
+    // Local and silent, like the sweeps at the end of a bootstrap.
+    if (!kIsWeb) {
+      unawaited(clearLeftoverSharedFiles(platform: defaultTargetPlatform));
+    }
     try {
       await _startupSequence();
     } on Object catch (error, stackTrace) {

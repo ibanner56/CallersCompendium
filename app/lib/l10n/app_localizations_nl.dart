@@ -2681,12 +2681,6 @@ class AppLocalizationsNl extends AppLocalizations {
       'Notitie van caller (optioneel)';
 
   @override
-  String get settingsDefaultsStartingProgramMoveUp => 'Omhoog';
-
-  @override
-  String get settingsDefaultsStartingProgramMoveDown => 'Omlaag';
-
-  @override
   String get settingsDefaultsStartingProgramUnavailableDance =>
       'Deze dans is niet meer beschikbaar';
 
@@ -12743,6 +12737,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get compoundParamKindDancers => 'dansers';
 
   @override
+  String get compoundParamKindDancerList => 'lijst van dansers';
+
+  @override
   String get compoundParamKindDancerPair => 'paar dansers';
 
   @override
@@ -15609,6 +15606,16 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleBadge => 'Slotregel';
+
+  @override
+  String programTemplateSlotEditTooltip(String name) {
+    return '$name bewerken';
+  }
+
+  @override
+  String programTemplateSlotDeleteTooltip(String name) {
+    return '$name verwijderen';
+  }
 
   @override
   String programTemplateSlotRuleSubtitle(String name) {

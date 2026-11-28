@@ -2647,12 +2647,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Caller note (optional)';
 
   @override
-  String get settingsDefaultsStartingProgramMoveUp => 'Move up';
-
-  @override
-  String get settingsDefaultsStartingProgramMoveDown => 'Move down';
-
-  @override
   String get settingsDefaultsStartingProgramUnavailableDance =>
       'This dance is no longer available';
 
@@ -12619,6 +12613,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get compoundParamKindDancers => 'dancers';
 
   @override
+  String get compoundParamKindDancerList => 'list of dancers';
+
+  @override
   String get compoundParamKindDancerPair => 'pair of dancers';
 
   @override
@@ -15459,6 +15456,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programTemplateSlotRuleBadge => 'Slot rule';
+
+  @override
+  String programTemplateSlotEditTooltip(String name) {
+    return 'Edit $name';
+  }
+
+  @override
+  String programTemplateSlotDeleteTooltip(String name) {
+    return 'Delete $name';
+  }
 
   @override
   String programTemplateSlotRuleSubtitle(String name) {

@@ -1,0 +1,17 @@
+{
+  "id": "audit-s27-english-editor-rulings",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "An English dance's Barnes reference now shows exactly as you typed it on the dance page, its Perform card and printed and shared cards, as its title does: Auto-convert all discouraged terms no longer rewords a tune named in it, such as Ladies of London."
+    ],
+    "fixed": [
+      "In a combination made for English, the reason a parameter can't fill a figure's Who now reads \"its kind is dancers; this setting's is list of dancers\" instead of naming dancers twice. The user guide says that an English figure's Who can't come from a parameter yet."
+    ]
+  },
+  "core": {
+    "changed": [
+      "danceCardMusicLines prints the Barnes reference as typed; its render callback now applies to the meter and key only."
+    ]
+  }
+}

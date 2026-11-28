@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/compendium_core.dart'
     as core
-    show offeredFormationShapes;
+    show ecdFormationFromContra, offeredFormationShapes;
 import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/widgets.dart';
 
@@ -2000,25 +2000,131 @@ class DanceEditorController extends ChangeNotifier {
     _notify();
   }
 
-  /// Starts the formation over when the dance changes to a form that does not
-  /// offer its shape: the shape becomes that form's first
-  /// ([core.offeredFormationShapes], duple minor for ECD, duple improper for
-  /// contra and the square set for a square). A shape from the old form's
-  /// list, such as contra's "Improper", would otherwise stay selected and keep
-  /// showing in the new form's list ([offeredFormationShapes]). A shape the
-  /// new form offers is kept: triple minor, Sicilian circle, longways and
-  /// other are in both the contra and ECD lists, circle, square and other in both the ECD
-  /// and square lists, and an English dance still on a contra shape
+  /// Fits the formation to a change of form.
+  ///
+  /// A saved dance ([danceId] is non-null) changed between contra and English
+  /// keeps what its formation means, as Convert English dances does
+  /// ([core.ecdFormationFromContra]; the maintainer, decision sheet question
+  /// 17): contra's duple improper becomes a duple minor with **Starts
+  /// improper** on and duple proper one with it off, a triplet or quadruplet
+  /// a three- or four-couple longways set, and a Becket a longways set with
+  /// "Becket" (or "Becket CCW") before its detail. English to contra maps
+  /// the same shapes back ([_contraFormationFromEcd]). Any other shape is
+  /// kept, as Convert English dances keeps it, even where the new form's
+  /// list does not have it: the field then shows it beside that list
+  /// ([offeredFormationShapes]). So an English dance still on a contra shape
   /// (converted or imported before ECD's shapes) keeps it when changed back
-  /// to contra. Choosing the form the dance already has changes
-  /// nothing. [improper] is left as it is: a new dance starts proper, and an
-  /// English dance changed to contra and back keeps its checkbox. Undo
-  /// restores the old shape.
+  /// to contra; changed to English again, a Becket among them becomes a
+  /// longways "Becket" as above.
+  ///
+  /// A new dance, and any change to or from a square, starts the formation
+  /// over when the new form does not offer its shape: the shape becomes that
+  /// form's first ([core.offeredFormationShapes], duple minor for ECD, duple
+  /// improper for contra and the square set for a square), so a new dance's
+  /// default "Improper" does not become an improper duple minor. A shape the
+  /// new form offers is kept: triple minor, Sicilian circle, longways and
+  /// other are in both the contra and ECD lists, circle, square and other in
+  /// both the ECD and square lists. Choosing the form the dance already has
+  /// changes nothing. Where the shape is not mapped, [improper] is left as it is: a
+  /// new dance starts proper, and an English dance changed to contra and back
+  /// keeps its checkbox. Undo restores the old shape, detail and checkbox.
   void _fitFormationToForm({required DanceForm from, required DanceForm to}) {
     if (from == to) return;
+    if (danceId != null) {
+      if (from == DanceForm.contra && to == DanceForm.ecd) {
+        // The shape says proper or improper for a duple contra dance, so a
+        // checkbox left from an earlier change does not override it.
+        final saysImproper =
+            _formationShape == FormationShape.dupleProper ||
+            _formationShape == FormationShape.dupleImproper;
+        _applyMappedFormation(
+          core.ecdFormationFromContra(
+            Formation(
+              _formationShape,
+              detail: _formationDetailOrNull,
+              improper: !saysImproper && _improper,
+            ),
+          ),
+        );
+        return;
+      }
+      if (from == DanceForm.ecd && to == DanceForm.contra) {
+        _applyMappedFormation(
+          _contraFormationFromEcd(
+            Formation(
+              _formationShape,
+              detail: _formationDetailOrNull,
+              improper: _improper,
+            ),
+          ),
+        );
+        return;
+      }
+    }
     final offered = core.offeredFormationShapes(to);
     if (offered.contains(_formationShape)) return;
     _formationShape = offered.first;
+  }
+
+  String? get _formationDetailOrNull {
+    final detail = formationDetailController.text.trim();
+    return detail.isEmpty ? null : detail;
+  }
+
+  /// Takes [mapped] as the draft's formation when its shape differs from the
+  /// draft's; an unmapped shape keeps its detail as typed and its checkbox.
+  void _applyMappedFormation(Formation mapped) {
+    if (mapped.shape == _formationShape) return;
+    _formationShape = mapped.shape;
+    formationDetailController.text = mapped.detail ?? '';
+    _improper = mapped.improper;
+  }
+
+  /// [formation], an English dance's, as the contra shape
+  /// [core.ecdFormationFromContra] would turn back into it: a duple minor is
+  /// duple improper or duple proper by its checkbox, a three- or four-couple
+  /// longways set a triplet or quadruplet, and a longways set whose detail
+  /// starts "Becket" or "Becket CCW" that Becket, without it. The checkbox
+  /// is kept for a change back, except on a duple minor, whose contra shape
+  /// holds it. Any other shape is returned as it is.
+  static Formation _contraFormationFromEcd(Formation formation) {
+    final shape = switch (formation.shape) {
+      FormationShape.dupleMinor =>
+        formation.improper
+            ? FormationShape.dupleImproper
+            : FormationShape.dupleProper,
+      FormationShape.threeCoupleLongways => FormationShape.triplet,
+      FormationShape.fourCoupleLongways => FormationShape.quadruplet,
+      _ => null,
+    };
+    if (shape != null) {
+      return Formation(
+        shape,
+        detail: formation.detail,
+        improper:
+            shape == FormationShape.triplet ||
+                shape == FormationShape.quadruplet
+            ? formation.improper
+            : false,
+      );
+    }
+    if (formation.shape == FormationShape.longways) {
+      final detail = formation.detail ?? '';
+      for (final (prefix, becket) in const [
+        ('Becket CCW', FormationShape.becketCcw),
+        ('Becket', FormationShape.becketCw),
+      ]) {
+        if (detail == prefix || detail.startsWith('$prefix; ')) {
+          final rest = detail.substring(prefix.length);
+          return Formation(
+            becket,
+            detail: rest.isEmpty ? null : rest.substring(2),
+            improper: formation.improper,
+          );
+        }
+      }
+    }
+    return formation;
   }
 
   void setImproper(bool value) {
