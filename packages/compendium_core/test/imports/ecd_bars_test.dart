@@ -425,6 +425,34 @@ void main() {
       expect(figures.single.params['beats'], 8);
     });
 
+    test('keeps a line whose rest opens with a bare count whole, with the '
+        'bars', () {
+      // `8 circle left` alone is a circle of 8 beats; after a range, that
+      // count would be overwritten by the bars, so the line is kept as typed.
+      final figures = parseFreeTextFigureEntry(
+        '1-4 8 circle left',
+        taxonomy: ecd,
+        meter: '3/2',
+      );
+      expect(figures.single.isCustom, isTrue);
+      expect(figures.single.params['text'], '1-4 8 circle left');
+      expect(figures.single.params['beats'], 12);
+      // A number that is part of the figure is not a count, so the line is
+      // read and takes the bars.
+      for (final (line, move) in [
+        ('1-4 2 hand turn', 'ecd_two_hand_turn'),
+        ('1-4 2 changes of rights and lefts', 'ecd_rights_and_lefts'),
+      ]) {
+        final read = parseFreeTextFigureEntry(
+          line,
+          taxonomy: ecd,
+          meter: '3/2',
+        ).single;
+        expect(read.move, move, reason: line);
+        expect(read.params['beats'], 12, reason: line);
+      }
+    });
+
     test('keeps a line of two ranges whole, counted across both', () {
       for (final line in [
         '(5-8) circle left (9-12) circle right',

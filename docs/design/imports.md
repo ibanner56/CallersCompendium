@@ -334,7 +334,10 @@ exceptions: it keeps the dance's **rating** whenever the incoming record
 carries none (*B19 follow-up*, maintainer decision of 2026-10-30, "Keep my
 rating"), and likewise its interpreters, interpretation date, other titles and
 Barnes reference (implementer's call, extending the rating rule to fields most
-sources never carry; the maintainer kept it on 23 November 2026). Its square
+sources never carry; the maintainer kept it on 23 November 2026), and its meter
+and key (an agent's call in the pre-release audit, finding A1-04, like the
+re-import, which keeps them too, though a re-import keeps a value the dance has
+even when the record carries one, and a link takes the record's). Its square
 fields (ADR-007 §8.1) are kept the same way, each while the record leaves it
 at its default (this implementer's call, extending the same rule). A value the
 record does carry replaces the existing one. The record's form still applies,
@@ -1979,7 +1982,9 @@ has to be judged in its own context.
   skips a line that is only a phrase label, and, in a contra or square dance
   (the forms whose phrases are unnamed), drops a leading `A1`…`C2` label with
   `splitPhraseLabel`, the splitter the Caller's Companion text adapter reads
-  its sections with. English dances keep the label: the ECD bar reader drops
+  its sections with, but keeps a `C1` or `C2` followed by `corner(s)`, a
+  corner dancer as The Caller's Box writes one (`C2 corner allemande left
+  1`). English dances keep the label: the ECD bar reader drops
   one only in front of a bar range (`A1 1-8 lead up`), and other labelled
   lines stay custom.
 - **Only the dance's own form's calls.** Free-text entry and the re-read of
@@ -2707,7 +2712,12 @@ ECD dance.
 - **Free-text entry** keeps its count, `;`-clause and shorthand handling, and
   retries a line with the dialect's role words as for contra. A line that
   starts with a bare number is read whole first (`2 changes of rights and
-  lefts`, `2 hand turn`), then with the number as its count.
+  lefts`, `2 hand turn`), then with the number as its count, unless the
+  number counts hands or dancers (`4 hands across`, `3 couples circle left`,
+  `2 men turn single`, in any `;` clause; of one role only one to three, so
+  `8 ladies chain` and `8 corners cross` keep their beats): such a line stays
+  custom with no count (pre-release audit finding C-04, an agent's call over reading it
+  without a count).
 - **Bars** (`ecd_bars.dart`, Hudson, 19 November 2026: "the meter is the
   rule"). ECD notation counts in bars of the tune, so a leading bar range
   (`1-4`, `(5-8)`, `9 – 12`, after a section label as in `A1 1-8` or

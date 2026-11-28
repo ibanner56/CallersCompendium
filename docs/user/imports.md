@@ -1119,8 +1119,9 @@ watches for matches:
   of your custom fields are kept. Your star rating is kept whenever the
   incoming file carries none, as share files and The Caller's Box never do; a
   rating the file does carry replaces yours. The same goes for who
-  interpreted the dance and when, its other titles and its Barnes reference
-  (which stays only when the imported dance is an English dance), and a
+  interpreted the dance and when, its other titles, its meter and key, its
+  Barnes reference (which stays only when the imported dance is an English
+  dance), and a
   square's kind, repeat order, new partner, singing call and free-form
   setting. The review warns
   how many existing dances will be overwritten before you commit.

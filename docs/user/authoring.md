@@ -278,9 +278,11 @@ Each line is read as the Move box reads a line you type with
 on or not. Blank lines are skipped, and so is a line that is only a phrase
 label, such as an `A1` heading. In a contra or square dance a phrase label such
 as `A1` or `B2` at the start of a line is left out, so `A1 (8) Ladies chain`
-reads as `(8) Ladies chain`. English dances keep it: an English line such as
-`A1 1-8 lead up` is read with its label, because the label comes before a bar
-range; other English lines that start with a label may not be recognized, so
+reads as `(8) Ladies chain`. A `C1` or `C2` followed by "corner", as The
+Caller's Box writes a corner dancer (`C2 corner allemande left 1`), is kept, so
+the line reads as it would in the Move box. English dances keep a phrase label:
+an English line such as `A1 1-8 lead up` is read with its label, because the
+label comes before a bar range; other English lines that start with a label may not be recognized, so
 leave the label off them.
 
 As you type, the sheet shows how many figures each line gives and marks the

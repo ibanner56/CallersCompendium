@@ -318,7 +318,8 @@ class DanceEditorForm extends StatelessWidget {
   /// change and the dance changes only on **Add figures**. Each line is placed
   /// after the lines before it, so a bar range counts from where it will
   /// start. Contra and square dances, whose phrases are unnamed, drop a
-  /// leading `A1`…`C2` phrase label first; English dances keep it, because
+  /// leading `A1`…`C2` phrase label first (but not a `C1`/`C2` corner code,
+  /// `C2 corner …`); English dances keep it, because
   /// the parser reads `A1 1-8 lead up`.
   FigureTextReading _readFigureText(BuildContext context, String text) {
     final split = splitFigureTextLines(
