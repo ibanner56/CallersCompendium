@@ -320,7 +320,7 @@ you are swapping:
   offered, since nothing can search for it.
 
 A filter you have hidden in
-[Settings ▸ Collection filters](./settings.md#collection-filters) is not offered
+[Settings ▸ Defaults ▸ Collection filters](./settings.md#collection-filters) is not offered
 as a Keep choice: hiding Formation, for example, leaves out Same formation.
 The figure names follow the dialect of the swapped dance's own type.
 

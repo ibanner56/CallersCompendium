@@ -104,6 +104,32 @@ def test_toolchain_steps_use_pinned_fvm_commands() -> None:
         assert all(command[0] == "fvm" for command in step.commands), step.name
 
 
+def test_format_resolves_packages_before_formatting() -> None:
+    """Regression: in a fresh clone no step had resolved packages yet, so
+    `dart format` could not read each package's analysis options, reported
+    hundreds of unchanged files as changed and failed the first run (audit
+    BASE-01). Every other Dart step resolves packages itself; format does not.
+    """
+    (step,) = [step for step in preflight.STEPS if step.name == "format"]
+    resolve, *rest = step.commands
+    assert resolve[:3] == ("fvm", "flutter", "pub"), step.commands
+    assert resolve[3] == "get", step.commands
+    assert "--enforce-lockfile" in resolve, "a gate must not rewrite pubspec.lock"
+    assert any("format" in command for command in rest), step.commands
+    assert step.cwd == preflight.ROOT, "the workspace root resolves every package"
+
+
+def test_docstring_only_examples_name_real_steps() -> None:
+    """Regression: the usage example said `--only privacy fixtures`, and there
+    is no `privacy` step, so the copied example exited 1 (audit H-11)."""
+    names = {step.name for step in preflight.STEPS}
+    examples = re.findall(r"--only((?:[ \t]+[a-z][a-z0-9-]*)+)", preflight.__doc__)
+    assert examples, "the usage text no longer shows an --only example"
+    for example in examples:
+        unknown = set(example.split()) - names
+        assert not unknown, f"usage example names unknown step(s): {sorted(unknown)}"
+
+
 def test_default_test_jobs_halve_cores_capped_at_four() -> None:
     assert preflight.test_jobs({}, 16) == 4
     assert preflight.test_jobs({}, 8) == 4

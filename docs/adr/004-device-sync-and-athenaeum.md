@@ -847,7 +847,7 @@ Specified at spec §6.13 and owned by W13.
 The hint must **name the fields that stay local** rather than promise that
 contact details do not travel. `venues.notes` is `shareable` — ruled so
 deliberately, as the user's own words — and the classification it carries
-(`_freeformNote`, `field_registry.dart:264`) records the interaction as
+(`_freeformNote` in `field_registry.dart`) records the interaction as
 knowingly accepted residual risk: *"a user who wrote 'ask for Bob, 555-1234'
 into a venue note will have that text travel with the note."* A hint saying
 "contact details stay on this device" would therefore be a false assurance about
@@ -1197,10 +1197,10 @@ makes self-hosting materially harder, which constraint 4 forbids.
   Mitigated by a persistent hint, not eliminated.
 - **We now operate infrastructure**, with the uptime, abuse and cost that
   implies — mitigated by the app working fully without it.
-- **The server must be deployed before any client that adds a `shareable` field
-  or a record kind.** The server validates blobs against an allow-list
-  generated from the same registry, and adding a field does not bump the wire
-  version, so a client released ahead of the server has every affected blob
+- **The server must be deployed before any client that adds a `shareable` field,
+  settings key or key prefix, or a record kind** (sync-spec.md §7.2). The server
+  validates blobs against an allow-list generated from the same registry, and
+  adding one does not bump the wire version, so a client released ahead of the server has every affected blob
   rejected — visibly, since that rejection is surfaced to the user and not
   retried. This binds release ordering for every future schema change, and it
   applies to self-hosters too: their upgrade has to lead the app's, which is a
