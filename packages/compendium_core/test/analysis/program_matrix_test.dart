@@ -1644,4 +1644,36 @@ void main() {
       expect(base, isNot(differentSpans));
     });
   });
+
+  group('matrixColumnForKey', () {
+    // A suggestion's reason names a column by key alone (#2343); the column
+    // it rebuilds must be the one the matrix made, so a split column reads as
+    // its base and variant, not as an unknown move.
+    test('rebuilds every column the matrix made, split columns included', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [
+          swing('partners'),
+          swing('neighbors'),
+          allemande('role1s'),
+          chain(),
+          hey('full'),
+          doSiDo(),
+          move('zebra_move'),
+        ]),
+      ]);
+      final splitBases = {
+        for (final c in matrix.columns)
+          if (c.kind == MatrixColumnKind.split) c.baseMoveId,
+      };
+      expect(splitBases, {'swing', 'allemande', 'chain', 'hey'});
+      for (final column in matrix.columns) {
+        if (column.kind == MatrixColumnKind.custom) continue;
+        expect(
+          matrixColumnForKey(column.moveId),
+          column,
+          reason: column.moveId,
+        );
+      }
+    });
+  });
 }
