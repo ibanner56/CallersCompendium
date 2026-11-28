@@ -13,7 +13,7 @@ Usage:
     python3 tools/preflight.py            # everything available in this checkout
     python3 tools/preflight.py --list     # what would run, and why
     python3 tools/preflight.py --fast     # only the Python gates, no Dart/Flutter (seconds)
-    python3 tools/preflight.py --only privacy fixtures
+    python3 tools/preflight.py --only format fixtures
     python3 tools/preflight.py --require-available
 
 Output is one line per step. On failure the last few lines of that step's output
@@ -333,7 +333,7 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "doc-line-citations",
-        "docs' `file.dart:N` line citations still land on code (count ceiling)",
+        "docs cite Dart code by symbol or file, not `file.dart:N` line (count ceiling)",
         (
             py("tools/ci/test_check_doc_line_citations.py"),
             py("tools/ci/check_doc_line_citations.py"),
@@ -545,8 +545,14 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "format",
-        "dart format",
-        (fvm("dart", "format", "--output=none", "--set-exit-if-changed", "."),),
+        "dart format (resolves packages first, as CI does)",
+        (
+            # Without .dart_tool/package_config.json, `dart format` cannot read
+            # each package's analysis options and reports unchanged files as
+            # changed: a fresh clone's first run failed here (audit BASE-01).
+            fvm("flutter", "pub", "get", "--enforce-lockfile"),
+            fvm("dart", "format", "--output=none", "--set-exit-if-changed", "."),
+        ),
         fast=False,
         needs_binary="fvm",
     ),

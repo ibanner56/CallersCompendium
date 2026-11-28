@@ -984,10 +984,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       // throw before any DDL, so there is nothing for them to roll back.
       //
       // `test/storage/migration_atomicity_test.dart` covers both windows: one
-      // test injects a throw after the v41 step's DDL and asserts the stamp and
-      // the DDL are unchanged; another lets this transaction commit and then
-      // throws from `beforeOpen`, asserting `user_version` already reads the
-      // new value even though drift's own stamp never ran.
+      // test injects a throw inside the v42 step, after the whole v41 step has
+      // run, and asserts the stamp and the DDL are unchanged; another lets
+      // this transaction commit and then throws from `beforeOpen`, asserting
+      // `user_version` already reads the new value even though drift's own
+      // stamp never ran.
       await transaction(() async {
         if (from < 41) await _ensureV41Schema();
         if (from < 42) {

@@ -279,7 +279,13 @@ wording, saved unchanged, reads as the default line. Imported
   typed and stays unparsed text (giving the parser the reader's unfiltered
   dialect would mean threading a second dialect through the editor form).
   A dance requires it when any
-  author's name has Rachel or Rae as its first word and Fifer as its last.
+  author credit holds the words Fifer and Rachel or Rae, in any order, so
+  "Fifer, Rachel" and "Rachel Fifer (2019)" count. An author name that holds
+  a joint credit ("Bob Smith & Rae Fifer", split at `&`, `+`, `/`, `;`, "and",
+  "with", and at commas between two-word names) is read one person at a time,
+  so "Bob Fifer & Rachel Smith" does not (pre-release audit finding A1-03; the
+  split is the implementer's call, over matching the words of the whole name,
+  which would catch that pair). An initial alone ("R. Fifer") does not count.
   "Renewed Joy" and "If I Was Dead and It Wouldn't Go To Waste" also require it
   when no author is named (none, or only Unknown/Traditional), so a dance
   imported without its author is still caught. The request that added this

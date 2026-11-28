@@ -109,8 +109,8 @@ dances(id PK, title, form, formation_shape, formation_detail,
        formation_improper, progression, phrase_structure, figures_json, hook,
        calling_notes, meter, musical_key, alternate_titles,
        barnes_reference, square_kind, repeat_order, repeat_order_text,
-       new_partner, new_partner_text, singing, free_form NULL, status,
-       level_id NULL,
+       new_partner, new_partner_text, singing, free_form NULL,
+       interpreted_on NULL, status, level_id NULL,
        tunes_json,
        created_at, updated_at, deleted_at, existence_at)
 difficulty_levels(id PK, label UNIQUE, position,
@@ -145,10 +145,14 @@ CREATE VIRTUAL TABLE dance_fts USING fts5(     -- derived; canonical text only
 -- batch edit changes `custom_values` and does rebuild.
 
 programs(id PK, title, event_date, venue, venue_id NULL, notes, status,
+         start_minute NULL, end_minute NULL, lesson_minute NULL,
+         arrival_minute NULL, archived_at NULL, calendar_event_key NULL,
+         calendar_event_fingerprint NULL, calendar_flag NULL,
+         calendar_written_at NULL, event_rule_ids,
          created_at, updated_at, deleted_at,
          existence_at)                         -- venue_id → venues.id (v14)
 program_slots(id PK, program_id FK, position, dance_id NULL, text,
-              is_alt, performed_at)
+              is_alt, performed_at, placeholder_search_id NULL)
 
 event_rules(id PK, saved_search_id, quantifier, count, scope, nickname NULL,
             position, updated_at, deleted_at, existence_at)  -- (v42, #2340)

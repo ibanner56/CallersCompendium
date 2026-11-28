@@ -2816,7 +2816,7 @@ abstract class AppLocalizations {
   /// **'© The Caller\'s Compendium contributors. Licensed under AGPL-3.0-only.'**
   String get settingsAboutLegalese;
 
-  /// One-line tagline shown under the version on the About brand header, and used as the Linux launcher comment. 'Caller's box' is a colloquial term among dance callers for the bag or case of cards, notes and gear a caller carries; it is not a product name or trademark, so translate the idiom naturally rather than literally.
+  /// One-line tagline shown under the version on the About brand header, and used as the Linux launcher comment. 'Caller's box' is an everyday term among dance callers for the bag or case of cards, notes and gear a caller carries. The tagline uses that everyday phrase, which The Caller's Box (the community dance archive the app can import from) also plays on; translate the idiom naturally rather than literally.
   ///
   /// In en, this message translates to:
   /// **'Your caller\'s box, in the palm of your hand'**

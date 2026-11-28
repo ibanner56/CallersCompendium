@@ -1,0 +1,23 @@
+{
+  "id": "audit-typed-lines-parser",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "In a contra dance, Add figures from text keeps a line that starts with a corner code, such as \"C2 corner allemande left 1\", as written, the way the Move box does. Before, it read the code as a phrase label and turned the line into a figure for the first corners.",
+      "In an English dance, a typed line that starts with a number of dancers, such as \"3 couples circle left\" or \"2 men turn single\", is kept as you wrote it. Before, the number became the figure's beats and the dancers were lost.",
+      "In an English dance, a typed line with a bar range and then a count, such as \"1-4 8 circle left\", is kept as you wrote it, counted by its bars, so the two counts stay visible. Before, the count was dropped without a trace.",
+      "Importing from The Caller's Box, a \"Form long wave\" line followed by a larks' or robins' balance in the centre that says more, such as \"Men balance long wave in center and slide left\", stays plain long waves. Before, it read as the robins' centre wave, already balanced.",
+      "Dances by Rachel (\"Rae\") Fifer keep larks and robins when her name is stored family name first (\"Fifer, Rachel\"), with a year, or in one credit with someone else (\"Bob Smith & Rae Fifer\").",
+      "Choosing Same dance — replace for an import keeps the dance's meter and key when the imported record has none, as it already kept its other titles and Barnes reference."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "splitFigureTextLines keeps a leading C1 or C2 that is followed by corner or corners.",
+      "parseFreeTextFigureEntry keeps an English line whose leading number counts hands or dancers as custom with no beats, and keeps an English bar-range line whose rest reads with a bare count of its own whole.",
+      "The Caller's Box long-wave follower leaves a bare long wave unchanged when a role's in-centre balance line says more than the exact line.",
+      "requiresLarksRobins matches the Fifer exception by the words of each credit in an author name.",
+      "A link (CommitAction.link) keeps the linked-over dance's meter and key when the incoming record has none."
+    ]
+  }
+}
