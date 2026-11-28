@@ -244,13 +244,6 @@ class _UndoPromptKeys {
     if (!_undoKeys.any((key) => key.accepts(event, keyboard))) {
       return KeyEventResult.ignored;
     }
-    // A text field with nothing to undo lets the key through; it is still
-    // the field's key, not the prompt's.
-    final focused = FocusManager.instance.primaryFocus?.context;
-    if (focused != null &&
-        focused.findAncestorWidgetOfExactType<EditableText>() != null) {
-      return KeyEventResult.ignored;
-    }
     if (!messenger.mounted) return KeyEventResult.ignored;
     dispose();
     // As the Undo button does: the prompt closes, then the undo runs. This
