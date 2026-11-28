@@ -91,22 +91,16 @@ class SuggestionsSection extends StatelessWidget {
 class SuggestionSettingsScreen extends StatelessWidget {
   const SuggestionSettingsScreen({super.key});
 
-  Future<void> _save(BuildContext context, SuggestionSettings settings) =>
-      _write(
-        SuggestionSettingsScope.notifierOf(context),
-        RepositoriesScope.of(context),
-        settings,
-      );
-
   /// Saves [settings], unless a newer build's value is held or nothing
-  /// changes. Takes the scope's notifier and repositories rather than a
-  /// context, so Undo still writes after the screen has closed.
-  static Future<void> _write(
-    ValueNotifier<SuggestionSettingsRead> notifier,
-    CompendiumRepositories repos,
+  /// changes. Undo passes the root navigator's context, which stays mounted
+  /// after this screen closes and sits below the app's scopes.
+  static Future<void> _save(
+    BuildContext context,
     SuggestionSettings settings,
   ) async {
+    final notifier = SuggestionSettingsScope.notifierOf(context);
     if (notifier.value.isNewer || notifier.value.settings == settings) return;
+    final repos = RepositoriesScope.of(context);
     final next = (settings: settings, isNewer: false);
     notifier.value = next;
     await persistSetting(
@@ -270,14 +264,15 @@ class SuggestionSettingsScreen extends StatelessWidget {
                         // everywhere, destructive confirms only where undo is
                         // impossible").
                         final messenger = ScaffoldMessenger.of(context);
-                        final notifier = SuggestionSettingsScope.notifierOf(
+                        // Undo can run after this screen has closed.
+                        final rootContext = Navigator.of(
                           context,
-                        );
-                        final repos = RepositoriesScope.of(context);
+                          rootNavigator: true,
+                        ).context;
                         final accessibleNavigation =
                             MediaQuery.accessibleNavigationOf(context);
                         final before = settings;
-                        await _write(notifier, repos, before.resetChoices());
+                        await _save(context, before.resetChoices());
                         showUndoSnackBar(
                           messenger,
                           message: l10n.suggestionsResetDone,
@@ -293,16 +288,20 @@ class SuggestionSettingsScreen extends StatelessWidget {
                             // meanwhile survive. A choice made since the reset,
                             // here or on another device, is not overwritten:
                             // Undo reports that it failed instead.
-                            final current = notifier.value;
+                            if (!rootContext.mounted) {
+                              throw StateError('the app has closed');
+                            }
+                            final current = SuggestionSettingsScope.notifierOf(
+                              rootContext,
+                            ).value;
                             if (current.isNewer ||
                                 !current.settings.hasDefaultChoices) {
                               throw StateError(
                                 'suggestion choices changed since the reset',
                               );
                             }
-                            return _write(
-                              notifier,
-                              repos,
+                            return _save(
+                              rootContext,
                               current.settings.copyWith(
                                 matrixVariety: before.matrixVariety,
                                 formationBalance: before.formationBalance,

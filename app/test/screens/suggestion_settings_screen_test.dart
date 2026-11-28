@@ -358,6 +358,51 @@ void main() {
     expect(stored.toJson()['peerOnly'], 'kept');
   });
 
+  testWidgets('Undo after Reset to defaults still writes once the screen has '
+      'closed', (tester) async {
+    final h = await _pump(
+      tester,
+      Builder(
+        builder: (context) => Scaffold(
+          body: TextButton(
+            key: const ValueKey('open'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const SuggestionSettingsScreen(),
+              ),
+            ),
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+      read: readSuggestionSettings({
+        'version': 1,
+        'factors': {
+          'matrixVariety': {'weight': 'off'},
+        },
+      }),
+    );
+    await tester.tap(find.byKey(const ValueKey('open')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('suggestion-settings-reset')));
+    await tester.pumpAndSettle();
+
+    // Back out of the screen; the Undo prompt belongs to the app's messenger.
+    final NavigatorState navigator = tester.state(find.byType(Navigator));
+    navigator.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(SuggestionSettingsScreen), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('suggestion-settings-reset-undo')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(h.settings.value.settings.matrixVariety, SuggestionWeight.off);
+    expect((await _stored(h)).settings.matrixVariety, SuggestionWeight.off);
+    expect(find.byKey(const ValueKey('undo-failed-snackbar')), findsNothing);
+  });
+
   testWidgets('a value saved by a newer version is shown read-only and never '
       'overwritten', (tester) async {
     final h = await _pump(
