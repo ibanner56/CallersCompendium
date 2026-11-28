@@ -4100,9 +4100,9 @@
   "@crashFallbackTitle": {
     "x-sourceSha256": "8f57c66fd319b8791131188ba4d99ec2acfbfa4c163fa2619b636df3550dd244"
   },
-  "crashFallbackBody": "アプリのこの部分で予期しないエラーが発生しました。詳細はデバイスの外に出ないローカル診断ログ（設定 ▸ 診断）に保存されました。前の画面に戻って、もう一度お試しください。",
+  "crashFallbackBody": "アプリのこの部分で予期しないエラーが発生しました。詳細は、アプリがどこにも送信しないローカル診断ログ（設定 ▸ 診断）に保存されました。前の画面に戻って、もう一度お試しください。",
   "@crashFallbackBody": {
-    "x-sourceSha256": "cd6f68c73b3c2787820f5718ad32da5f46fb8cbc3a2118cabd52661160020182"
+    "x-sourceSha256": "3bed66f33c77d41cd2da4526321ed13f64a936c5f8e7bfc22ef01ecfc92b0d90"
   },
   "crashFallbackCopied": "コピーしました",
   "@crashFallbackCopied": {

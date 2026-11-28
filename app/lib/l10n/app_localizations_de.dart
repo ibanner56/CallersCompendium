@@ -4116,7 +4116,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'In diesem Teil der App ist ein unerwarteter Fehler aufgetreten. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das dein Gerät nie verlässt. Geh zurück und versuche es erneut.';
+      'In diesem Teil der App ist ein unerwarteter Fehler aufgetreten. Die Details wurden in einem lokalen Diagnoseprotokoll (Einstellungen ▸ Diagnose) gespeichert, das die App nirgendwohin sendet. Geh zurück und versuche es erneut.';
 
   @override
   String get crashFallbackCopied => 'Kopiert';

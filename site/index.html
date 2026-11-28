@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Caller's Compendium — a local-first dance organizer for callers</title>
-  <meta name="description" content="Caller's Compendium is an open-source, local-first dance organizer for contra dance callers — catalog dances, build programs, and call from a stage-ready view on desktop, tablet, and phone. Now in open beta." />
+  <meta name="description" content="Caller's Compendium is an open-source, local-first dance organizer for contra, English country and square dance callers — catalog dances, build programs, and call from a stage-ready view on desktop, tablet, and phone. Now in open beta." />
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="styles.css" />
 
@@ -47,8 +47,9 @@
         <h1>Your caller's box,<br>in the palm of your hand</h1>
         <p class="lede">
           Caller's Compendium is a free, open-source, local-first dance
-          organizer for contra dance callers. Catalog your dances with
-          structured, searchable figures, plan and share programs, and call
+          organizer for contra, English country and square dance callers.
+          Catalog your dances with structured, searchable figures, plan and
+          share programs, and call
           from a large-print, stage-ready view — online or offline, on your
           laptop, tablet, or phone.
         </p>
@@ -61,7 +62,7 @@
           <span>Local-first</span><span aria-hidden="true">·</span>
           <span>Private by default</span><span aria-hidden="true">·</span>
           <span>Works fully offline</span><span aria-hidden="true">·</span>
-          <span>AGPL-3.0</span>
+          <span>AGPL-3.0-only</span>
         </p>
       </div>
     </section>
@@ -77,7 +78,10 @@
         </p>
         <ul class="status-grid">
           <li><span class="tag ok">Available</span> Collection, search, programs &amp; Perform mode</li>
-          <li><span class="tag ok">Available</span> Imports — ContraDB, The Caller's Box &amp; Caller's Companion</li>
+          <li><span class="tag ok">Available</span> Contra dances, English country dances &amp; traditional square figures</li>
+          <li><span class="tag ok">Available</span> Imports — ContraDB, The Caller's Box, Caller's Companion, your own spreadsheets &amp; text files</li>
+          <li><span class="tag ok">Available</span> Saved searches &amp; program templates</li>
+          <li><span class="tag ok">Available</span> Calendar import &amp; export, spreadsheet export &amp; dance QR codes</li>
           <li><span class="tag ok">Available</span> Program sharing (send &amp; receive)</li>
           <li><span class="tag ok">Available</span> Named-dialect library &amp; per-gig switching</li>
           <li><span class="tag ok">Available</span> Venues, free-text figure entry &amp; portable backups</li>
@@ -103,19 +107,22 @@
         <div class="feature-grid">
           <article class="card">
             <h3>Collection</h3>
-            <p>Catalog dance transcriptions with structured, searchable figures.
+            <p>Catalog contra dances, English country dances, and squares with
+              structured, searchable figures, each in its own vocabulary.
               Search by title, author, type, formation, level — even
-              “chain then swing in B2” — plus your own custom fields.</p>
+              “chain then swing in B2” — plus your own custom fields, and save
+              the searches you use again.</p>
           </article>
           <article class="card">
             <h3>Programs</h3>
             <p>Create, edit, duplicate, and print or email set lists, with
               alternates, free-text slots, and a programming matrix computed from
-              the choreography itself. Build from a title list or straight from a
-              ContraDB event.</p>
+              the choreography itself. Start from one of your program templates,
+              a title list, a ContraDB event, or a gig in your online calendar,
+              and put your programs in your calendar app.</p>
           </article>
           <article class="card">
-            <h3>Performance mode</h3>
+            <h3>Perform mode</h3>
             <p>A large-print, high-contrast, stage-ready calling view with
               wake-lock, program navigation, on-the-fly adjustments, and
               screen-reader-friendly figure rendering.</p>
@@ -128,16 +135,20 @@
               your data stays portable.</p>
           </article>
           <article class="card">
-            <h3>Imports</h3>
+            <h3>Imports &amp; exports</h3>
             <p>Bring dances in from The Caller's Box and ContraDB by link or id,
-              and migrate from Caller's Companion's binary
-              <code>.USR</code> library — all through a review-and-commit queue.</p>
+              from your own spreadsheet (CSV) or text file, or from a dance's
+              QR code, and migrate from Caller's Companion's binary
+              <code>.USR</code> library — all through a review-and-commit queue.
+              Export dances and programs as spreadsheets, or show a dance as a
+              QR code for another caller.</p>
           </article>
           <article class="card">
             <h3>Local-first &amp; cross-platform</h3>
             <p>Everything is stored on your device and the app is fully usable
               offline. No accounts, no tracking — your library stays on your device unless you
-              turn on Device Sync (see the <a href="privacy/">privacy policy</a>). One codebase across Linux,
+              turn on Device Sync, or your device's own backup copies it (see the
+              <a href="privacy/">privacy policy</a>). One codebase across Linux,
               macOS, Windows, Android, and iOS/iPadOS — with the interface
               available in English, German, French, Japanese, Danish, and Dutch.</p>
           </article>
@@ -161,7 +172,7 @@
           <figure class="shot">
             <div class="shot-frame">
               <span class="shot-badge">Tablet</span>
-              <img src="assets/ipad-performance-view.jpeg" alt="Performance mode on a tablet, showing a dance in a large-print, stage-ready view" loading="lazy" />
+              <img src="assets/ipad-performance-view.jpeg" alt="Perform mode on a tablet, showing a dance in a large-print, stage-ready view" loading="lazy" />
             </div>
             <figcaption>Call from a large-print, stage-ready view</figcaption>
           </figure>
@@ -221,7 +232,8 @@
           <ul class="beta-list">
             <li>No account or sign-in — download a build and start calling.</li>
             <li><strong>Local-first &amp; private:</strong> no accounts, no tracking, and your library
-              stays on your device unless you turn on Device Sync — see the
+              stays on your device unless you turn on Device Sync, or your
+              device's own backup copies it — see the
               <a href="privacy/">privacy policy</a>. Feedback is only ever what you choose to share.</li>
             <li><strong>New?</strong> Sign up once so we know you're testing and can
               line up the right builds.</li>
@@ -264,7 +276,7 @@
             <h3>Installation</h3><p>Per-platform install steps and the first-launch security prompts.</p>
           </a>
           <a class="guide-link card" href="guide/imports.html">
-            <h3>Imports</h3><p>Bring dances in from ContraDB, The Caller's Box, and Caller's Companion.</p>
+            <h3>Imports</h3><p>Bring dances in from ContraDB, The Caller's Box, Caller's Companion, spreadsheets, and text files.</p>
           </a>
           <a class="guide-link card" href="guide/authoring.html">
             <h3>Write &amp; edit dances</h3><p>The dance editor: figures, walkthroughs, credits, and undo.</p>
@@ -273,7 +285,7 @@
             <h3>Programs</h3><p>Build, print, email, and share set lists for your events.</p>
           </a>
           <a class="guide-link card" href="guide/perform.html">
-            <h3>Performance mode</h3><p>Call from the large-print, stage-ready view.</p>
+            <h3>Perform mode</h3><p>Call from the large-print, stage-ready view.</p>
           </a>
           <a class="guide-link card" href="guide/dialects.html">
             <h3>Dialects</h3><p>Make the app speak your terms without breaking search.</p>
@@ -308,12 +320,12 @@
         <a href="https://github.com/ibanner56/CallersCompendium/blob/main/docs/ROADMAP.md" rel="noopener">Roadmap</a>
         <a href="https://github.com/ibanner56/CallersCompendium/discussions" rel="noopener">Discussions</a>
         <a href="privacy/">Privacy</a>
-        <a href="https://github.com/ibanner56/CallersCompendium/blob/main/LICENSE" rel="noopener">License (AGPL-3.0)</a>
+        <a href="https://github.com/ibanner56/CallersCompendium/blob/main/LICENSE" rel="noopener">License (AGPL-3.0-only)</a>
         <a href="mailto:compendium@contra.dance">Contact</a>
       </nav>
     </div>
     <div class="wrap footer-fine">
-      <p class="tiny">Built with Flutter. No accounts, no tracking — your collection stays on your device.</p>
+      <p class="tiny">Built with Flutter. No accounts, no tracking — your collection lives on your device.</p>
     </div>
   </footer>
 

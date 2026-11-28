@@ -21,8 +21,9 @@ create, and nothing you do is sent anywhere for tracking. Importing and
 exporting are the doors your dances walk through — the ways you bring
 material in from the wider community and carry your own library from one machine
 to the next. Nothing leaves your device unless you ask for it (an online search
-or a single dance import reaches out once, when you tell it to), and nothing
-changes your collection until you say so. Turning on an automatic option —
+or a single dance import reaches out once, when you tell it to), apart from
+[your device's own backup](./backup-portability.md#your-devices-own-backup), and
+nothing changes your collection until you say so. Turning on an automatic option —
 the [update check](./settings.md#updates), or the
 [calendar import at startup](./settings.md#calendar) set to add drafts — is
 saying so: it runs only once you switch it on.
