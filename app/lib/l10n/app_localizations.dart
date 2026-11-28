@@ -18500,6 +18500,12 @@ abstract class AppLocalizations {
   /// **'dancers'**
   String get compoundParamKindDancers;
 
+  /// The kind of an English figure's Who setting: a list of dancers, which no parameter of a combination can fill. Lowercase; also used inside sentences, such as "its kind is dancers; this setting's is list of dancers".
+  ///
+  /// In en, this message translates to:
+  /// **'list of dancers'**
+  String get compoundParamKindDancerList;
+
   /// The kind of a custom figure's parameter: pair of dancers. Lowercase; also used inside sentences.
   ///
   /// In en, this message translates to:

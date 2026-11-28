@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Changing a dance's type to English (ECD) now starts its formation on Duple minor instead of keeping a contra formation such as Improper in the English list. Changing an English dance to contra starts it on Improper when its formation isn't one contra offers. A formation both lists have, such as triple minor, is kept, and Undo brings the old formation back."
+      "Changing a new dance's type to English (ECD) now starts its formation on Duple minor instead of keeping a contra formation such as Improper in the English list, and changing a new English dance to contra starts it on Improper when its formation isn't one contra offers. Changing a saved dance's type between contra and English keeps what its formation says, as Convert English dances does: Improper becomes Duple minor with Starts improper on, a triplet becomes a three-couple longways set, and back again. A formation both lists have, such as triple minor, is kept, and Undo brings the old formation back."
     ]
   }
 }

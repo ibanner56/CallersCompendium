@@ -155,9 +155,11 @@ List<String> danceCardCreditLines(
 /// The tune-detail lines for the dance card, gated on
 /// [DanceShareField.music]: the meter and key on one line
 /// (`Meter: 6/8 · Key: G minor`, either part left out when blank), then the
-/// Barnes reference (`Barnes: BIII p. 92`). [render] is applied to each typed
-/// value, not to the labels, so the caller can pass the card's
-/// discouraged-term rendering.
+/// Barnes reference (`Barnes: BIII p. 92`). [render] is applied to the typed
+/// meter and key, not to the labels, so the caller can pass the card's
+/// discouraged-term rendering. The Barnes reference is printed as typed, as
+/// the title is: it names a book and often a tune, whose name that rendering
+/// would reword (the maintainer, decision sheet question 18).
 List<String> danceCardMusicLines(
   Dance dance, {
   required DanceExportLabels labels,
@@ -174,7 +176,7 @@ List<String> danceCardMusicLines(
   ];
   return [
     if (meterAndKey.isNotEmpty) meterAndKey.join(' · '),
-    if (barnes.isNotEmpty) labels.barnes(render(barnes)),
+    if (barnes.isNotEmpty) labels.barnes(barnes),
   ];
 }
 

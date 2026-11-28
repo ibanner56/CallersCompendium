@@ -105,7 +105,65 @@ reasoning below when a gate fails, or when you are checking by hand.
   neither endpoint answers the question alone.
 
 - **The PR closes only the issues you intend** (below).
+- **`main`'s changes since your base do not touch your change**, or you have
+  synced and re-verified (below). No script checks this one.
 - **State verified from the remote**, not from memory or a stale local checkout.
+
+## Sync with `main` when its changes touch yours
+
+GitHub does not require a PR's branch to contain the latest `main`. The
+maintainer turned that requirement off because it caused too much churn, and
+does not want it back (their answers to questions 36 and 42 of the pre-release
+audit's decision sheet, 2026-11-27). So a branch is not synced just because
+`main` moved. It is synced when what `main` gained since the branch's base
+touches the branch's change. Local preflight and the Claude review saw the
+branch without those changes, and CI saw `main` only as it stood when CI last
+ran, so a touching change on `main` may never have been tested or reviewed
+together with yours.
+
+Right before merging (or enabling auto-merge), list what `main` gained and what
+the PR changes. Run it on the PR's head as pushed, not on a local checkout that
+may differ (`git rev-parse HEAD` must equal the PR's `headRefOid`), and in a
+clone deep enough to hold the branch point: in a shallow clone, run
+`git fetch --unshallow origin` first. The `||` stops the check rather than
+letting an empty base turn both lists into something else.
+
+```sh
+git fetch origin main
+base=$(git merge-base origin/main HEAD) || { echo "no merge base: fetch --unshallow"; exit 1; }
+git diff --name-only --no-renames "$base" origin/main   # main's side
+git diff --name-only --no-renames "$base" HEAD          # your side
+```
+
+`--no-renames` lists both paths of a renamed file, so a file `main` renamed
+still shows up next to your edit of its old path.
+
+"Touches" means either of these:
+
+- **The same files** appear in both lists.
+- **Code your change depends on or affects** changed on `main`, in a different
+  file. Examples: a function, model, string or schema your change calls or
+  extends; a caller or test of something your change alters; a document or
+  generated file that describes what you changed. A shared file is easy to see
+  in the two lists. A dependency has to be judged by reading `main`'s side.
+
+If anything touches: disable auto-merge if it is on, sync with `main`, run
+`python3 tools/preflight.py` on the synced tree, and clear the merge gates again
+on the new head (`check_pr_review_gates.py all`), including a Claude review of
+that head ([code-review.md](code-review.md#requesting-a-claude-review) says
+what to do when the push was not by a human). If nothing touches, merge without
+syncing.
+
+Either way, record what you checked in the PR (a comment, or the body when you
+write it last): the two lists, or a summary of them, and why nothing on
+`main`'s side touches your change. Repeat it in your report if you write one. A
+reviewer that sees a branch behind `main` can then check the record rather than
+ask for a sync.
+
+Auto-merge leaves a window: the check covers `main` as it stood when you enabled
+auto-merge. If a PR that touches yours lands on `main` before yours merges,
+disable auto-merge and sync. When `main` is busy in the same area, prefer to
+merge directly once CI is green.
 
 ## Merging as an agent
 
@@ -119,7 +177,9 @@ clear those gates yourself, before either path below.
 sessions take both without a prompt.
 
 - **CI still running: enable auto-merge.** Enable it only once the Claude
-  review of the current head has posted and every gate except `ci` passes:
+  review of the current head has posted, every gate except `ci` passes, and
+  [the sync check](#sync-with-main-when-its-changes-touch-yours) finds nothing
+  on `main` touching your change (or you have synced):
 
   ```sh
   python3 tools/ci/check_pr_review_gates.py findings <PR> &&
@@ -136,7 +196,9 @@ sessions take both without a prompt.
 - **CI already green: merge directly.** GitHub refuses to enable auto-merge on
   a PR whose checks have all passed, which is common when CI finishes before
   the review posts (#2208). Squash-merge once
-  `check_pr_review_gates.py all <PR> --closes <ISSUE>...` exits `0`, and pass
+  `check_pr_review_gates.py all <PR> --closes <ISSUE>...` exits `0` and
+  [the sync check](#sync-with-main-when-its-changes-touch-yours) finds nothing
+  touching (or you have synced), and pass
   the head SHA the gates checked as the expected head (`sha` in the REST merge
   call, `expectedHeadSha` in the GitHub MCP tool), so a push in between fails
   the merge instead of landing an unchecked commit.
