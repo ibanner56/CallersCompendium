@@ -579,6 +579,48 @@ void main() {
       expect(figures.single.note, 'then slide left');
     });
 
+    for (final (forming, line, note) in const [
+      // Words of the wave vocabulary after the wave are the leftover's own.
+      (
+        '(4) Form wave of four',
+        '(4) Balance the wave four times',
+        'four times',
+      ),
+      (
+        '(4) Form wave of four',
+        '(4) Balance the wave a little to the right',
+        'a little to the right',
+      ),
+      (
+        '(4) Form long wave in center',
+        '(4) Balance the long wave in line',
+        'in line',
+      ),
+    ]) {
+      test('"$line" keeps every word after the wave', () async {
+        final figures = await _import({
+          'A1': [forming, line],
+        });
+        expect(figures.single.params['balance'], isTrue);
+        expect(figures.single.note, note);
+      });
+    }
+
+    for (final (forming, line) in const [
+      // A short wave is not the long wave formed before it.
+      ('(4) Form long wave in center', '(4) Balance short wave in center'),
+      // A wave of four is not the centre wave.
+      ('(4) Form wave of four', '(4) Balance the wave of four in the center'),
+    ]) {
+      test('"$line" says what the wave cannot hold and stays text', () async {
+        final figures = await _import({
+          'A1': [forming, line],
+        });
+        expect(figures.last.isCustom, isTrue);
+        expect(figures.last.params['text'], line.substring(4));
+      });
+    }
+
     test('a leftover too long for a note keeps the whole line', () async {
       final tail = 'and slide left ${'very ' * 30}far';
       final figures = await _import({
