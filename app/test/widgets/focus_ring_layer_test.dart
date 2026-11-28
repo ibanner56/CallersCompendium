@@ -300,6 +300,64 @@ void main() {
     );
   });
 
+  // A snackbar is drawn on the theme's inverse surface (near white on the
+  // stage, near black on a light theme), so a ring tuned for the canvas is
+  // lost round its action. Inside one the ring is the inverse accent, the
+  // colour Material gives the action's own label there.
+  for (final (name, appTheme, stage) in <(String, ThemeData, bool)>[
+    ('the Light theme', AppTheme.light, false),
+    (
+      'Tokyo Night Light',
+      AppTheme.fromScheme(GalleryPalettes.tokyoNightLight),
+      false,
+    ),
+    ('the stage, under the Light theme', AppTheme.light, true),
+    ('High contrast', AppTheme.highContrast, false),
+  ]) {
+    testWidgets("round a snackbar's action under $name, the ring clears 3:1 "
+        "on the snackbar's surface", (tester) async {
+      await pump(
+        tester,
+        PerformStageTheme(
+          enabled: stage,
+          child: Scaffold(
+            body: Builder(
+              builder: (context) => Center(
+                child: TextButton(
+                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Deleted.'),
+                      persist: true,
+                      action: SnackBarAction(label: 'Undo', onPressed: () {}),
+                    ),
+                  ),
+                  child: const Text('Delete'),
+                ),
+              ),
+            ),
+          ),
+        ),
+        theme: appTheme,
+      );
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      await tabTo(tester, find.widgetWithText(SnackBarAction, 'Undo'));
+      final painter = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((p) => p.painter)
+          .whereType<FocusRingPainter>()
+          .single;
+      final scheme = Theme.of(
+        tester.element(find.text('Deleted.')),
+      ).colorScheme;
+      expect(
+        Wcag.contrastRatio(painter.color, scheme.inverseSurface),
+        greaterThanOrEqualTo(Wcag.aaNonText),
+        reason: 'ring ${painter.color} on ${scheme.inverseSurface}',
+      );
+    });
+  }
+
   testWidgets('off the stage the ring keeps the app theme', (tester) async {
     final appTheme = AppTheme.fromScheme(GalleryPalettes.tokyoNightLight);
     final button = IconButton(icon: const Icon(Icons.add), onPressed: () {});
