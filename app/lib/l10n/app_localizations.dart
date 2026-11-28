@@ -17518,6 +17518,12 @@ abstract class AppLocalizations {
   /// **'This dance changed before it could be updated. Review it and try again.'**
   String get danceReimportTargetChanged;
 
+  /// Notice at the top of a dance's re-import preview (Re-import choreography on the dance page) when the incoming choreography changes the saved dance's form, such as an English dance refreshed from a contra-only source. {form} is a localized dance form name, such as 'Contra' (commonDanceFormContra). Only an English dance has a Barnes reference (where its tune is printed in the Barnes books; 'Barnes' is a name and stays as is) and a Starts improper mark (danceEditorImproperLabel), so a change to another form removes them. The select values are internal identifiers and must not be translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{dropped, select, both{Importing changes this dance\'s form to {form}, so its Barnes reference and its Starts improper mark will be removed.} barnes{Importing changes this dance\'s form to {form}, so its Barnes reference will be removed.} improper{Importing changes this dance\'s form to {form}, so its Starts improper mark will be removed.} other{Importing changes this dance\'s form to {form}.}}'**
+  String danceReimportFormChangeNotice(String dropped, String form);
+
   /// Title for the signed published-collection catalog.
   ///
   /// In en, this message translates to:

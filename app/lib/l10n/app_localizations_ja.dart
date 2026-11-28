@@ -11540,6 +11540,17 @@ class AppLocalizationsJa extends AppLocalizations {
       'このダンスは更新前に変更されました。内容を確認して、もう一度お試しください。';
 
   @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both': 'インポートするとこのダンスの形式が$formに変わるため、Barnes 掲載箇所と「インプロパーで始まる」の印が削除されます。',
+      'barnes': 'インポートするとこのダンスの形式が$formに変わるため、Barnes 掲載箇所が削除されます。',
+      'improper': 'インポートするとこのダンスの形式が$formに変わるため、「インプロパーで始まる」の印が削除されます。',
+      'other': 'インポートするとこのダンスの形式が$formに変わります。',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String get publishedCollectionsTitle => '公開コレクション';
 
   @override

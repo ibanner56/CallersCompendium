@@ -12128,6 +12128,20 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Tanz wurde geändert, bevor er aktualisiert werden konnte. Überprüfe ihn und versuche es erneut.';
 
   @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both':
+          'Der Import ändert die Tanzform dieses Tanzes in $form, daher werden sein Barnes-Verweis und seine Markierung „Beginnt improper“ entfernt.',
+      'barnes':
+          'Der Import ändert die Tanzform dieses Tanzes in $form, daher wird sein Barnes-Verweis entfernt.',
+      'improper':
+          'Der Import ändert die Tanzform dieses Tanzes in $form, daher wird seine Markierung „Beginnt improper“ entfernt.',
+      'other': 'Der Import ändert die Tanzform dieses Tanzes in $form.',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String get publishedCollectionsTitle => 'Veröffentlichte Sammlungen';
 
   @override

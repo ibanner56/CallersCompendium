@@ -8,6 +8,7 @@ import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../diagnostics/error_log.dart';
 import '../search/dance_detail_data.dart';
+import '../search/facet_labels.dart';
 import '../theme/app_motion.dart';
 import '../widgets/dirty_dialog_guard.dart';
 import 'dance_detail_screen.dart';
@@ -324,6 +325,23 @@ class _ReimportLinkDialogState extends State<_ReimportLinkDialog> {
   }
 }
 
+/// The notice a re-import preview shows when taking [change]'s choreography
+/// changes the saved dance's form ([reimportFormChange]), naming what the
+/// change removes; null when the form stays.
+String? danceReimportNotice(AppLocalizations l10n, ReimportFormChange? change) {
+  if (change == null) return null;
+  final dropped = switch ((change.dropsBarnesReference, change.dropsImproper)) {
+    (true, true) => 'both',
+    (true, false) => 'barnes',
+    (false, true) => 'improper',
+    (false, false) => 'none',
+  };
+  return l10n.danceReimportFormChangeNotice(
+    dropped,
+    danceFormLabel(l10n, change.form),
+  );
+}
+
 /// Owns the routed re-import flow shared by saved-detail owners.
 ///
 /// The owner supplies the repositories and online services so route callers
@@ -356,12 +374,17 @@ class DanceReimportCoordinator {
         picker: picker,
       );
       if (!context.mounted || preview == null) return;
+      final formChange = reimportFormChange(target.dance, preview.dance);
 
       var importing = false;
       final committed = await Navigator.of(context).push<bool>(
         MaterialPageRoute<bool>(
           builder: (previewContext) => DanceDetailScreen.preview(
             data: preview,
+            importNotice: danceReimportNotice(
+              AppLocalizations.of(previewContext),
+              formChange,
+            ),
             onImport: () async {
               if (importing) return;
               importing = true;

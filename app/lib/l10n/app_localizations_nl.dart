@@ -12087,6 +12087,20 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze dans is gewijzigd voordat deze kon worden bijgewerkt. Controleer de dans en probeer het opnieuw.';
 
   @override
+  String danceReimportFormChangeNotice(String dropped, String form) {
+    String _temp0 = intl.Intl.selectLogic(dropped, {
+      'both':
+          'Importeren wijzigt de dansvorm van deze dans in $form, dus de Barnes-verwijzing en de markering Begint improper worden verwijderd.',
+      'barnes':
+          'Importeren wijzigt de dansvorm van deze dans in $form, dus de Barnes-verwijzing wordt verwijderd.',
+      'improper':
+          'Importeren wijzigt de dansvorm van deze dans in $form, dus de markering Begint improper wordt verwijderd.',
+      'other': 'Importeren wijzigt de dansvorm van deze dans in $form.',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String get publishedCollectionsTitle => 'Gepubliceerde collecties';
 
   @override

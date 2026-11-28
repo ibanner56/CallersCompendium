@@ -1,0 +1,18 @@
+{
+  "id": "audit-import-wordings-reimport-notice",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Notes imported from The Caller's Box that name numbered neighbours now use its own words, such as \"with N2\", instead of an internal name such as \"with nextNeighbors\".",
+      "Importing a triplet or quadruplet keeps the order the couples end in, such as \"(231)\" in \"Proper Triplet (231)\", in the formation's detail.",
+      "Re-importing a dance's choreography from its page now says, at the top of the preview, when the import changes the dance's form, and names the Barnes reference and Starts improper mark that an English dance loses when it becomes a contra dance."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Bracket notes from The Caller's Box (\"[with N2]\") keep the source's dancer words instead of the dancer-set token.",
+      "classifyFormationSetName keeps a bracketed couple order in the qualifier.",
+      "Hoist the English parser's per-call regular expressions; the hot-path RegExp gate now checks ecd_figure_parser.dart and ecd_bars.dart."
+    ]
+  }
+}

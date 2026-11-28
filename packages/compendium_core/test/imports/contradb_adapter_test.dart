@@ -844,12 +844,16 @@ void main() {
     }
 
     const cases = <(String, FormationShape, String?)>[
-      ('Proper Triplet (231)', FormationShape.triplet, 'Proper'),
+      ('Proper Triplet (231)', FormationShape.triplet, 'Proper (231)'),
       ('Improper Triplet', FormationShape.triplet, 'Improper'),
       ('Indecent Triplet', FormationShape.triplet, 'Indecent'),
       ('Improper (triple progression)', FormationShape.dupleImproper, null),
       ('Triplet', FormationShape.triplet, null),
-      ('Improper Quadruplet (2341)', FormationShape.quadruplet, 'Improper'),
+      (
+        'Improper Quadruplet (2341)',
+        FormationShape.quadruplet,
+        'Improper (2341)',
+      ),
       ('Quadruplet', FormationShape.quadruplet, null),
       ('Triple Minor', FormationShape.tripleMinor, null),
       ('Triple Minor - Improper', FormationShape.tripleMinor, 'Improper'),

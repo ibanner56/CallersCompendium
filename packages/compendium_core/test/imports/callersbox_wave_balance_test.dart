@@ -166,20 +166,23 @@ void main() {
       expect(figures[1].params.containsKey('center'), isFalse);
     });
 
-    test('a bracketed relation is retained as a canonical note', () async {
-      final figures = await _figuresFor([
-        '(4) Balance wave of four (PR,WL) [with N2]',
-      ]);
-      expect(figures, hasLength(1));
-      final figure = figures.single;
-      expect(figure.move, 'form_short_waves');
-      expect(figure.params['balance'], isTrue);
-      expect(figure.params['sides'], 'partners');
-      expect(figure.params['center'], 'role2s');
-      expect(figure.params['centerHand'], 'left');
-      expect(figure.params['beats'], 4);
-      expect(figure.note, 'with nextNeighbors');
-    });
+    test(
+      'a bracketed relation is retained as a note in the source\'s words',
+      () async {
+        final figures = await _figuresFor([
+          '(4) Balance wave of four (PR,WL) [with N2]',
+        ]);
+        expect(figures, hasLength(1));
+        final figure = figures.single;
+        expect(figure.move, 'form_short_waves');
+        expect(figure.params['balance'], isTrue);
+        expect(figure.params['sides'], 'partners');
+        expect(figure.params['center'], 'role2s');
+        expect(figure.params['centerHand'], 'left');
+        expect(figure.params['beats'], 4);
+        expect(figure.note, 'with N2');
+      },
+    );
 
     for (final line in const [
       '(4) Balance wave of four (PR,WL) [with phantom]',
@@ -383,8 +386,8 @@ void main() {
     // #2160: TCB 18065's exact line pair, with the circulate's trailing
     // bracket. Runs the real adapter, so the balance merge is exercised too.
     const bracketNotes = <String, String>{
-      '[with N2]': 'with nextNeighbors',
-      '[with shadow]': 'with shadows',
+      '[with N2]': 'with N2',
+      '[with shadow]': 'with shadow',
     };
     for (final MapEntry(key: bracket, value: note) in bracketNotes.entries) {
       test('a long-wave balance folds into "Circulate: … $bracket"', () async {
