@@ -9138,6 +9138,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseRowsRow(int number) {
+    return 'Rij $number';
+  }
+
+  @override
   String danceEditorPhraseRowsInvalid(int max) {
     return 'Vul in elk veld een geheel getal van 1 tot $max in, in een structuur die niet te lang is. Tot dan blijft de laatste geldige fraseopbouw behouden.';
   }

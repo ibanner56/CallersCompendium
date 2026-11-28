@@ -2019,7 +2019,8 @@ class _DiscouragedTermsEditor extends StatelessWidget {
 /// `partners`, [do_si_do] with `neighbors`), and a role term inside free-text
 /// prose — so edits visibly update as the user types. A dialect of another
 /// form previews that form's figures instead ([form]; English's are
-/// `_ecdSamples`). Deterministic and dialect-only; nothing is persisted.
+/// `_ecdSamples`, a square's `_squareSamples`). Deterministic and
+/// dialect-only; nothing is persisted.
 class _DialectPreview extends StatelessWidget {
   const _DialectPreview({
     required this.dialect,
@@ -2069,14 +2070,39 @@ class _DialectPreview extends StatelessWidget {
     ),
   ];
 
-  List<Figure> get _sampleFigures =>
-      form == DanceForm.ecd ? _ecdSamples : _contraSamples;
+  /// A square dialect's preview shows square calls (ADR-007 §8.3): a role
+  /// term and a dancer term with a move substitution ([sq_hand_turn] of
+  /// `role1s` with `partners`, [sq_swing] of `corners`), and a role's place.
+  static final List<Figure> _squareSamples = [
+    Figure(
+      move: 'sq_hand_turn',
+      params: const {'who': 'role1s', 'whom': 'partners', 'hand': 'left'},
+    ),
+    Figure(
+      move: 'sq_swing',
+      params: const {'who': 'everyone', 'whom': 'corners'},
+    ),
+    Figure(
+      move: 'sq_promenade',
+      params: const {'who': 'everyone', 'destination': 'role1Place'},
+    ),
+  ];
+
+  List<Figure> get _sampleFigures => switch (form) {
+    DanceForm.contra => _contraSamples,
+    DanceForm.ecd => _ecdSamples,
+    DanceForm.square => _squareSamples,
+  };
 
   static const String _contraFreeText = 'role1s scoop up their role2 and swing';
   static const String _ecdFreeText = 'role1s cast down behind the role2s';
+  static const String _squareFreeText = 'role1s promenade their role2 home';
 
-  String get _sampleFreeText =>
-      form == DanceForm.ecd ? _ecdFreeText : _contraFreeText;
+  String get _sampleFreeText => switch (form) {
+    DanceForm.contra => _contraFreeText,
+    DanceForm.ecd => _ecdFreeText,
+    DanceForm.square => _squareFreeText,
+  };
 
   @override
   Widget build(BuildContext context) {

@@ -9086,6 +9086,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String danceEditorPhraseRowsRow(int number) {
+    return 'Række $number';
+  }
+
+  @override
   String danceEditorPhraseRowsInvalid(int max) {
     return 'Angiv et helt tal fra 1 til $max i hvert felt, i en struktur der ikke er for lang. Indtil da bevares den sidste gyldige frastruktur.';
   }
