@@ -59,6 +59,78 @@ void main() {
     });
   });
 
+  // The system resolver reads more than the dotted quad: a whole number, hex
+  // and octal parts, and short forms (`127.1`) all name an IPv4 address. Each
+  // spelling here is 127.0.0.1, a private address, or the cloud metadata
+  // address, through the calendar fetch, which takes any https address.
+  group('fetchCalendarFeed refuses every spelling of a reserved address', () {
+    late List<Uri> requested;
+    http.Client recordingClient() => MockClient((request) async {
+      requested.add(request.url);
+      return http.Response('BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n', 200);
+    });
+    setUp(() => requested = []);
+
+    for (final host in [
+      '127.0.0.1',
+      '2130706433', // decimal
+      '0x7f000001', // hex
+      '017700000001', // octal
+      '0x7f.0.0.1', // a hex part
+      '0177.0.0.1', // an octal part
+      '127.0.0.01', // a leading zero
+      '127.1', // short: 127.0.0.1
+      '127.0.1', // short: 127.0.0.1
+      '0', // 0.0.0.0
+      '10.1', // short: 10.0.0.1
+      '0xa9.0xfe.0xa9.0xfe', // 169.254.169.254
+      '0xA9FEA9FE', // 169.254.169.254, upper case
+      '2130706433.', // a trailing dot
+      '[::ffff:127.0.0.1]', // IPv4-mapped IPv6
+      '[::ffff:7f00:1]', // IPv4-mapped IPv6, hex
+      '[0:0:0:0:0:ffff:127.0.0.1]', // IPv4-mapped IPv6, written out
+      '[::127.0.0.1]', // IPv4-compatible IPv6 (deprecated)
+      '[fe80::1%25eth0]', // link-local with a zone
+    ]) {
+      test('$host is refused without a request', () async {
+        await expectLater(
+          fetchCalendarFeed(
+            'https://$host/a.ics',
+            client: recordingClient(),
+          ),
+          throwsA(
+            isA<UrlFetchException>().having(
+              (e) => e.reason,
+              'reason',
+              UrlFetchFailureReason.blockedHost,
+            ),
+          ),
+        );
+        expect(requested, isEmpty);
+      });
+    }
+
+    // Positive controls: the same client fetches a public host, and a host
+    // name that only starts like a number.
+    for (final host in [
+      'calendar.example',
+      '8.8.8.8',
+      '[2001:4860:4860::8888]',
+      '1password.com',
+      '0xdead.example',
+      '123.example',
+    ]) {
+      test('$host is fetched', () async {
+        final body = await fetchCalendarFeed(
+          'https://$host/a.ics',
+          client: recordingClient(),
+        );
+        expect(body, contains('BEGIN:VCALENDAR'));
+        expect(requested, hasLength(1));
+      });
+    }
+  });
+
   group('fetchImportUrl SSRF guard', () {
     test(
       'blocks a cloud-metadata address without calling the client',
