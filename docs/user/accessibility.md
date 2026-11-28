@@ -153,6 +153,10 @@ and Linux and **Cmd** on a Mac:
   Dances your filters hide are not selected. Pressing it again leaves everything
   selected.
 - **Ctrl-,** (**Cmd-,**) opens **Settings**.
+- **Ctrl-Z** (**Cmd-Z**), while an **Undo** message is showing, presses its
+  **Undo**, wherever the keyboard focus is. In a text field it undoes your
+  typing instead, and in the dance editor it undoes your last edit, as it
+  always has.
 - **Esc**, or **Ctrl-W** (**Cmd-W**), goes back. If a menu, a list of
   suggestions, or a dialog you could close by clicking outside it is open, it
   closes that first (a dialog holding text you have typed stays open, so that
@@ -270,8 +274,10 @@ A few smaller settings and behaviors round out the experience:
   stays on screen: 2, 5, 10 (the default) or 15 seconds, or **Until I close
   it**. Whatever you choose, the message also stays while you point at it with
   a mouse or move to its **Undo** button with the keyboard, and its full time
-  starts again when you move away. With a screen reader running, it stays until
-  you act on it or close it.
+  starts again when you move away. Each key you press also starts its full time
+  again, so it doesn't go while you're tabbing toward it; and you needn't tab
+  there at all: **Ctrl-Z** (**Cmd-Z** on a Mac) presses its **Undo**. With a
+  screen reader running, it stays until you act on it or close it.
 - **Meaning is never carried by color alone.** Statuses and special slots — like
   an [alt](./glossary.md#alt) — always include an icon and a text label as well as
   color, so nothing depends on being able to distinguish hues. That holds for the
