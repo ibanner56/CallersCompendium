@@ -293,6 +293,71 @@ void main() {
     );
   });
 
+  testWidgets('Undo after Reset to defaults keeps a choice made since, and '
+      'says it failed', (tester) async {
+    final changed = readSuggestionSettings({
+      'version': 1,
+      'factors': {
+        'matrixVariety': {'weight': 'off'},
+      },
+    });
+    final h = await _pump(
+      tester,
+      const SuggestionSettingsScreen(),
+      read: changed,
+    );
+    await tester.tap(find.byKey(const ValueKey('suggestion-settings-reset')));
+    await tester.pumpAndSettle();
+
+    // A choice made after the reset, here or synced in from another device.
+    await tester.tap(_segment(SuggestionFactor.formationBalance, 'A lot'));
+    await tester.pumpAndSettle();
+    final since = h.settings.value.settings.toJson();
+
+    await tester.tap(
+      find.byKey(const ValueKey('suggestion-settings-reset-undo')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(h.settings.value.settings.toJson(), since);
+    expect((await _stored(h)).settings.toJson(), since);
+    expect(find.byKey(const ValueKey('undo-failed-snackbar')), findsOneWidget);
+  });
+
+  testWidgets("Undo after Reset to defaults keeps a peer's kept part that "
+      'synced in meanwhile', (tester) async {
+    final h = await _pump(
+      tester,
+      const SuggestionSettingsScreen(),
+      read: readSuggestionSettings({
+        'version': 1,
+        'factors': {
+          'matrixVariety': {'weight': 'off'},
+        },
+      }),
+    );
+    await tester.tap(find.byKey(const ValueKey('suggestion-settings-reset')));
+    await tester.pumpAndSettle();
+
+    // Another device's value arrives: the default choices, plus a part this
+    // build does not read, which it must keep.
+    h.settings.value = readSuggestionSettings({
+      'version': 1,
+      'factors': <String, Object?>{},
+      'peerOnly': 'kept',
+    });
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('suggestion-settings-reset-undo')),
+    );
+    await tester.pumpAndSettle();
+
+    final stored = (await _stored(h)).settings;
+    expect(stored.matrixVariety, SuggestionWeight.off);
+    expect(stored.toJson()['peerOnly'], 'kept');
+  });
+
   testWidgets('a value saved by a newer version is shown read-only and never '
       'overwritten', (tester) async {
     final h = await _pump(

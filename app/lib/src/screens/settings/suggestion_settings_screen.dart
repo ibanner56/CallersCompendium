@@ -287,7 +287,32 @@ class SuggestionSettingsScreen extends StatelessWidget {
                           actionKey: const ValueKey(
                             'suggestion-settings-reset-undo',
                           ),
-                          onUndo: () => _write(notifier, repos, before),
+                          onUndo: () {
+                            // Puts back only the six choices, onto what is
+                            // held now, so a peer's kept parts that synced in
+                            // meanwhile survive. A choice made since the reset,
+                            // here or on another device, is not overwritten:
+                            // Undo reports that it failed instead.
+                            final current = notifier.value;
+                            if (current.isNewer ||
+                                !current.settings.hasDefaultChoices) {
+                              throw StateError(
+                                'suggestion choices changed since the reset',
+                              );
+                            }
+                            return _write(
+                              notifier,
+                              repos,
+                              current.settings.copyWith(
+                                matrixVariety: before.matrixVariety,
+                                formationBalance: before.formationBalance,
+                                difficultyCurve: before.difficultyCurve,
+                                curveShape: before.curveShape,
+                                venueRecency: before.venueRecency,
+                                venueWindow: before.venueWindow,
+                              ),
+                            );
+                          },
                         );
                       }
                     : null,

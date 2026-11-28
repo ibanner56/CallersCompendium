@@ -1311,7 +1311,8 @@ The shipped defaults are: Variety on the matrix **A lot**, Formation balance
 **A little**, Difficulty curve **A little** with **Build up, then ease off**, and
 Recent calls at this venue **A lot** within **3 months**. **Reset to defaults**
 puts every choice back to these at once, with **Undo** to bring your choices
-back, and is grayed out while they are already the defaults.
+back (unless you have changed one since), and is grayed out while they are
+already the defaults.
 
 All three settings are in your [backup](#backup--restore), and sync with
 [Device Sync](#device-sync) once every device connected to your store has a
