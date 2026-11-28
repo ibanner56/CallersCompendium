@@ -7,6 +7,7 @@ import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/suggestions_scope.dart';
 import '../../theme/app_spacing.dart';
+import '../../utils/undo_snack_bar.dart';
 import '../../widgets/app_dropdown_field.dart';
 import '../../widgets/collapsible_section.dart';
 import '../../widgets/picker_suggestions.dart' show suggestionFactorTitle;
@@ -90,10 +91,22 @@ class SuggestionsSection extends StatelessWidget {
 class SuggestionSettingsScreen extends StatelessWidget {
   const SuggestionSettingsScreen({super.key});
 
-  Future<void> _save(BuildContext context, SuggestionSettings settings) async {
-    final notifier = SuggestionSettingsScope.notifierOf(context);
+  Future<void> _save(BuildContext context, SuggestionSettings settings) =>
+      _write(
+        SuggestionSettingsScope.notifierOf(context),
+        RepositoriesScope.of(context),
+        settings,
+      );
+
+  /// Saves [settings], unless a newer build's value is held or nothing
+  /// changes. Takes the scope's notifier and repositories rather than a
+  /// context, so Undo still writes after the screen has closed.
+  static Future<void> _write(
+    ValueNotifier<SuggestionSettingsRead> notifier,
+    CompendiumRepositories repos,
+    SuggestionSettings settings,
+  ) async {
     if (notifier.value.isNewer || notifier.value.settings == settings) return;
-    final repos = RepositoriesScope.of(context);
     final next = (settings: settings, isNewer: false);
     notifier.value = next;
     await persistSetting(
@@ -252,10 +265,29 @@ class SuggestionSettingsScreen extends StatelessWidget {
                 label: Text(l10n.suggestionsResetDefaults),
                 onPressed: editable && !settings.hasDefaultChoices
                     ? () async {
+                        // Reset can be undone, so it acts at once and offers
+                        // Undo rather than asking first (ux.md, "Undo
+                        // everywhere, destructive confirms only where undo is
+                        // impossible").
                         final messenger = ScaffoldMessenger.of(context);
-                        await _save(context, settings.resetChoices());
-                        messenger.showSnackBar(
-                          SnackBar(content: Text(l10n.suggestionsResetDone)),
+                        final notifier = SuggestionSettingsScope.notifierOf(
+                          context,
+                        );
+                        final repos = RepositoriesScope.of(context);
+                        final accessibleNavigation =
+                            MediaQuery.accessibleNavigationOf(context);
+                        final before = settings;
+                        await _write(notifier, repos, before.resetChoices());
+                        showUndoSnackBar(
+                          messenger,
+                          message: l10n.suggestionsResetDone,
+                          undoLabel: l10n.commonUndo,
+                          undoFailedMessage: l10n.commonUndoFailed,
+                          accessibleNavigation: accessibleNavigation,
+                          actionKey: const ValueKey(
+                            'suggestion-settings-reset-undo',
+                          ),
+                          onUndo: () => _write(notifier, repos, before),
                         );
                       }
                     : null,

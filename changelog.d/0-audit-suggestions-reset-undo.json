@@ -1,0 +1,10 @@
+{
+  "id": "0-audit-suggestions-reset-undo",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "In Settings ▸ Experimental ▸ Suggestions ▸ What suggestions look for, Reset to defaults now offers Undo, so choices reset by mistake can be brought back.",
+      "The Delete button in the message about a saved search that can't be read is now shown in the red style every other delete confirmation uses."
+    ]
+  }
+}
