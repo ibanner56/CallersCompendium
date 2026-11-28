@@ -208,6 +208,35 @@ def test_build_refuses_the_build_and_temp_roots_themselves() -> None:
             raise AssertionError(f"container root accepted as --out: {target}")
 
 
+def test_guard_still_protects_a_checkout_that_lives_under_the_temp_dir() -> None:
+    """Regression: with the checkout itself below the system temp directory
+    (a CI runner's or an agent's scratch clone), every path in the repository
+    sat "strictly below" a safe root, so `--out app` was accepted and
+    `build_site` would have erased it; so was a directory that holds the
+    clone. The temp allowance must not reach into the checkout or above it;
+    build/ inside it stays allowed."""
+    real = tempfile.gettempdir
+    tempfile.gettempdir = lambda: str(REPO_ROOT.resolve().parent.parent)
+    try:
+        for target in (REPO_ROOT / "app", REPO_ROOT / "tools", REPO_ROOT.parent):
+            try:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    rud._guard_out_dir(target)
+            except SystemExit as exc:
+                assert exc.code == 2, target
+            else:  # pragma: no cover - only on a regression
+                raise AssertionError(f"checkout path accepted as --out: {target}")
+        below_build = REPO_ROOT / "build" / "_guard_probe_temp_checkout"
+        below_build.mkdir(parents=True, exist_ok=True)
+        try:
+            (below_build / "index.html").write_text("x", encoding="utf-8")
+            rud._guard_out_dir(below_build)
+        finally:
+            shutil.rmtree(below_build, ignore_errors=True)
+    finally:
+        tempfile.gettempdir = real
+
+
 def test_build_allows_directories_strictly_below_build_and_temp() -> None:
     """Non-empty is fine *below* a root — that is the whole allowance."""
     with tempfile.TemporaryDirectory() as tmp:

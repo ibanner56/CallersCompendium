@@ -854,7 +854,8 @@ def _guard_out_dir(out: Path) -> None:
 
     ``build_site`` wipes ``out`` before writing, so this is an **allow-list**,
     not a blocklist: the directory must not exist yet, be empty, or sit
-    **strictly below** ``build/`` or the system temp directory.
+    **strictly below** ``build/`` or the system temp directory (but not inside
+    this checkout, which may itself live under the temp directory).
 
     Strictly below matters. Those two roots are *containers* of build outputs,
     never outputs themselves: ``--out build`` would wipe every other build
@@ -884,8 +885,13 @@ def _guard_out_dir(out: Path) -> None:
     if not resolved.is_dir():
         _fail(f"--out exists and is not a directory: {resolved}")
 
+    # The temp root's allowance stops at the checkout: a clone that itself
+    # lives under the temp directory would otherwise let `--out app`, or a
+    # directory holding the clone, through. Inside it only build/ is disposable.
+    repo = REPO_ROOT.resolve()
+    in_checkout = resolved == repo or repo in resolved.parents or resolved in repo.parents
     for root in safe_roots:
-        if root in resolved.parents:
+        if root in resolved.parents and (root == safe_roots[0] or not in_checkout):
             return
     if not any(resolved.iterdir()):
         return  # empty: safe to replace
