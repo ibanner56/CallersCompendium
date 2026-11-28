@@ -1067,10 +1067,20 @@ bool _leadingNumberCountsNotBeats(String line, _BeatSplit split) {
   final leading = _bareLeadingCount.firstMatch(line.trim());
   if (leading == null || split.beats == 0) return false;
   final rest = leading.group(2)!.trim();
-  return int.tryParse(leading.group(1)!) == split.beats &&
-      rest == split.text &&
-      _countedWord.hasMatch(rest);
+  if (int.tryParse(leading.group(1)!) != split.beats || rest != split.text) {
+    return false;
+  }
+  // Any number of hands, couples or dancers; of one role, only a few, since
+  // four or eight is far likelier the beats (`8 ladies chain`).
+  return _countedWord.hasMatch(rest) ||
+      (split.beats <= _maxRoleCount && _countedRoleWord.hasMatch(rest));
 }
+
+/// The most dancers of one role a leading number counts (`3 men hey for
+/// three`): a set has few of each role to name, while 4 and 8 are common
+/// counts in beats. An agent's call in the pre-release audit (finding C-04,
+/// after review): no limit read `8 ladies chain` as eight ladies.
+const int _maxRoleCount = 3;
 
 /// The beats a custom kept whole from the typed [line] states: [split]'s
 /// count, unless an English line's leading number counts dancers.
@@ -1080,11 +1090,19 @@ int _typedBeats(String line, _BeatSplit split, Taxonomy? taxonomy) =>
     : split.beats;
 
 /// A line's first word, after its leading number, that the number counts
-/// instead of beats: hands (`4 hands across`) or dancers (`3 couples`, `2 men`,
-/// `1 lady`).
+/// instead of beats, whatever the number: hands (`4 hands across`), couples
+/// (`3 couples`) or dancers. Role words are [_countedRoleWord].
 final RegExp _countedWord = RegExp(
-  r'^(?:hands?|couples?|men|man|women|woman|ladies|lady|gents?|gentlemen|'
-  r'gentleman|corners?|dancers?|larks?|robins?)\b',
+  r'^(?:hands?|couples?|dancers?)\b',
+  caseSensitive: false,
+);
+
+/// A role word as a line's first word, after its leading number: a count of
+/// dancers only up to [_maxRoleCount]. Corners are not counted: a set's
+/// corners are named by order (`1st corners`), so `8 corners cross` is beats.
+final RegExp _countedRoleWord = RegExp(
+  r'^(?:men|man|women|woman|ladies|lady|gents?|gentlemen|gentleman|larks?|'
+  r'robins?)\b',
   caseSensitive: false,
 );
 

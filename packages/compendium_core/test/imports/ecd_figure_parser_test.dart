@@ -840,8 +840,15 @@ void main() {
         expect(f.isCustom, isTrue, reason: line);
         expect(f.beats, 0, reason: line);
       }
-      // Control: a bare count before a figure is still its beats.
+      // Control: a bare count before a figure is still its beats, also before
+      // corners, and before a role when the number is too many of one role
+      // to be dancers.
       expect(_one('8 circle left').params['beats'], 8);
+      for (final line in ['8 corners cross', '4 gentlemen cross']) {
+        final f = _one(line);
+        expect(f.isCustom, isFalse, reason: line);
+        expect(f.beats, line.startsWith('8') ? 8 : 4, reason: line);
+      }
       expect(_typed('8 circle left; turn single').first.params['beats'], 8);
     });
 

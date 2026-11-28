@@ -116,11 +116,15 @@ bool _isLarksRobinsChoreographer(String name) {
 List<String> _credits(String name) {
   final credits = <String>[];
   for (final part in name.split(_creditSeparator)) {
-    final pieces = part.split(',');
+    // A piece with no name word (a year) belongs to no one.
+    final named = [
+      for (final p in part.split(','))
+        if (_words(p).any(_isNameWord)) p,
+    ];
     final eachAPerson =
-        pieces.length > 1 &&
-        pieces.every((p) => _words(p).where(_isNameWord).length >= 2);
-    credits.addAll(eachAPerson ? pieces : [part]);
+        named.length > 1 &&
+        named.every((p) => _words(p).where(_isNameWord).length >= 2);
+    credits.addAll(eachAPerson ? named : [part]);
   }
   return credits;
 }

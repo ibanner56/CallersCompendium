@@ -2705,8 +2705,9 @@ ECD dance.
   starts with a bare number is read whole first (`2 changes of rights and
   lefts`, `2 hand turn`), then with the number as its count, unless the
   number counts hands or dancers (`4 hands across`, `3 couples circle left`,
-  `2 men turn single`, in any `;` clause): such a line stays custom with no
-  count (pre-release audit finding C-04, an agent's call over reading it
+  `2 men turn single`, in any `;` clause; of one role only one to three, so
+  `8 ladies chain` and `8 corners cross` keep their beats): such a line stays
+  custom with no count (pre-release audit finding C-04, an agent's call over reading it
   without a count).
 - **Bars** (`ecd_bars.dart`, Hudson, 19 November 2026: "the meter is the
   rule"). ECD notation counts in bars of the tune, so a leading bar range
