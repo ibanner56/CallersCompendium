@@ -91,9 +91,20 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
   final chosen = duration ?? UndoPromptDurationScope.read(messenger.context);
   final timeout = accessibleNavigation ? null : chosen;
   final hold = _UndoPromptHold(messenger, timeout);
-  void undo() => unawaited(_runUndo(messenger, onUndo, undoFailedMessage));
+  late final _UndoPromptKeys keys;
+  // Once only, whichever comes first: the Undo button, or the undo key while
+  // the prompt is still leaving after the other (an `onUndo` that writes an
+  // entry back is not safe to run twice).
+  var undone = false;
+  void undo() {
+    if (undone) return;
+    undone = true;
+    keys.dispose();
+    unawaited(_runUndo(messenger, onUndo, undoFailedMessage));
+  }
+
   messenger.clearSnackBars();
-  final keys = _UndoPromptKeys(messenger, hold, undo);
+  keys = _UndoPromptKeys(messenger, hold, undo);
   final controller = messenger.showSnackBar(
     SnackBar(
       key: key,
