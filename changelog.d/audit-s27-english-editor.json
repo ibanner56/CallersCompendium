@@ -7,11 +7,11 @@
     ],
     "fixed": [
       "In an English dance, the dance editor's running Total and its Over by or Under by now read in bars, as the figures and the warnings do, wherever both come to whole or half bars; a combination placed in the dance says how many bars it becomes.",
-      "A screen reader now hears an English dance's figures in bars in the dance editor and in Perform, as the screen shows them, instead of in beats.",
-      "An English sequence's Bars for all no longer takes 0, which saved a sequence of no length: it asks for whole or half bars instead, as a square dance's span asks for at least 1 beat.",
+      "A screen reader now hears an English dance's figures, and its sequences, modifier and meanwhile groups, in bars in the dance editor and in Perform, as the screen shows them, instead of in beats.",
+      "An English sequence's Bars for all no longer takes 0, which saved a sequence of no length: it says the least it takes, half a bar, or a whole bar in triple time, as a square dance's span asks for at least 1 beat.",
       "Saving a dance whose Title is empty, or whose phrase structure doesn't read, after scrolling far down the form now goes back to the field and shows its message, instead of saying the save failed and to try again.",
       "Printed and shared cards for an English dance give a phrase structure that has no named phrases in words, such as 4 phrases of 8 bars instead of 4*8*3, and name phrases in different meters with their beats to the bar.",
-      "Names stored family name first, such as Sharp, Cecil, are set apart with semicolons wherever several are joined on one line: the Authors and Interpreted by fields, the dance page, Perform, the collection and printed cards."
+      "Authors and interpreters stored family name first, such as Sharp, Cecil, are now set apart with semicolons when several are joined on one line: in the closed Authors, Interpreted by and Tags fields, the collection list, the dance page, Perform, and printed and program cards."
     ]
   },
   "core": {

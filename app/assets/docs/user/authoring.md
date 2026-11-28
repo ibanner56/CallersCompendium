@@ -773,8 +773,8 @@ bars 1–4". Fill in **Bars for all** at the top of the sequence, and leave the
 **Bars** of any figure in it empty to give that figure no timing of its own.
 Leave **Bars for all** empty and the sequence adds up its figures' bars, as a
 contra sequence does; emptying it gives each figure with no bars its move's
-usual length. **Bars for all** takes half a bar or more, not 0, which would
-leave its figures no time. A figure that leaves the sequence, by ungrouping it or turning
+usual length. **Bars for all** takes at least half a bar, or a whole bar where
+half a bar is refused, as in triple time; 0 would leave its figures no time. A figure that leaves the sequence, by ungrouping it or turning
 it into another kind of group, takes its usual length too. If every figure has bars of its own and they don't add
 up to **Bars for all**, or the figures with bars already fill it, the sequence
 and the dance's warnings say so. Changing the dance to a contra puts its
@@ -868,8 +868,9 @@ another where there is not.
   pencil beside a name edits that person's details. **Interpreted by** works
   the same way, and so does **Tags**, without the pencil. The closed field
   lists the names you chose, set apart with commas, or with semicolons when a
-  name has a comma of its own, such as *Sharp, Cecil; Shaw, Pat*; the dance
-  page, Perform and printed cards join names the same way.
+  name has a comma of its own, such as *Sharp, Cecil; Shaw, Pat*; the
+  collection list, the dance page, Perform and printed cards join authors and
+  interpreters the same way.
 - For an **English (ECD)** dance, the credits for its original and its
   interpretation come next, each as names with a year beside them: **Authors**
   with **Composed**, then **Interpreted by** with **Interpreted in**. Many
